@@ -5,6 +5,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import EventForm from './EventForm';
+import EventDetailsModal from './EventDetailsModal';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
@@ -22,7 +23,8 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.MONTH);
   const [showModal, setShowModal] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', start: '', end: '', description: '', staff: [], classes: [], students: [] });
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [newEvent, setNewEvent] = useState({ title: '', start: '', end: '', description: '', confirmationRequired: false, staff: [], classes: [], students: [], tutorResponses: [] });
   const [isEditing, setIsEditing] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
 
@@ -52,21 +54,26 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   }, [setEvents, userRole, userEmail]);
 
   const handleSelectSlot = (slotInfo) => {
-    if (userRole === 'student') return;
+    if (userRole === 'student' || userRole === 'tutor') return;
     const start = slotInfo.start;
     const end = new Date(start);
     end.setMinutes(start.getMinutes() + 30); // Set default duration to 30 minutes
-    setNewEvent({ title: '', start, end, description: '', staff: [], classes: [], students: [] });
+    setNewEvent({ title: '', start, end, description: '', confirmationRequired: false, staff: [], classes: [], students: [], tutorResponses: [] });
     setIsEditing(false);
     setShowModal(true);
   };
 
   const handleSelectEvent = (event) => {
     if (userRole === 'student') return;
-    setNewEvent(event);
-    setIsEditing(true);
-    setEventToEdit(event);
-    setShowModal(true);
+    if (userRole === 'tutor') {
+      setEventToEdit(event);
+      setShowDetailsModal(true);
+    } else {
+      setNewEvent(event);
+      setIsEditing(true);
+      setEventToEdit(event);
+      setShowModal(true);
+    }
   };
 
   const handleNavigate = (newDate) => {
@@ -78,8 +85,9 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewEvent({ ...newEvent, [name]: value });
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? checked : value;
+    setNewEvent({ ...newEvent, [name]: val });
   };
 
   const handleStaffChange = (selectedStaff) => {
@@ -103,9 +111,11 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         start: new Date(newEvent.start),
         end: new Date(newEvent.end),
         description: newEvent.description,
+        confirmationRequired: newEvent.confirmationRequired,
         staff: newEvent.staff,
         classes: newEvent.classes,
         students: newEvent.students,
+        tutorResponses: newEvent.tutorResponses,
       });
       setEvents(events.map(event => event.id === eventToEdit.id ? { ...newEvent, id: eventToEdit.id } : event));
     } else {
@@ -114,9 +124,11 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         start: new Date(newEvent.start),
         end: new Date(newEvent.end),
         description: newEvent.description,
+        confirmationRequired: newEvent.confirmationRequired,
         staff: newEvent.staff,
         classes: newEvent.classes,
         students: newEvent.students,
+        tutorResponses: [],
       });
       setEvents([...events, { ...newEvent, id: docRef.id }]);
     }
@@ -132,7 +144,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   };
 
   const handleEventDrop = async ({ event, start, end }) => {
-    if (userRole === 'student') return;
+    if (userRole === 'student' || userRole === 'tutor') return;
     const updatedEvent = { ...event, start, end };
     const previousEvents = [...events];
 
@@ -153,7 +165,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   };
 
   const handleEventResize = async ({ event, start, end }) => {
-    if (userRole === 'student') return;
+    if (userRole === 'student' || userRole === 'tutor') return;
     const updatedEvent = { ...event, start, end };
     const previousEvents = [...events];
 
@@ -171,6 +183,30 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
       console.error('Failed to update event:', error);
       setEvents(previousEvents);
     }
+  };
+
+  const handleConfirmation = async (event, confirmed) => {
+    const updatedTutorResponses = [
+      ...event.tutorResponses.filter(response => response.email !== userEmail),
+      { email: userEmail, response: confirmed },
+    ];
+    const updatedEvent = { ...event, tutorResponses: updatedTutorResponses };
+    const eventDoc = doc(db, 'events', event.id);
+    await updateDoc(eventDoc, {
+      tutorResponses: updatedTutorResponses,
+    });
+    setEvents(events.map(evt => evt.id === event.id ? updatedEvent : evt));
+    setShowDetailsModal(false);
+  };
+
+  const eventStyleGetter = (event) => {
+    const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
+    const style = {
+      backgroundColor: event.confirmationRequired && !tutorResponse && userRole === 'tutor' ? 'red' : '',
+    };
+    return {
+      style: style
+    };
   };
 
   const messages = {
@@ -211,6 +247,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
             onView={handleViewChange}
             views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             messages={messages}
+            eventPropGetter={eventStyleGetter}
           />
         ) : (
           <Calendar
@@ -232,6 +269,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         <EventForm
           isEditing={isEditing}
           newEvent={newEvent}
+          setNewEvent={setNewEvent} // Pass setNewEvent to EventForm
           handleInputChange={handleInputChange}
           handleSubmit={handleSubmit}
           handleDelete={handleDelete}
@@ -239,6 +277,14 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
           handleStaffChange={handleStaffChange}
           handleClassChange={handleClassChange}
           handleStudentChange={handleStudentChange}
+        />
+      )}
+      {showDetailsModal && userRole === 'tutor' && (
+        <EventDetailsModal
+          event={eventToEdit}
+          handleClose={() => setShowDetailsModal(false)}
+          handleConfirmation={handleConfirmation}
+          userEmail={userEmail}
         />
       )}
     </div>

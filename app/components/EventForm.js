@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
-const EventForm = ({ isEditing, newEvent, handleInputChange, handleSubmit, handleDelete, setShowModal, handleStaffChange, handleStudentChange, handleClassChange }) => {
+const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowModal, handleStaffChange, handleStudentChange, handleClassChange }) => {
   const [staffOptions, setStaffOptions] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
   const [classOptions, setClassOptions] = useState([]);
@@ -60,6 +60,10 @@ const EventForm = ({ isEditing, newEvent, handleInputChange, handleSubmit, handl
   const handleStudentSelectChange = (selectedOptions) => {
     setSelectedStudents(selectedOptions);
     handleStudentChange(selectedOptions);
+  };
+
+  const handleConfirmationChange = (selectedOption) => {
+    setNewEvent({ ...newEvent, confirmationRequired: selectedOption.value === 'yes' });
   };
 
   return (
@@ -149,6 +153,36 @@ const EventForm = ({ isEditing, newEvent, handleInputChange, handleSubmit, handl
               classNamePrefix="select"
             />
           </div>
+          <div>
+            <label htmlFor="confirmationRequired" className="block text-sm font-medium text-gray-700">Confirmation Required</label>
+            <Select
+              name="confirmationRequired"
+              options={[
+                { value: 'yes', label: 'Yes' },
+                { value: 'no', label: 'No' },
+              ]}
+              value={newEvent.confirmationRequired ? { value: 'yes', label: 'Yes' } : { value: 'no', label: 'No' }}
+              onChange={handleConfirmationChange}
+              className="basic-single-select"
+              classNamePrefix="select"
+            />
+          </div>
+          {newEvent.confirmationRequired && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Tutor Responses</label>
+              {newEvent.tutorResponses && newEvent.tutorResponses.length > 0 ? (
+                <ul className="list-disc list-inside">
+                  {newEvent.tutorResponses.map((response, index) => (
+                    <li key={index}>
+                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">No tutors have responded yet.</p>
+              )}
+            </div>
+          )}
           <div className="flex justify-between">
             <button
               type="button"
