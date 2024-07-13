@@ -73,7 +73,7 @@ const Dashboard = () => {
               <p className="mt-2 text-sm text-gray-600">Signed in as {session.user.email}</p>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={() => signOut({ callbackUrl: '/login' })}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               Sign out
@@ -82,7 +82,13 @@ const Dashboard = () => {
           <div className="border-t border-gray-200 pt-4 flex-1 overflow-auto">
             {activeSection === 'calendar' && (
               <div className="h-full">
-                <CalendarWrapper events={events} setEvents={setEvents} onDateChange={handleDateChange} userRole={userRole} />
+                <CalendarWrapper
+                  events={events}
+                  setEvents={setEvents}
+                  onDateChange={handleDateChange}
+                  userRole={userRole}
+                  userEmail={session.user.email}
+                />
                 {selectedDate && <p className="text-center mt-4 text-gray-700">Selected Date: {selectedDate.toString()}</p>}
               </div>
             )}

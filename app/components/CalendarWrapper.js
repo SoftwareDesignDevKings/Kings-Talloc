@@ -18,7 +18,7 @@ moment.updateLocale('en', {
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
-const CalendarWrapper = ({ events, setEvents, userRole }) => {
+const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.MONTH);
   const [showModal, setShowModal] = useState(false);
@@ -35,11 +35,25 @@ const CalendarWrapper = ({ events, setEvents, userRole }) => {
         start: doc.data().start.toDate(),
         end: doc.data().end.toDate(),
       }));
-      setEvents(eventsFromDb);
+
+      let filteredEvents;
+      if (userRole === 'teacher') {
+        filteredEvents = eventsFromDb;
+      } else if (userRole === 'tutor') {
+        filteredEvents = eventsFromDb.filter(event =>
+          event.staff.some(staffMember => staffMember.value === userEmail)
+        );
+      } else if (userRole === 'student') {
+        filteredEvents = eventsFromDb.filter(event =>
+          event.students.some(student => student.value === userEmail)
+        );
+      }
+
+      setEvents(filteredEvents);
     };
 
     fetchEvents();
-  }, [setEvents]);
+  }, [setEvents, userRole, userEmail]);
 
   const handleSelectSlot = (slotInfo) => {
     if (userRole === 'student') return;
