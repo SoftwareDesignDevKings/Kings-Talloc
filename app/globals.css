@@ -4,8 +4,9 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --background-start-rgb: 83, 77, 248; /* Adjusted colors */
+  --background-middle-rgb: 139, 92, 246; /* Adjusted colors */
+  --background-end-rgb: 236, 72, 153; /* Adjusted colors */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,11 +20,12 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+    to right,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-middle-rgb)),
+    rgb(var(--background-end-rgb))
+  );
+  min-height: 100vh; /* Ensure the gradient covers the entire viewport */
 }
 
 @layer utilities {
