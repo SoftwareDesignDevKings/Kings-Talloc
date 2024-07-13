@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import ConfirmationModal from './ConfirmationModal';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
@@ -12,7 +13,9 @@ const UserRolesManager = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -83,6 +86,7 @@ const UserRolesManager = () => {
     setUsers(updatedUsers);
     setFilteredUsers(updatedUsers);
     setSuccess(`User ${userEmail} deleted successfully.`);
+    setShowConfirmationModal(false);
   };
 
   const handleEdit = (user) => {
@@ -90,6 +94,11 @@ const UserRolesManager = () => {
     setRole(user.role);
     setIsEditing(true);
     setShowModal(true);
+  };
+
+  const confirmDelete = (user) => {
+    setUserToDelete(user);
+    setShowConfirmationModal(true);
   };
 
   if (loading) {
@@ -147,7 +156,7 @@ const UserRolesManager = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(user.email)}
+                    onClick={() => confirmDelete(user)}
                     className="px-2 py-1 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
                     Delete
@@ -204,6 +213,15 @@ const UserRolesManager = () => {
             </form>
           </div>
         </div>
+      )}
+      {showConfirmationModal && (
+        <ConfirmationModal
+          showConfirmationModal={showConfirmationModal}
+          setShowConfirmationModal={setShowConfirmationModal}
+          userToRemove={userToDelete}
+          handleRemoveUser={() => handleDelete(userToDelete.email)}
+          isClassDeletion={false}
+        />
       )}
     </div>
   );

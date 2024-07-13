@@ -22,7 +22,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.MONTH);
   const [showModal, setShowModal] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', start: '', end: '', staff: [], classes: [], students: [] });
+  const [newEvent, setNewEvent] = useState({ title: '', start: '', end: '', description: '', staff: [], classes: [], students: [] });
   const [isEditing, setIsEditing] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
 
@@ -36,17 +36,13 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         end: doc.data().end.toDate(),
       }));
 
-      let filteredEvents;
+      let filteredEvents = [];
       if (userRole === 'teacher') {
         filteredEvents = eventsFromDb;
       } else if (userRole === 'tutor') {
-        filteredEvents = eventsFromDb.filter(event =>
-          event.staff.some(staffMember => staffMember.value === userEmail)
-        );
+        filteredEvents = eventsFromDb.filter(event => event.staff.some(staff => staff.value === userEmail));
       } else if (userRole === 'student') {
-        filteredEvents = eventsFromDb.filter(event =>
-          event.students.some(student => student.value === userEmail)
-        );
+        filteredEvents = eventsFromDb.filter(event => event.students.some(student => student.value === userEmail));
       }
 
       setEvents(filteredEvents);
@@ -60,7 +56,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
     const start = slotInfo.start;
     const end = new Date(start);
     end.setMinutes(start.getMinutes() + 30); // Set default duration to 30 minutes
-    setNewEvent({ title: '', start, end, staff: [], classes: [], students: [] });
+    setNewEvent({ title: '', start, end, description: '', staff: [], classes: [], students: [] });
     setIsEditing(false);
     setShowModal(true);
   };
@@ -106,6 +102,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         title: newEvent.title,
         start: new Date(newEvent.start),
         end: new Date(newEvent.end),
+        description: newEvent.description,
         staff: newEvent.staff,
         classes: newEvent.classes,
         students: newEvent.students,
@@ -116,6 +113,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         title: newEvent.title,
         start: new Date(newEvent.start),
         end: new Date(newEvent.end),
+        description: newEvent.description,
         staff: newEvent.staff,
         classes: newEvent.classes,
         students: newEvent.students,

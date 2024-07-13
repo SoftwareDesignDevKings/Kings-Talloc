@@ -168,17 +168,18 @@ const ClassList = () => {
       <ConfirmationModal
         showConfirmationModal={showConfirmationModal}
         setShowConfirmationModal={setShowConfirmationModal}
-        studentToRemove={studentToRemove}
+        userToRemove={studentToRemove}
+        handleRemoveUser={handleRemoveStudent}
         selectedClass={selectedClass}
-        handleRemoveStudent={handleRemoveStudent}
+        isClassDeletion={false}
       />
       {showClassDeleteModal && (
         <ConfirmationModal
           showConfirmationModal={showClassDeleteModal}
           setShowConfirmationModal={setShowClassDeleteModal}
-          studentToRemove={null}
+          userToRemove={null}
+          handleRemoveUser={handleDeleteClass}
           selectedClass={classToDelete}
-          handleRemoveStudent={handleDeleteClass}
           isClassDeletion={true}
         />
       )}

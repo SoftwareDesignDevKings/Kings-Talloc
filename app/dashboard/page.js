@@ -9,7 +9,7 @@ import UserRolesManager from '../components/UserRolesManager';
 import ClassList from '../components/ClassList';
 import TutorHoursSummary from '../components/TutorHoursSummary';
 import { db } from '../firebase'; // Ensure this points to your Firebase configuration
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 const Dashboard = () => {
   const { data: session, status } = useSession();
@@ -39,6 +39,13 @@ const Dashboard = () => {
         } else {
           const userData = userDoc.data();
           setUserRole(userData.role);
+
+          // Update user's name if it's not set
+          if (!userData.name) {
+            await updateDoc(userRef, {
+              name: user.name
+            });
+          }
         }
       }
     };
@@ -104,7 +111,7 @@ const Dashboard = () => {
             )}
             {activeSection === 'tutorHours' && (
               <div className="h-full">
-                <TutorHoursSummary />
+                <TutorHoursSummary userRole={userRole} userEmail={session.user.email} />
               </div>
             )}
           </div>

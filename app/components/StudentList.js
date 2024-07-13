@@ -16,7 +16,7 @@ const StudentList = ({ cls, confirmRemoveStudent }) => {
                 onClick={() => confirmRemoveStudent(student, cls)}
                 className="text-red-600 hover:text-red-800 focus:outline-none"
               >
-                Delete
+                Remove
               </button>
             </li>
           ))}

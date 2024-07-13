@@ -13,7 +13,7 @@ const getMonday = (d) => {
   return new Date(d.setDate(diff));
 };
 
-const TutorHoursSummary = () => {
+const TutorHoursSummary = ({ userRole, userEmail }) => {
   const [startDate, setStartDate] = useState(getMonday(new Date()));
   const [endDate, setEndDate] = useState(moment(getMonday(new Date())).add(6, 'days').toDate());
   const [tutorHours, setTutorHours] = useState([]);
@@ -36,21 +36,21 @@ const TutorHoursSummary = () => {
 
     for (const event of events) {
       for (const staff of event.staff) {
-        const userRef = collection(db, 'users');
-        const staffQuery = query(userRef, where('role', '==', 'tutor'), where('__name__', '==', staff.value));
-        const staffSnapshot = await getDocs(staffQuery);
-        
-        if (!staffSnapshot.empty) {
-          if (!tutorHoursMap[staff.value]) {
-            tutorHoursMap[staff.value] = { name: staff.label, hours: 0 };
-          }
-          const eventDuration = (event.end.seconds - event.start.seconds) / 3600;
-          tutorHoursMap[staff.value].hours += eventDuration;
+        if (!tutorHoursMap[staff.value]) {
+          tutorHoursMap[staff.value] = { name: staff.label, hours: 0 };
         }
+        const eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+        tutorHoursMap[staff.value].hours += eventDuration;
       }
     }
 
-    const tutorHoursArray = Object.values(tutorHoursMap);
+    let tutorHoursArray = Object.entries(tutorHoursMap).map(([email, data]) => ({ email, ...data }));
+
+    // If user is a tutor, filter the hours for that specific tutor
+    if (userRole === 'tutor') {
+      tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail);
+    }
+
     setTutorHours(tutorHoursArray);
     setLoading(false);
   };
@@ -60,6 +60,7 @@ const TutorHoursSummary = () => {
   }, [startDate, endDate]);
 
   const csvData = tutorHours.map(tutor => ({
+    Email: tutor.email,
     Name: tutor.name,
     Hours: tutor.hours.toFixed(2)
   }));
@@ -89,6 +90,7 @@ const TutorHoursSummary = () => {
           <table className="min-w-full bg-white">
             <thead>
               <tr>
+                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Email</th>
                 <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Name</th>
                 <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Hours</th>
               </tr>
@@ -96,6 +98,7 @@ const TutorHoursSummary = () => {
             <tbody>
               {tutorHours.map((tutor, index) => (
                 <tr key={index} className="border-b border-gray-200">
+                  <td className="py-2 px-4 text-sm text-gray-900">{tutor.email}</td>
                   <td className="py-2 px-4 text-sm text-gray-900">{tutor.name}</td>
                   <td className="py-2 px-4 text-sm text-gray-900">{tutor.hours.toFixed(2)}</td>
                 </tr>

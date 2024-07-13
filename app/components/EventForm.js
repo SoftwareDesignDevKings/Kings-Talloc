@@ -80,6 +80,16 @@ const EventForm = ({ isEditing, newEvent, handleInputChange, handleSubmit, handl
             />
           </div>
           <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea
+              name="description"
+              id="description"
+              value={newEvent.description}
+              onChange={handleInputChange}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+          <div>
             <label htmlFor="start" className="block text-sm font-medium text-gray-700">Start Time</label>
             <input
               type="datetime-local"
