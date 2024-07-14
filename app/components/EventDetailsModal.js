@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
 
-const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail }) => {
+const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail, userRole }) => {
   const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
   const [response, setResponse] = useState(tutorResponse ? (tutorResponse.response ? 'accepted' : 'declined') : '');
 
@@ -82,22 +82,6 @@ const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail }
             />
           </div>
           {event.confirmationRequired && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Your Response</label>
-              <Select
-                name="tutorResponse"
-                options={[
-                  { value: 'accepted', label: 'Accept' },
-                  { value: 'declined', label: 'Decline' },
-                ]}
-                value={response ? { value: response, label: response.charAt(0).toUpperCase() + response.slice(1) } : null}
-                onChange={handleResponseChange}
-                className="basic-single-select"
-                classNamePrefix="select"
-              />
-            </div>
-          )}
-          {event.confirmationRequired && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Tutor Responses</label>
               {event.tutorResponses && event.tutorResponses.length > 0 ? (
@@ -111,6 +95,22 @@ const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail }
               ) : (
                 <p className="text-sm text-gray-500">No tutors have responded yet.</p>
               )}
+            </div>
+          )}
+          {userRole === 'tutor' && event.confirmationRequired && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700">Your Response</label>
+              <Select
+                name="tutorResponse"
+                options={[
+                  { value: 'accepted', label: 'Accept' },
+                  { value: 'declined', label: 'Decline' },
+                ]}
+                value={response ? { value: response, label: response.charAt(0).toUpperCase() + response.slice(1) } : null}
+                onChange={handleResponseChange}
+                className="basic-single-select"
+                classNamePrefix="select"
+              />
             </div>
           )}
           <div className="flex justify-center mt-4">

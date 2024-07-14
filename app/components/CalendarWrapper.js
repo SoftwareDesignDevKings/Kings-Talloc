@@ -44,7 +44,10 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
       } else if (userRole === 'tutor') {
         filteredEvents = eventsFromDb.filter(event => event.staff.some(staff => staff.value === userEmail));
       } else if (userRole === 'student') {
-        filteredEvents = eventsFromDb.filter(event => event.students.some(student => student.value === userEmail));
+        filteredEvents = eventsFromDb.filter(event => 
+          event.students.some(student => student.value === userEmail) &&
+          event.tutorResponses.some(response => response.response)
+        );
       }
 
       setEvents(filteredEvents);
@@ -64,8 +67,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   };
 
   const handleSelectEvent = (event) => {
-    if (userRole === 'student') return;
-    if (userRole === 'tutor') {
+    if (userRole === 'student' || userRole === 'tutor') {
       setEventToEdit(event);
       setShowDetailsModal(true);
     } else {
@@ -262,6 +264,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
             onView={handleViewChange}
             views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             messages={messages}
+            onSelectEvent={handleSelectEvent} // Allow students to view event details
           />
         )}
       </div>
@@ -279,12 +282,13 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
           handleStudentChange={handleStudentChange}
         />
       )}
-      {showDetailsModal && userRole === 'tutor' && (
+      {showDetailsModal && (userRole === 'tutor' || userRole === 'student') && (
         <EventDetailsModal
           event={eventToEdit}
           handleClose={() => setShowDetailsModal(false)}
           handleConfirmation={handleConfirmation}
           userEmail={userEmail}
+          userRole={userRole}
         />
       )}
     </div>

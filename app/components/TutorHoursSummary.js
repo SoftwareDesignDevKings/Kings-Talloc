@@ -8,14 +8,22 @@ import { CSVLink } from 'react-csv';
 
 const getMonday = (d) => {
   d = new Date(d);
-  const day = d.getDay(),
-    diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
-  return new Date(d.setDate(diff));
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+  const monday = new Date(d.setDate(diff));
+  monday.setHours(0, 0, 0, 0); // Set to the start of the day
+  return monday;
 };
 
 const TutorHoursSummary = ({ userRole, userEmail }) => {
   const [startDate, setStartDate] = useState(getMonday(new Date()));
-  const [endDate, setEndDate] = useState(moment(getMonday(new Date())).add(6, 'days').toDate());
+  const [endDate, setEndDate] = useState(() => {
+    const monday = getMonday(new Date());
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999); // Set to the end of Sunday
+    return sunday;
+  });
   const [tutorHours, setTutorHours] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -36,11 +44,17 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     for (const event of events) {
       for (const staff of event.staff) {
-        if (!tutorHoursMap[staff.value]) {
-          tutorHoursMap[staff.value] = { name: staff.label, hours: 0 };
+        const isConfirmed = event.confirmationRequired
+          ? event.tutorResponses.some(response => response.email === staff.value && response.response)
+          : true;
+
+        if (isConfirmed) {
+          if (!tutorHoursMap[staff.value]) {
+            tutorHoursMap[staff.value] = { name: staff.label, hours: 0 };
+          }
+          const eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+          tutorHoursMap[staff.value].hours += eventDuration;
         }
-        const eventDuration = (event.end.seconds - event.start.seconds) / 3600;
-        tutorHoursMap[staff.value].hours += eventDuration;
       }
     }
 
@@ -71,11 +85,11 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
       <div className="flex space-x-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Start Date</label>
-          <DatePicker selected={startDate} onChange={date => setStartDate(date)} className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+          <DatePicker selected={startDate} onChange={date => setStartDate(getMonday(date))} className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">End Date</label>
-          <DatePicker selected={endDate} onChange={date => setEndDate(date)} className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+          <DatePicker selected={endDate} onChange={date => setEndDate(new Date(date.setHours(23, 59, 59, 999)))} className="mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
         </div>
         <CSVLink data={csvData} filename={`tutor_hours_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.csv`} className="mt-auto">
           <button className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
