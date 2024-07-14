@@ -4,7 +4,8 @@ import Select from 'react-select';
 
 const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail, userRole }) => {
   const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
-  const [response, setResponse] = useState(tutorResponse ? (tutorResponse.response ? 'accepted' : 'declined') : '');
+  const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
+  const [response, setResponse] = useState(tutorResponse ? (tutorResponse.response ? 'accepted' : 'declined') : studentResponse ? (studentResponse.response ? 'accepted' : 'declined') : '');
 
   const handleResponseChange = (selectedOption) => {
     setResponse(selectedOption.value);
@@ -97,11 +98,27 @@ const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail, 
               )}
             </div>
           )}
-          {userRole === 'tutor' && event.confirmationRequired && (
+          {event.minStudents > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Student Responses</label>
+              {event.studentResponses && event.studentResponses.length > 0 ? (
+                <ul className="list-disc list-inside">
+                  {event.studentResponses.map((response, index) => (
+                    <li key={index}>
+                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">No students have responded yet.</p>
+              )}
+            </div>
+          )}
+          {(userRole === 'tutor' && event.confirmationRequired) || (userRole === 'student' && event.minStudents > 0) && (
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Your Response</label>
               <Select
-                name="tutorResponse"
+                name="userResponse"
                 options={[
                   { value: 'accepted', label: 'Accept' },
                   { value: 'declined', label: 'Decline' },

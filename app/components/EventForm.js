@@ -66,6 +66,10 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
     setNewEvent({ ...newEvent, confirmationRequired: selectedOption.value === 'yes' });
   };
 
+  const handleMinStudentsChange = (e) => {
+    setNewEvent({ ...newEvent, minStudents: parseInt(e.target.value, 10) });
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
@@ -167,6 +171,17 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
               classNamePrefix="select"
             />
           </div>
+          <div>
+            <label htmlFor="minStudents" className="block text-sm font-medium text-gray-700">Minimum Students Required</label>
+            <input
+              type="number"
+              name="minStudents"
+              id="minStudents"
+              value={newEvent.minStudents || 0}
+              onChange={handleMinStudentsChange}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
           {newEvent.confirmationRequired && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Tutor Responses</label>
@@ -180,6 +195,22 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
                 </ul>
               ) : (
                 <p className="text-sm text-gray-500">No tutors have responded yet.</p>
+              )}
+            </div>
+          )}
+          {newEvent.minStudents > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Student Responses</label>
+              {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
+                <ul className="list-disc list-inside">
+                  {newEvent.studentResponses.map((response, index) => (
+                    <li key={index}>
+                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">No students have responded yet.</p>
               )}
             </div>
           )}
