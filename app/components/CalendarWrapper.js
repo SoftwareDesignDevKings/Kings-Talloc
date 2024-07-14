@@ -244,7 +244,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   return (
     <div className="relative">
       <div className="w-full p-4 bg-white rounded-lg shadow-lg">
-        {userRole !== 'student' ? (
+        {userRole === 'teacher' ? (
           <DnDCalendar
             localizer={localizer}
             events={events}
@@ -278,11 +278,11 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
             onView={handleViewChange}
             views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             messages={messages}
-            onSelectEvent={handleSelectEvent} // Allow students to view event details
+            onSelectEvent={handleSelectEvent} // Allow students and tutors to view event details
           />
         )}
       </div>
-      {showModal && userRole !== 'student' && (
+      {showModal && userRole === 'teacher' && (
         <EventForm
           isEditing={isEditing}
           newEvent={newEvent}
