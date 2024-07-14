@@ -8,7 +8,7 @@ export default function Login() {
           <img className="w-20 h-20" src="/logo.svg" alt="Logo" />
         </div>
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Talloc</h2>
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Retalloc</h2>
         </div>
       </div>
     </div>

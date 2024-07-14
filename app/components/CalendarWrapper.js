@@ -45,8 +45,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         filteredEvents = eventsFromDb.filter(event => event.staff.some(staff => staff.value === userEmail));
       } else if (userRole === 'student') {
         filteredEvents = eventsFromDb.filter(event => 
-          event.students.some(student => student.value === userEmail) &&
-          event.tutorResponses.some(response => response.response)
+          event.students.some(student => student.value === userEmail)
         );
       }
 
@@ -147,7 +146,11 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
 
   const handleEventDrop = async ({ event, start, end }) => {
     if (userRole === 'student' || userRole === 'tutor') return;
-    const updatedEvent = { ...event, start, end };
+
+    const duration = (event.end - event.start);
+    const updatedEnd = new Date(start.getTime() + duration);
+
+    const updatedEvent = { ...event, start, end: updatedEnd };
     const previousEvents = [...events];
 
     // Optimistically update the local state
@@ -157,7 +160,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
       const eventDoc = doc(db, 'events', event.id);
       await updateDoc(eventDoc, {
         start: new Date(start),
-        end: new Date(end),
+        end: updatedEnd,
       });
     } catch (error) {
       // Revert to previous state if the update fails
@@ -168,6 +171,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
 
   const handleEventResize = async ({ event, start, end }) => {
     if (userRole === 'student' || userRole === 'tutor') return;
+
     const updatedEvent = { ...event, start, end };
     const previousEvents = [...events];
 
@@ -203,8 +207,11 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
 
   const eventStyleGetter = (event) => {
     const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
+    const isDeclined = event.tutorResponses?.some(response => response.email === userEmail && response.response === false);
     const style = {
-      backgroundColor: event.confirmationRequired && !tutorResponse && userRole === 'tutor' ? 'red' : '',
+      backgroundColor: isDeclined ? 'grey' : (event.confirmationRequired && !tutorResponse && userRole === 'tutor' ? 'red' : ''),
+      borderColor: 'black', // Ensure border color is set to avoid unexpected UI issues
+      color: 'white' // Ensure text color is readable on grey background
     };
     return {
       style: style
