@@ -215,8 +215,10 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   const eventStyleGetter = (event) => {
     const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
     const isDeclined = event.tutorResponses?.some(response => response.email === userEmail && response.response === false);
+    const needsConfirmation = userRole === 'tutor' && event.confirmationRequired && !tutorResponse;
+
     const style = {
-      backgroundColor: isDeclined ? 'grey' : (event.confirmationRequired && !tutorResponse && userRole === 'tutor' ? 'red' : ''),
+      backgroundColor: isDeclined ? 'grey' : (needsConfirmation ? 'red' : ''),
       borderColor: 'black', // Ensure border color is set to avoid unexpected UI issues
       color: 'white' // Ensure text color is readable on grey background
     };
@@ -279,6 +281,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
             views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             messages={messages}
             onSelectEvent={handleSelectEvent} // Allow students and tutors to view event details
+            eventPropGetter={eventStyleGetter} // Apply the same style getter for students and tutors
           />
         )}
       </div>
