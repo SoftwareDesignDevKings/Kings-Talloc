@@ -44,8 +44,15 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
       } else if (userRole === 'tutor') {
         filteredEvents = eventsFromDb.filter(event => event.staff.some(staff => staff.value === userEmail));
       } else if (userRole === 'student') {
+        const classQuerySnapshot = await getDocs(collection(db, 'classes'));
+        const studentClasses = classQuerySnapshot.docs
+          .map(doc => doc.data())
+          .filter(cls => cls.students.some(student => student.email === userEmail))
+          .map(cls => cls.name);
+
         filteredEvents = eventsFromDb.filter(event => 
-          event.students.some(student => student.value === userEmail)
+          event.students.some(student => student.value === userEmail) ||
+          event.classes.some(cls => studentClasses.includes(cls.label))
         );
       }
 
