@@ -18,12 +18,14 @@ import {
   handleAvailabilityChange,
   handleAvailabilitySubmit,
   handleConfirmation,
+  handleBookingSubmit,
 } from './calendar/handlers';
 import { eventStyleGetter, customDayPropGetter, customSlotPropGetter, messages } from './calendar/helpers';
-import { splitAvailabilities } from './calendar/availabilityUtils'; // Import the new utility function
+import { splitAvailabilities } from './calendar/availabilityUtils';
 import EventForm from './EventForm';
 import AvailabilityForm from './AvailabilityForm';
 import EventDetailsModal from './EventDetailsModal';
+import BookingForm from './BookingForm';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
@@ -34,27 +36,61 @@ const DnDCalendar = withDragAndDrop(Calendar);
 
 const CalendarWrapper = ({ userRole, userEmail }) => {
   const [events, setEvents] = useState([]);
-  const [allEvents, setAllEvents] = useState([]); // New state to store all events
+  const [allEvents, setAllEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.MONTH);
   const [showModal, setShowModal] = useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const [newEvent, setNewEvent] = useState({});
   const [newAvailability, setNewAvailability] = useState({});
+  const [bookingDetails, setBookingDetails] = useState({
+    studentEmail: userEmail,
+    tutor: null,
+    description: '',
+    start: '',
+    end: ''
+  });e
   const [isEditing, setIsEditing] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
   const [tutors, setTutors] = useState([]);
   const [selectedTutors, setSelectedTutors] = useState([]);
 
   useEffect(() => {
-    fetchEvents(userRole, userEmail, setEvents, setAllEvents); // Updated call to fetchEvents
+    fetchEvents(userRole, userEmail, setEvents, setAllEvents);
     fetchAvailabilities(setAvailabilities);
     fetchTutors(setTutors);
   }, [userRole, userEmail]);
 
-  const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents); // Use all events for splitting
+  const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents);
+
+  const handleSelectSlotWrapper = (slotInfo) => {
+    const start = moment(slotInfo.start).toISOString();
+    const end = moment(slotInfo.end).toISOString();
+
+    setBookingDetails({
+      studentEmail: userEmail,
+      tutor: null,
+      description: '',
+      start,
+      end,
+    });
+
+    handleSelectSlot(
+      slotInfo, 
+      userRole, 
+      setNewEvent, 
+      setNewAvailability, 
+      setIsEditing, 
+      setShowModal, 
+      setShowAvailabilityModal, 
+      setShowBookingModal, 
+      setBookingDetails, 
+      userEmail
+    );
+  };
 
   return (
     <div className="relative">
@@ -77,8 +113,8 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           startAccessor="start"
           endAccessor="end"
           style={{ height: '600px' }}
-          onSelectSlot={(slotInfo) => handleSelectSlot(slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowModal, setShowAvailabilityModal, userEmail)}
-          onSelectEvent={(event) => handleSelectEvent(event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowModal, setShowAvailabilityModal, setShowDetailsModal)}
+          onSelectSlot={handleSelectSlotWrapper}
+          onSelectEvent={(event) => handleSelectEvent(event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowModal, setShowAvailabilityModal, setShowDetailsModal, setShowBookingModal, setBookingDetails)}
           onEventDrop={(event) => handleEventDrop(event, events, availabilities, setEvents, setAvailabilities, userRole)}
           onEventResize={(event) => handleEventResize(event, events, availabilities, setEvents, setAvailabilities, userRole)}
           resizable
@@ -126,6 +162,17 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           handleConfirmation={(confirmed) => handleConfirmation(eventToEdit, confirmed, userRole, userEmail, events, setEvents)}
           userEmail={userEmail}
           userRole={userRole}
+        />
+      )}
+      {showBookingModal && userRole === 'student' && (
+        <BookingForm
+          isEditing={isEditing}
+          bookingDetails={bookingDetails}
+          setBookingDetails={setBookingDetails}
+          handleInputChange={(e) => handleInputChange(e, setBookingDetails, bookingDetails)}
+          handleSubmit={(e) => handleBookingSubmit(e, bookingDetails, setShowBookingModal)}
+          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowBookingModal)}
+          setShowModal={setShowBookingModal}
         />
       )}
     </div>
