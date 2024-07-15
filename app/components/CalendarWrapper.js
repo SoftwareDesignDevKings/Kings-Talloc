@@ -49,6 +49,8 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
   const [eventToEdit, setEventToEdit] = useState(null);
   const [tutors, setTutors] = useState([]);
   const [selectedTutors, setSelectedTutors] = useState([]);
+  const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false); // New state to control visibility of own availabilities
+  const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false); // New state to control visibility of denied student events
 
   useEffect(() => {
     fetchEvents(userRole, userEmail, setEvents, setAllEvents); // Updated call to fetchEvents
@@ -57,6 +59,23 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
   }, [userRole, userEmail]);
 
   const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents); // Use all events for splitting
+
+  const filteredEvents = events.filter(event => {
+    if (userRole === 'tutor' && hideOwnAvailabilities && event.tutor === userEmail) {
+      return false;
+    }
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideDeniedStudentEvents && event.createdByStudent && event.approvalStatus === 'denied') {
+      return false;
+    }
+    return true;
+  });
+
+  const finalEvents = userRole === 'tutor'
+    ? [
+        ...filteredEvents,
+        ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
+      ]
+    : filteredEvents;
 
   return (
     <div className="relative">
@@ -71,11 +90,35 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           classNamePrefix="select"
           placeholder="Select tutors to view availabilities"
         />
+        {userRole === 'tutor' && (
+          <div className="mt-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={hideOwnAvailabilities}
+                onChange={(e) => setHideOwnAvailabilities(e.target.checked)}
+              />
+              <span className="ml-2">Hide My Own Availabilities</span>
+            </label>
+          </div>
+        )}
+        {(userRole === 'tutor' || userRole === 'teacher') && (
+          <div className="mt-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={hideDeniedStudentEvents}
+                onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
+              />
+              <span className="ml-2">Hide Denied Student Events</span>
+            </label>
+          </div>
+        )}
       </div>
       <div className="w-full p-4 bg-white rounded-lg shadow-lg">
         <DnDCalendar
           localizer={localizer}
-          events={userRole === 'tutor' ? [...events, ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail)] : events}
+          events={finalEvents}
           startAccessor="start"
           endAccessor="end"
           style={{ height: '600px' }}
@@ -92,7 +135,6 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
           messages={messages}
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
-          dayPropGetter={(date) => customDayPropGetter(date, splitAvailabilitiesData, selectedTutors)}
           slotPropGetter={(date) => customSlotPropGetter(date, splitAvailabilitiesData, selectedTutors)}
         />
       </div>

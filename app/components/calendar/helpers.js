@@ -49,24 +49,6 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   };
 };
 
-export const customDayPropGetter = (date, availabilities, selectedTutors) => {
-  const isAvailability = availabilities.some(
-    (availability) =>
-      selectedTutors.some(tutor => tutor.value === availability.tutor) &&
-      moment(date).isBetween(availability.start, availability.end, undefined, '[)')
-  );
-
-  if (isAvailability) {
-    return {
-      style: {
-        backgroundColor: 'lightgreen',
-      },
-    };
-  }
-
-  return {};
-};
-
 export const customSlotPropGetter = (date, availabilities, selectedTutors) => {
   const isAvailability = availabilities.some(
     (availability) =>
