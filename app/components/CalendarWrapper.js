@@ -24,7 +24,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   const [currentView, setCurrentView] = useState(Views.MONTH);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', start: '', end: '', description: '', staff: [], classes: [], students: [], studentResponses: [], minStudents: 0 });
+  const [newEvent, setNewEvent] = useState({ title: '', start: '', end: '', description: '', confirmationRequired: false, staff: [], classes: [], students: [], tutorResponses: [], studentResponses: [], minStudents: 0 });
   const [isEditing, setIsEditing] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
 
@@ -67,21 +67,14 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
     const start = slotInfo.start;
     const end = new Date(start);
     end.setMinutes(start.getMinutes() + 30); // Set default duration to 30 minutes
-    setNewEvent({ title: '', start, end, description: '', staff: [], classes: [], students: [], studentResponses: [], minStudents: 0 });
+    setNewEvent({ title: '', start, end, description: '', confirmationRequired: false, staff: [], classes: [], students: [], tutorResponses: [], studentResponses: [], minStudents: 0 });
     setIsEditing(false);
     setShowModal(true);
   };
 
   const handleSelectEvent = (event) => {
-    if (userRole === 'student' || userRole === 'tutor') {
-      setEventToEdit(event);
-      setShowDetailsModal(true);
-    } else {
-      setNewEvent(event);
-      setIsEditing(true);
-      setEventToEdit(event);
-      setShowModal(true);
-    }
+    setEventToEdit(event);
+    setShowDetailsModal(true);
   };
 
   const handleNavigate = (newDate) => {
@@ -119,9 +112,11 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         start: new Date(newEvent.start),
         end: new Date(newEvent.end),
         description: newEvent.description,
+        confirmationRequired: newEvent.confirmationRequired,
         staff: newEvent.staff,
         classes: newEvent.classes,
         students: newEvent.students,
+        tutorResponses: newEvent.tutorResponses,
         studentResponses: newEvent.studentResponses,
         minStudents: newEvent.minStudents,
       });
@@ -132,9 +127,11 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
         start: new Date(newEvent.start),
         end: new Date(newEvent.end),
         description: newEvent.description,
+        confirmationRequired: newEvent.confirmationRequired,
         staff: newEvent.staff,
         classes: newEvent.classes,
         students: newEvent.students,
+        tutorResponses: [],
         studentResponses: [],
         minStudents: newEvent.minStudents,
       });
@@ -199,7 +196,18 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   };
 
   const handleConfirmation = async (event, confirmed) => {
-    if (userRole === 'student' && event.minStudents > 0) {
+    if (userRole === 'tutor') {
+      const updatedTutorResponses = [
+        ...event.tutorResponses.filter(response => response.email !== userEmail),
+        { email: userEmail, response: confirmed },
+      ];
+      const updatedEvent = { ...event, tutorResponses: updatedTutorResponses };
+      const eventDoc = doc(db, 'events', event.id);
+      await updateDoc(eventDoc, {
+        tutorResponses: updatedTutorResponses,
+      });
+      setEvents(events.map(evt => evt.id === event.id ? updatedEvent : evt));
+    } else if (userRole === 'student' && event.minStudents > 0) {
       const updatedStudentResponses = [
         ...event.studentResponses.filter(response => response.email !== userEmail),
         { email: userEmail, response: confirmed },
@@ -215,12 +223,14 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   };
 
   const eventStyleGetter = (event) => {
+    const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
     const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
-    const isDeclined = event.studentResponses?.some(response => response.email === userEmail && response.response === false);
+    const isDeclined = event.tutorResponses?.some(response => response.email === userEmail && response.response === false) || event.studentResponses?.some(response => response.email === userEmail && response.response === false);
+    const needsConfirmation = userRole === 'tutor' && event.confirmationRequired && !tutorResponse;
     const needsStudentConfirmation = userRole === 'student' && event.minStudents > 0 && !studentResponse;
 
     const style = {
-      backgroundColor: isDeclined ? 'grey' : (needsStudentConfirmation ? 'red' : ''),
+      backgroundColor: isDeclined ? 'grey' : (needsConfirmation || needsStudentConfirmation ? 'red' : ''),
       borderColor: 'black', // Ensure border color is set to avoid unexpected UI issues
       color: 'white' // Ensure text color is readable on grey background
     };
@@ -301,7 +311,7 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
           handleStudentChange={handleStudentChange}
         />
       )}
-      {showDetailsModal && userRole === 'student' && (
+      {showDetailsModal && (
         <EventDetailsModal
           event={eventToEdit}
           handleClose={() => setShowDetailsModal(false)}
