@@ -18,6 +18,8 @@ const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('calendar');
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
+  const [calendarStartTime, setCalendarStartTime] = useState("00:00");
+  const [calendarEndTime, setCalendarEndTime] = useState("23:59");
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -67,11 +69,19 @@ const Dashboard = () => {
     return <NotLoggedIn />;
   }
 
-  const dashboardTitle = userRole === 'student' ? 'Student Dashboard' : userRole === 'tutor' ? 'Tutor Dashboard' : 'Admin Dashboard';
+  const dashboardTitle = userRole === 'student' ? 'Student Dashboard' : userRole === 'teacher' ? 'Teacher Dashboard' : 'Admin Dashboard';
 
   return (
     <div className="flex h-screen bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-      {userRole !== 'student' && <Sidebar setActiveSection={setActiveSection} userRole={userRole} user={session.user} />}
+      <Sidebar
+        setActiveSection={setActiveSection}
+        userRole={userRole}
+        user={session.user}
+        calendarStartTime={calendarStartTime}
+        calendarEndTime={calendarEndTime}
+        setCalendarStartTime={setCalendarStartTime}
+        setCalendarEndTime={setCalendarEndTime}
+      />
       <div className="flex-1 p-4 flex flex-col overflow-hidden">
         <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col flex-1 overflow-hidden">
           <div className="flex justify-between items-center mb-4">
@@ -95,6 +105,8 @@ const Dashboard = () => {
                   onDateChange={handleDateChange}
                   userRole={userRole}
                   userEmail={session.user.email}
+                  calendarStartTime={calendarStartTime}
+                  calendarEndTime={calendarEndTime}
                 />
                 {selectedDate && <p className="text-center mt-4 text-gray-700">Selected Date: {selectedDate.toString()}</p>}
               </div>
@@ -109,7 +121,7 @@ const Dashboard = () => {
                 <ClassList />
               </div>
             )}
-            {activeSection === 'tutorHours' && (
+            {userRole !== 'student' && activeSection === 'tutorHours' && (
               <div className="h-full">
                 <TutorHoursSummary userRole={userRole} userEmail={session.user.email} />
               </div>

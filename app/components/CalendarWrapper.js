@@ -33,7 +33,7 @@ moment.updateLocale('en', { week: { dow: 1 } });
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
-const CalendarWrapper = ({ userRole, userEmail }) => {
+const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTime }) => {
   const [events, setEvents] = useState([]);
   const [allEvents, setAllEvents] = useState([]); // New state to store all events
   const [availabilities, setAvailabilities] = useState([]);
@@ -76,6 +76,9 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
         ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
       ]
     : filteredEvents;
+
+  const minTime = moment(calendarStartTime, "HH:mm").toDate();
+  const maxTime = moment(calendarEndTime, "HH:mm").toDate();
 
   return (
     <div className="relative">
@@ -122,6 +125,8 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           startAccessor="start"
           endAccessor="end"
           style={{ height: '600px' }}
+          min={minTime}
+          max={maxTime}
           onSelectSlot={(slotInfo) => handleSelectSlot(slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail)}
           onSelectEvent={(event) => handleSelectEvent(event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, setShowDetailsModal)}
           onEventDrop={(event) => handleEventDrop(event, events, availabilities, setEvents, setAvailabilities, userRole)}
