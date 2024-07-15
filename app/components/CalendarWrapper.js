@@ -3,7 +3,7 @@ import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, onSnapshot } from 'firebase/firestore';
 import EventForm from './EventForm';
 import EventDetailsModal from './EventDetailsModal';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
@@ -19,7 +19,8 @@ moment.updateLocale('en', {
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
-const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
+const CalendarWrapper = ({ userRole, userEmail }) => {
+  const [events, setEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.MONTH);
   const [showModal, setShowModal] = useState(false);
@@ -30,37 +31,42 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const querySnapshot = await getDocs(collection(db, 'events'));
-      const eventsFromDb = querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        start: doc.data().start.toDate(),
-        end: doc.data().end.toDate(),
-      }));
+      const q = query(collection(db, 'events'));
+      const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+        const eventsFromDb = querySnapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id,
+          start: doc.data().start.toDate(),
+          end: doc.data().end.toDate(),
+        }));
 
-      let filteredEvents = [];
-      if (userRole === 'teacher') {
-        filteredEvents = eventsFromDb;
-      } else if (userRole === 'tutor') {
-        filteredEvents = eventsFromDb.filter(event => event.staff.some(staff => staff.value === userEmail));
-      } else if (userRole === 'student') {
-        const classQuerySnapshot = await getDocs(collection(db, 'classes'));
-        const studentClasses = classQuerySnapshot.docs
-          .map(doc => doc.data())
-          .filter(cls => cls.students.some(student => student.email === userEmail))
-          .map(cls => cls.name);
+        let filteredEvents = [];
+        if (userRole === 'teacher') {
+          filteredEvents = eventsFromDb;
+        } else if (userRole === 'tutor') {
+          filteredEvents = eventsFromDb.filter(event => event.staff.some(staff => staff.value === userEmail));
+        } else if (userRole === 'student') {
+          const classQuerySnapshot = await getDocs(collection(db, 'classes'));
+          const studentClasses = classQuerySnapshot.docs
+            .map(doc => doc.data())
+            .filter(cls => cls.students.some(student => student.email === userEmail))
+            .map(cls => cls.name);
 
-        filteredEvents = eventsFromDb.filter(event => 
-          event.students.some(student => student.value === userEmail) ||
-          event.classes.some(cls => studentClasses.includes(cls.label))
-        );
-      }
+          filteredEvents = eventsFromDb.filter(event => 
+            event.students.some(student => student.value === userEmail) ||
+            event.classes.some(cls => studentClasses.includes(cls.label))
+          );
+        }
 
-      setEvents(filteredEvents);
+        setEvents(filteredEvents);
+      });
+
+      // Cleanup listener on unmount
+      return () => unsubscribe();
     };
 
     fetchEvents();
-  }, [setEvents, userRole, userEmail]);
+  }, [userRole, userEmail]);
 
   const handleSelectSlot = (slotInfo) => {
     if (userRole === 'student' || userRole === 'tutor') return;
@@ -73,8 +79,15 @@ const CalendarWrapper = ({ events, setEvents, userRole, userEmail }) => {
   };
 
   const handleSelectEvent = (event) => {
-    setEventToEdit(event);
-    setShowDetailsModal(true);
+    if (userRole === 'teacher') {
+      setNewEvent(event);
+      setIsEditing(true);
+      setEventToEdit(event);
+      setShowModal(true);
+    } else {
+      setEventToEdit(event);
+      setShowDetailsModal(true);
+    }
   };
 
   const handleNavigate = (newDate) => {
