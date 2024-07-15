@@ -62,10 +62,6 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
     handleStudentChange(selectedOptions);
   };
 
-  const handleConfirmationChange = (selectedOption) => {
-    setNewEvent({ ...newEvent, confirmationRequired: selectedOption.value === 'yes' });
-  };
-
   const handleMinStudentsChange = (e) => {
     setNewEvent({ ...newEvent, minStudents: parseInt(e.target.value, 10) });
   };
@@ -158,20 +154,6 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
             />
           </div>
           <div>
-            <label htmlFor="confirmationRequired" className="block text-sm font-medium text-gray-700">Confirmation Required</label>
-            <Select
-              name="confirmationRequired"
-              options={[
-                { value: 'yes', label: 'Yes' },
-                { value: 'no', label: 'No' },
-              ]}
-              value={newEvent.confirmationRequired ? { value: 'yes', label: 'Yes' } : { value: 'no', label: 'No' }}
-              onChange={handleConfirmationChange}
-              className="basic-single-select"
-              classNamePrefix="select"
-            />
-          </div>
-          <div>
             <label htmlFor="minStudents" className="block text-sm font-medium text-gray-700">Minimum Students Required</label>
             <input
               type="number"
@@ -182,22 +164,6 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             />
           </div>
-          {newEvent.confirmationRequired && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Tutor Responses</label>
-              {newEvent.tutorResponses && newEvent.tutorResponses.length > 0 ? (
-                <ul className="list-disc list-inside">
-                  {newEvent.tutorResponses.map((response, index) => (
-                    <li key={index}>
-                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No tutors have responded yet.</p>
-              )}
-            </div>
-          )}
           {newEvent.minStudents > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Student Responses</label>
