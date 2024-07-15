@@ -12,8 +12,10 @@ export const splitAvailabilities = (availabilities, events) => {
     events.forEach((event) => {
       // Check if the event's assigned tutor matches the availability's tutor
       const isEventForTutor = event.staff.some(staff => staff.value === availability.tutor);
+      // Ignore student-created events that were denied by a teacher
+      const isDeniedStudentEvent = event.createdByStudent && event.approvalStatus === 'denied';
 
-      if (isEventForTutor) {
+      if (isEventForTutor && !isDeniedStudentEvent) {
         const eventStart = moment(event.start);
         const eventEnd = moment(event.end);
 
