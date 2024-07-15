@@ -1,5 +1,12 @@
 import moment from 'moment';
 
+// Helper function to calculate the green color intensity based on the number of available tutors
+const calculateGreenIntensity = (numTutors, maxTutors) => {
+  const intensity = Math.min(1, numTutors / maxTutors);
+  const baseGreen = { r: 144, g: 238, b: 144 }; // Original lightgreen color: rgb(144, 238, 144)
+  return `rgba(${baseGreen.r}, ${baseGreen.g}, ${baseGreen.b}, ${intensity})`;
+};
+
 export const eventStyleGetter = (event, userRole, userEmail) => {
   const isAvailability = !!event.tutor;
   const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
@@ -50,16 +57,19 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
 };
 
 export const customSlotPropGetter = (date, availabilities, selectedTutors) => {
-  const isAvailability = availabilities.some(
+  const availableTutors = availabilities.filter(
     (availability) =>
       selectedTutors.some(tutor => tutor.value === availability.tutor) &&
       moment(date).isBetween(availability.start, availability.end, undefined, '[)')
-  );
+  ).length;
 
-  if (isAvailability) {
+  if (availableTutors > 0) {
+    const maxTutors = selectedTutors.length || 1; // To prevent division by zero
+    const backgroundColor = calculateGreenIntensity(availableTutors, maxTutors);
+
     return {
       style: {
-        backgroundColor: 'lightgreen',
+        backgroundColor,
       },
     };
   }
