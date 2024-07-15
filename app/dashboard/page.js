@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import CalendarWrapper from '../components/CalendarWrapper';
 import NotLoggedIn from '../components/NotLoggedIn';
 import Sidebar from '../components/Sidebar';
@@ -89,12 +89,6 @@ const Dashboard = () => {
               <h1 className="text-3xl font-extrabold text-gray-900">{dashboardTitle}</h1>
               <p className="mt-2 text-sm text-gray-600">Signed in as {session.user.email}</p>
             </div>
-            <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Sign out
-            </button>
           </div>
           <div className="border-t border-gray-200 pt-4 flex-1 overflow-auto">
             {activeSection === 'calendar' && (
