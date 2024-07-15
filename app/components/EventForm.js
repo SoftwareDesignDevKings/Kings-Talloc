@@ -11,6 +11,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
   const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
   const [studentOptions, setStudentOptions] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -73,6 +74,24 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
     setNewEvent({ ...newEvent, approvalStatus });
   };
 
+  const validateDates = () => {
+    const start = moment(newEvent.start);
+    const end = moment(newEvent.end);
+    if (end.isSameOrBefore(start)) {
+      setError('End date must be after the start date.');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    if (validateDates()) {
+      handleSubmit(e);
+    }
+  };
+
   const approvalOptions = [
     { value: 'approved', label: 'Approve' },
     { value: 'denied', label: 'Deny' },
@@ -82,7 +101,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
         <h2 className="text-2xl font-bold text-center">{isEditing ? 'Edit Event' : 'Add New Event'}</h2>
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={onSubmit} className="space-y-6 mt-4">
+          {error && <div className="text-red-500">{error}</div>}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
             <input

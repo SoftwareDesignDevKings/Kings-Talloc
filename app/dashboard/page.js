@@ -71,7 +71,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-      {userRole !== 'student' && <Sidebar setActiveSection={setActiveSection} userRole={userRole} />}
+      {userRole !== 'student' && <Sidebar setActiveSection={setActiveSection} userRole={userRole} user={session.user} />}
       <div className="flex-1 p-4 flex flex-col overflow-hidden">
         <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col flex-1 overflow-hidden">
           <div className="flex justify-between items-center mb-4">
