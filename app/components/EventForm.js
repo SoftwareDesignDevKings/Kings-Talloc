@@ -14,7 +14,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
 
   useEffect(() => {
     const fetchStaff = async () => {
-      const q = query(collection(db, 'users'), where('role', 'in', ['tutor', 'teacher']));
+      const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
       const querySnapshot = await getDocs(q);
       const staffList = querySnapshot.docs.map(doc => ({
         value: doc.id,
@@ -118,10 +118,10 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
             />
           </div>
           <div>
-            <label htmlFor="staff" className="block text-sm font-medium text-gray-700">Assign Staff</label>
+            <label htmlFor="staff" className="block text-sm font-medium text-gray-700">Assign Tutor</label>
             <Select
               isMulti
-              name="staff"
+              name="tutor"
               options={staffOptions}
               value={selectedStaff}
               onChange={handleStaffSelectChange}
