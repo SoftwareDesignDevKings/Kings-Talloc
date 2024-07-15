@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
-const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowStudentModal, studentEmail }) => {
+const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowStudentModal, studentEmail, userRole }) => {
   const [tutorOptions, setTutorOptions] = useState([]);
   const [selectedTutor, setSelectedTutor] = useState(newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null);
   const [selectedStudent, setSelectedStudent] = useState(newEvent.students && newEvent.students.length > 0 ? newEvent.students[0] : { value: studentEmail, label: studentEmail });
@@ -29,8 +29,12 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
   };
 
   useEffect(() => {
-    setNewEvent({ ...newEvent, students: [selectedStudent], createdByStudent: true, approvalStatus: 'pending' });
+    if (!isEditing) {
+      setNewEvent({ ...newEvent, students: [selectedStudent], createdByStudent: true, approvalStatus: 'pending' });
+    }
   }, [selectedStudent]);
+
+  const isStudentCreated = newEvent.createdByStudent && newEvent.students.some(student => student.value === studentEmail);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -47,6 +51,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
               onChange={handleInputChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
+              disabled={!isStudentCreated}
             />
           </div>
           <div>
@@ -57,6 +62,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
               value={newEvent.description}
               onChange={handleInputChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              disabled={!isStudentCreated}
             />
           </div>
           <div>
@@ -69,6 +75,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
               onChange={handleInputChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
+              disabled={!isStudentCreated}
             />
           </div>
           <div>
@@ -81,6 +88,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
               onChange={handleInputChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
+              disabled={!isStudentCreated}
             />
           </div>
           <div>
@@ -91,8 +99,25 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
               value={selectedTutor}
               onChange={handleTutorSelectChange}
               classNamePrefix="select"
+              isDisabled={!isStudentCreated}
             />
           </div>
+          {userRole !== 'student' && newEvent.minStudents > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Student Responses</label>
+              {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
+                <ul className="list-disc list-inside">
+                  {newEvent.studentResponses.map((response, index) => (
+                    <li key={index}>
+                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">No students have responded yet.</p>
+              )}
+            </div>
+          )}
           <div className="flex justify-between">
             <button
               type="button"
@@ -101,7 +126,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
             >
               Cancel
             </button>
-            {isEditing && (
+            {isEditing && isStudentCreated && (
               <button
                 type="button"
                 onClick={handleDelete}
@@ -113,6 +138,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
             <button
               type="submit"
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={!isStudentCreated}
             >
               {isEditing ? 'Save Changes' : 'Add Event'}
             </button>

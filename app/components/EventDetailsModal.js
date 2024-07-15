@@ -81,7 +81,7 @@ const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail, 
               classNamePrefix="select"
             />
           </div>
-          {event.minStudents > 0 && (
+          {userRole !== 'student' && event.minStudents > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Student Responses</label>
               {event.studentResponses && event.studentResponses.length > 0 ? (

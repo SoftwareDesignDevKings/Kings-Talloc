@@ -62,7 +62,7 @@ export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNe
       setIsEditing(true);
       setEventToEdit(event);
       setShowTeacherModal(true);
-    } else if (userRole === 'student') {
+    } else if (userRole === 'student' && event.createdByStudent) {
       setNewEvent(event);
       setIsEditing(true);
       setEventToEdit(event);

@@ -43,6 +43,11 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const tutorHoursMap = {};
 
     for (const event of events) {
+      // Only consider approved events for student-created sessions
+      if (event.createdByStudent && event.approvalStatus !== 'approved') {
+        continue;
+      }
+
       for (const staff of event.staff) {
         const isConfirmed = event.confirmationRequired
           ? event.tutorResponses.some(response => response.email === staff.value && response.response)
