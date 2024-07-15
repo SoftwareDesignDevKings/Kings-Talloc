@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
 import { db } from '../firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 
 const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowModal, handleStaffChange, handleStudentChange, handleClassChange }) => {
   const [staffOptions, setStaffOptions] = useState([]);
@@ -65,6 +65,18 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
   const handleMinStudentsChange = (e) => {
     setNewEvent({ ...newEvent, minStudents: parseInt(e.target.value, 10) });
   };
+
+  const handleApprovalChange = async (selectedOption) => {
+    const approvalStatus = selectedOption.value;
+    const eventDoc = doc(db, 'events', newEvent.id);
+    await updateDoc(eventDoc, { approvalStatus });
+    setNewEvent({ ...newEvent, approvalStatus });
+  };
+
+  const approvalOptions = [
+    { value: 'approved', label: 'Approve' },
+    { value: 'denied', label: 'Deny' },
+  ];
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -180,7 +192,19 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
               )}
             </div>
           )}
-          <div className="flex justify-between">
+          {newEvent.createdByStudent && (
+            <div>
+              <label htmlFor="approvalStatus" className="block text-sm font-medium text-gray-700">Approval Status</label>
+              <Select
+                name="approvalStatus"
+                options={approvalOptions}
+                onChange={handleApprovalChange}
+                classNamePrefix="select"
+                defaultValue={newEvent.approvalStatus === 'approved' ? { value: 'approved', label: 'Approve' } : newEvent.approvalStatus === 'denied' ? { value: 'denied', label: 'Deny' } : null}
+              />
+            </div>
+          )}
+          <div className="flex justify-between mt-4">
             <button
               type="button"
               onClick={() => setShowModal(false)}

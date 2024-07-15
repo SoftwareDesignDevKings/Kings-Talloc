@@ -1,24 +1,51 @@
 import { doc, updateDoc, addDoc, deleteDoc, collection } from 'firebase/firestore';
 import { db } from '../../firebase'; // updated import
 
-export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowModal, setShowAvailabilityModal, userEmail) => {
-  if (userRole === 'student') return;
-
+export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail) => {
   const start = slotInfo.start;
   const end = slotInfo.end;
+
+  if (userRole === 'student') {
+    setNewEvent({ 
+      title: '', 
+      start, 
+      end, 
+      description: '', 
+      staff: [], 
+      students: [{ value: userEmail, label: userEmail }], 
+      confirmationRequired: false,
+      createdByStudent: true,
+      approvalStatus: 'pending',
+    });
+    setIsEditing(false);
+    setShowStudentModal(true);
+    return;
+  }
 
   if (userRole === 'tutor') {
     setNewAvailability({ title: 'Availability', start, end, tutor: userEmail });
     setIsEditing(false);
     setShowAvailabilityModal(true);
   } else {
-    setNewEvent({ title: '', start, end, description: '', confirmationRequired: false, staff: [], classes: [], students: [], tutorResponses: [], studentResponses: [], minStudents: 0 });
+    setNewEvent({ 
+      title: '', 
+      start, 
+      end, 
+      description: '', 
+      confirmationRequired: false, 
+      staff: [], 
+      classes: [], 
+      students: [], 
+      tutorResponses: [], 
+      studentResponses: [], 
+      minStudents: 0,
+    });
     setIsEditing(false);
-    setShowModal(true);
+    setShowTeacherModal(true);
   }
 };
 
-export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowModal, setShowAvailabilityModal, setShowDetailsModal) => {
+export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, setShowDetailsModal) => {
   if (event.tutor) {
     if (userRole === 'tutor' && event.tutor === userEmail) {
       setNewAvailability(event);
@@ -34,7 +61,12 @@ export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNe
       setNewEvent(event);
       setIsEditing(true);
       setEventToEdit(event);
-      setShowModal(true);
+      setShowTeacherModal(true);
+    } else if (userRole === 'student') {
+      setNewEvent(event);
+      setIsEditing(true);
+      setEventToEdit(event);
+      setShowStudentModal(true);
     } else {
       setEventToEdit(event);
       setShowDetailsModal(true);
@@ -115,42 +147,34 @@ export const handleInputChange = (e, setNewEvent, newEvent) => {
 
 export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvents, events, setShowModal) => {
   e.preventDefault();
+  const eventData = {
+    title: newEvent.title || '',
+    start: new Date(newEvent.start),
+    end: new Date(newEvent.end),
+    description: newEvent.description || '',
+    confirmationRequired: newEvent.confirmationRequired || false,
+    staff: newEvent.staff || [],
+    classes: newEvent.classes || [],
+    students: newEvent.students || [],
+    tutorResponses: newEvent.tutorResponses || [],
+    studentResponses: newEvent.studentResponses || [],
+    minStudents: newEvent.minStudents || 0,
+    createdByStudent: newEvent.createdByStudent || false,
+    approvalStatus: newEvent.approvalStatus || 'pending',
+  };
+
   if (isEditing) {
     const eventDoc = doc(db, 'events', eventToEdit.id);
-    await updateDoc(eventDoc, {
-      title: newEvent.title,
-      start: new Date(newEvent.start),
-      end: new Date(newEvent.end),
-      description: newEvent.description,
-      confirmationRequired: newEvent.confirmationRequired,
-      staff: newEvent.staff,
-      classes: newEvent.classes,
-      students: newEvent.students,
-      tutorResponses: newEvent.tutorResponses,
-      studentResponses: newEvent.studentResponses,
-      minStudents: newEvent.minStudents,
-    });
-    setEvents(events.map(event => event.id === eventToEdit.id ? { ...newEvent, id: eventToEdit.id } : event));
+    await updateDoc(eventDoc, eventData);
+    setEvents(events.map(event => event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event));
   } else {
-    const docRef = await addDoc(collection(db, 'events'), {
-      title: newEvent.title,
-      start: new Date(newEvent.start),
-      end: new Date(newEvent.end),
-      description: newEvent.description,
-      confirmationRequired: newEvent.confirmationRequired,
-      staff: newEvent.staff,
-      classes: newEvent.classes,
-      students: newEvent.students,
-      tutorResponses: [],
-      studentResponses: [],
-      minStudents: newEvent.minStudents,
-    });
-    setEvents([...events, { ...newEvent, id: docRef.id }]);
+    const docRef = await addDoc(collection(db, 'events'), eventData);
+    setEvents([...events, { ...eventData, id: docRef.id }]);
   }
   setShowModal(false);
 };
 
-export const handleDelete = async (eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal, setShowAvailabilityModal) => {
+export const handleDelete = async (eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal) => {
   if (eventToEdit && eventToEdit.id) {
     const collectionName = eventToEdit.tutor ? 'availabilities' : 'events';
     await deleteDoc(doc(db, collectionName, eventToEdit.id));
@@ -161,7 +185,6 @@ export const handleDelete = async (eventToEdit, events, setEvents, availabilitie
     }
   }
   setShowModal(false);
-  setShowAvailabilityModal(false);
 };
 
 export const handleStaffChange = (selectedStaff, setNewEvent, newEvent) => {

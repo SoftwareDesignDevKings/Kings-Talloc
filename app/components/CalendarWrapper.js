@@ -23,6 +23,7 @@ import { eventStyleGetter, customDayPropGetter, customSlotPropGetter, messages }
 import { splitAvailabilities } from './calendar/availabilityUtils'; // Import the new utility function
 import EventForm from './EventForm';
 import AvailabilityForm from './AvailabilityForm';
+import StudentEventForm from './StudentEventForm';
 import EventDetailsModal from './EventDetailsModal';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
@@ -38,7 +39,8 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
   const [availabilities, setAvailabilities] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.MONTH);
-  const [showModal, setShowModal] = useState(false);
+  const [showTeacherModal, setShowTeacherModal] = useState(false);
+  const [showStudentModal, setShowStudentModal] = useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [newEvent, setNewEvent] = useState({});
@@ -77,8 +79,8 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           startAccessor="start"
           endAccessor="end"
           style={{ height: '600px' }}
-          onSelectSlot={(slotInfo) => handleSelectSlot(slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowModal, setShowAvailabilityModal, userEmail)}
-          onSelectEvent={(event) => handleSelectEvent(event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowModal, setShowAvailabilityModal, setShowDetailsModal)}
+          onSelectSlot={(slotInfo) => handleSelectSlot(slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail)}
+          onSelectEvent={(event) => handleSelectEvent(event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, setShowDetailsModal)}
           onEventDrop={(event) => handleEventDrop(event, events, availabilities, setEvents, setAvailabilities, userRole)}
           onEventResize={(event) => handleEventResize(event, events, availabilities, setEvents, setAvailabilities, userRole)}
           resizable
@@ -94,18 +96,30 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           slotPropGetter={(date) => customSlotPropGetter(date, splitAvailabilitiesData, selectedTutors)}
         />
       </div>
-      {showModal && userRole === 'teacher' && (
+      {showTeacherModal && userRole === 'teacher' && (
         <EventForm
           isEditing={isEditing}
           newEvent={newEvent}
           setNewEvent={setNewEvent}
           handleInputChange={(e) => handleInputChange(e, setNewEvent, newEvent)}
-          handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setEvents, events, setShowModal)}
-          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal, setShowAvailabilityModal)}
-          setShowModal={setShowModal}
+          handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setEvents, events, setShowTeacherModal)}
+          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowTeacherModal, setShowAvailabilityModal)}
+          setShowModal={setShowTeacherModal}
           handleStaffChange={(selectedStaff) => handleStaffChange(selectedStaff, setNewEvent, newEvent)}
           handleClassChange={(selectedClasses) => handleClassChange(selectedClasses, setNewEvent, newEvent)}
           handleStudentChange={(selectedStudents) => handleStudentChange(selectedStudents, setNewEvent, newEvent)}
+        />
+      )}
+      {showStudentModal && userRole === 'student' && (
+        <StudentEventForm
+          isEditing={isEditing}
+          newEvent={newEvent}
+          setNewEvent={setNewEvent}
+          handleInputChange={(e) => handleInputChange(e, setNewEvent, newEvent)}
+          handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setEvents, events, setShowStudentModal)}
+          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowStudentModal, setShowAvailabilityModal)}
+          setShowStudentModal={setShowStudentModal}
+          studentEmail={userEmail}
         />
       )}
       {showAvailabilityModal && userRole === 'tutor' && (
@@ -115,7 +129,7 @@ const CalendarWrapper = ({ userRole, userEmail }) => {
           setNewAvailability={setNewAvailability}
           handleInputChange={(e) => handleAvailabilityChange(e, setNewAvailability, newAvailability)}
           handleSubmit={(e) => handleAvailabilitySubmit(e, isEditing, newAvailability, eventToEdit, setAvailabilities, availabilities, setShowAvailabilityModal)}
-          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal, setShowAvailabilityModal)}
+          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowAvailabilityModal)}
           setShowModal={setShowAvailabilityModal}
         />
       )}

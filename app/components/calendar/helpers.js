@@ -7,15 +7,45 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   const isDeclined = event.tutorResponses?.some(response => response.email === userEmail && response.response === false) || event.studentResponses?.some(response => response.email === userEmail && response.response === false);
   const needsConfirmation = userRole === 'tutor' && event.confirmationRequired && !tutorResponse;
   const needsStudentConfirmation = userRole === 'student' && event.minStudents > 0 && !studentResponse;
+  const isStudentCreated = event.createdByStudent && (userRole === 'teacher' || userRole === 'tutor') && event.approvalStatus === 'pending';
 
-  const style = {
-    backgroundColor: isAvailability ? 'lightgreen' : (isDeclined ? 'grey' : (needsConfirmation || needsStudentConfirmation ? 'red' : 'lightblue')),
-    borderColor: isAvailability ? 'green' : (isDeclined ? 'black' : (needsConfirmation || needsStudentConfirmation ? 'red' : 'blue')),
-    color: 'black',
-  };
+  let backgroundColor = 'lightblue';
+  let borderColor = 'blue';
+
+  if (isAvailability) {
+    backgroundColor = 'lightgreen';
+    borderColor = 'green';
+  } else if (isStudentCreated) {
+    backgroundColor = 'orange';
+    borderColor = 'darkorange';
+  } else if (event.approvalStatus === 'denied') {
+    backgroundColor = 'lightcoral';
+    borderColor = 'red';
+  } else if (isDeclined) {
+    backgroundColor = 'grey';
+    borderColor = 'black';
+  } else if (needsConfirmation || needsStudentConfirmation) {
+    backgroundColor = 'red';
+    borderColor = 'red';
+  } else if (userRole === 'student' && event.createdByStudent) {
+    if (event.approvalStatus === 'approved') {
+      backgroundColor = 'lightblue';
+      borderColor = 'blue';
+    } else if (event.approvalStatus === 'denied') {
+      backgroundColor = 'lightcoral';
+      borderColor = 'red';
+    } else {
+      backgroundColor = 'orange';
+      borderColor = 'darkorange';
+    }
+  }
 
   return {
-    style: style
+    style: {
+      backgroundColor,
+      borderColor,
+      color: 'black',
+    },
   };
 };
 
