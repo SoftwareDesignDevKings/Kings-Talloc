@@ -8,7 +8,7 @@ const handler = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
-  // Optional: Customize the sign-in page, redirects, etc.
+  secret: proccess.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login',
   },
