@@ -144,7 +144,7 @@ const UserRolesManager = () => {
                   {user.name ? (
                     user.name
                   ) : (
-                    <span className="text-red-500 italic">User hasn't logged in yet</span>
+                    <span className="text-red-500 italic">User hasn&apos;t logged in yet</span>
                   )}
                 </td>
                 <td className="py-2 px-4 text-sm text-gray-900">{user.role}</td>
