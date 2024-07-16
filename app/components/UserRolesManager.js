@@ -108,24 +108,28 @@ const UserRolesManager = () => {
   return (
     <div className="p-8 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4 text-indigo-600">Manage User Roles</h2>
-      <button
-        onClick={() => {
-          setShowModal(true);
-          setIsEditing(false);
-          setEmail('');
-          setRole('student');
-        }}
-        className="mb-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-      >
-        Add User Role
-      </button>
-      <input
-        type="text"
-        placeholder="Search by name, email, or role"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4 p-2 w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-      />
+      <div className="flex mb-4">
+        <input
+          type="text"
+          placeholder="Search by name, email, or role"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          style={{ flex: 1 }}
+        />
+        <button
+          onClick={() => {
+            setShowModal(true);
+            setIsEditing(false);
+            setEmail('');
+            setRole('student');
+          }}
+          className="ml-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          style={{ height: '2.5rem', width: 'auto' }}
+        >
+          Add User Role
+        </button>
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white">
           <thead>
