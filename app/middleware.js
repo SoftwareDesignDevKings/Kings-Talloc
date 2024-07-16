@@ -3,7 +3,11 @@ import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req) {
   // Get the token from the request
+  console.log(secret)
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+  console.log(token)
 
   const { pathname } = req.nextUrl;
 
