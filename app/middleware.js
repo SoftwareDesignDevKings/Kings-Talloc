@@ -2,12 +2,14 @@ import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req) {
+  // Ensure the secret is loaded
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('NEXTAUTH_SECRET is not defined');
+  }
+
   // Get the token from the request
-  console.log(secret)
-
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  console.log(token)
+  const token = await getToken({ req, secret });
 
   const { pathname } = req.nextUrl;
 
