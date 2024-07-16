@@ -8,6 +8,7 @@ import Sidebar from '../components/Sidebar';
 import UserRolesManager from '../components/UserRolesManager';
 import ClassList from '../components/ClassList';
 import TutorHoursSummary from '../components/TutorHoursSummary';
+import SubjectList from '../components/SubjectList';
 import { db } from '../firebase'; // Ensure this points to your Firebase configuration
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
@@ -113,6 +114,11 @@ const Dashboard = () => {
             {userRole === 'teacher' && activeSection === 'classes' && (
               <div className="h-full">
                 <ClassList />
+              </div>
+            )}
+            {userRole === 'teacher' && activeSection === 'subjects' && (
+              <div className="h-full">
+                <SubjectList />
               </div>
             )}
             {userRole !== 'student' && activeSection === 'tutorHours' && (

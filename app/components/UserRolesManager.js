@@ -214,15 +214,14 @@ const UserRolesManager = () => {
           </div>
         </div>
       )}
-      {showConfirmationModal && (
-        <ConfirmationModal
-          showConfirmationModal={showConfirmationModal}
-          setShowConfirmationModal={setShowConfirmationModal}
-          userToRemove={userToDelete}
-          handleRemoveUser={() => handleDelete(userToDelete.email)}
-          isClassDeletion={false}
-        />
-      )}
+      <ConfirmationModal
+        showConfirmationModal={showConfirmationModal}
+        setShowConfirmationModal={setShowConfirmationModal}
+        entity={userToDelete}
+        entityName="User"
+        handleConfirmAction={() => handleDelete(userToDelete.email)}
+        actionType="deleteUser"
+      />
     </div>
   );
 };

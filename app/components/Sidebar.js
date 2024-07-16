@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen } from 'react-icons/fi';
 import { signOut } from 'next-auth/react';
 import Settings from './Settings';
 
@@ -46,6 +46,15 @@ const Sidebar = ({ setActiveSection, userRole, user, calendarStartTime, calendar
                   {!isCollapsed && <span>Manage Classes</span>}
                 </li>
               </>
+            )}
+            {userRole === 'teacher' && (
+              <li
+                className={`py-2 px-6 cursor-pointer hover:bg-indigo-100 flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
+                onClick={() => setActiveSection('subjects')}
+              >
+                <FiBookOpen className="text-indigo-600" />
+                {!isCollapsed && <span>Manage Subjects</span>}
+              </li>
             )}
             {userRole !== 'student' && (
               <li

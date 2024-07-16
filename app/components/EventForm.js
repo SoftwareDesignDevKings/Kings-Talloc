@@ -3,8 +3,20 @@ import moment from 'moment';
 import Select from 'react-select';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
+import ConfirmationModal from './ConfirmationModal';
 
-const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowModal, handleStaffChange, handleStudentChange, handleClassChange }) => {
+const EventForm = ({
+  isEditing,
+  newEvent,
+  setNewEvent,
+  handleInputChange,
+  handleSubmit,
+  handleDelete,
+  setShowModal,
+  handleStaffChange,
+  handleStudentChange,
+  handleClassChange
+}) => {
   const [staffOptions, setStaffOptions] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
   const [classOptions, setClassOptions] = useState([]);
@@ -12,6 +24,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
   const [studentOptions, setStudentOptions] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
   const [error, setError] = useState('');
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -90,6 +103,16 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
     if (validateDates()) {
       handleSubmit(e);
     }
+  };
+
+  const confirmDelete = () => {
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    handleDelete();
+    setShowConfirmationModal(false);
+    setShowModal(false);
   };
 
   const approvalOptions = [
@@ -235,7 +258,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
             {isEditing && (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={confirmDelete}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 Delete
@@ -250,6 +273,13 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handle
           </div>
         </form>
       </div>
+      <ConfirmationModal
+        showConfirmationModal={showConfirmationModal}
+        setShowConfirmationModal={setShowConfirmationModal}
+        handleConfirmAction={handleConfirmDelete}
+        entityName="Event"
+        actionType="deleteEvent"
+      />
     </div>
   );
 };
