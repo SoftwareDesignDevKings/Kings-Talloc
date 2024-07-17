@@ -1,6 +1,7 @@
 import React from 'react';
+import Select from 'react-select';
 
-const ClassFormModal = ({ showModal, setShowModal, className, setClassName, handleAddClass }) => {
+const ClassFormModal = ({ showModal, setShowModal, className, setClassName, handleAddClass, subjects, selectedSubject, setSelectedSubject }) => {
   return (
     showModal && (
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -14,6 +15,18 @@ const ClassFormModal = ({ showModal, setShowModal, className, setClassName, hand
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Subject</label>
+              <Select
+                options={subjects}
+                value={selectedSubject}
+                onChange={setSelectedSubject}
+                className="basic-select"
+                classNamePrefix="select"
+                placeholder="Select a subject"
                 required
               />
             </div>

@@ -13,6 +13,7 @@ const ClassRow = ({
     <>
       <tr className="border-b border-gray-200">
         <td className="py-2 px-4 text-sm text-gray-900">{cls.name}</td>
+        <td className="py-2 px-4 text-sm text-gray-900">{cls.subject ? cls.subject.label : 'No Subject'}</td>
         <td className="py-2 px-4 text-sm text-gray-900">
           <button
             onClick={() => handleOpenStudentModal(cls)}
@@ -36,7 +37,7 @@ const ClassRow = ({
       </tr>
       {expandedClass === cls.id && (
         <tr>
-          <td colSpan="2" className="py-2 px-4">
+          <td colSpan="3" className="py-2 px-4">
             <StudentList cls={cls} confirmRemoveStudent={confirmRemoveStudent} />
           </td>
         </tr>

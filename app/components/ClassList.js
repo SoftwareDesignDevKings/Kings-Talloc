@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import ClassRow from './ClassRow';
 import ClassFormModal from './ClassFormModal';
 import StudentFormModal from './StudentFormModal';
@@ -8,6 +8,7 @@ import ConfirmationModal from './ConfirmationModal';
 
 const ClassList = () => {
   const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -15,6 +16,7 @@ const ClassList = () => {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState(null);
   const [className, setClassName] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState(null);
   const [success, setSuccess] = useState('');
   const [studentsToAdd, setStudentsToAdd] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
@@ -23,16 +25,23 @@ const ClassList = () => {
   const [classToDelete, setClassToDelete] = useState(null);
   const [filteredClasses, setFilteredClasses] = useState([]);
 
-  useEffect(() => {
-    const fetchClasses = async () => {
-      const querySnapshot = await getDocs(collection(db, 'classes'));
-      const classesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setClasses(classesList);
-      setFilteredClasses(classesList);
-      setLoading(false);
-    };
+  const fetchClasses = async () => {
+    const querySnapshot = await getDocs(collection(db, 'classes'));
+    const classesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setClasses(classesList);
+    setFilteredClasses(classesList);
+    setLoading(false);
+  };
 
+  const fetchSubjects = async () => {
+    const querySnapshot = await getDocs(collection(db, 'subjects'));
+    const subjectsList = querySnapshot.docs.map(doc => ({ value: doc.id, label: doc.data().name }));
+    setSubjects(subjectsList);
+  };
+
+  useEffect(() => {
     fetchClasses();
+    fetchSubjects();
   }, []);
 
   useEffect(() => {
@@ -44,8 +53,9 @@ const ClassList = () => {
 
   const handleAddClass = async (e) => {
     e.preventDefault();
-    await addDoc(collection(db, 'classes'), { name: className });
+    await addDoc(collection(db, 'classes'), { name: className, subject: selectedSubject });
     setClassName('');
+    setSelectedSubject(null);
     setShowModal(false);
     setSuccess('Class added successfully');
     fetchClasses();
@@ -157,6 +167,7 @@ const ClassList = () => {
           <thead>
             <tr>
               <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Class Name</th>
+              <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Subject</th>
               <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Actions</th>
             </tr>
           </thead>
@@ -181,6 +192,9 @@ const ClassList = () => {
         className={className}
         setClassName={setClassName}
         handleAddClass={handleAddClass}
+        subjects={subjects}
+        selectedSubject={selectedSubject}
+        setSelectedSubject={setSelectedSubject}
       />
       <StudentFormModal
         showStudentModal={showStudentModal}

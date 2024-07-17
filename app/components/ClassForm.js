@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { db } from '../firebase';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import Select from 'react-select';
 
-const ClassForm = ({ isEditing, classData, handleSubmit, handleDelete, setShowModal }) => {
+const ClassForm = ({ isEditing, classData, handleSubmit, handleDelete, setShowModal, subjects }) => {
   const [className, setClassName] = useState(classData?.name || '');
+  const [selectedSubject, setSelectedSubject] = useState(classData?.subject || null);
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    const newClass = { name: className };
+    const newClass = { name: className, subject: selectedSubject };
     handleSubmit(newClass);
     setShowModal(false);
   };
@@ -26,6 +26,18 @@ const ClassForm = ({ isEditing, classData, handleSubmit, handleDelete, setShowMo
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Subject</label>
+            <Select
+              options={subjects}
+              value={selectedSubject}
+              onChange={setSelectedSubject}
+              className="basic-select"
+              classNamePrefix="select"
+              placeholder="Select a subject"
               required
             />
           </div>
