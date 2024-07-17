@@ -91,7 +91,7 @@ const Dashboard = () => {
               <p className="mt-2 text-sm text-gray-600">Signed in as {session.user.email}</p>
             </div>
           </div>
-          <div className="border-t border-gray-200 pt-4 flex-1 overflow-auto">
+          <div className="border-t border-gray-200 pt-4 flex-1 overflow-hidden">
             {activeSection === 'calendar' && (
               <div className="h-full">
                 <CalendarWrapper

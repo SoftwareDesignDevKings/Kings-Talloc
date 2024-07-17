@@ -34,15 +34,58 @@ body {
   }
 }
 
-/* Additional styles for sidebar collapse/expand */
-.transition-width {
-  transition: width 0.3s;
+/* Layout */
+.calendar-container {
+  @apply flex h-full;
 }
 
-.w-20 {
-  width: 5rem;
+.calendar-panel {
+  @apply flex-1 p-5 overflow-hidden relative;
+  padding-right: 3rem; /* Add padding to ensure the button doesn't cover the calendar */
 }
 
-.w-64 {
+.calendar-panel .rbc-calendar {
+  @apply h-full;
+}
+
+.filter-panel {
+  @apply bg-gray-100 border-l border-gray-300 flex flex-col items-start transition-all duration-300;
   width: 16rem;
+  position: relative;
+}
+
+.filter-panel.collapsed {
+  width: 0;
+}
+
+.collapse-button {
+  @apply bg-indigo-500 text-white rounded-l-md shadow-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: -2.5rem; /* Adjust this to ensure the button is flush with the panel */
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  cursor: pointer;
+}
+
+.filter-title {
+  @apply mb-4 text-xl font-semibold text-gray-700;
+}
+
+.filter-content {
+  @apply flex flex-col items-start w-full p-4;
+}
+
+.basic-select,
+.basic-multi-select {
+  @apply w-full mb-4;
+}
+
+.checkbox-group {
+  @apply mb-4;
 }

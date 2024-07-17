@@ -3,6 +3,7 @@ import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Select from 'react-select';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors } from './calendar/fetchData';
 import {
   handleSelectSlot,
@@ -47,16 +48,17 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [newAvailability, setNewAvailability] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
-  const [subjects, setSubjects] = useState([]); // State to store subjects with tutors
-  const [selectedSubject, setSelectedSubject] = useState(null); // State to store selected subject
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedTutors, setSelectedTutors] = useState([]);
   const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
   const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
 
   useEffect(() => {
     fetchEvents(userRole, userEmail, setEvents, setAllEvents);
     fetchAvailabilities(setAvailabilities);
-    fetchSubjectsWithTutors(setSubjects); // Fetch subjects with tutors
+    fetchSubjectsWithTutors(setSubjects);
   }, [userRole, userEmail]);
 
   const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents);
@@ -81,64 +83,17 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
 
-  // Filter tutors based on selected subject
   const filteredTutors = selectedSubject ? selectedSubject.tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email })) : [];
 
   return (
-    <div className="relative">
-      <div className="w-full p-4 bg-white rounded-lg shadow-lg mb-4">
-        <Select
-          name="subjects"
-          options={subjects}
-          value={selectedSubject}
-          onChange={setSelectedSubject}
-          className="basic-select"
-          classNamePrefix="select"
-          placeholder="Select a subject"
-        />
-        <Select
-          isMulti
-          name="tutors"
-          options={filteredTutors}
-          value={selectedTutors}
-          onChange={setSelectedTutors}
-          className="basic-multi-select"
-          classNamePrefix="select"
-          placeholder="Select tutors to view availabilities"
-          isDisabled={!selectedSubject} // Disable tutor selection until a subject is selected
-        />
-        {userRole === 'tutor' && (
-          <div className="mt-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={hideOwnAvailabilities}
-                onChange={(e) => setHideOwnAvailabilities(e.target.checked)}
-              />
-              <span className="ml-2">Hide My Own Availabilities</span>
-            </label>
-          </div>
-        )}
-        {(userRole === 'tutor' || userRole === 'teacher') && (
-          <div className="mt-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={hideDeniedStudentEvents}
-                onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
-              />
-              <span className="ml-2">Hide Denied Student Events</span>
-            </label>
-          </div>
-        )}
-      </div>
-      <div className="w-full p-4 bg-white rounded-lg shadow-lg">
+    <div className="calendar-container">
+      <div className="calendar-panel">
         <DnDCalendar
           localizer={localizer}
           events={finalEvents}
           startAccessor="start"
           endAccessor="end"
-          style={{ height: '600px' }}
+          style={{ height: '100%' }}
           min={minTime}
           max={maxTime}
           onSelectSlot={(slotInfo) => handleSelectSlot(slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail)}
@@ -156,6 +111,60 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
           slotPropGetter={(date) => customSlotPropGetter(date, splitAvailabilitiesData, selectedTutors)}
         />
+      </div>
+      <div className={`filter-panel ${isFilterPanelOpen ? 'open' : 'collapsed'}`}>
+        <div className="collapse-button" onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}>
+          {isFilterPanelOpen ? <FiChevronRight /> : <FiChevronLeft />}
+        </div>
+        {isFilterPanelOpen && (
+          <div className="filter-content">
+            <h3 className="filter-title">Filters</h3>
+            <Select
+              name="subjects"
+              options={subjects}
+              value={selectedSubject}
+              onChange={setSelectedSubject}
+              className="basic-select"
+              classNamePrefix="select"
+              placeholder="Select a subject"
+            />
+            <Select
+              isMulti
+              name="tutors"
+              options={filteredTutors}
+              value={selectedTutors}
+              onChange={setSelectedTutors}
+              className="basic-multi-select"
+              classNamePrefix="select"
+              placeholder="Select tutors to view availabilities"
+              isDisabled={!selectedSubject}
+            />
+            {userRole === 'tutor' && (
+              <div className="checkbox-group">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={hideOwnAvailabilities}
+                    onChange={(e) => setHideOwnAvailabilities(e.target.checked)}
+                  />
+                  <span className="ml-2">Hide My Own Availabilities</span>
+                </label>
+              </div>
+            )}
+            {(userRole === 'tutor' || userRole === 'teacher') && (
+              <div className="checkbox-group">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={hideDeniedStudentEvents}
+                    onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
+                  />
+                  <span className="ml-2">Hide Denied Student Events</span>
+                </label>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {showTeacherModal && userRole === 'teacher' && (
         <EventForm
