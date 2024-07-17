@@ -54,11 +54,17 @@ export const fetchAvailabilities = async (setAvailabilities) => {
   return () => unsubscribe();
 };
 
-export const fetchTutors = async (setTutors) => {
-  const querySnapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'tutor')));
-  const tutorsList = querySnapshot.docs.map(doc => ({
-    value: doc.data().email,
-    label: doc.data().name || doc.data().email,
+export const fetchSubjectsWithTutors = async (setSubjects) => {
+  const querySnapshot = await getDocs(collection(db, 'subjects'));
+  const subjectsList = querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+    tutors: doc.data().tutors || [],
   }));
-  setTutors(tutorsList);
+  const formattedSubjects = subjectsList.map(subject => ({
+    value: subject.id,
+    label: subject.name,
+    tutors: subject.tutors,
+  }));
+  setSubjects(formattedSubjects);
 };

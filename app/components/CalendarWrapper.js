@@ -3,7 +3,7 @@ import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Select from 'react-select';
-import { fetchEvents, fetchAvailabilities, fetchTutors } from './calendar/fetchData';
+import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors } from './calendar/fetchData';
 import {
   handleSelectSlot,
   handleSelectEvent,
@@ -20,7 +20,7 @@ import {
   handleConfirmation,
 } from './calendar/handlers';
 import { eventStyleGetter, customDayPropGetter, customSlotPropGetter, messages } from './calendar/helpers';
-import { splitAvailabilities } from './calendar/availabilityUtils'; // Import the new utility function
+import { splitAvailabilities } from './calendar/availabilityUtils';
 import EventForm from './EventForm';
 import AvailabilityForm from './AvailabilityForm';
 import StudentEventForm from './StudentEventForm';
@@ -35,7 +35,7 @@ const DnDCalendar = withDragAndDrop(Calendar);
 
 const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTime }) => {
   const [events, setEvents] = useState([]);
-  const [allEvents, setAllEvents] = useState([]); // New state to store all events
+  const [allEvents, setAllEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.MONTH);
@@ -47,18 +47,19 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [newAvailability, setNewAvailability] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
-  const [tutors, setTutors] = useState([]);
+  const [subjects, setSubjects] = useState([]); // State to store subjects with tutors
+  const [selectedSubject, setSelectedSubject] = useState(null); // State to store selected subject
   const [selectedTutors, setSelectedTutors] = useState([]);
-  const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false); // New state to control visibility of own availabilities
-  const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false); // New state to control visibility of denied student events
+  const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
+  const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
 
   useEffect(() => {
-    fetchEvents(userRole, userEmail, setEvents, setAllEvents); // Updated call to fetchEvents
+    fetchEvents(userRole, userEmail, setEvents, setAllEvents);
     fetchAvailabilities(setAvailabilities);
-    fetchTutors(setTutors);
+    fetchSubjectsWithTutors(setSubjects); // Fetch subjects with tutors
   }, [userRole, userEmail]);
 
-  const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents); // Use all events for splitting
+  const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents);
 
   const filteredEvents = events.filter(event => {
     if (userRole === 'tutor' && hideOwnAvailabilities && event.tutor === userEmail) {
@@ -80,18 +81,31 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
 
+  // Filter tutors based on selected subject
+  const filteredTutors = selectedSubject ? selectedSubject.tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email })) : [];
+
   return (
     <div className="relative">
       <div className="w-full p-4 bg-white rounded-lg shadow-lg mb-4">
         <Select
+          name="subjects"
+          options={subjects}
+          value={selectedSubject}
+          onChange={setSelectedSubject}
+          className="basic-select"
+          classNamePrefix="select"
+          placeholder="Select a subject"
+        />
+        <Select
           isMulti
           name="tutors"
-          options={tutors}
+          options={filteredTutors}
           value={selectedTutors}
           onChange={setSelectedTutors}
           className="basic-multi-select"
           classNamePrefix="select"
           placeholder="Select tutors to view availabilities"
+          isDisabled={!selectedSubject} // Disable tutor selection until a subject is selected
         />
         {userRole === 'tutor' && (
           <div className="mt-4">
