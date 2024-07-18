@@ -1,57 +1,37 @@
+/* styles.css or any global CSS file */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 83, 77, 248; /* Adjusted colors */
-  --background-middle-rgb: 139, 92, 246; /* Adjusted colors */
-  --background-end-rgb: 236, 72, 153; /* Adjusted colors */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+  --calendar-bg: #ffffff;
+  --calendar-text: #000000;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-    to right,
-    rgb(var(--background-start-rgb)),
-    rgb(var(--background-middle-rgb)),
-    rgb(var(--background-end-rgb))
-  );
-  min-height: 100vh; /* Ensure the gradient covers the entire viewport */
+  color: #000000; /* Ensure body text is always black */
+  background-color: #ffffff; /* Ensure background is always white */
+  min-height: 100vh;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
-/* Layout */
 .calendar-container {
   @apply flex h-full;
 }
 
 .calendar-panel {
   @apply flex-1 p-5 overflow-hidden relative;
-  padding-right: 3rem; /* Add padding to ensure the button doesn't cover the calendar */
-}
-
-.calendar-panel .rbc-calendar {
-  @apply h-full;
+  padding-right: 3rem;
+  background-color: var(--calendar-bg) !important;
+  color: var(--calendar-text) !important;
 }
 
 .filter-panel {
   @apply bg-gray-100 border-l border-gray-300 flex flex-col items-start transition-all duration-300;
   width: 16rem;
   position: relative;
+  background-color: var(--calendar-bg) !important;
+  color: var(--calendar-text) !important;
 }
 
 .filter-panel.collapsed {
@@ -66,7 +46,7 @@ body {
   align-items: center;
   justify-content: center;
   position: absolute;
-  left: -2.5rem; /* Adjust this to ensure the button is flush with the panel */
+  left: -2.5rem;
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
@@ -88,4 +68,9 @@ body {
 
 .checkbox-group {
   @apply mb-4;
+}
+
+/* Ensure calendar text color */
+.rbc-calendar {
+  color: var(--calendar-text) !important;
 }
