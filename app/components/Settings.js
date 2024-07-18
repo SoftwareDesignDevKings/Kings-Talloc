@@ -17,7 +17,6 @@ const Settings = ({ isOpen, onClose, calendarStartTime, calendarEndTime, setCale
           </button>
         </div>
         <div className="space-y-4">
-          {/* Light/Dark Mode */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Theme
@@ -28,8 +27,6 @@ const Settings = ({ isOpen, onClose, calendarStartTime, calendarEndTime, setCale
               <option>Match System</option>
             </select>
           </div>
-
-          {/* Calendar Start Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Calendar Start Time
@@ -41,8 +38,6 @@ const Settings = ({ isOpen, onClose, calendarStartTime, calendarEndTime, setCale
               className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             />
           </div>
-
-          {/* Calendar End Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Calendar End Time

@@ -11,7 +11,7 @@ import TutorHoursSummary from '../components/TutorHoursSummary';
 import SubjectList from '../components/SubjectList';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import LoadingPage from '../components/LoadingPage'; // Import the LoadingPage component
+import LoadingPage from '../components/LoadingPage';
 
 const Dashboard = () => {
   const { data: session, status } = useSession();
@@ -20,8 +20,8 @@ const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('calendar');
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
-  const [calendarStartTime, setCalendarStartTime] = useState("00:00");
-  const [calendarEndTime, setCalendarEndTime] = useState("23:59");
+  const [calendarStartTime, setCalendarStartTime] = useState("06:00");
+  const [calendarEndTime, setCalendarEndTime] = useState("22:00");
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -33,18 +33,20 @@ const Dashboard = () => {
         const userRef = doc(db, 'users', user.email);
         const userDoc = await getDoc(userRef);
         if (!userDoc.exists()) {
-          // Add user to Firestore with a default role of 'student'
           await setDoc(userRef, {
             email: user.email,
             name: user.name,
-            role: 'student'
+            role: 'student',
+            calendarStartTime: "06:00",
+            calendarEndTime: "22:00"
           });
           setUserRole('student');
         } else {
           const userData = userDoc.data();
           setUserRole(userData.role);
+          setCalendarStartTime(userData.calendarStartTime || "06:00");
+          setCalendarEndTime(userData.calendarEndTime || "22:00");
 
-          // Update user's name if it's not set
           if (!userData.name) {
             await updateDoc(userRef, {
               name: user.name
@@ -56,15 +58,31 @@ const Dashboard = () => {
 
     if (status === 'authenticated' && session?.user) {
       checkUserInFirestore(session.user).then(() => {
-        setLoading(false); // Stop loading once the Firestore check is complete
+        setLoading(false);
       });
     } else if (status === 'unauthenticated') {
       setLoading(false);
     }
   }, [status, session]);
 
+  const updateCalendarTimes = async (startTime, endTime) => {
+    if (session?.user) {
+      const userRef = doc(db, 'users', session.user.email);
+      await updateDoc(userRef, {
+        calendarStartTime: startTime,
+        calendarEndTime: endTime
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!loading) {
+      updateCalendarTimes(calendarStartTime, calendarEndTime);
+    }
+  }, [calendarStartTime, calendarEndTime]);
+
   if (status === 'loading' || loading) {
-    return <LoadingPage />; // Use the LoadingPage component
+    return <LoadingPage />;
   }
 
   if (status === 'unauthenticated') {
