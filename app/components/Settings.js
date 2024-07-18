@@ -19,16 +19,6 @@ const Settings = ({ isOpen, onClose, calendarStartTime, calendarEndTime, setCale
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Theme
-            </label>
-            <select className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-              <option>Light</option>
-              <option>Dark</option>
-              <option>Match System</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
               Calendar Start Time
             </label>
             <input
