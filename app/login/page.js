@@ -1,8 +1,9 @@
-"use client"; // This directive must be at the top of the file
+"use client";
 
 import React, { useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import LoadingPage from '../components/LoadingPage'; // Import the LoadingPage component
 
 export default function Login() {
   const { data: session, status } = useSession();
@@ -16,7 +17,7 @@ export default function Login() {
   }, [status, router]);
 
   if (status === 'loading') {
-    return <div>Loading...</div>;
+    return <LoadingPage />; // Use the LoadingPage component
   }
 
   return (

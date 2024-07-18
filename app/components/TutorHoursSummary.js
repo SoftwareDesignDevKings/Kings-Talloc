@@ -5,13 +5,14 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { CSVLink } from 'react-csv';
+import LoadingPage from './LoadingPage';
 
 const getMonday = (d) => {
   d = new Date(d);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   const monday = new Date(d.setDate(diff));
-  monday.setHours(0, 0, 0, 0); // Set to the start of the day
+  monday.setHours(0, 0, 0, 0);
   return monday;
 };
 
@@ -21,7 +22,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const monday = getMonday(new Date());
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999); // Set to the end of Sunday
+    sunday.setHours(23, 59, 59, 999);
     return sunday;
   });
   const [tutorHours, setTutorHours] = useState([]);
@@ -43,7 +44,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const tutorHoursMap = {};
 
     for (const event of events) {
-      // Only consider approved events for student-created sessions
       if (event.createdByStudent && event.approvalStatus !== 'approved') {
         continue;
       }
@@ -65,7 +65,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     let tutorHoursArray = Object.entries(tutorHoursMap).map(([email, data]) => ({ email, ...data }));
 
-    // If user is a tutor, filter the hours for that specific tutor
     if (userRole === 'tutor') {
       tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail);
     }
@@ -103,7 +102,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         </CSVLink>
       </div>
       {loading ? (
-        <div>Loading...</div>
+        <LoadingPage withBackground={false} />
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white">

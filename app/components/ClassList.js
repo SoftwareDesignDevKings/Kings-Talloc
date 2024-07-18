@@ -5,6 +5,7 @@ import ClassRow from './ClassRow';
 import ClassFormModal from './ClassFormModal';
 import StudentFormModal from './StudentFormModal';
 import ConfirmationModal from './ConfirmationModal';
+import LoadingPage from './LoadingPage';
 
 const ClassList = () => {
   const [classes, setClasses] = useState([]);
@@ -139,7 +140,7 @@ const ClassList = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingPage withBackground={false} />;
   }
 
   return (

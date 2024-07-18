@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import ConfirmationModal from './ConfirmationModal';
+import LoadingPage from './LoadingPage';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
@@ -22,7 +23,6 @@ const UserRolesManager = () => {
       const querySnapshot = await getDocs(collection(db, 'users'));
       const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      // Sort the users by role
       const sortedUsers = usersList.sort((a, b) => {
         const roleOrder = { teacher: 1, tutor: 2, student: 3 };
         return (roleOrder[a.role] || 4) - (roleOrder[b.role] || 4);
@@ -59,7 +59,6 @@ const UserRolesManager = () => {
     }
     setError('');
 
-    // Set user role
     const userRef = doc(db, 'users', email);
     await setDoc(userRef, { email, role }, { merge: true });
 
@@ -69,7 +68,6 @@ const UserRolesManager = () => {
     setShowModal(false);
     setIsEditing(false);
 
-    // Refresh the users list
     const querySnapshot = await getDocs(collection(db, 'users'));
     const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const sortedUsers = usersList.sort((a, b) => {
@@ -102,7 +100,7 @@ const UserRolesManager = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingPage withBackground={false} />;
   }
 
   return (

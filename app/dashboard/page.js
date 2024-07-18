@@ -9,8 +9,9 @@ import UserRolesManager from '../components/UserRolesManager';
 import ClassList from '../components/ClassList';
 import TutorHoursSummary from '../components/TutorHoursSummary';
 import SubjectList from '../components/SubjectList';
-import { db } from '../firebase'; // Ensure this points to your Firebase configuration
+import { db } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import LoadingPage from '../components/LoadingPage'; // Import the LoadingPage component
 
 const Dashboard = () => {
   const { data: session, status } = useSession();
@@ -35,7 +36,7 @@ const Dashboard = () => {
           // Add user to Firestore with a default role of 'student'
           await setDoc(userRef, {
             email: user.email,
-            name: user.name, // Store the full name
+            name: user.name,
             role: 'student'
           });
           setUserRole('student');
@@ -63,7 +64,7 @@ const Dashboard = () => {
   }, [status, session]);
 
   if (status === 'loading' || loading) {
-    return <div>Loading...</div>;
+    return <LoadingPage />; // Use the LoadingPage component
   }
 
   if (status === 'unauthenticated') {

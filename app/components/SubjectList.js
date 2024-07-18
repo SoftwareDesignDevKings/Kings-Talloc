@@ -5,6 +5,7 @@ import SubjectFormModal from './SubjectFormModal';
 import TutorFormModal from './TutorFormModal';
 import ConfirmationModal from './ConfirmationModal';
 import SubjectRow from './SubjectRow';
+import LoadingPage from './LoadingPage';
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState([]);
@@ -114,7 +115,7 @@ const SubjectList = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingPage withBackground={false} />;
   }
 
   return (
