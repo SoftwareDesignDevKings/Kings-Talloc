@@ -112,7 +112,7 @@ const Dashboard = () => {
           </div>
           <div className="border-t border-gray-200 pt-4 flex-1 overflow-hidden">
             {activeSection === 'calendar' && (
-              <div className="h-full">
+              <div className="h-full overflow-auto">
                 <CalendarWrapper
                   events={events}
                   setEvents={setEvents}
@@ -126,22 +126,22 @@ const Dashboard = () => {
               </div>
             )}
             {userRole === 'teacher' && activeSection === 'userRoles' && (
-              <div className="h-full">
+              <div className="h-full overflow-auto">
                 <UserRolesManager />
               </div>
             )}
             {userRole === 'teacher' && activeSection === 'classes' && (
-              <div className="h-full">
+              <div className="h-full overflow-auto">
                 <ClassList />
               </div>
             )}
             {userRole === 'teacher' && activeSection === 'subjects' && (
-              <div className="h-full">
+              <div className="h-full overflow-auto">
                 <SubjectList />
               </div>
             )}
             {userRole !== 'student' && activeSection === 'tutorHours' && (
-              <div className="h-full">
+              <div className="h-full overflow-auto">
                 <TutorHoursSummary userRole={userRole} userEmail={session.user.email} />
               </div>
             )}

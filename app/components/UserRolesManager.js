@@ -100,7 +100,7 @@ const UserRolesManager = () => {
   };
 
   return (
-    <div className="p-8 bg-white rounded-lg shadow-lg">
+    <div className="p-8 bg-white rounded-lg shadow-lg h-full">
       <h2 className="text-2xl font-bold mb-4 text-indigo-600">Manage User Roles</h2>
       <div className="flex mb-4">
         <input
@@ -127,14 +127,14 @@ const UserRolesManager = () => {
       {loading ? (
         <LoadingPage withBackground={false} />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ height: 'calc(100% - 5rem)', overflowY: 'auto' }}>
           <table className="min-w-full bg-white">
-            <thead>
+            <thead className="sticky top-0 bg-gray-200 z-10">
               <tr>
-                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Email</th>
-                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Name</th>
-                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Role</th>
-                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Actions</th>
+                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Email</th>
+                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Name</th>
+                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Role</th>
+                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>

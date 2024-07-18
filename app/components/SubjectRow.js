@@ -44,7 +44,9 @@ const SubjectRow = ({
       {expandedSubject === subject.id && (
         <tr>
           <td colSpan="2" className="py-2 px-4">
-            <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
+            <div className="max-h-60 overflow-y-auto">
+              <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
+            </div>
           </td>
         </tr>
       )}

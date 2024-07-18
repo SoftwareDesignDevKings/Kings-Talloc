@@ -3,7 +3,6 @@ import StudentList from './StudentList';
 
 const ClassRow = ({
   cls,
-  subjects,
   handleOpenStudentModal,
   confirmDeleteClass,
   handleExpandClass,
@@ -11,13 +10,11 @@ const ClassRow = ({
   confirmRemoveStudent,
   handleEditClass,
 }) => {
-  const subjectName = subjects.find(subject => subject.id === cls.subject)?.name || 'No Subject';
-
   return (
     <>
       <tr className="border-b border-gray-200">
         <td className="py-2 px-4 text-sm text-gray-900">{cls.name}</td>
-        <td className="py-2 px-4 text-sm text-gray-900">{subjectName}</td>
+        <td className="py-2 px-4 text-sm text-gray-900">{cls.subject ? cls.subject.label : 'No Subject'}</td>
         <td className="py-2 px-4 text-sm text-gray-900">
           <button
             onClick={() => handleEditClass(cls)}
@@ -48,7 +45,9 @@ const ClassRow = ({
       {expandedClass === cls.id && (
         <tr>
           <td colSpan="3" className="py-2 px-4">
-            <StudentList cls={cls} confirmRemoveStudent={confirmRemoveStudent} />
+            <div className="max-h-60 overflow-y-auto">
+              <StudentList cls={cls} confirmRemoveStudent={confirmRemoveStudent} />
+            </div>
           </td>
         </tr>
       )}
