@@ -228,27 +228,21 @@ export const handleAvailabilitySubmit = async (e, isEditing, newAvailability, ev
 };
 
 export const handleConfirmation = async (event, confirmed, userRole, userEmail, events, setEvents) => {
-  if (userRole === 'tutor') {
-    const updatedTutorResponses = [
-      ...event.tutorResponses.filter(response => response.email !== userEmail),
-      { email: userEmail, response: confirmed },
-    ];
-    const updatedEvent = { ...event, tutorResponses: updatedTutorResponses };
-    const eventDoc = doc(db, 'events', event.id);
-    await updateDoc(eventDoc, {
-      tutorResponses: updatedTutorResponses,
-    });
-    setEvents(events.map(evt => evt.id === event.id ? updatedEvent : evt));
-  } else if (userRole === 'student' && event.minStudents > 0) {
+  if (userRole === 'student' && event.minStudents > 0) {
     const updatedStudentResponses = [
-      ...event.studentResponses.filter(response => response.email !== userEmail),
+      ...(event.studentResponses || []).filter(response => response.email !== userEmail),
       { email: userEmail, response: confirmed },
     ];
     const updatedEvent = { ...event, studentResponses: updatedStudentResponses };
     const eventDoc = doc(db, 'events', event.id);
-    await updateDoc(eventDoc, {
-      studentResponses: updatedStudentResponses,
-    });
-    setEvents(events.map(evt => evt.id === event.id ? updatedEvent : evt));
+
+    try {
+      await updateDoc(eventDoc, {
+        studentResponses: updatedStudentResponses,
+      });
+      setEvents(events.map(evt => (evt.id === event.id ? updatedEvent : evt)));
+    } catch (error) {
+      console.error('Failed to update student response:', error);
+    }
   }
 };

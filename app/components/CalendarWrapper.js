@@ -210,6 +210,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           handleConfirmation={(confirmed) => handleConfirmation(eventToEdit, confirmed, userRole, userEmail, events, setEvents)}
           userEmail={userEmail}
           userRole={userRole}
+          events={events}
+          setEvents={setEvents}
         />
       )}
     </div>

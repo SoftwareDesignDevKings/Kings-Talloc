@@ -9,12 +9,10 @@ const calculateGreenIntensity = (numTutors, maxTutors) => {
 
 export const eventStyleGetter = (event, userRole, userEmail) => {
   const isAvailability = !!event.tutor;
-  const tutorResponse = event.tutorResponses?.find(response => response.email === userEmail);
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
-  const isDeclined = event.tutorResponses?.some(response => response.email === userEmail && response.response === false) || event.studentResponses?.some(response => response.email === userEmail && response.response === false);
-  const needsConfirmation = userRole === 'tutor' && event.confirmationRequired && !tutorResponse;
-  const needsStudentConfirmation = userRole === 'student' && event.minStudents > 0 && !studentResponse;
-  const isStudentCreated = event.createdByStudent && (userRole === 'teacher' || userRole === 'tutor') && event.approvalStatus === 'pending';
+  const isDeclined = studentResponse && !studentResponse.response;
+  const isAccepted = studentResponse && studentResponse.response;
+  const needsStudentConfirmation = userRole === 'student' && !studentResponse && event.minStudents > 0;
 
   let backgroundColor = 'lightblue';
   let borderColor = 'blue';
@@ -22,7 +20,7 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   if (isAvailability) {
     backgroundColor = 'lightgreen';
     borderColor = 'green';
-  } else if (isStudentCreated) {
+  } else if (event.createdByStudent && event.approvalStatus === 'pending') {
     backgroundColor = 'orange';
     borderColor = 'darkorange';
   } else if (event.approvalStatus === 'denied') {
@@ -31,20 +29,12 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   } else if (isDeclined) {
     backgroundColor = 'grey';
     borderColor = 'black';
-  } else if (needsConfirmation || needsStudentConfirmation) {
+  } else if (isAccepted) {
+    backgroundColor = 'lightblue';
+    borderColor = 'blue';
+  } else if (needsStudentConfirmation) {
     backgroundColor = 'red';
-    borderColor = 'red';
-  } else if (userRole === 'student' && event.createdByStudent) {
-    if (event.approvalStatus === 'approved') {
-      backgroundColor = 'lightblue';
-      borderColor = 'blue';
-    } else if (event.approvalStatus === 'denied') {
-      backgroundColor = 'lightcoral';
-      borderColor = 'red';
-    } else {
-      backgroundColor = 'orange';
-      borderColor = 'darkorange';
-    }
+    borderColor = 'darkred';
   }
 
   return {
@@ -55,6 +45,7 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
     },
   };
 };
+
 
 export const customSlotPropGetter = (date, availabilities, selectedTutors) => {
   const availableTutors = availabilities.filter(

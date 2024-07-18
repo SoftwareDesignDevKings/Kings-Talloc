@@ -1,14 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase'; // Ensure the correct path to firebase is used
 
-const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail, userRole }) => {
+const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
   const [response, setResponse] = useState(studentResponse ? (studentResponse.response ? 'accepted' : 'declined') : '');
 
-  const handleResponseChange = (selectedOption) => {
+  const handleResponseChange = async (selectedOption) => {
+    const isAccepted = selectedOption.value === 'accepted';
     setResponse(selectedOption.value);
-    handleConfirmation(event, selectedOption.value === 'accepted');
+
+    // Update student response in Firebase
+    const updatedStudentResponses = [
+      ...(event.studentResponses || []).filter(response => response.email !== userEmail),
+      { email: userEmail, response: isAccepted },
+    ];
+
+    const updatedEvent = { ...event, studentResponses: updatedStudentResponses };
+    const eventDoc = doc(db, 'events', event.id);
+
+    try {
+      await updateDoc(eventDoc, {
+        studentResponses: updatedStudentResponses,
+      });
+      setEvents(events.map(evt => (evt.id === event.id ? updatedEvent : evt)));
+    } catch (error) {
+      console.error('Failed to update student response:', error);
+    }
   };
 
   return (
@@ -81,22 +101,6 @@ const EventDetailsModal = ({ event, handleClose, handleConfirmation, userEmail, 
               classNamePrefix="select"
             />
           </div>
-          {userRole !== 'student' && event.minStudents > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Student Responses</label>
-              {event.studentResponses && event.studentResponses.length > 0 ? (
-                <ul className="list-disc list-inside">
-                  {event.studentResponses.map((response, index) => (
-                    <li key={index}>
-                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No students have responded yet.</p>
-              )}
-            </div>
-          )}
           {userRole === 'student' && event.minStudents > 0 && (
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Your Response</label>
