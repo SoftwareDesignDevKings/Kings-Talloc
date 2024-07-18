@@ -18,6 +18,7 @@ const ClassList = () => {
   const [confirmationAction, setConfirmationAction] = useState(null);
   const [className, setClassName] = useState('');
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [success, setSuccess] = useState('');
   const [studentsToAdd, setStudentsToAdd] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
@@ -36,7 +37,7 @@ const ClassList = () => {
 
   const fetchSubjects = async () => {
     const querySnapshot = await getDocs(collection(db, 'subjects'));
-    const subjectsList = querySnapshot.docs.map(doc => ({ value: doc.id, label: doc.data().name }));
+    const subjectsList = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
     setSubjects(subjectsList);
   };
 
@@ -54,12 +55,31 @@ const ClassList = () => {
 
   const handleAddClass = async (e) => {
     e.preventDefault();
-    await addDoc(collection(db, 'classes'), { name: className, subject: selectedSubject });
+    if (!selectedSubject) {
+      setSuccess('Please select a subject.');
+      return;
+    }
+    if (isEditing) {
+      const classRef = doc(db, 'classes', selectedClass.id);
+      await updateDoc(classRef, { name: className, subject: selectedSubject.id });
+      setClasses(classes.map(cls => (cls.id === selectedClass.id ? { ...cls, name: className, subject: selectedSubject.id } : cls)));
+      setIsEditing(false);
+    } else {
+      await addDoc(collection(db, 'classes'), { name: className, subject: selectedSubject.id });
+    }
     setClassName('');
     setSelectedSubject(null);
     setShowModal(false);
-    setSuccess('Class added successfully');
+    setSuccess(isEditing ? 'Class edited successfully' : 'Class added successfully');
     fetchClasses();
+  };
+
+  const handleEditClass = (cls) => {
+    setSelectedClass(cls);
+    setClassName(cls.name);
+    setSelectedSubject(subjects.find(subject => subject.id === cls.subject));
+    setIsEditing(true);
+    setShowModal(true);
   };
 
   const handleDeleteClass = async () => {
@@ -152,7 +172,11 @@ const ClassList = () => {
           style={{ flex: 1 }}
         />
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setSelectedClass(null);
+            setIsEditing(false);
+            setShowModal(true);
+          }}
           className="ml-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           style={{ height: '2.5rem', width: 'auto' }}
         >
@@ -176,11 +200,13 @@ const ClassList = () => {
                 <ClassRow
                   key={cls.id}
                   cls={cls}
+                  subjects={subjects}
                   handleOpenStudentModal={handleOpenStudentModal}
                   confirmDeleteClass={confirmDeleteClass}
                   handleExpandClass={handleExpandClass}
                   expandedClass={expandedClass}
                   confirmRemoveStudent={confirmRemoveStudent}
+                  handleEditClass={handleEditClass}
                 />
               ))}
             </tbody>
@@ -196,6 +222,7 @@ const ClassList = () => {
         subjects={subjects}
         selectedSubject={selectedSubject}
         setSelectedSubject={setSelectedSubject}
+        isEditing={isEditing}
       />
       <StudentFormModal
         showStudentModal={showStudentModal}

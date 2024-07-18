@@ -13,6 +13,7 @@ const SubjectList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [currentSubject, setCurrentSubject] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
   const [showTutorModal, setShowTutorModal] = useState(false);
@@ -41,15 +42,22 @@ const SubjectList = () => {
   }, [searchTerm, subjects]);
 
   const handleAddSubject = async (subject) => {
-    const docRef = await addDoc(collection(db, 'subjects'), subject);
-    setSubjects([...subjects, { id: docRef.id, ...subject }]);
+    if (isEditing) {
+      const subjectRef = doc(db, 'subjects', currentSubject.id);
+      await updateDoc(subjectRef, subject);
+      setSubjects(subjects.map(sub => (sub.id === currentSubject.id ? { ...sub, ...subject } : sub)));
+      setIsEditing(false);
+    } else {
+      const docRef = await addDoc(collection(db, 'subjects'), subject);
+      setSubjects([...subjects, { id: docRef.id, ...subject }]);
+    }
+    setShowModal(false);
   };
 
-  const handleEditSubject = async (subject) => {
-    const subjectRef = doc(db, 'subjects', currentSubject.id);
-    await updateDoc(subjectRef, subject);
-    setSubjects(subjects.map(sub => (sub.id === currentSubject.id ? { ...sub, ...subject } : sub)));
-    setCurrentSubject(null);
+  const handleEditSubject = (subject) => {
+    setCurrentSubject(subject);
+    setIsEditing(true);
+    setShowModal(true);
   };
 
   const handleDeleteSubject = async () => {
@@ -92,12 +100,12 @@ const SubjectList = () => {
 
   const openAddModal = () => {
     setCurrentSubject(null);
+    setIsEditing(false);
     setShowModal(true);
   };
 
   const openEditModal = (subject) => {
-    setCurrentSubject(subject);
-    setShowModal(true);
+    handleEditSubject(subject);
   };
 
   const openDeleteModal = (subject) => {
@@ -131,7 +139,7 @@ const SubjectList = () => {
           className="ml-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           style={{ height: '2.5rem', width: 'auto' }}
         >
-          Add Subject
+          {isEditing ? 'Edit Subject' : 'Add Subject'}
         </button>
       </div>
       {loading ? (
@@ -155,6 +163,7 @@ const SubjectList = () => {
                   handleExpandSubject={handleExpandSubject}
                   expandedSubject={expandedSubject}
                   confirmRemoveTutor={handleRemoveTutor}
+                  handleEditSubject={openEditModal}
                 />
               ))}
             </tbody>
@@ -165,7 +174,8 @@ const SubjectList = () => {
         showModal={showModal}
         setShowModal={setShowModal}
         subject={currentSubject}
-        handleSubmit={currentSubject ? handleEditSubject : handleAddSubject}
+        handleSubmit={handleAddSubject}
+        isEditing={isEditing}
       />
       <TutorFormModal
         showTutorModal={showTutorModal}

@@ -3,18 +3,28 @@ import StudentList from './StudentList';
 
 const ClassRow = ({
   cls,
+  subjects,
   handleOpenStudentModal,
   confirmDeleteClass,
   handleExpandClass,
   expandedClass,
   confirmRemoveStudent,
+  handleEditClass,
 }) => {
+  const subjectName = subjects.find(subject => subject.id === cls.subject)?.name || 'No Subject';
+
   return (
     <>
       <tr className="border-b border-gray-200">
         <td className="py-2 px-4 text-sm text-gray-900">{cls.name}</td>
-        <td className="py-2 px-4 text-sm text-gray-900">{cls.subject ? cls.subject.label : 'No Subject'}</td>
+        <td className="py-2 px-4 text-sm text-gray-900">{subjectName}</td>
         <td className="py-2 px-4 text-sm text-gray-900">
+          <button
+            onClick={() => handleEditClass(cls)}
+            className="mr-2 px-2 py-1 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Edit
+          </button>
           <button
             onClick={() => handleOpenStudentModal(cls)}
             className="mr-2 px-2 py-1 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
