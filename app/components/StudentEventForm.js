@@ -3,11 +3,14 @@ import moment from 'moment';
 import Select from 'react-select';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { fetchAvailabilities } from './calendar/fetchData'; // Import the fetchAvailabilities function
 
-const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowStudentModal, studentEmail, userRole }) => {
+const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowStudentModal, studentEmail }) => {
   const [tutorOptions, setTutorOptions] = useState([]);
+  const [filteredTutors, setFilteredTutors] = useState([]);
   const [selectedTutor, setSelectedTutor] = useState(newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null);
   const [selectedStudent, setSelectedStudent] = useState(newEvent.students && newEvent.students.length > 0 ? newEvent.students[0] : { value: studentEmail, label: studentEmail });
+  const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -21,19 +24,24 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
       setTutorOptions(tutorList);
     };
 
-    fetchTutors();
-  }, []);
+    const fetchAllData = async () => {
+      await fetchTutors();
+      await fetchAvailabilities(setAvailabilities);
+    };
 
-  const handleTutorSelectChange = (selectedOption) => {
-    setSelectedTutor(selectedOption);
-    setNewEvent({ ...newEvent, staff: [selectedOption] });
-  };
+    fetchAllData();
+  }, []);
 
   useEffect(() => {
     if (!isEditing) {
       setNewEvent({ ...newEvent, students: [selectedStudent], createdByStudent: true, approvalStatus: 'pending' });
     }
   }, [selectedStudent]);
+
+  const handleTutorSelectChange = (selectedOption) => {
+    setSelectedTutor(selectedOption);
+    setNewEvent({ ...newEvent, staff: [selectedOption] });
+  };
 
   const validateDates = () => {
     const start = moment(newEvent.start);
@@ -44,6 +52,32 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
     }
     setError('');
     return true;
+  };
+
+  const filterTutorsByAvailability = (start, end) => {
+    const availableTutors = tutorOptions.filter(tutor => {
+      const tutorAvailabilities = availabilities.filter(availability => availability.tutor === tutor.value);
+      return tutorAvailabilities.some(availability => {
+        return moment(availability.start).isSameOrBefore(start) && moment(availability.end).isSameOrAfter(end);
+      });
+    });
+    setFilteredTutors(availableTutors);
+  };
+
+  const handleDateChange = (e) => {
+    handleInputChange(e);
+    const { name, value } = e.target;
+    if (name === 'start' || name === 'end') {
+      const start = name === 'start' ? moment(value) : moment(newEvent.start);
+      const end = name === 'end' ? moment(value) : moment(newEvent.end);
+      filterTutorsByAvailability(start, end);
+    }
+  };
+
+  const handleMenuOpen = () => {
+    const start = moment(newEvent.start);
+    const end = moment(newEvent.end);
+    filterTutorsByAvailability(start, end);
   };
 
   const onSubmit = (e) => {
@@ -92,7 +126,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
               name="start"
               id="start"
               value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
-              onChange={handleInputChange}
+              onChange={handleDateChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
               disabled={!isStudentCreated}
@@ -105,7 +139,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
               name="end"
               id="end"
               value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
-              onChange={handleInputChange}
+              onChange={handleDateChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
               disabled={!isStudentCreated}
@@ -115,14 +149,16 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
             <label htmlFor="tutor" className="block text-sm font-medium text-gray-700">Assign Tutor</label>
             <Select
               name="tutor"
-              options={tutorOptions}
+              options={filteredTutors}
               value={selectedTutor}
               onChange={handleTutorSelectChange}
+              onMenuOpen={handleMenuOpen}
               classNamePrefix="select"
               isDisabled={!isStudentCreated}
+              noOptionsMessage={() => "No tutors available for the selected time range"}
             />
           </div>
-          {userRole !== 'student' && newEvent.minStudents > 0 && (
+          {newEvent.minStudents > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Student Responses</label>
               {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
