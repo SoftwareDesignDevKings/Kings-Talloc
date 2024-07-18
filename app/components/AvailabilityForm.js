@@ -1,12 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import moment from 'moment';
 
-const AvailabilityForm = ({ isEditing, newAvailability, setNewAvailability, handleInputChange, handleSubmit, handleDelete, setShowModal }) => {
+const AvailabilityForm = ({
+  isEditing,
+  newAvailability,
+  setNewAvailability,
+  handleInputChange,
+  handleSubmit,
+  handleDelete,
+  setShowModal
+}) => {
+  const [error, setError] = useState('');
+
+  const validateDates = () => {
+    const start = moment(newAvailability.start);
+    const end = moment(newAvailability.end);
+    if (end.isSameOrBefore(start)) {
+      setError('End date must be after the start date.');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    if (validateDates()) {
+      handleSubmit(e);
+    }
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
         <h2 className="text-2xl font-bold text-center">{isEditing ? 'Edit Availability' : 'Add Availability'}</h2>
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={onSubmit} className="space-y-6 mt-4">
+          {error && <div className="text-red-500">{error}</div>}
           <div>
             <label htmlFor="start" className="block text-sm font-medium text-gray-700">Start Time</label>
             <input
