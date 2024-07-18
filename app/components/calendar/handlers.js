@@ -63,16 +63,22 @@ export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNe
       setEventToEdit(event);
       setShowTeacherModal(true);
     } else if (userRole === 'student' && event.createdByStudent) {
-      setNewEvent(event);
-      setIsEditing(true);
-      setEventToEdit(event);
-      setShowStudentModal(true);
+      if (event.approvalStatus === 'pending') {
+        setNewEvent(event);
+        setIsEditing(true);
+        setEventToEdit(event);
+        setShowStudentModal(true);
+      } else {
+        setEventToEdit(event);
+        setShowDetailsModal(true);
+      }
     } else {
       setEventToEdit(event);
       setShowDetailsModal(true);
     }
   }
 };
+
 
 export const handleEventDrop = async ({ event, start, end }, events, availabilities, setEvents, setAvailabilities, userRole) => {
   const isAvailability = !!event.tutor;
