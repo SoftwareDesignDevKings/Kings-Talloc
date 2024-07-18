@@ -114,10 +114,6 @@ const SubjectList = () => {
     setExpandedSubject(expandedSubject === subject.id ? null : subject.id);
   };
 
-  if (loading) {
-    return <LoadingPage withBackground={false} />;
-  }
-
   return (
     <div className="p-8 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4 text-indigo-600">Manage Subjects</h2>
@@ -138,29 +134,33 @@ const SubjectList = () => {
           Add Subject
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white">
-          <thead>
-            <tr>
-              <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Subject Name</th>
-              <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSubjects.map(subject => (
-              <SubjectRow
-                key={subject.id}
-                subject={subject}
-                handleOpenTutorModal={openAddTutorModal}
-                confirmDeleteSubject={openDeleteModal}
-                handleExpandSubject={handleExpandSubject}
-                expandedSubject={expandedSubject}
-                confirmRemoveTutor={handleRemoveTutor}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <LoadingPage withBackground={false} />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white">
+            <thead>
+              <tr>
+                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Subject Name</th>
+                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSubjects.map(subject => (
+                <SubjectRow
+                  key={subject.id}
+                  subject={subject}
+                  handleOpenTutorModal={openAddTutorModal}
+                  confirmDeleteSubject={openDeleteModal}
+                  handleExpandSubject={handleExpandSubject}
+                  expandedSubject={expandedSubject}
+                  confirmRemoveTutor={handleRemoveTutor}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <SubjectFormModal
         showModal={showModal}
         setShowModal={setShowModal}

@@ -99,10 +99,6 @@ const UserRolesManager = () => {
     setShowConfirmationModal(true);
   };
 
-  if (loading) {
-    return <LoadingPage withBackground={false} />;
-  }
-
   return (
     <div className="p-8 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4 text-indigo-600">Manage User Roles</h2>
@@ -128,47 +124,51 @@ const UserRolesManager = () => {
           Add User Role
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white">
-          <thead>
-            <tr>
-              <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Email</th>
-              <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Name</th>
-              <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Role</th>
-              <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((user) => (
-              <tr key={user.id} className="border-b border-gray-200">
-                <td className="py-2 px-4 text-sm text-gray-900">{user.email}</td>
-                <td className="py-2 px-4 text-sm text-gray-900">
-                  {user.name ? (
-                    user.name
-                  ) : (
-                    <span className="text-red-500 italic">User hasn&apos;t logged in yet</span>
-                  )}
-                </td>
-                <td className="py-2 px-4 text-sm text-gray-900">{user.role}</td>
-                <td className="py-2 px-4 text-sm text-gray-900">
-                  <button
-                    onClick={() => handleEdit(user)}
-                    className="mr-2 px-2 py-1 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => confirmDelete(user)}
-                    className="px-2 py-1 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                  >
-                    Delete
-                  </button>
-                </td>
+      {loading ? (
+        <LoadingPage withBackground={false} />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white">
+            <thead>
+              <tr>
+                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Email</th>
+                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Name</th>
+                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Role</th>
+                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filteredUsers.map((user) => (
+                <tr key={user.id} className="border-b border-gray-200">
+                  <td className="py-2 px-4 text-sm text-gray-900">{user.email}</td>
+                  <td className="py-2 px-4 text-sm text-gray-900">
+                    {user.name ? (
+                      user.name
+                    ) : (
+                      <span className="text-red-500 italic">User hasn&apos;t logged in yet</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-4 text-sm text-gray-900">{user.role}</td>
+                  <td className="py-2 px-4 text-sm text-gray-900">
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="mr-2 px-2 py-1 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => confirmDelete(user)}
+                      className="px-2 py-1 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
@@ -224,6 +224,7 @@ const UserRolesManager = () => {
         handleConfirmAction={() => handleDelete(userToDelete.email)}
         actionType="deleteUser"
       />
+      {success && <p className="text-sm text-green-600 mt-4">{success}</p>}
     </div>
   );
 };
