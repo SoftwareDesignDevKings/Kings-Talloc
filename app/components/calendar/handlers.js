@@ -16,6 +16,7 @@ export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailabi
       confirmationRequired: false,
       createdByStudent: true,
       approvalStatus: 'pending',
+      workStatus: 'notCompleted',
     });
     setIsEditing(false);
     setShowStudentModal(true);
@@ -39,6 +40,7 @@ export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailabi
       tutorResponses: [], 
       studentResponses: [], 
       minStudents: 0,
+      workStatus: 'notCompleted',
     });
     setIsEditing(false);
     setShowTeacherModal(true);
@@ -78,7 +80,6 @@ export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNe
     }
   }
 };
-
 
 export const handleEventDrop = async ({ event, start, end }, events, availabilities, setEvents, setAvailabilities, userRole) => {
   const isAvailability = !!event.tutor;
@@ -167,6 +168,7 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     minStudents: newEvent.minStudents || 0,
     createdByStudent: newEvent.createdByStudent || false,
     approvalStatus: newEvent.approvalStatus || 'pending',
+    workStatus: newEvent.workStatus || 'notCompleted',
   };
 
   if (isEditing) {

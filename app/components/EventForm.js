@@ -120,6 +120,12 @@ const EventForm = ({
     { value: 'denied', label: 'Deny' },
   ];
 
+  const workStatusOptions = [
+    { value: 'notCompleted', label: 'Not Completed' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'notAttended', label: "Student Didn't Attend" },
+  ];
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
@@ -247,6 +253,16 @@ const EventForm = ({
               />
             </div>
           )}
+          <div>
+            <label htmlFor="workStatus" className="block text-sm font-medium text-gray-700">Work Status</label>
+            <Select
+              name="workStatus"
+              options={workStatusOptions}
+              onChange={(selectedOption) => setNewEvent({ ...newEvent, workStatus: selectedOption.value })}
+              classNamePrefix="select"
+              defaultValue={workStatusOptions.find(option => option.value === (newEvent.workStatus || 'notCompleted'))}
+            />
+          </div>
           <div className="flex justify-between mt-4">
             <button
               type="button"

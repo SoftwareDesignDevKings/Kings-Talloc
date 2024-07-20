@@ -7,6 +7,7 @@ import { db } from '../firebase';
 const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
   const [response, setResponse] = useState(studentResponse ? (studentResponse.response ? 'accepted' : 'declined') : '');
+  const [workStatus, setWorkStatus] = useState(event.workStatus || 'notCompleted');
 
   const handleResponseChange = async (selectedOption) => {
     const isAccepted = selectedOption.value === 'accepted';
@@ -30,6 +31,29 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
       console.error('Failed to update student response:', error);
     }
   };
+
+  const handleWorkStatusChange = async (selectedOption) => {
+    const newWorkStatus = selectedOption.value;
+    setWorkStatus(newWorkStatus);
+
+    const updatedEvent = { ...event, workStatus: newWorkStatus };
+    const eventDoc = doc(db, 'events', event.id);
+
+    try {
+      await updateDoc(eventDoc, {
+        workStatus: newWorkStatus,
+      });
+      setEvents(events.map(evt => (evt.id === event.id ? updatedEvent : evt)));
+    } catch (error) {
+      console.error('Failed to update work status:', error);
+    }
+  };
+
+  const workStatusOptions = [
+    { value: 'notCompleted', label: 'Not Completed' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'notAttended', label: "Student Didn't Attend" },
+  ];
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -113,6 +137,18 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                 value={response ? { value: response, label: response.charAt(0).toUpperCase() + response.slice(1) } : null}
                 onChange={handleResponseChange}
                 className="basic-single-select"
+                classNamePrefix="select"
+              />
+            </div>
+          )}
+          {userRole === 'tutor' && (
+            <div>
+              <label htmlFor="workStatus" className="block text-sm font-medium text-gray-700">Work Status</label>
+              <Select
+                name="workStatus"
+                options={workStatusOptions}
+                value={workStatusOptions.find(option => option.value === workStatus)}
+                onChange={handleWorkStatusChange}
                 classNamePrefix="select"
               />
             </div>

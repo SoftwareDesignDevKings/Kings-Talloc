@@ -48,6 +48,11 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         continue;
       }
 
+      // Only count events with workStatus set to 'completed'
+      if (event.workStatus !== 'completed') {
+        continue;
+      }
+
       for (const staff of event.staff) {
         const isConfirmed = event.confirmationRequired
           ? event.tutorResponses.some(response => response.email === staff.value && response.response)
