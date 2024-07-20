@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { db } from '../../firebase'; // Adjust the path as necessary
-import { collection, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -55,9 +55,10 @@ const sendEmailNotification = async (events) => {
 
 export async function GET() {
   try {
-    const q = query(collection(db, 'eventsQueue'), where('timestamp', '<=', new Date()));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getDocs(collection(db, 'eventsQueue'));
     const eventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    console.log('Events Queue:', eventsQueue); // Debugging line
 
     if (eventsQueue.length > 0) {
       await sendEmailNotification(eventsQueue);

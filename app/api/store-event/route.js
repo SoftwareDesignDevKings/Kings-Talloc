@@ -1,5 +1,5 @@
 import { db } from '../../firebase'; // Adjust the path as necessary
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 
 export async function POST(request) {
   const event = await request.json();
@@ -7,8 +7,9 @@ export async function POST(request) {
   try {
     await addDoc(collection(db, 'eventsQueue'), {
       ...event,
-      timestamp: new Date(), // Add a timestamp for ordering
+      timestamp: new Date(), // Ensure the timestamp is added here
     });
+    console.log('Event stored:', event); // Debugging line
     return new Response(JSON.stringify({ message: 'Event stored successfully' }), { status: 200 });
   } catch (error) {
     console.error('Error storing event:', error);
@@ -18,8 +19,7 @@ export async function POST(request) {
 
 export async function GET() {
   try {
-    const q = query(collection(db, 'eventsQueue'), where('timestamp', '<=', new Date()));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getDocs(collection(db, 'eventsQueue'));
     const eventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     return new Response(JSON.stringify(eventsQueue), { status: 200 });
