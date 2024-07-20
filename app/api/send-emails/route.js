@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
-import { getEventsQueue, clearEventsQueue } from '../store-event/route';
+import { db } from '../../firebase'; // Adjust the path as necessary
+import { collection, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -22,8 +23,6 @@ const sendEmailNotification = async (events) => {
       tutorsMap.get(tutor.value).push(event);
     });
   });
-
-  console.log('Tutors Map:', tutorsMap); // Add this line for debugging
 
   tutorsMap.forEach((events, tutorEmail) => {
     const mailOptions = {
@@ -54,14 +53,25 @@ const sendEmailNotification = async (events) => {
   await Promise.all(emailPromises);
 };
 
-export async function GET(request) {
-  const eventsQueue = getEventsQueue();
-  console.log('Events Queue:', eventsQueue); // Add this line for debugging
-  if (eventsQueue.length > 0) {
-    await sendEmailNotification(eventsQueue);
-    clearEventsQueue();
-    return new Response(JSON.stringify({ message: 'Emails sent successfully' }), { status: 200 });
-  } else {
-    return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
+export async function GET() {
+  try {
+    const q = query(collection(db, 'eventsQueue'), where('timestamp', '<=', new Date()));
+    const querySnapshot = await getDocs(q);
+    const eventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    if (eventsQueue.length > 0) {
+      await sendEmailNotification(eventsQueue);
+
+      // Delete processed events from the queue
+      const deletePromises = eventsQueue.map(event => deleteDoc(doc(db, 'eventsQueue', event.id)));
+      await Promise.all(deletePromises);
+
+      return new Response(JSON.stringify({ message: 'Emails sent successfully' }), { status: 200 });
+    } else {
+      return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
+    }
+  } catch (error) {
+    console.error('Error sending emails:', error);
+    return new Response(JSON.stringify({ message: 'Failed to send emails', error }), { status: 500 });
   }
 }
