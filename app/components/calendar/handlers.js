@@ -165,7 +165,18 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     });
   };
 
+  const updateEventInQueue = async (event) => {
+    await fetch('/api/update-event-queue', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(event),
+    });
+  };
+
   const eventData = {
+    id: isEditing ? eventToEdit.id : undefined, // Ensure the ID is included when editing
     title: newEvent.title || '',
     start: new Date(newEvent.start),
     end: new Date(newEvent.end),
@@ -186,17 +197,16 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     const eventDoc = doc(db, 'events', eventToEdit.id);
     await updateDoc(eventDoc, eventData);
     setEvents(events.map(event => event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event));
+    await updateEventInQueue(eventData); // Update event in queue
   } else {
     const docRef = await addDoc(collection(db, 'events'), eventData);
     setEvents([...events, { ...eventData, id: docRef.id }]);
+    eventData.id = docRef.id; // Add the generated ID to the event data
+    await storeEvent(eventData); // Store the new event in the queue
   }
-
-  // Store the event
-  await storeEvent(eventData);
 
   setShowModal(false);
 };
-
 
 export const handleDelete = async (eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal) => {
   if (eventToEdit && eventToEdit.id) {
@@ -207,6 +217,15 @@ export const handleDelete = async (eventToEdit, events, setEvents, availabilitie
     } else {
       setEvents(events.filter(event => event.id !== eventToEdit.id));
     }
+
+    // Remove event from the queue
+    await fetch('/api/remove-event-queue', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: eventToEdit.id }),
+    });
   }
   setShowModal(false);
 };
