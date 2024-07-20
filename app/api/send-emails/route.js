@@ -1,5 +1,3 @@
-// app/api/send-emails/route.js
-
 import nodemailer from 'nodemailer';
 import { getEventsQueue, clearEventsQueue } from '../store-event/route';
 
@@ -24,6 +22,8 @@ const sendEmailNotification = async (events) => {
       tutorsMap.get(tutor.value).push(event);
     });
   });
+
+  console.log('Tutors Map:', tutorsMap); // Add this line for debugging
 
   tutorsMap.forEach((events, tutorEmail) => {
     const mailOptions = {
@@ -56,6 +56,7 @@ const sendEmailNotification = async (events) => {
 
 export async function GET(request) {
   const eventsQueue = getEventsQueue();
+  console.log('Events Queue:', eventsQueue); // Add this line for debugging
   if (eventsQueue.length > 0) {
     await sendEmailNotification(eventsQueue);
     clearEventsQueue();

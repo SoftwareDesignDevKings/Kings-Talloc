@@ -5,6 +5,9 @@ export async function POST(request) {
 
   eventsQueue.push(event);
 
+  console.log('Event stored:', event); // Add this line for debugging
+  console.log('Current eventsQueue:', eventsQueue); // Add this line for debugging
+
   return new Response(JSON.stringify({ message: 'Event stored successfully' }), { status: 200 });
 }
 
