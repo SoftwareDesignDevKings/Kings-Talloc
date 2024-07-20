@@ -85,6 +85,14 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
 
   const filteredTutors = selectedSubject ? selectedSubject.tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email })) : [];
 
+  // Calculate the current week start and end dates
+  const currentWeekStart = moment(currentDate).startOf('week');
+  const currentWeekEnd = moment(currentDate).endOf('week');
+
+  const applicableAvailabilities = selectedSubject && selectedTutors.length === 0 
+    ? splitAvailabilitiesData.filter(avail => selectedSubject.tutors.some(tutor => tutor.email === avail.tutor))
+    : splitAvailabilitiesData;
+
   return (
     <div className="calendar-container">
       <div className="calendar-panel">
@@ -109,7 +117,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
           messages={messages}
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
-          slotPropGetter={(date) => customSlotPropGetter(date, splitAvailabilitiesData, selectedTutors)}
+          slotPropGetter={(date) => customSlotPropGetter(date, applicableAvailabilities, selectedTutors, currentWeekStart, currentWeekEnd)}
         />
       </div>
       <div className={`filter-panel ${isFilterPanelOpen ? 'open' : 'collapsed'}`}>
@@ -187,7 +195,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           setNewEvent={setNewEvent}
           handleInputChange={(e) => handleInputChange(e, setNewEvent, newEvent)}
           handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setEvents, events, setShowStudentModal)}
-          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowStudentModal, setShowAvailabilityModal)}
+          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowStudentModal)}
           setShowStudentModal={setShowStudentModal}
           studentEmail={userEmail}
         />

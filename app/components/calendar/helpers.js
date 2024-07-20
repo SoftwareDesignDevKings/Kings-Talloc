@@ -46,16 +46,24 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   };
 };
 
+export const customSlotPropGetter = (date, availabilities, selectedTutors, currentWeekStart, currentWeekEnd) => {
+  const filteredAvailabilities = selectedTutors.length > 0 
+    ? availabilities.filter(availability => selectedTutors.some(tutor => tutor.value === availability.tutor))
+    : availabilities;
 
-export const customSlotPropGetter = (date, availabilities, selectedTutors) => {
-  const availableTutors = availabilities.filter(
-    (availability) =>
-      selectedTutors.some(tutor => tutor.value === availability.tutor) &&
-      moment(date).isBetween(availability.start, availability.end, undefined, '[)')
+  const availableTutors = filteredAvailabilities.filter(
+    availability => moment(date).isBetween(availability.start, availability.end, undefined, '[)')
   ).length;
 
+  const tutorsWithAvailabilitiesThisWeek = filteredAvailabilities.filter(availability =>
+    moment(availability.start).isBetween(currentWeekStart, currentWeekEnd, null, '[)')
+  ).map(availability => availability.tutor);
+
+  const uniqueTutorsThisWeek = [...new Set(tutorsWithAvailabilitiesThisWeek)];
+
+  const maxTutors = uniqueTutorsThisWeek.length || 1; // To prevent division by zero
+
   if (availableTutors > 0) {
-    const maxTutors = selectedTutors.length || 1; // To prevent division by zero
     const backgroundColor = calculateGreenIntensity(availableTutors, maxTutors);
 
     return {
