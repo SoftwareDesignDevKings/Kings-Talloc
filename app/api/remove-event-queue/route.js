@@ -1,4 +1,4 @@
-import { db } from '../../../firebase'; // Adjust the path as necessary
+import { db } from '../../firebase'; // Adjust the path as necessary
 import { doc, deleteDoc } from 'firebase/firestore';
 
 export async function POST(req, res) {
