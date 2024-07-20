@@ -154,6 +154,17 @@ export const handleInputChange = (e, setNewEvent, newEvent) => {
 
 export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvents, events, setShowModal) => {
   e.preventDefault();
+
+  const storeEvent = async (event) => {
+    await fetch('/api/store-event', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(event),
+    });
+  };
+
   const eventData = {
     title: newEvent.title || '',
     start: new Date(newEvent.start),
@@ -179,8 +190,13 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     const docRef = await addDoc(collection(db, 'events'), eventData);
     setEvents([...events, { ...eventData, id: docRef.id }]);
   }
+
+  // Store the event
+  await storeEvent(eventData);
+
   setShowModal(false);
 };
+
 
 export const handleDelete = async (eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal) => {
   if (eventToEdit && eventToEdit.id) {
