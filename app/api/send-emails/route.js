@@ -36,6 +36,8 @@ export async function GET() {
       });
     });
 
+    console.log('Tutors Map:', tutorsMap); // Debugging line
+
     tutorsMap.forEach((events, tutorEmail) => {
       const mailOptions = {
         from: emailUser,
@@ -59,6 +61,7 @@ export async function GET() {
         `,
       };
 
+      console.log(`Sending email to ${tutorEmail}`); // Debugging line
       emailPromises.push(transporter.sendMail(mailOptions));
     });
 
@@ -84,6 +87,7 @@ export async function GET() {
 
       return new Response(JSON.stringify({ message: 'Emails sent successfully' }), { status: 200 });
     } else {
+      console.log('No events to send'); // Debugging line
       return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
     }
   } catch (error) {
