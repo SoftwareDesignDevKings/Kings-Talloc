@@ -1,12 +1,14 @@
+// app/api/send-emails/[action]/route.js
+
 import nodemailer from 'nodemailer';
 import { db } from '../../../firebase'; // Adjust the path as necessary
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
-export async function GET(req, res) {
-  const { action } = req.params;
+export async function GET(req, { params }) {
+  const { action } = params;
 
   if (action !== 'send') {
-    return res.status(400).json({ message: 'Invalid action' });
+    return new Response(JSON.stringify({ message: 'Invalid action' }), { status: 400 });
   }
 
   // Ensure email credentials are loaded
@@ -14,7 +16,7 @@ export async function GET(req, res) {
   const emailPass = process.env.EMAIL_PASS;
   if (!emailUser || !emailPass) {
     console.error('Email credentials are not defined');
-    return res.status(500).json({ message: 'Email credentials are not defined' });
+    return new Response(JSON.stringify({ message: 'Email credentials are not defined' }), { status: 500 });
   }
 
   // Create nodemailer transporter
@@ -89,13 +91,13 @@ export async function GET(req, res) {
       });
       await Promise.all(deletePromises);
 
-      return res.status(200).json({ message: 'Emails sent successfully' });
+      return new Response(JSON.stringify({ message: 'Emails sent successfully' }), { status: 200 });
     } else {
       console.log('No events to send'); // Debugging line
-      return res.status(200).json({ message: 'No events to send' });
+      return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
     }
   } catch (error) {
     console.error('Error sending emails:', error);
-    return res.status(500).json({ message: 'Failed to send emails', error });
+    return new Response(JSON.stringify({ message: 'Failed to send emails', error }), { status: 500 });
   }
 }
