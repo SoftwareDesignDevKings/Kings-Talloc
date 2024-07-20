@@ -197,7 +197,7 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     const eventDoc = doc(db, 'events', eventToEdit.id);
     await updateDoc(eventDoc, eventData);
     setEvents(events.map(event => event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event));
-    await updateEventInQueue(eventData); // Update event in queue
+    await updateEventInQueue({ ...eventData, id: eventToEdit.id }); // Update event in queue
   } else {
     const docRef = await addDoc(collection(db, 'events'), eventData);
     setEvents([...events, { ...eventData, id: docRef.id }]);
