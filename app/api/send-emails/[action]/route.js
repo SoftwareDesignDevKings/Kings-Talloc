@@ -1,10 +1,14 @@
-// app/api/send-emails/route.js
-
 import nodemailer from 'nodemailer';
-import { db } from '../../firebase'; // Adjust the path as necessary
+import { db } from '../../../firebase'; // Adjust the path as necessary
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
-export async function GET() {
+export async function GET(req, res) {
+  const { action } = req.query;
+
+  if (action !== 'send') {
+    return res.status(400).json({ message: 'Invalid action' });
+  }
+
   // Ensure email credentials are loaded
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
