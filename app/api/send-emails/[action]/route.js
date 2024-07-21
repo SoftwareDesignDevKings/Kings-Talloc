@@ -40,8 +40,6 @@ export async function GET(req, { params }) {
       });
     });
 
-    console.log('Tutors Map:', tutorsMap); // Debugging line
-
     tutorsMap.forEach((events, tutorEmail) => {
       const mailOptions = {
         from: emailUser,
@@ -62,8 +60,7 @@ export async function GET(req, { params }) {
         `,
       };
 
-      console.log(`Sending email to ${tutorEmail}`); // Debugging line
-      emailPromises.push(transporter.sendMail(mailOptions));
+      // emailPromises.push(transporter.sendMail(mailOptions));
     });
 
     await Promise.all(emailPromises);
@@ -73,22 +70,17 @@ export async function GET(req, { params }) {
     const querySnapshot = await getDocs(collection(db, 'eventsQueue'));
     const eventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    console.log('Events Queue:', eventsQueue); // Debugging line
-
     if (eventsQueue.length > 0) {
-      console.log('Sending email notifications'); // Debugging line
       await sendEmailNotification(eventsQueue);
 
       // Delete processed events from the queue
       const deletePromises = eventsQueue.map(event => {
-        console.log(`Deleting event with id ${event.id}`); // Debugging line
         return deleteDoc(doc(db, 'eventsQueue', event.id));
       });
       await Promise.all(deletePromises);
 
       return new Response(JSON.stringify({ message: 'Emails sent successfully' }), { status: 200 });
     } else {
-      console.log('No events to send'); // Debugging line
       return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
     }
   } catch (error) {
