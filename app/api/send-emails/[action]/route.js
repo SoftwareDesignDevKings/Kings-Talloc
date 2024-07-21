@@ -60,7 +60,7 @@ export async function GET(req, { params }) {
                 ${events.map(event => `<li>${event.title} - ${new Date(event.start).toLocaleString()}</li>`).join('')}
               </ul>
               <div style="display: flex; justify-content: center; margin-top: 20px;">
-                <a href="https://your-app-url/login" style="padding: 10px 20px; background: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">Get Started</a>
+                <a href="https://retalloc.vercel.app/dashboard" style="padding: 10px 20px; background: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">Get Started</a>
               </div>
             </div>
           </div>
