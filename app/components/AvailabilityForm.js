@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import moment from 'moment';
+import Select from 'react-select';
 
 const AvailabilityForm = ({
   isEditing,
@@ -11,6 +12,11 @@ const AvailabilityForm = ({
   setShowModal
 }) => {
   const [error, setError] = useState('');
+
+  const locationOptions = [
+    { value: 'onsite', label: 'Onsite' },
+    { value: 'remote', label: 'Remote' },
+  ];
 
   const validateDates = () => {
     const start = moment(newAvailability.start);
@@ -28,6 +34,10 @@ const AvailabilityForm = ({
     if (validateDates()) {
       handleSubmit(e);
     }
+  };
+
+  const handleLocationChange = (selectedOption) => {
+    setNewAvailability({ ...newAvailability, locationType: selectedOption.value });
   };
 
   return (
@@ -57,6 +67,17 @@ const AvailabilityForm = ({
               value={moment(newAvailability.end).format('YYYY-MM-DDTHH:mm')}
               onChange={handleInputChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="locationType" className="block text-sm font-medium text-gray-700">Location Type</label>
+            <Select
+              name="locationType"
+              options={locationOptions}
+              value={locationOptions.find(option => option.value === newAvailability.locationType)}
+              onChange={handleLocationChange}
+              classNamePrefix="select"
               required
             />
           </div>

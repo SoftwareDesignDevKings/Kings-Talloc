@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
-import Select from 'react-select';
+import Select, { components } from 'react-select';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import ConfirmationModal from './ConfirmationModal';
@@ -30,10 +30,38 @@ const EventForm = ({
     const fetchStaff = async () => {
       const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
       const querySnapshot = await getDocs(q);
-      const staffList = querySnapshot.docs.map(doc => ({
-        value: doc.id,
-        label: doc.data().name || doc.data().email,
+      const staffList = await Promise.all(querySnapshot.docs.map(async doc => {
+        const tutorData = doc.data();
+        const availabilityQuery = query(
+          collection(db, 'availabilities'),
+          where('tutor', '==', doc.id)
+        );
+        const availabilitySnapshot = await getDocs(availabilityQuery);
+        let availabilityStatus = 'unavailable'; // Default status
+
+        if (!availabilitySnapshot.empty) {
+          const available = availabilitySnapshot.docs.some(availabilityDoc => {
+            const availabilityData = availabilityDoc.data();
+            const availabilityStart = availabilityData.start.toDate();
+            const availabilityEnd = availabilityData.end.toDate();
+            const eventStart = new Date(newEvent.start);
+            const eventEnd = new Date(newEvent.end);
+
+            return eventStart >= availabilityStart && eventEnd <= availabilityEnd;
+          });
+
+          if (available) {
+            availabilityStatus = availabilitySnapshot.docs[0].data().locationType || 'onsite';
+          }
+        }
+
+        return {
+          value: doc.id,
+          label: tutorData.name || tutorData.email,
+          status: availabilityStatus
+        };
       }));
+
       setStaffOptions(staffList);
     };
 
@@ -59,7 +87,7 @@ const EventForm = ({
     fetchStaff();
     fetchClasses();
     fetchStudents();
-  }, []);
+  }, [newEvent.start, newEvent.end]);
 
   const handleStaffSelectChange = (selectedOptions) => {
     setSelectedStaff(selectedOptions);
@@ -126,6 +154,37 @@ const EventForm = ({
     { value: 'notAttended', label: "Student Didn't Attend" },
   ];
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'onsite':
+        return '🏫';
+      case 'remote':
+        return '💻';
+      case 'unavailable':
+        return '❌';
+      default:
+        return '❔';
+    }
+  };
+
+  const customOption = (props) => {
+    const { data } = props;
+    return (
+      <components.Option {...props}>
+        <span>{getStatusIcon(data.status)}</span> {data.label}
+      </components.Option>
+    );
+  };
+
+  const customSingleValue = (props) => {
+    const { data } = props;
+    return (
+      <components.SingleValue {...props}>
+        <span>{getStatusIcon(data.status)}</span> {data.label}
+      </components.SingleValue>
+    );
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
@@ -188,6 +247,7 @@ const EventForm = ({
               onChange={handleStaffSelectChange}
               className="basic-multi-select"
               classNamePrefix="select"
+              components={{ Option: customOption, SingleValue: customSingleValue }}
             />
           </div>
           <div>

@@ -17,6 +17,7 @@ export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailabi
       createdByStudent: true,
       approvalStatus: 'pending',
       workStatus: 'notCompleted',
+      locationType: '', // Add locationType to the initial state
     });
     setIsEditing(false);
     setShowStudentModal(true);
@@ -24,7 +25,7 @@ export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailabi
   }
 
   if (userRole === 'tutor') {
-    setNewAvailability({ title: 'Availability', start, end, tutor: userEmail });
+    setNewAvailability({ title: 'Availability', start, end, tutor: userEmail, locationType: '' }); // Add locationType to the initial state
     setIsEditing(false);
     setShowAvailabilityModal(true);
   } else {
@@ -41,6 +42,7 @@ export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailabi
       studentResponses: [], 
       minStudents: 0,
       workStatus: 'notCompleted',
+      locationType: '', // Add locationType to the initial state
     });
     setIsEditing(false);
     setShowTeacherModal(true);
@@ -152,6 +154,10 @@ export const handleInputChange = (e, setNewEvent, newEvent) => {
   setNewEvent({ ...newEvent, [name]: val });
 };
 
+export const handleLocationChange = (selectedOption, setNewEvent, newEvent) => {
+  setNewEvent({ ...newEvent, locationType: selectedOption.value });
+};
+
 export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvents, events, setShowModal) => {
   e.preventDefault();
 
@@ -190,6 +196,7 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     createdByStudent: newEvent.createdByStudent || false,
     approvalStatus: newEvent.approvalStatus || 'pending',
     workStatus: newEvent.workStatus || 'notCompleted',
+    locationType: newEvent.locationType || '', // Include locationType in eventData
   };
 
   if (isEditing) {
@@ -248,23 +255,21 @@ export const handleAvailabilityChange = (e, setNewAvailability, newAvailability)
 
 export const handleAvailabilitySubmit = async (e, isEditing, newAvailability, eventToEdit, setAvailabilities, availabilities, setShowAvailabilityModal) => {
   e.preventDefault();
+  const availabilityData = {
+    title: newAvailability.title,
+    start: new Date(newAvailability.start),
+    end: new Date(newAvailability.end),
+    tutor: newAvailability.tutor,
+    locationType: newAvailability.locationType, // Include locationType in availabilityData
+  };
+
   if (isEditing) {
     const availabilityDoc = doc(db, 'availabilities', eventToEdit.id);
-    await updateDoc(availabilityDoc, {
-      title: newAvailability.title,
-      start: new Date(newAvailability.start),
-      end: new Date(newAvailability.end),
-      tutor: newAvailability.tutor,
-    });
-    setAvailabilities(availabilities.map(availability => availability.id === eventToEdit.id ? { ...newAvailability, id: eventToEdit.id } : availability));
+    await updateDoc(availabilityDoc, availabilityData);
+    setAvailabilities(availabilities.map(availability => availability.id === eventToEdit.id ? { ...availabilityData, id: eventToEdit.id } : availability));
   } else {
-    const docRef = await addDoc(collection(db, 'availabilities'), {
-      title: newAvailability.title,
-      start: new Date(newAvailability.start),
-      end: new Date(newAvailability.end),
-      tutor: newAvailability.tutor,
-    });
-    setAvailabilities([...availabilities, { ...newAvailability, id: docRef.id }]);
+    const docRef = await addDoc(collection(db, 'availabilities'), availabilityData);
+    setAvailabilities([...availabilities, { ...availabilityData, id: docRef.id }]);
   }
   setShowAvailabilityModal(false);
 };
