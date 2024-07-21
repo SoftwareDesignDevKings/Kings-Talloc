@@ -176,7 +176,6 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
   };
 
   const eventData = {
-    id: isEditing ? eventToEdit.id : undefined, // Ensure the ID is included when editing
     title: newEvent.title || '',
     start: new Date(newEvent.start),
     end: new Date(newEvent.end),
@@ -200,8 +199,8 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     await updateEventInQueue({ ...eventData, id: eventToEdit.id }); // Update event in queue
   } else {
     const docRef = await addDoc(collection(db, 'events'), eventData);
-    setEvents([...events, { ...eventData, id: docRef.id }]);
     eventData.id = docRef.id; // Add the generated ID to the event data
+    setEvents([...events, { ...eventData, id: docRef.id }]);
     await storeEvent(eventData); // Store the new event in the queue
   }
 
