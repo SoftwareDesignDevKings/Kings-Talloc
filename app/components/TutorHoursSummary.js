@@ -118,7 +118,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
       <div className="mb-4 p-4 border border-gray-300 bg-gray-100 rounded-md flex items-start space-x-2">
         <FaInfoCircle className="h-5 w-5 text-gray-500 mt-1" />
         <div className="text-sm text-gray-700 space-y-2">
-          <p>Please check if the hours are correct. If there are any discrepancies, report them to Michael Ienna.</p>
+          <p>Please check if the hours are correct by Friday. If there are any discrepancies, report them to Michael Ienna.</p>
           <p>Any given hours that are between 3 (exclusive) and 6 (inclusive) hours account for a 30-minute break. Any given hours that are greater than 6 (exclusive) account for a 1-hour break.</p>
         </div>
       </div>
