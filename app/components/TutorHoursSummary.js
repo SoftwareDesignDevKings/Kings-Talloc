@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { CSVLink } from 'react-csv';
 import LoadingPage from './LoadingPage';
+import { FaInfoCircle } from 'react-icons/fa';
 
 const getMonday = (d) => {
   d = new Date(d);
@@ -66,9 +67,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
           
           // Subtract break times
           if (eventDuration > 3 && eventDuration < 6) {
-            eventDuration -= 0.5;
+            eventDuration -= 0.5; // 3 < eventDuration < 6
           } else if (eventDuration >= 6) {
-            eventDuration -= 1;
+            eventDuration -= 1; // eventDuration >= 6
           }
 
           tutorHoursMap[staff.value].hours += eventDuration;
@@ -113,6 +114,13 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             Export as CSV
           </button>
         </CSVLink>
+      </div>
+      <div className="mb-4 p-4 border border-gray-300 bg-gray-100 rounded-md flex items-start space-x-2">
+        <FaInfoCircle className="h-5 w-5 text-gray-500 mt-1" />
+        <div className="text-sm text-gray-700 space-y-2">
+          <p>Please check if the hours are correct. If there are any discrepancies, report them to Michael Ienna.</p>
+          <p>Any given hours that are between 3 (exclusive) and 6 (inclusive) hours account for a 30-minute break. Any given hours that are greater than 6 (exclusive) account for a 1-hour break.</p>
+        </div>
       </div>
       {loading ? (
         <LoadingPage withBackground={false} />
