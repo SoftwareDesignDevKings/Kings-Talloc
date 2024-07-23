@@ -62,7 +62,15 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
           if (!tutorHoursMap[staff.value]) {
             tutorHoursMap[staff.value] = { name: staff.label, hours: 0 };
           }
-          const eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+          let eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+          
+          // Subtract break times
+          if (eventDuration > 3 && eventDuration < 6) {
+            eventDuration -= 0.5;
+          } else if (eventDuration >= 6) {
+            eventDuration -= 1;
+          }
+
           tutorHoursMap[staff.value].hours += eventDuration;
         }
       }
