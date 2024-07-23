@@ -1,5 +1,34 @@
-import { doc, updateDoc, addDoc, deleteDoc, collection } from 'firebase/firestore';
-import { db } from '../../firebase'; // updated import
+import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc } from 'firebase/firestore';
+import { db } from '../../firebase'; // Adjust the path as necessary
+
+// Firestore operations for events queue
+
+const addOrUpdateEventInQueue = async (event, action) => {
+  try {
+    const eventDoc = doc(db, 'eventsQueue', event.id);
+    await setDoc(eventDoc, {
+      ...event,
+      timestamp: new Date(),
+    });
+    return { message: `Event ${action}d successfully in queue` };
+  } catch (error) {
+    console.error(`Error during ${action} event in queue:`, error);
+    throw new Error(`Failed to ${action} event in queue`);
+  }
+};
+
+const removeEventFromQueue = async (id) => {
+  try {
+    const eventDoc = doc(db, 'eventsQueue', id);
+    await deleteDoc(eventDoc);
+    return { message: 'Event removed successfully from queue' };
+  } catch (error) {
+    console.error('Error removing event from queue:', error);
+    throw new Error('Failed to remove event from queue');
+  }
+};
+
+// Handlers for managing events
 
 export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail) => {
   const start = slotInfo.start;
@@ -161,26 +190,6 @@ export const handleLocationChange = (selectedOption, setNewEvent, newEvent) => {
 export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvents, events, setShowModal) => {
   e.preventDefault();
 
-  const storeEvent = async (event) => {
-    await fetch('/api/store-event', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
-    });
-  };
-
-  const updateEventInQueue = async (event) => {
-    await fetch('/api/update-event-queue', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
-    });
-  };
-
   const eventData = {
     title: newEvent.title || '',
     start: new Date(newEvent.start),
@@ -199,39 +208,38 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     locationType: newEvent.locationType || '', // Include locationType in eventData
   };
 
-  if (isEditing) {
-    const eventDoc = doc(db, 'events', eventToEdit.id);
-    await updateDoc(eventDoc, eventData);
-    setEvents(events.map(event => event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event));
-    await updateEventInQueue({ ...eventData, id: eventToEdit.id }); // Update event in queue
-  } else {
-    const docRef = await addDoc(collection(db, 'events'), eventData);
-    eventData.id = docRef.id; // Add the generated ID to the event data
-    setEvents([...events, { ...eventData, id: docRef.id }]);
-    await storeEvent(eventData); // Store the new event in the queue
+  try {
+    if (isEditing) {
+      const eventDoc = doc(db, 'events', eventToEdit.id);
+      await updateDoc(eventDoc, eventData);
+      setEvents(events.map(event => event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event));
+      await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+    } else {
+      const docRef = await addDoc(collection(db, 'events'), eventData);
+      eventData.id = docRef.id; // Add the generated ID to the event data
+      setEvents([...events, { ...eventData, id: docRef.id }]);
+      await addOrUpdateEventInQueue(eventData, 'store');
+    }
+    setShowModal(false);
+  } catch (error) {
+    console.error('Failed to submit event:', error);
   }
-
-  setShowModal(false);
 };
 
 export const handleDelete = async (eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal) => {
   if (eventToEdit && eventToEdit.id) {
     const collectionName = eventToEdit.tutor ? 'availabilities' : 'events';
-    await deleteDoc(doc(db, collectionName, eventToEdit.id));
-    if (collectionName === 'availabilities') {
-      setAvailabilities(availabilities.filter(availability => availability.id !== eventToEdit.id));
-    } else {
-      setEvents(events.filter(event => event.id !== eventToEdit.id));
+    try {
+      await deleteDoc(doc(db, collectionName, eventToEdit.id));
+      if (collectionName === 'availabilities') {
+        setAvailabilities(availabilities.filter(availability => availability.id !== eventToEdit.id));
+      } else {
+        setEvents(events.filter(event => event.id !== eventToEdit.id));
+      }
+      await removeEventFromQueue(eventToEdit.id);
+    } catch (error) {
+      console.error('Failed to delete event:', error);
     }
-
-    // Remove event from the queue
-    await fetch('/api/remove-event-queue', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ id: eventToEdit.id }),
-    });
   }
   setShowModal(false);
 };
@@ -263,15 +271,19 @@ export const handleAvailabilitySubmit = async (e, isEditing, newAvailability, ev
     locationType: newAvailability.locationType, // Include locationType in availabilityData
   };
 
-  if (isEditing) {
-    const availabilityDoc = doc(db, 'availabilities', eventToEdit.id);
-    await updateDoc(availabilityDoc, availabilityData);
-    setAvailabilities(availabilities.map(availability => availability.id === eventToEdit.id ? { ...availabilityData, id: eventToEdit.id } : availability));
-  } else {
-    const docRef = await addDoc(collection(db, 'availabilities'), availabilityData);
-    setAvailabilities([...availabilities, { ...availabilityData, id: docRef.id }]);
+  try {
+    if (isEditing) {
+      const availabilityDoc = doc(db, 'availabilities', eventToEdit.id);
+      await updateDoc(availabilityDoc, availabilityData);
+      setAvailabilities(availabilities.map(availability => availability.id === eventToEdit.id ? { ...availabilityData, id: eventToEdit.id } : availability));
+    } else {
+      const docRef = await addDoc(collection(db, 'availabilities'), availabilityData);
+      setAvailabilities([...availabilities, { ...availabilityData, id: docRef.id }]);
+    }
+    setShowAvailabilityModal(false);
+  } catch (error) {
+    console.error('Failed to submit availability:', error);
   }
-  setShowAvailabilityModal(false);
 };
 
 export const handleConfirmation = async (event, confirmed, userRole, userEmail, events, setEvents) => {
