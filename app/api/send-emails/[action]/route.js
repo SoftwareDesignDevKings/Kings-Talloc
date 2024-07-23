@@ -60,7 +60,7 @@ export async function GET(req, { params }) {
         `,
       };
 
-      // emailPromises.push(transporter.sendMail(mailOptions));
+      emailPromises.push(transporter.sendMail(mailOptions));
     });
 
     await Promise.all(emailPromises);
