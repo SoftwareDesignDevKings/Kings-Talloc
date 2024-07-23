@@ -1,7 +1,7 @@
 import { db } from '../../firebase';
 import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 
-export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents) => {
+export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, setStudents) => {
   const q = query(collection(db, 'events'));
   const unsubscribe = onSnapshot(q, async (querySnapshot) => {
     const eventsFromDb = querySnapshot.docs.map(doc => ({
@@ -33,10 +33,19 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents) 
     }
 
     setEvents(filteredEvents);
+
+    // Fetch all students for filtering
+    const studentSnapshot = await getDocs(collection(db, 'students'));
+    const students = studentSnapshot.docs.map(doc => ({
+      value: doc.data().email,
+      label: doc.data().name || doc.data().email,
+    }));
+    setStudents(students);
   });
 
   return () => unsubscribe();
 };
+
 
 export const fetchAvailabilities = async (setAvailabilities) => {
   const q = query(collection(db, 'availabilities'));

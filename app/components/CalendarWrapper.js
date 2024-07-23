@@ -51,12 +51,13 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedTutors, setSelectedTutors] = useState([]);
+  const [students, setStudents] = useState([]);
   const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
   const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
 
   useEffect(() => {
-    fetchEvents(userRole, userEmail, setEvents, setAllEvents);
+    fetchEvents(userRole, userEmail, setEvents, setAllEvents, setStudents);
     fetchAvailabilities(setAvailabilities);
     fetchSubjectsWithTutors(setSubjects);
   }, [userRole, userEmail]);
@@ -83,15 +84,30 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
 
-  const filteredTutors = selectedSubject ? selectedSubject.tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email })) : [];
-
-  // Calculate the current week start and end dates
-  const currentWeekStart = moment(currentDate).startOf('week');
-  const currentWeekEnd = moment(currentDate).endOf('week');
+  const allTutors = subjects.flatMap(subject => subject.tutors);
+  const uniqueTutors = Array.from(new Set(allTutors.map(tutor => tutor.email)))
+    .map(email => allTutors.find(tutor => tutor.email === email))
+    .map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
 
   const applicableAvailabilities = selectedSubject && selectedTutors.length === 0 
     ? splitAvailabilitiesData.filter(avail => selectedSubject.tutors.some(tutor => tutor.email === avail.tutor))
     : splitAvailabilitiesData;
+
+  const handleTutorFilterChange = (selectedOptions) => {
+    setSelectedTutors(selectedOptions);
+    if (selectedOptions.length === 0) {
+      setEvents(allEvents);
+    } else {
+      const filteredEvents = allEvents.filter(event =>
+        event.staff.some(staff => selectedOptions.map(option => option.value).includes(staff.value))
+      );
+      setEvents(filteredEvents);
+    }
+  };
+
+  // Calculate the current week start and end dates
+  const currentWeekStart = moment(currentDate).startOf('week');
+  const currentWeekEnd = moment(currentDate).endOf('week');
 
   return (
     <div className="calendar-container">
@@ -127,26 +143,42 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
         {isFilterPanelOpen && (
           <div className="filter-content">
             <h3 className="filter-title">Filters</h3>
-            <Select
-              name="subjects"
-              options={subjects}
-              value={selectedSubject}
-              onChange={setSelectedSubject}
-              className="basic-select"
-              classNamePrefix="select"
-              placeholder="Select a subject"
-            />
-            <Select
-              isMulti
-              name="tutors"
-              options={filteredTutors}
-              value={selectedTutors}
-              onChange={setSelectedTutors}
-              className="basic-multi-select"
-              classNamePrefix="select"
-              placeholder="Select tutors to view availabilities"
-              isDisabled={!selectedSubject}
-            />
+            {userRole === 'student' && (
+              <>
+                <Select
+                  name="subjects"
+                  options={subjects}
+                  value={selectedSubject}
+                  onChange={setSelectedSubject}
+                  className="basic-select"
+                  classNamePrefix="select"
+                  placeholder="Select a subject"
+                />
+                <Select
+                  isMulti
+                  name="tutors"
+                  options={filteredTutors}
+                  value={selectedTutors}
+                  onChange={setSelectedTutors}
+                  className="basic-multi-select"
+                  classNamePrefix="select"
+                  placeholder="Select tutors to view availabilities"
+                  isDisabled={!selectedSubject}
+                />
+              </>
+            )}
+            {(userRole === 'tutor' || userRole === 'teacher') && (
+              <Select
+                isMulti
+                name="tutors"
+                options={uniqueTutors}
+                value={selectedTutors}
+                onChange={handleTutorFilterChange}
+                className="basic-multi-select"
+                classNamePrefix="select"
+                placeholder="Select tutors"
+              />
+            )}
             {userRole === 'tutor' && (
               <div className="checkbox-group">
                 <label className="flex items-center">
