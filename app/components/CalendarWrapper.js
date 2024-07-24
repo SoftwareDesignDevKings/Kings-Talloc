@@ -56,6 +56,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
   const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
+  const [showEvents, setShowEvents] = useState(true);
+  const [showInitials, setShowInitials] = useState(true);
 
   useEffect(() => {
     fetchEvents(userRole, userEmail, setEvents, setAllEvents, setStudents);
@@ -75,12 +77,14 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     return true;
   });
 
-  const finalEvents = userRole === 'tutor'
+  const finalEvents = showEvents
+  ? userRole === 'tutor'
     ? [
         ...filteredEvents,
         ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
       ]
-    : filteredEvents;
+    : filteredEvents
+  : [];
 
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
@@ -139,7 +143,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
             timeSlotWrapper: (props) => (
               <CustomTimeSlotWrapper 
                 {...props} 
-                applicableAvailabilities={applicableAvailabilities}
+                applicableAvailabilities={showInitials ? applicableAvailabilities : []}
                 selectedTutors={selectedTutors}
               />
             ),
@@ -213,6 +217,26 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
                 </label>
               </div>
             )}
+            <div className="checkbox-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showEvents}
+                  onChange={(e) => setShowEvents(e.target.checked)}
+                />
+                <span className="ml-2">Show Events</span>
+              </label>
+            </div>
+            <div className="checkbox-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showInitials}
+                  onChange={(e) => setShowInitials(e.target.checked)}
+                />
+                <span className="ml-2">Show Tutor Initials</span>
+              </label>
+            </div>
           </div>
         )}
       </div>
