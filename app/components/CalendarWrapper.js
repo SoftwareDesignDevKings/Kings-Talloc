@@ -26,6 +26,7 @@ import EventForm from './EventForm';
 import AvailabilityForm from './AvailabilityForm';
 import StudentEventForm from './StudentEventForm';
 import EventDetailsModal from './EventDetailsModal';
+import CustomTimeSlotWrapper from './CustomTimeSlotWrapper';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
@@ -134,6 +135,15 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           messages={messages}
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
           slotPropGetter={(date) => customSlotPropGetter(date, applicableAvailabilities, selectedTutors, currentWeekStart, currentWeekEnd)}
+          components={{
+            timeSlotWrapper: (props) => (
+              <CustomTimeSlotWrapper 
+                {...props} 
+                applicableAvailabilities={applicableAvailabilities}
+                selectedTutors={selectedTutors}
+              />
+            ),
+          }}
         />
       </div>
       <div className={`filter-panel ${isFilterPanelOpen ? 'open' : 'collapsed'}`}>
