@@ -116,11 +116,6 @@ body {
   display: none;
 }
 
-/* Add these new rules */
 .rbc-time-slot {
   min-height: 30px; /* Adjust this value as needed */
-}
-
-.rbc-timeslot-group {
-  min-height: 30px; /* Should match the value above */
 }
