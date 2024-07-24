@@ -10,24 +10,24 @@ const CustomTimeSlotWrapper = ({ children, value, applicableAvailabilities, sele
     ? applicableAvailabilities.filter(availability => selectedTutors.some(tutor => tutor.value === availability.tutor))
     : applicableAvailabilities;
 
-  const availableTutorsFirstHalf = filteredAvailabilities.filter(
-    availability => moment(slotStart).isBetween(availability.start, availability.end, undefined, '[)')
-  ).map(availability => availability.tutor.substring(0, 2).toUpperCase());
+  const isFullyAvailable = (availability) => {
+    const availStart = moment(availability.start);
+    const availEnd = moment(availability.end);
+    return availStart.isSameOrBefore(slotStart) && availEnd.isSameOrAfter(slotEnd);
+  };
 
-  const availableTutorsSecondHalf = filteredAvailabilities.filter(
-    availability => moment(slotEnd).subtract(1, 'second').isBetween(availability.start, availability.end, undefined, '[)')
-  ).map(availability => availability.tutor.substring(0, 2).toUpperCase());
+  const availableTutors = filteredAvailabilities
+    .filter(isFullyAvailable)
+    .map(availability => availability.tutor.substring(0, 2).toUpperCase());
 
   // Remove duplicates and sort
-  const uniqueFirstHalf = [...new Set(availableTutorsFirstHalf)].sort();
-  const uniqueSecondHalf = [...new Set(availableTutorsSecondHalf)].sort();
+  const uniqueTutors = [...new Set(availableTutors)].sort();
 
   return (
     <div className="custom-time-slot-wrapper">
       {children}
       <div className="custom-slot-text">
-        <div className="text-line">{uniqueFirstHalf.join(' ')}</div>
-        <div className="text-line">{uniqueSecondHalf.join(' ')}</div>
+        <div className="text-line">{uniqueTutors.join(' ')}</div>
       </div>
     </div>
   );

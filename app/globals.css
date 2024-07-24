@@ -80,8 +80,8 @@ body {
   height: 100%;
   width: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
@@ -92,8 +92,8 @@ body {
   right: 0;
   bottom: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   padding: 2px;
   pointer-events: none;
 }
@@ -105,6 +105,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
+  max-width: 100%;
 }
 
 .rbc-time-content > *:not(.rbc-time-gutter) .custom-slot-text {
