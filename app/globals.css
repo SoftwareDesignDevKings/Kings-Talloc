@@ -74,3 +74,64 @@ body {
 .rbc-calendar {
   color: var(--calendar-text) !important;
 }
+
+.custom-time-slot-wrapper {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.custom-slot-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  pointer-events: none;
+}
+
+.text-line {
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  max-width: 100%;
+}
+
+.rbc-time-content > *:not(.rbc-time-gutter) .custom-slot-text {
+  display: flex;
+}
+
+.rbc-time-gutter .custom-slot-text {
+  display: none;
+}
+
+.rbc-time-slot {
+  min-height: 30px; /* Adjust this value as needed */
+}
+
+.rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper {
+  background-color: var(--custom-slot-bg) !important;
+}
+
+.rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper .custom-slot-text {
+  display: flex;
+}
+
+.rbc-time-gutter .custom-time-slot-wrapper {
+  background-color: transparent !important;
+}
+
+.rbc-time-gutter .custom-time-slot-wrapper .custom-slot-text {
+  display: none;
+}

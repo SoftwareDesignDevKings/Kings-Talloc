@@ -20,12 +20,13 @@ import {
   handleAvailabilitySubmit,
   handleConfirmation,
 } from './calendar/handlers';
-import { eventStyleGetter, customDayPropGetter, customSlotPropGetter, messages } from './calendar/helpers';
+import { eventStyleGetter, messages } from './calendar/helpers';
 import { splitAvailabilities } from './calendar/availabilityUtils';
 import EventForm from './EventForm';
 import AvailabilityForm from './AvailabilityForm';
 import StudentEventForm from './StudentEventForm';
 import EventDetailsModal from './EventDetailsModal';
+import CustomTimeSlotWrapper from './CustomTimeSlotWrapper';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
@@ -39,7 +40,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [allEvents, setAllEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState(Views.WEEK); // Default view set to week
+  const [currentView, setCurrentView] = useState(Views.WEEK);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
@@ -55,6 +56,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
   const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
+  const [showEvents, setShowEvents] = useState(true);
+  const [showInitials, setShowInitials] = useState(true);
 
   useEffect(() => {
     fetchEvents(userRole, userEmail, setEvents, setAllEvents, setStudents);
@@ -74,12 +77,14 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     return true;
   });
 
-  const finalEvents = userRole === 'tutor'
-    ? [
-        ...filteredEvents,
-        ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
-      ]
-    : filteredEvents;
+  const finalEvents = showEvents
+    ? userRole === 'tutor'
+      ? [
+          ...filteredEvents,
+          ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
+        ]
+      : filteredEvents
+    : [];
 
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
@@ -89,7 +94,12 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     .map(email => allTutors.find(tutor => tutor.email === email))
     .map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
 
-  const applicableAvailabilities = selectedSubject && selectedTutors.length === 0 
+  const filteredTutors = selectedSubject?.tutors?.map(tutor => ({
+    value: tutor.email,
+    label: tutor.name || tutor.email
+  })) || [];
+
+  const applicableAvailabilities = selectedSubject && selectedTutors.length === 0
     ? splitAvailabilitiesData.filter(avail => selectedSubject.tutors.some(tutor => tutor.email === avail.tutor))
     : splitAvailabilitiesData;
 
@@ -105,7 +115,6 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     }
   };
 
-  // Calculate the current week start and end dates
   const currentWeekStart = moment(currentDate).startOf('week');
   const currentWeekEnd = moment(currentDate).endOf('week');
 
@@ -133,7 +142,17 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
           messages={messages}
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
-          slotPropGetter={(date) => customSlotPropGetter(date, applicableAvailabilities, selectedTutors, currentWeekStart, currentWeekEnd)}
+          components={{
+            timeSlotWrapper: (props) => (
+              <CustomTimeSlotWrapper 
+                {...props} 
+                applicableAvailabilities={showInitials ? applicableAvailabilities : []}
+                selectedTutors={selectedTutors}
+                currentWeekStart={currentWeekStart}
+                currentWeekEnd={currentWeekEnd}
+              />
+            ),
+          }}
         />
       </div>
       <div className={`filter-panel ${isFilterPanelOpen ? 'open' : 'collapsed'}`}>
@@ -147,9 +166,9 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
               <>
                 <Select
                   name="subjects"
-                  options={subjects}
-                  value={selectedSubject}
-                  onChange={setSelectedSubject}
+                  options={subjects.map(subject => ({ value: subject.id, label: subject.name }))}
+                  value={selectedSubject ? { value: selectedSubject.id, label: selectedSubject.name } : null}
+                  onChange={(option) => setSelectedSubject(subjects.find(subject => subject.id === option.value))}
                   className="basic-select"
                   classNamePrefix="select"
                   placeholder="Select a subject"
@@ -203,6 +222,26 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
                 </label>
               </div>
             )}
+            <div className="checkbox-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showEvents}
+                  onChange={(e) => setShowEvents(e.target.checked)}
+                />
+                <span className="ml-2">Show Events</span>
+              </label>
+            </div>
+            <div className="checkbox-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showInitials}
+                  onChange={(e) => setShowInitials(e.target.checked)}
+                />
+                <span className="ml-2">Show Tutor Availabilities</span>
+              </label>
+            </div>
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@ import moment from 'moment';
 // Helper function to calculate the green color intensity based on the number of available tutors
 const calculateGreenIntensity = (numTutors, maxTutors) => {
   const intensity = Math.min(1, numTutors / maxTutors);
-  const baseGreen = { r: 144, g: 238, b: 144 }; // Original lightgreen color: rgb(144, 238, 144)
+  const baseGreen = { r: 144, g: 238, b: 144 };
   return `rgba(${baseGreen.r}, ${baseGreen.g}, ${baseGreen.b}, ${intensity})`;
 };
 
@@ -14,12 +14,21 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   const isAccepted = studentResponse && studentResponse.response;
   const needsStudentConfirmation = userRole === 'student' && !studentResponse && event.minStudents > 0;
 
-  let backgroundColor = 'lightblue';
-  let borderColor = 'blue';
+  let backgroundColor = 'lightblue'; // Default for not completed
+  let borderColor = 'blue'; // Default for not completed
 
-  if (isAvailability) {
-    backgroundColor = 'lightgreen';
-    borderColor = 'green';
+  if (event.workStatus === 'completed') {
+    backgroundColor = 'lightgreen'; // Light green for completed
+    borderColor = 'green'; // Green border for completed
+  } else if (event.workStatus === 'notCompleted') {
+    backgroundColor = 'lightblue';
+    borderColor = 'blue';
+  } else if (event.workStatus === 'notAttended') {
+    backgroundColor = 'lightcoral';
+    borderColor = 'red';
+  } else if (isAvailability) {
+    backgroundColor = 'mediumspringgreen'; // Lighter green for availability
+    borderColor = 'springgreen'; // Slightly darker border color for availability
   } else if (event.createdByStudent && event.approvalStatus === 'pending') {
     backgroundColor = 'orange';
     borderColor = 'darkorange';
