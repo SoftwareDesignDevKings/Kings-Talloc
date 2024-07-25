@@ -20,7 +20,7 @@ import {
   handleAvailabilitySubmit,
   handleConfirmation,
 } from './calendar/handlers';
-import { eventStyleGetter, customSlotPropGetter, messages } from './calendar/helpers';
+import { eventStyleGetter, messages } from './calendar/helpers';
 import { splitAvailabilities } from './calendar/availabilityUtils';
 import EventForm from './EventForm';
 import AvailabilityForm from './AvailabilityForm';
@@ -40,7 +40,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [allEvents, setAllEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState(Views.WEEK); // Default view set to week
+  const [currentView, setCurrentView] = useState(Views.WEEK);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
@@ -115,7 +115,6 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     }
   };
 
-  // Calculate the current week start and end dates
   const currentWeekStart = moment(currentDate).startOf('week');
   const currentWeekEnd = moment(currentDate).endOf('week');
 
@@ -143,13 +142,14 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
           messages={messages}
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
-          slotPropGetter={(date) => customSlotPropGetter(date, applicableAvailabilities, selectedTutors, currentWeekStart, currentWeekEnd)}
           components={{
             timeSlotWrapper: (props) => (
               <CustomTimeSlotWrapper 
                 {...props} 
                 applicableAvailabilities={showInitials ? applicableAvailabilities : []}
                 selectedTutors={selectedTutors}
+                currentWeekStart={currentWeekStart}
+                currentWeekEnd={currentWeekEnd}
               />
             ),
           }}
@@ -239,7 +239,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
                   checked={showInitials}
                   onChange={(e) => setShowInitials(e.target.checked)}
                 />
-                <span className="ml-2">Show Tutor Initials</span>
+                <span className="ml-2">Show Tutor Availabilities</span>
               </label>
             </div>
           </div>

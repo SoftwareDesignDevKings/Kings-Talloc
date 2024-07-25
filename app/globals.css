@@ -119,3 +119,19 @@ body {
 .rbc-time-slot {
   min-height: 30px; /* Adjust this value as needed */
 }
+
+.rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper {
+  background-color: var(--custom-slot-bg) !important;
+}
+
+.rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper .custom-slot-text {
+  display: flex;
+}
+
+.rbc-time-gutter .custom-time-slot-wrapper {
+  background-color: transparent !important;
+}
+
+.rbc-time-gutter .custom-time-slot-wrapper .custom-slot-text {
+  display: none;
+}
