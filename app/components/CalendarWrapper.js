@@ -4,7 +4,7 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Select from 'react-select';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors } from './calendar/fetchData';
+import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors } from './calendar/fetchData';
 import {
   handleSelectSlot,
   handleSelectEvent,
@@ -50,6 +50,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [isEditing, setIsEditing] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
   const [subjects, setSubjects] = useState([]);
+  const [tutors, setTutors] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedTutors, setSelectedTutors] = useState([]);
   const [students, setStudents] = useState([]);
@@ -63,6 +64,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     fetchEvents(userRole, userEmail, setEvents, setAllEvents, setStudents);
     fetchAvailabilities(setAvailabilities);
     fetchSubjectsWithTutors(setSubjects);
+    fetchTutors(setTutors); // Add this line to fetch tutors directly
   }, [userRole, userEmail]);
 
   const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents);
@@ -89,10 +91,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
 
-  const allTutors = subjects.flatMap(subject => subject.tutors);
-  const uniqueTutors = Array.from(new Set(allTutors.map(tutor => tutor.email)))
-    .map(email => allTutors.find(tutor => tutor.email === email))
-    .map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
+  const uniqueTutors = tutors.map(tutor => ({ value: tutor.email, label: tutor.name }));
 
   const filteredTutors = selectedSubject?.tutors?.map(tutor => ({
     value: tutor.email,

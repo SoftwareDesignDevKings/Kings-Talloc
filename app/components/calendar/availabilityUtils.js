@@ -7,53 +7,38 @@ export const splitAvailabilities = (availabilities, events) => {
     let currentStart = moment(availability.start);
     let currentEnd = moment(availability.end);
 
-    const tempSlots = [];
+    // Sort events by start time to handle them in order
+    const sortedEvents = events
+      .filter(event => event.staff.some(staff => staff.value === availability.tutor) && !(event.createdByStudent && event.approvalStatus === 'denied'))
+      .sort((a, b) => moment(a.start).diff(moment(b.start)));
 
-    events.forEach((event) => {
-      // Check if the event's assigned tutor matches the availability's tutor
-      const isEventForTutor = event.staff.some(staff => staff.value === availability.tutor);
-      // Ignore student-created events that were denied by a teacher
-      const isDeniedStudentEvent = event.createdByStudent && event.approvalStatus === 'denied';
+    sortedEvents.forEach((event) => {
+      const eventStart = moment(event.start);
+      const eventEnd = moment(event.end);
 
-      if (isEventForTutor && !isDeniedStudentEvent) {
-        const eventStart = moment(event.start);
-        const eventEnd = moment(event.end);
-
-        if (eventStart.isBetween(currentStart, currentEnd, null, '[)') || eventEnd.isBetween(currentStart, currentEnd, null, '[)') || (eventStart.isBefore(currentStart) && eventEnd.isAfter(currentEnd))) {
-          if (eventStart.isSame(currentStart) && eventEnd.isBefore(currentEnd)) {
-            currentStart = eventEnd;
-          } else if (eventStart.isAfter(currentStart) && eventEnd.isBefore(currentEnd)) {
-            tempSlots.push({
-              ...availability,
-              start: currentStart.toDate(),
-              end: eventStart.toDate(),
-            });
-            currentStart = eventEnd;
-          } else if (eventStart.isBefore(currentStart) && eventEnd.isAfter(currentStart) && eventEnd.isBefore(currentEnd)) {
-            currentStart = eventEnd;
-          } else if (eventStart.isAfter(currentStart) && eventStart.isBefore(currentEnd)) {
-            tempSlots.push({
-              ...availability,
-              start: currentStart.toDate(),
-              end: eventStart.toDate(),
-            });
-            currentStart = eventEnd;
-          } else if (eventStart.isBefore(currentStart) && eventEnd.isAfter(currentEnd)) {
-            currentStart = currentEnd; // This will skip adding this slot as it is fully covered by an event
-          }
+      // Only consider events that overlap with the current availability window
+      if (eventStart.isBefore(currentEnd) && eventEnd.isAfter(currentStart)) {
+        if (eventStart.isAfter(currentStart)) {
+          // Add the available slot before the event starts
+          splitSlots.push({
+            ...availability,
+            start: currentStart.toDate(),
+            end: eventStart.toDate(),
+          });
         }
+        // Move the current start to the end of the current event
+        currentStart = eventEnd.isAfter(currentStart) ? eventEnd : currentStart;
       }
     });
 
+    // Add the remaining availability slot after the last event
     if (currentStart.isBefore(currentEnd)) {
-      tempSlots.push({
+      splitSlots.push({
         ...availability,
         start: currentStart.toDate(),
         end: currentEnd.toDate(),
       });
     }
-
-    splitSlots.push(...tempSlots);
   });
 
   return splitSlots;
