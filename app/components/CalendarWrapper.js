@@ -20,7 +20,7 @@ import {
   handleAvailabilitySubmit,
   handleConfirmation,
 } from './calendar/handlers';
-import { eventStyleGetter, customDayPropGetter, customSlotPropGetter, messages } from './calendar/helpers';
+import { eventStyleGetter, customSlotPropGetter, messages } from './calendar/helpers';
 import { splitAvailabilities } from './calendar/availabilityUtils';
 import EventForm from './EventForm';
 import AvailabilityForm from './AvailabilityForm';
@@ -78,13 +78,13 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   });
 
   const finalEvents = showEvents
-  ? userRole === 'tutor'
-    ? [
-        ...filteredEvents,
-        ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
-      ]
-    : filteredEvents
-  : [];
+    ? userRole === 'tutor'
+      ? [
+          ...filteredEvents,
+          ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
+        ]
+      : filteredEvents
+    : [];
 
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
@@ -94,7 +94,12 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     .map(email => allTutors.find(tutor => tutor.email === email))
     .map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
 
-  const applicableAvailabilities = selectedSubject && selectedTutors.length === 0 
+  const filteredTutors = selectedSubject?.tutors?.map(tutor => ({
+    value: tutor.email,
+    label: tutor.name || tutor.email
+  })) || [];
+
+  const applicableAvailabilities = selectedSubject && selectedTutors.length === 0
     ? splitAvailabilitiesData.filter(avail => selectedSubject.tutors.some(tutor => tutor.email === avail.tutor))
     : splitAvailabilitiesData;
 
@@ -161,9 +166,9 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
               <>
                 <Select
                   name="subjects"
-                  options={subjects}
-                  value={selectedSubject}
-                  onChange={setSelectedSubject}
+                  options={subjects.map(subject => ({ value: subject.id, label: subject.name }))}
+                  value={selectedSubject ? { value: selectedSubject.id, label: selectedSubject.name } : null}
+                  onChange={(option) => setSelectedSubject(subjects.find(subject => subject.id === option.value))}
                   className="basic-select"
                   classNamePrefix="select"
                   placeholder="Select a subject"

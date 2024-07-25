@@ -64,16 +64,12 @@ export const fetchAvailabilities = async (setAvailabilities) => {
 };
 
 export const fetchSubjectsWithTutors = async (setSubjects) => {
-  const querySnapshot = await getDocs(collection(db, 'subjects'));
-  const subjectsList = querySnapshot.docs.map(doc => ({
+  const subjectsCollection = collection(db, 'subjects');
+  const subjectsSnapshot = await getDocs(subjectsCollection);
+  const subjectsList = subjectsSnapshot.docs.map(doc => ({
     id: doc.id,
-    ...doc.data(),
-    tutors: doc.data().tutors || [],
+    name: doc.data().name,
+    tutors: doc.data().tutors || []
   }));
-  const formattedSubjects = subjectsList.map(subject => ({
-    value: subject.id,
-    label: subject.name,
-    tutors: subject.tutors,
-  }));
-  setSubjects(formattedSubjects);
+  setSubjects(subjectsList);
 };
