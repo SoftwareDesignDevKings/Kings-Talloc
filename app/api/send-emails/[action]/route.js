@@ -55,7 +55,9 @@ export async function GET(req, { params }) {
               </p>
               <ul style="color: #555; text-align: left; font-size: 16px;">
                 ${events.map(event => `
-                  <li>${event.title} - ${DateTime.fromJSDate(event.start.toDate()).setZone('Australia/Sydney').toLocaleString(DateTime.DATETIME_MED)}</li>
+                  <li>${event.title} - ${DateTime.fromJSDate(event.start.toDate())
+                    .setZone('Australia/Sydney', { keepLocalTime: true })
+                    .toLocaleString(DateTime.DATETIME_MED)}</li>
                 `).join('')}
               </ul>
             </div>
