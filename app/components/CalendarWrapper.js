@@ -70,23 +70,33 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents);
 
   const filteredEvents = events.filter(event => {
-    if (userRole === 'tutor' && hideOwnAvailabilities && event.tutor === userEmail) {
-      return false;
+    if (userRole === 'tutor') {
+        if (!event.staff.some(staff => staff.value === userEmail)) {
+            return false;
+        }
+
+        if (hideOwnAvailabilities && event.tutor === userEmail) {
+            return false;
+        }
     }
+
     if ((userRole === 'tutor' || userRole === 'teacher') && hideDeniedStudentEvents && event.createdByStudent && event.approvalStatus === 'denied') {
-      return false;
+        return false;
     }
+
     return true;
   });
 
+
   const finalEvents = showEvents
-    ? userRole === 'tutor'
+  ? userRole === 'tutor'
       ? [
           ...filteredEvents,
           ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
         ]
       : filteredEvents
-    : [];
+  : [];
+
 
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
@@ -102,17 +112,31 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     ? splitAvailabilitiesData.filter(avail => selectedSubject.tutors.some(tutor => tutor.email === avail.tutor))
     : splitAvailabilitiesData;
 
-  const handleTutorFilterChange = (selectedOptions) => {
-    setSelectedTutors(selectedOptions);
-    if (selectedOptions.length === 0) {
-      setEvents(allEvents);
-    } else {
-      const filteredEvents = allEvents.filter(event =>
-        event.staff.some(staff => selectedOptions.map(option => option.value).includes(staff.value))
-      );
-      setEvents(filteredEvents);
-    }
-  };
+    const handleTutorFilterChange = (selectedOptions) => {
+      setSelectedTutors(selectedOptions);
+      if (userRole === 'teacher') {
+          if (selectedOptions.length === 0) {
+              setEvents(allEvents);
+          } else {
+              const filteredEvents = allEvents.filter(event =>
+                  event.staff.some(staff => selectedOptions.map(option => option.value).includes(staff.value))
+              );
+              setEvents(filteredEvents);
+          }
+      } else if (userRole === 'tutor') {
+          const tutorFilteredEvents = allEvents.filter(event =>
+              event.staff.some(staff => staff.value === userEmail) // Ensuring tutors only see their own events
+          );
+          if (selectedOptions.length > 0) {
+              const additionalFilteredEvents = tutorFilteredEvents.filter(event =>
+                  event.staff.some(staff => selectedOptions.map(option => option.value).includes(staff.value))
+              );
+              setEvents(additionalFilteredEvents);
+          } else {
+              setEvents(tutorFilteredEvents);
+          }
+      }
+  };  
 
   const currentWeekStart = moment(currentDate).startOf('week');
   const currentWeekEnd = moment(currentDate).endOf('week');
@@ -197,6 +221,26 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
                 placeholder="Select tutors"
               />
             )}
+            <div className="checkbox-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showEvents}
+                  onChange={(e) => setShowEvents(e.target.checked)}
+                />
+                <span className="ml-2">Show Events</span>
+              </label>
+            </div>
+            <div className="checkbox-group">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showInitials}
+                  onChange={(e) => setShowInitials(e.target.checked)}
+                />
+                <span className="ml-2">Show Tutor Availabilities</span>
+              </label>
+            </div>
             {userRole === 'tutor' && (
               <div className="checkbox-group">
                 <label className="flex items-center">
@@ -221,26 +265,6 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
                 </label>
               </div>
             )}
-            <div className="checkbox-group">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={showEvents}
-                  onChange={(e) => setShowEvents(e.target.checked)}
-                />
-                <span className="ml-2">Show Events</span>
-              </label>
-            </div>
-            <div className="checkbox-group">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={showInitials}
-                  onChange={(e) => setShowInitials(e.target.checked)}
-                />
-                <span className="ml-2">Show Tutor Availabilities</span>
-              </label>
-            </div>
           </div>
         )}
       </div>
