@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
-import { db, Timestamp } from '../../../firebase'; // Adjust the path as necessary
+import { db } from '../../../firebase'; // Adjust the path as necessary
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { DateTime } from 'luxon';
 
 export async function GET(req, { params }) {
   const { action } = params;
@@ -53,7 +54,9 @@ export async function GET(req, { params }) {
                 You have been added to the following new events:
               </p>
               <ul style="color: #555; text-align: left; font-size: 16px;">
-                ${events.map(event => `<li>${event.title} - ${event.start.toDate().toLocaleString()}</li>`).join('')}
+                ${events.map(event => `
+                  <li>${event.title} - ${DateTime.fromJSDate(event.start.toDate()).setZone('Australia/Sydney').toLocaleString(DateTime.DATETIME_MED)}</li>
+                `).join('')}
               </ul>
             </div>
           </div>
