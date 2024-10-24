@@ -27,8 +27,6 @@ export async function GET(req, { params }) {
     },
   });
 
-// test
-
   const sendEmailNotification = async (events) => {
     const emailPromises = [];
 
