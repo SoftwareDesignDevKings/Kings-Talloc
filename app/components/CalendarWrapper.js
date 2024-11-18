@@ -36,8 +36,7 @@ const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
 const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTime }) => {
-  const [events, setEvents] = useState([]);
-  const [allEvents, setAllEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]); // Master list of all events
   const [availabilities, setAvailabilities] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.WEEK);
@@ -61,62 +60,56 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [showInitials, setShowInitials] = useState(true);
 
   useEffect(() => {
-    fetchEvents(userRole, userEmail, setEvents, setAllEvents, setStudents);
+    // Fetch all events and setAllEvents
+    fetchEvents(userRole, userEmail, setAllEvents, setAllEvents, setStudents);
     fetchAvailabilities(setAvailabilities);
     fetchSubjectsWithTutors(setSubjects);
-    fetchTutors(setTutors); // Fetch tutors directly
+    fetchTutors(setTutors);
   }, [userRole, userEmail]);
 
+  // Split availabilities based on allEvents
   const splitAvailabilitiesData = useMemo(() => splitAvailabilities(availabilities, allEvents), [availabilities, allEvents]);
 
+  // Derive filtered events based on allEvents and filters
   const filteredEvents = useMemo(() => {
-    let filtered = events.filter(event => {
-      if (userRole === 'tutor') {
-        if (!event.staff.some(staff => staff.value === userEmail)) {
-          return false;
-        }
+    let filtered = [...allEvents];
 
-        if (hideOwnAvailabilities && event.tutor === userEmail) {
-          return false;
-        }
-      }
-
-      if ((userRole === 'tutor' || userRole === 'teacher') && hideDeniedStudentEvents && event.createdByStudent && event.approvalStatus === 'denied') {
-        return false;
-      }
-
-      return true;
-    });
-
-    if (selectedTutors.length > 0) {
-      // Filter events to only include those involving selected tutors
+    // Apply role-based filters
+    if (userRole === 'tutor') {
       filtered = filtered.filter(event =>
-        event.staff.some(staff => selectedTutors.some(tutor => tutor.value === staff.value))
+        event.staff.some(staff => staff.value === userEmail)
+      );
+
+      if (hideOwnAvailabilities) {
+        filtered = filtered.filter(event => event.tutor !== userEmail);
+      }
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideDeniedStudentEvents) {
+      filtered = filtered.filter(event =>
+        !(event.createdByStudent && event.approvalStatus === 'denied')
+      );
+    }
+
+    // Apply tutor filter
+    if (selectedTutors.length > 0) {
+      const selectedTutorValues = selectedTutors.map(tutor => tutor.value);
+      filtered = filtered.filter(event =>
+        event.staff.some(staff => selectedTutorValues.includes(staff.value))
       );
     }
 
     return filtered;
-  }, [events, userRole, userEmail, hideOwnAvailabilities, hideDeniedStudentEvents, selectedTutors]);
+  }, [
+    allEvents,
+    userRole,
+    userEmail,
+    hideOwnAvailabilities,
+    hideDeniedStudentEvents,
+    selectedTutors
+  ]);
 
-  const finalEvents = showEvents
-    ? userRole === 'tutor'
-        ? [
-            ...filteredEvents,
-            ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
-          ]
-        : filteredEvents
-    : [];
-
-  const minTime = moment(calendarStartTime, "HH:mm").toDate();
-  const maxTime = moment(calendarEndTime, "HH:mm").toDate();
-
-  const uniqueTutors = tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
-
-  const filteredTutors = selectedSubject?.tutors?.map(tutor => ({
-    value: tutor.email,
-    label: tutor.name || tutor.email
-  })) || [];
-
+  // Derive filtered availabilities based on selectedSubject and selectedTutors
   const applicableAvailabilities = useMemo(() => {
     if (selectedSubject) {
       if (selectedTutors.length > 0) {
@@ -141,10 +134,32 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     return splitAvailabilitiesData;
   }, [selectedSubject, selectedTutors, splitAvailabilitiesData]);
 
+  // Combine filtered events and availabilities based on user role and visibility
+  const finalEvents = useMemo(() => {
+    if (!showEvents) return [];
+
+    if (userRole === 'tutor') {
+      const tutorAvailabilities = splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities);
+      return [...filteredEvents, ...tutorAvailabilities];
+    }
+
+    return filteredEvents;
+  }, [showEvents, userRole, userEmail, filteredEvents, splitAvailabilitiesData, hideOwnAvailabilities]);
+
+  const minTime = moment(calendarStartTime, "HH:mm").toDate();
+  const maxTime = moment(calendarEndTime, "HH:mm").toDate();
+
+  const uniqueTutors = tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
+
+  const filteredTutors = selectedSubject?.tutors?.map(tutor => ({
+    value: tutor.email,
+    label: tutor.name || tutor.email
+  })) || [];
+
   const handleTutorFilterChange = (selectedOptions) => {
     setSelectedTutors(selectedOptions);
-    // Filtering is now handled by useMemo
-  };  
+    // No need to manually set events; filteredEvents will update via useMemo
+  };
 
   const currentWeekStart = moment(currentDate).startOf('week');
   const currentWeekEnd = moment(currentDate).endOf('week');
@@ -162,8 +177,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           max={maxTime}
           onSelectSlot={(slotInfo) => handleSelectSlot(slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail)}
           onSelectEvent={(event) => handleSelectEvent(event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, setShowDetailsModal)}
-          onEventDrop={(event) => handleEventDrop(event, events, availabilities, setEvents, setAvailabilities, userRole)}
-          onEventResize={(event) => handleEventResize(event, events, availabilities, setEvents, setAvailabilities, userRole)}
+          onEventDrop={(dropInfo) => handleEventDrop(dropInfo, allEvents, availabilities, setAllEvents, setAvailabilities, userRole)}
+          onEventResize={(resizeInfo) => handleEventResize(resizeInfo, allEvents, availabilities, setAllEvents, setAvailabilities, userRole)}
           resizable
           selectable
           date={currentDate}
@@ -282,8 +297,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           newEvent={newEvent}
           setNewEvent={setNewEvent}
           handleInputChange={(e) => handleInputChange(e, setNewEvent, newEvent)}
-          handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setEvents, events, setShowTeacherModal)}
-          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowTeacherModal, setShowAvailabilityModal)}
+          handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setAllEvents, allEvents, setShowTeacherModal)}
+          handleDelete={() => handleDelete(eventToEdit, allEvents, setAllEvents, availabilities, setAvailabilities, setShowTeacherModal)}
           setShowModal={setShowTeacherModal}
           handleStaffChange={(selectedStaff) => handleStaffChange(selectedStaff, setNewEvent, newEvent)}
           handleClassChange={(selectedClasses) => handleClassChange(selectedClasses, setNewEvent, newEvent)}
@@ -296,8 +311,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           newEvent={newEvent}
           setNewEvent={setNewEvent}
           handleInputChange={(e) => handleInputChange(e, setNewEvent, newEvent)}
-          handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setEvents, events, setShowStudentModal)}
-          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowStudentModal)}
+          handleSubmit={(e) => handleSubmit(e, isEditing, newEvent, eventToEdit, setAllEvents, allEvents, setShowStudentModal)}
+          handleDelete={() => handleDelete(eventToEdit, allEvents, setAllEvents, availabilities, setAvailabilities, setShowStudentModal)}
           setShowStudentModal={setShowStudentModal}
           studentEmail={userEmail}
         />
@@ -309,7 +324,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           setNewAvailability={setNewAvailability}
           handleInputChange={(e) => handleAvailabilityChange(e, setNewAvailability, newAvailability)}
           handleSubmit={(e) => handleAvailabilitySubmit(e, isEditing, newAvailability, eventToEdit, setAvailabilities, availabilities, setShowAvailabilityModal)}
-          handleDelete={() => handleDelete(eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowAvailabilityModal)}
+          handleDelete={() => handleDelete(eventToEdit, allEvents, setAllEvents, availabilities, setAvailabilities, setShowAvailabilityModal)}
           setShowModal={setShowAvailabilityModal}
         />
       )}
@@ -317,11 +332,11 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
         <EventDetailsModal
           event={eventToEdit}
           handleClose={() => setShowDetailsModal(false)}
-          handleConfirmation={(confirmed) => handleConfirmation(eventToEdit, confirmed, userRole, userEmail, events, setEvents)}
+          handleConfirmation={(confirmed) => handleConfirmation(eventToEdit, confirmed, userRole, userEmail, allEvents, setAllEvents)}
           userEmail={userEmail}
           userRole={userRole}
-          events={events}
-          setEvents={setEvents}
+          events={allEvents}
+          setEvents={setAllEvents}
         />
       )}
     </div>

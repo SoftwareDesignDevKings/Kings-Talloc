@@ -30,7 +30,17 @@ const removeEventFromQueue = async (id) => {
 
 // Handlers for managing events
 
-export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail) => {
+export const handleSelectSlot = (
+  slotInfo, 
+  userRole, 
+  setNewEvent, 
+  setNewAvailability, 
+  setIsEditing, 
+  setShowTeacherModal, 
+  setShowStudentModal, 
+  setShowAvailabilityModal, 
+  userEmail
+) => {
   const start = slotInfo.start;
   const end = slotInfo.end;
 
@@ -54,7 +64,13 @@ export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailabi
   }
 
   if (userRole === 'tutor') {
-    setNewAvailability({ title: 'Availability', start, end, tutor: userEmail, locationType: '' }); // Add locationType to the initial state
+    setNewAvailability({ 
+      title: 'Availability', 
+      start, 
+      end, 
+      tutor: userEmail, 
+      locationType: '' 
+    }); // Add locationType to the initial state
     setIsEditing(false);
     setShowAvailabilityModal(true);
   } else {
@@ -78,7 +94,19 @@ export const handleSelectSlot = (slotInfo, userRole, setNewEvent, setNewAvailabi
   }
 };
 
-export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNewAvailability, setIsEditing, setEventToEdit, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, setShowDetailsModal) => {
+export const handleSelectEvent = (
+  event, 
+  userRole, 
+  userEmail, 
+  setNewEvent, 
+  setNewAvailability, 
+  setIsEditing, 
+  setEventToEdit, 
+  setShowTeacherModal, 
+  setShowStudentModal, 
+  setShowAvailabilityModal, 
+  setShowDetailsModal
+) => {
   if (event.tutor) {
     if (userRole === 'tutor' && event.tutor === userEmail) {
       setNewAvailability(event);
@@ -112,22 +140,29 @@ export const handleSelectEvent = (event, userRole, userEmail, setNewEvent, setNe
   }
 };
 
-export const handleEventDrop = async ({ event, start, end }, events, availabilities, setEvents, setAvailabilities, userRole) => {
+export const handleEventDrop = async (
+  { event, start, end }, 
+  allEvents, 
+  availabilities, 
+  setAllEvents, 
+  setAvailabilities, 
+  userRole
+) => {
   const isAvailability = !!event.tutor;
 
   if (userRole === 'student' || (userRole === 'tutor' && !isAvailability)) return;
 
-  const duration = (event.end - event.start);
+  const duration = event.end - event.start;
   const updatedEnd = new Date(start.getTime() + duration);
 
   const updatedEvent = { ...event, start, end: updatedEnd };
-  const previousEvents = [...events];
+  const previousEvents = [...allEvents];
   const previousAvailabilities = [...availabilities];
 
   if (isAvailability) {
     setAvailabilities(availabilities.map(avail => avail.id === event.id ? updatedEvent : avail));
   } else {
-    setEvents(events.map(evt => evt.id === event.id ? updatedEvent : evt));
+    setAllEvents(allEvents.map(evt => evt.id === event.id ? updatedEvent : evt));
   }
 
   try {
@@ -141,24 +176,31 @@ export const handleEventDrop = async ({ event, start, end }, events, availabilit
     if (isAvailability) {
       setAvailabilities(previousAvailabilities);
     } else {
-      setEvents(previousEvents);
+      setAllEvents(previousEvents);
     }
   }
 };
 
-export const handleEventResize = async ({ event, start, end }, events, availabilities, setEvents, setAvailabilities, userRole) => {
+export const handleEventResize = async (
+  { event, start, end }, 
+  allEvents, 
+  availabilities, 
+  setAllEvents, 
+  setAvailabilities, 
+  userRole
+) => {
   const isAvailability = !!event.tutor;
 
   if (userRole === 'student' || (userRole === 'tutor' && !isAvailability)) return;
 
   const updatedEvent = { ...event, start, end };
-  const previousEvents = [...events];
+  const previousEvents = [...allEvents];
   const previousAvailabilities = [...availabilities];
 
   if (isAvailability) {
     setAvailabilities(availabilities.map(avail => avail.id === event.id ? updatedEvent : avail));
   } else {
-    setEvents(events.map(evt => evt.id === event.id ? updatedEvent : evt));
+    setAllEvents(allEvents.map(evt => evt.id === event.id ? updatedEvent : evt));
   }
 
   try {
@@ -172,7 +214,7 @@ export const handleEventResize = async ({ event, start, end }, events, availabil
     if (isAvailability) {
       setAvailabilities(previousAvailabilities);
     } else {
-      setEvents(previousEvents);
+      setAllEvents(previousEvents);
     }
   }
 };
@@ -187,7 +229,15 @@ export const handleLocationChange = (selectedOption, setNewEvent, newEvent) => {
   setNewEvent({ ...newEvent, locationType: selectedOption.value });
 };
 
-export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvents, events, setShowModal) => {
+export const handleSubmit = async (
+  e, 
+  isEditing, 
+  newEvent, 
+  eventToEdit, 
+  setAllEvents, 
+  allEvents, 
+  setShowModal
+) => {
   e.preventDefault();
 
   const eventData = {
@@ -212,13 +262,16 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
     if (isEditing) {
       const eventDoc = doc(db, 'events', eventToEdit.id);
       await updateDoc(eventDoc, eventData);
-      setEvents(events.map(event => event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event));
+      const updatedAllEvents = allEvents.map(event => 
+        event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event
+      );
+      setAllEvents(updatedAllEvents);
       await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
     } else {
       const docRef = await addDoc(collection(db, 'events'), eventData);
-      eventData.id = docRef.id; // Add the generated ID to the event data
-      setEvents([...events, { ...eventData, id: docRef.id }]);
-      await addOrUpdateEventInQueue(eventData, 'store');
+      const newEventWithId = { ...eventData, id: docRef.id };
+      setAllEvents([...allEvents, newEventWithId]);
+      await addOrUpdateEventInQueue(newEventWithId, 'store');
     }
     setShowModal(false);
   } catch (error) {
@@ -226,7 +279,14 @@ export const handleSubmit = async (e, isEditing, newEvent, eventToEdit, setEvent
   }
 };
 
-export const handleDelete = async (eventToEdit, events, setEvents, availabilities, setAvailabilities, setShowModal) => {
+export const handleDelete = async (
+  eventToEdit, 
+  allEvents, 
+  setAllEvents, 
+  availabilities, 
+  setAvailabilities, 
+  setShowModal
+) => {
   if (eventToEdit && eventToEdit.id) {
     const collectionName = eventToEdit.tutor ? 'availabilities' : 'events';
     try {
@@ -234,7 +294,7 @@ export const handleDelete = async (eventToEdit, events, setEvents, availabilitie
       if (collectionName === 'availabilities') {
         setAvailabilities(availabilities.filter(availability => availability.id !== eventToEdit.id));
       } else {
-        setEvents(events.filter(event => event.id !== eventToEdit.id));
+        setAllEvents(allEvents.filter(event => event.id !== eventToEdit.id));
       }
       await removeEventFromQueue(eventToEdit.id);
     } catch (error) {
@@ -261,7 +321,15 @@ export const handleAvailabilityChange = (e, setNewAvailability, newAvailability)
   setNewAvailability({ ...newAvailability, [name]: value });
 };
 
-export const handleAvailabilitySubmit = async (e, isEditing, newAvailability, eventToEdit, setAvailabilities, availabilities, setShowAvailabilityModal) => {
+export const handleAvailabilitySubmit = async (
+  e, 
+  isEditing, 
+  newAvailability, 
+  eventToEdit, 
+  setAvailabilities, 
+  availabilities, 
+  setShowAvailabilityModal
+) => {
   e.preventDefault();
   const availabilityData = {
     title: newAvailability.title,
@@ -275,10 +343,14 @@ export const handleAvailabilitySubmit = async (e, isEditing, newAvailability, ev
     if (isEditing) {
       const availabilityDoc = doc(db, 'availabilities', eventToEdit.id);
       await updateDoc(availabilityDoc, availabilityData);
-      setAvailabilities(availabilities.map(availability => availability.id === eventToEdit.id ? { ...availabilityData, id: eventToEdit.id } : availability));
+      const updatedAvailabilities = availabilities.map(avail => 
+        avail.id === eventToEdit.id ? { ...availabilityData, id: eventToEdit.id } : avail
+      );
+      setAvailabilities(updatedAvailabilities);
     } else {
       const docRef = await addDoc(collection(db, 'availabilities'), availabilityData);
-      setAvailabilities([...availabilities, { ...availabilityData, id: docRef.id }]);
+      const newAvailabilityWithId = { ...availabilityData, id: docRef.id };
+      setAvailabilities([...availabilities, newAvailabilityWithId]);
     }
     setShowAvailabilityModal(false);
   } catch (error) {
@@ -286,7 +358,14 @@ export const handleAvailabilitySubmit = async (e, isEditing, newAvailability, ev
   }
 };
 
-export const handleConfirmation = async (event, confirmed, userRole, userEmail, events, setEvents) => {
+export const handleConfirmation = async (
+  event, 
+  confirmed, 
+  userRole, 
+  userEmail, 
+  allEvents, 
+  setAllEvents
+) => {
   if (userRole === 'student' && event.minStudents > 0) {
     const updatedStudentResponses = [
       ...(event.studentResponses || []).filter(response => response.email !== userEmail),
@@ -299,7 +378,10 @@ export const handleConfirmation = async (event, confirmed, userRole, userEmail, 
       await updateDoc(eventDoc, {
         studentResponses: updatedStudentResponses,
       });
-      setEvents(events.map(evt => (evt.id === event.id ? updatedEvent : evt)));
+      const updatedAllEvents = allEvents.map(evt => 
+        evt.id === event.id ? updatedEvent : evt
+      );
+      setAllEvents(updatedAllEvents);
     } catch (error) {
       console.error('Failed to update student response:', error);
     }
