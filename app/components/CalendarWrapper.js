@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -64,78 +64,86 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     fetchEvents(userRole, userEmail, setEvents, setAllEvents, setStudents);
     fetchAvailabilities(setAvailabilities);
     fetchSubjectsWithTutors(setSubjects);
-    fetchTutors(setTutors); // Add this line to fetch tutors directly
+    fetchTutors(setTutors); // Fetch tutors directly
   }, [userRole, userEmail]);
 
-  const splitAvailabilitiesData = splitAvailabilities(availabilities, allEvents);
+  const splitAvailabilitiesData = useMemo(() => splitAvailabilities(availabilities, allEvents), [availabilities, allEvents]);
 
-  const filteredEvents = events.filter(event => {
-    if (userRole === 'tutor') {
+  const filteredEvents = useMemo(() => {
+    let filtered = events.filter(event => {
+      if (userRole === 'tutor') {
         if (!event.staff.some(staff => staff.value === userEmail)) {
-            return false;
+          return false;
         }
 
         if (hideOwnAvailabilities && event.tutor === userEmail) {
-            return false;
+          return false;
         }
-    }
+      }
 
-    if ((userRole === 'tutor' || userRole === 'teacher') && hideDeniedStudentEvents && event.createdByStudent && event.approvalStatus === 'denied') {
+      if ((userRole === 'tutor' || userRole === 'teacher') && hideDeniedStudentEvents && event.createdByStudent && event.approvalStatus === 'denied') {
         return false;
+      }
+
+      return true;
+    });
+
+    if (selectedTutors.length > 0) {
+      // Filter events to only include those involving selected tutors
+      filtered = filtered.filter(event =>
+        event.staff.some(staff => selectedTutors.some(tutor => tutor.value === staff.value))
+      );
     }
 
-    return true;
-  });
-
+    return filtered;
+  }, [events, userRole, userEmail, hideOwnAvailabilities, hideDeniedStudentEvents, selectedTutors]);
 
   const finalEvents = showEvents
-  ? userRole === 'tutor'
-      ? [
-          ...filteredEvents,
-          ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
-        ]
-      : filteredEvents
-  : [];
-
+    ? userRole === 'tutor'
+        ? [
+            ...filteredEvents,
+            ...splitAvailabilitiesData.filter(avail => avail.tutor === userEmail && !hideOwnAvailabilities)
+          ]
+        : filteredEvents
+    : [];
 
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
 
-  const uniqueTutors = tutors.map(tutor => ({ value: tutor.email, label: tutor.name }));
+  const uniqueTutors = tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
 
   const filteredTutors = selectedSubject?.tutors?.map(tutor => ({
     value: tutor.email,
     label: tutor.name || tutor.email
   })) || [];
 
-  const applicableAvailabilities = selectedSubject && selectedTutors.length === 0
-    ? splitAvailabilitiesData.filter(avail => selectedSubject.tutors.some(tutor => tutor.email === avail.tutor))
-    : splitAvailabilitiesData;
-
-    const handleTutorFilterChange = (selectedOptions) => {
-      setSelectedTutors(selectedOptions);
-      if (userRole === 'teacher') {
-          if (selectedOptions.length === 0) {
-              setEvents(allEvents);
-          } else {
-              const filteredEvents = allEvents.filter(event =>
-                  event.staff.some(staff => selectedOptions.map(option => option.value).includes(staff.value))
-              );
-              setEvents(filteredEvents);
-          }
-      } else if (userRole === 'tutor') {
-          const tutorFilteredEvents = allEvents.filter(event =>
-              event.staff.some(staff => staff.value === userEmail) // Ensuring tutors only see their own events
-          );
-          if (selectedOptions.length > 0) {
-              const additionalFilteredEvents = tutorFilteredEvents.filter(event =>
-                  event.staff.some(staff => selectedOptions.map(option => option.value).includes(staff.value))
-              );
-              setEvents(additionalFilteredEvents);
-          } else {
-              setEvents(tutorFilteredEvents);
-          }
+  const applicableAvailabilities = useMemo(() => {
+    if (selectedSubject) {
+      if (selectedTutors.length > 0) {
+        // Filter availabilities based on selected tutors
+        return splitAvailabilitiesData.filter(avail =>
+          selectedTutors.some(tutor => tutor.value === avail.tutor)
+        );
+      } else {
+        // Filter availabilities based on the selected subject's tutors
+        return splitAvailabilitiesData.filter(avail =>
+          selectedSubject.tutors.some(tutor => tutor.email === avail.tutor)
+        );
       }
+    }
+    // If no subject is selected, filter based on selected tutors if any
+    if (selectedTutors.length > 0) {
+      return splitAvailabilitiesData.filter(avail =>
+        selectedTutors.some(tutor => tutor.value === avail.tutor)
+      );
+    }
+    // Default to all availabilities if no filters are applied
+    return splitAvailabilitiesData;
+  }, [selectedSubject, selectedTutors, splitAvailabilitiesData]);
+
+  const handleTutorFilterChange = (selectedOptions) => {
+    setSelectedTutors(selectedOptions);
+    // Filtering is now handled by useMemo
   };  
 
   const currentWeekStart = moment(currentDate).startOf('week');
