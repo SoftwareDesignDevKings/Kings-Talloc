@@ -94,24 +94,6 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
       );
     }
 
-    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites) {
-      filtered = filtered.filter(event =>
-        !(event.workType === 'tutoring')
-      );
-    }
-
-    if ((userRole === 'tutor' || userRole === 'teacher') && hideWorkAvailabilities) {
-      filtered = filtered.filter(event =>
-        !(event.workType === 'work')
-      );
-    }
-
-    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites && hideWorkAvailabilities) {
-      filtered = filtered.filter(event =>
-        !(event.workType === 'tutoringOrWork')
-      );
-    }
-
     // Apply tutor filter
     if (selectedTutors.length > 0) {
       const selectedTutorValues = selectedTutors.map(tutor => tutor.value);
@@ -134,28 +116,54 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
 
   // Derive filtered availabilities based on selectedSubject and selectedTutors
   const applicableAvailabilities = useMemo(() => {
+    let filtered = splitAvailabilitiesData
+
+    if (userRole == "student") {
+      filtered = filtered.filter(availability =>
+        !(availability.workType === 'tutoring' || availability.workType === 'tutoringOrWork')
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites) {
+      filtered = filtered.filter(availability =>
+        !(availability.workType === 'tutoring')
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideWorkAvailabilities) {
+      filtered = filtered.filter(availability =>
+        !(availability.workType === 'work')
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites && hideWorkAvailabilities) {
+      filtered = filtered.filter(availability =>
+        !(availability.workType === 'tutoringOrWork')
+      );
+    }
+
     if (selectedSubject) {
       if (selectedTutors.length > 0) {
         // Filter availabilities based on selected tutors
-        return splitAvailabilitiesData.filter(avail =>
+        return filtered.filter(avail =>
           selectedTutors.some(tutor => tutor.value === avail.tutor)
         );
       } else {
         // Filter availabilities based on the selected subject's tutors
-        return splitAvailabilitiesData.filter(avail =>
+        return filtered.filter(avail =>
           selectedSubject.tutors.some(tutor => tutor.email === avail.tutor)
         );
       }
     }
     // If no subject is selected, filter based on selected tutors if any
     if (selectedTutors.length > 0) {
-      return splitAvailabilitiesData.filter(avail =>
+      return filtered.filter(avail =>
         selectedTutors.some(tutor => tutor.value === avail.tutor)
       );
     }
     // Default to all availabilities if no filters are applied
-    return splitAvailabilitiesData;
-  }, [selectedSubject, selectedTutors, splitAvailabilitiesData]);
+    return filtered;
+  }, [selectedSubject, selectedTutors, splitAvailabilitiesData, hideTutoringAvailabilites, hideWorkAvailabilities]);
 
   // Combine filtered events and availabilities based on user role and visibility
   const finalEvents = useMemo(() => {
