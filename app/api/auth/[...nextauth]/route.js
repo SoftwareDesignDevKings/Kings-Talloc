@@ -2,7 +2,7 @@ import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
 const allowedDomains = ['kings.edu.au', 'student.kings.edu.au'];
-const allowedEmails = ['liam22840@gmail.com', 'liha2347@gmail.com'];
+const allowedEmails = ['liam22840@gmail.com', 'liha2347@gmail.com', "patelhariwork@gmail.com", "patelhari134900@gmail.com"];
 
 const handler = NextAuth({
   providers: [
