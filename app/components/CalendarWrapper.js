@@ -120,7 +120,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
 
     if (userRole == "student") {
       filtered = filtered.filter(availability =>
-        (availability.workType === 'tutoring' || availability.workType === 'tutoringOrWork')
+        (availability.workType === 'tutoring' || availability.workType === 'tutoringOrWork' || availability.workType == undefined)
       );
     }
 
