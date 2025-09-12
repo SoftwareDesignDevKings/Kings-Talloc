@@ -55,6 +55,9 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [students, setStudents] = useState([]);
   const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
   const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
+  const [hideTutoringAvailabilites, setHideTutoringAvailabilites] = useState(false);
+  const [hideWorkAvailabilities, setHideWorkAvailabilities] = useState(false);
+
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
   const [showInitials, setShowInitials] = useState(true);
@@ -91,6 +94,24 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
       );
     }
 
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites) {
+      filtered = filtered.filter(event =>
+        !(event.workType === 'tutoring')
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideWorkAvailabilities) {
+      filtered = filtered.filter(event =>
+        !(event.workType === 'work')
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites && hideWorkAvailabilities) {
+      filtered = filtered.filter(event =>
+        !(event.workType === 'tutoringOrWork')
+      );
+    }
+
     // Apply tutor filter
     if (selectedTutors.length > 0) {
       const selectedTutorValues = selectedTutors.map(tutor => tutor.value);
@@ -106,6 +127,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     userEmail,
     hideOwnAvailabilities,
     hideDeniedStudentEvents,
+    hideTutoringAvailabilites,
+    hideWorkAvailabilities,
     selectedTutors
   ]);
 
@@ -190,8 +213,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
           components={{
             timeSlotWrapper: (props) => (
-              <CustomTimeSlotWrapper 
-                {...props} 
+              <CustomTimeSlotWrapper
+                {...props}
                 applicableAvailabilities={showInitials ? applicableAvailabilities : []}
                 selectedTutors={selectedTutors}
                 currentWeekStart={currentWeekStart}
@@ -277,15 +300,37 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
               </div>
             )}
             {(userRole === 'tutor' || userRole === 'teacher') && (
-              <div className="checkbox-group">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={hideDeniedStudentEvents}
-                    onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
-                  />
-                  <span className="ml-2">Hide Denied Student Events</span>
-                </label>
+              <div>
+                <div className="checkbox-group">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hideDeniedStudentEvents}
+                      onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
+                    />
+                    <span className="ml-2">Hide Denied Student Events</span>
+                  </label>
+                </div>
+                <div className="checkbox-group">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hideTutoringAvailabilites}
+                      onChange={(e) => setHideTutoringAvailabilites(e.target.checked)}
+                    />
+                    <span className="ml-2">Hide Tutoring Availabilities</span>
+                  </label>
+                </div>
+                <div className="checkbox-group">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hideWorkAvailabilities}
+                      onChange={(e) => setHideWorkAvailabilities(e.target.checked)}
+                    />
+                    <span className="ml-2">Hide Work Availabilities</span>
+                  </label>
+                </div>
               </div>
             )}
           </div>
