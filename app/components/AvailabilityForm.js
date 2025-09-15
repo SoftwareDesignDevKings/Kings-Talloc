@@ -2,15 +2,9 @@ import React, { useState } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
 
-const AvailabilityForm = ({
-  isEditing,
-  newAvailability,
-  setNewAvailability,
-  handleInputChange,
-  handleSubmit,
-  handleDelete,
-  setShowModal
-}) => {
+const AvailabilityForm = ({ isEditing, newAvailability, setNewAvailability, handleInputChange, handleSubmit, 
+                            handleDelete, setShowModal}) => {
+
   const [error, setError] = useState('');
 
   const locationOptions = [

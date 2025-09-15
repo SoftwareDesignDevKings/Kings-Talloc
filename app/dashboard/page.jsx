@@ -36,11 +36,12 @@ const Dashboard = () => {
           await setDoc(userRef, {
             email: user.email,
             name: user.name,
-            role: 'student',
+            role: session.user.role || "student",
             calendarStartTime: "06:00",
             calendarEndTime: "22:00"
           });
-          setUserRole('student');
+          console.log('New user added to Firestore with role:', session.user.role || "student");
+          setUserRole(session.user.role || "student");
         } else {
           const userData = userDoc.data();
           setUserRole(userData.role);
