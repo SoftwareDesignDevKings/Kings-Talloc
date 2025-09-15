@@ -14,6 +14,13 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
     { value: 'remote', label: 'Remote' },
   ];
 
+  const workTypeOptions = [
+    { value: 'tutoring', label: 'Tutoring' },
+    { value: 'tutoringOrWork', label: 'Tutoring Or Work' },
+    { value: 'work', label: 'Work' }
+
+  ];
+
   const validateDates = () => {
     const start = moment(newAvailability.start);
     const end = moment(newAvailability.end);
@@ -42,6 +49,10 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
 
   const handleLocationChange = (selectedOption) => {
     setNewAvailability({ ...newAvailability, locationType: selectedOption.value });
+  };
+
+  const handleWorkTypeChange = async (selectedOption) => {
+    setNewAvailability({ ...newAvailability, workType: selectedOption.value });
   };
 
   return (
@@ -80,6 +91,16 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
               <Button variant="outline-primary" onClick={() => setHours(6)} >6hrs </Button>
               <Button variant="outline-secondary" onClick={() => setHours(3)} >3hrs </Button>
             </ButtonGroup>
+          </div>
+          <div>
+            <label htmlFor="workType" className="block text-sm font-medium text-gray-700">Work Type</label>
+            <Select
+              name="workType"
+              options={workTypeOptions}
+              value={workTypeOptions.find(option => option.value === newAvailability.workType)}
+              onChange={handleWorkTypeChange}
+              classNamePrefix="select"
+            />
           </div>
           <div>
             <label htmlFor="locationType" className="block text-sm font-medium text-gray-700">Location Type</label>

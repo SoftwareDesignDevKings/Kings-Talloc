@@ -55,6 +55,9 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
   const [students, setStudents] = useState([]);
   const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
   const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
+  const [hideTutoringAvailabilites, setHideTutoringAvailabilites] = useState(false);
+  const [hideWorkAvailabilities, setHideWorkAvailabilities] = useState(false);
+
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
   const [showInitials, setShowInitials] = useState(true);
@@ -106,33 +109,61 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     userEmail,
     hideOwnAvailabilities,
     hideDeniedStudentEvents,
+    hideTutoringAvailabilites,
+    hideWorkAvailabilities,
     selectedTutors
   ]);
 
   // Derive filtered availabilities based on selectedSubject and selectedTutors
   const applicableAvailabilities = useMemo(() => {
+    let filtered = splitAvailabilitiesData
+
+    if (userRole == "student") {
+      filtered = filtered.filter(availability =>
+        (availability.workType === 'tutoring' || availability.workType === 'tutoringOrWork' || availability.workType == undefined)
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites) {
+      filtered = filtered.filter(availability =>
+        !(availability.workType === 'tutoring')
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideWorkAvailabilities) {
+      filtered = filtered.filter(availability =>
+        !(availability.workType === 'work')
+      );
+    }
+
+    if ((userRole === 'tutor' || userRole === 'teacher') && hideTutoringAvailabilites && hideWorkAvailabilities) {
+      filtered = filtered.filter(availability =>
+        !(availability.workType === 'tutoringOrWork')
+      );
+    }
+
     if (selectedSubject) {
       if (selectedTutors.length > 0) {
         // Filter availabilities based on selected tutors
-        return splitAvailabilitiesData.filter(avail =>
+        return filtered.filter(avail =>
           selectedTutors.some(tutor => tutor.value === avail.tutor)
         );
       } else {
         // Filter availabilities based on the selected subject's tutors
-        return splitAvailabilitiesData.filter(avail =>
+        return filtered.filter(avail =>
           selectedSubject.tutors.some(tutor => tutor.email === avail.tutor)
         );
       }
     }
     // If no subject is selected, filter based on selected tutors if any
     if (selectedTutors.length > 0) {
-      return splitAvailabilitiesData.filter(avail =>
+      return filtered.filter(avail =>
         selectedTutors.some(tutor => tutor.value === avail.tutor)
       );
     }
     // Default to all availabilities if no filters are applied
-    return splitAvailabilitiesData;
-  }, [selectedSubject, selectedTutors, splitAvailabilitiesData]);
+    return filtered;
+  }, [selectedSubject, selectedTutors, splitAvailabilitiesData, hideTutoringAvailabilites, hideWorkAvailabilities]);
 
   // Combine filtered events and availabilities based on user role and visibility
   const finalEvents = useMemo(() => {
@@ -190,8 +221,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
           components={{
             timeSlotWrapper: (props) => (
-              <CustomTimeSlotWrapper 
-                {...props} 
+              <CustomTimeSlotWrapper
+                {...props}
                 applicableAvailabilities={showInitials ? applicableAvailabilities : []}
                 selectedTutors={selectedTutors}
                 currentWeekStart={currentWeekStart}
@@ -277,15 +308,37 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
               </div>
             )}
             {(userRole === 'tutor' || userRole === 'teacher') && (
-              <div className="checkbox-group">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={hideDeniedStudentEvents}
-                    onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
-                  />
-                  <span className="ml-2">Hide Denied Student Events</span>
-                </label>
+              <div>
+                <div className="checkbox-group">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hideDeniedStudentEvents}
+                      onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
+                    />
+                    <span className="ml-2">Hide Denied Student Events</span>
+                  </label>
+                </div>
+                <div className="checkbox-group">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hideTutoringAvailabilites}
+                      onChange={(e) => setHideTutoringAvailabilites(e.target.checked)}
+                    />
+                    <span className="ml-2">Hide Tutoring Availabilities</span>
+                  </label>
+                </div>
+                <div className="checkbox-group">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hideWorkAvailabilities}
+                      onChange={(e) => setHideWorkAvailabilities(e.target.checked)}
+                    />
+                    <span className="ml-2">Hide Work Availabilities</span>
+                  </label>
+                </div>
               </div>
             )}
           </div>

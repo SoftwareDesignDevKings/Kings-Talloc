@@ -58,7 +58,8 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
     const availableTutors = tutorOptions.filter(tutor => {
       const tutorAvailabilities = availabilities.filter(availability => availability.tutor === tutor.value);
       return tutorAvailabilities.some(availability => {
-        return moment(availability.start).isSameOrBefore(start) && moment(availability.end).isSameOrAfter(end);
+        return moment(availability.start).isSameOrBefore(start) && moment(availability.end).isSameOrAfter(end)
+          && (availability.workType == "tutoring" || availability.workType == "tutoringOrWork" || availability.workType == undefined); // undefined check for backwards compatibility
       });
     });
     setFilteredTutors(availableTutors);
