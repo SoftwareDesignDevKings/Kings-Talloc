@@ -18,6 +18,13 @@ const AvailabilityForm = ({
     { value: 'remote', label: 'Remote' },
   ];
 
+  const workTypeOptions = [
+    { value: 'tutoring', label: 'Tutoring' },
+    { value: 'tutoringOrWork', label: 'Tutoring Or Work' },
+    { value: 'work', label: 'Work' }
+
+  ];
+
   const validateDates = () => {
     const start = moment(newAvailability.start);
     const end = moment(newAvailability.end);
@@ -38,6 +45,10 @@ const AvailabilityForm = ({
 
   const handleLocationChange = (selectedOption) => {
     setNewAvailability({ ...newAvailability, locationType: selectedOption.value });
+  };
+
+  const handleWorkTypeChange = async (selectedOption) => {
+    setNewAvailability({ ...newAvailability, workType: selectedOption.value });
   };
 
   return (
@@ -68,6 +79,16 @@ const AvailabilityForm = ({
               onChange={handleInputChange}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
+            />
+          </div>
+          <div>
+            <label htmlFor="workType" className="block text-sm font-medium text-gray-700">Work Type</label>
+            <Select
+              name="workType"
+              options={workTypeOptions}
+              value={workTypeOptions.find(option => option.value === newAvailability.workType)}
+              onChange={handleWorkTypeChange}
+              classNamePrefix="select"
             />
           </div>
           <div>
