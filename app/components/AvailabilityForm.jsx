@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
+import Button from 'react-bootstrap/Button';
+import { ButtonGroup } from 'react-bootstrap';
 
-const AvailabilityForm = ({ isEditing, newAvailability, setNewAvailability, handleInputChange, handleSubmit, 
+const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability, handleInputChange, handleSubmit, 
                             handleDelete, setShowModal}) => {
 
   const [error, setError] = useState('');
@@ -23,6 +25,14 @@ const AvailabilityForm = ({ isEditing, newAvailability, setNewAvailability, hand
     return true;
   };
 
+  const setHours = (hours) => {
+    if (newAvailability.start) {
+      const newEnd = moment(newAvailability.start).add(hours, 'hours');
+      setNewAvailability({ ...newAvailability, end: newEnd.toISOString() });
+    } else {
+      setError("Invalid hours")
+    }
+  }
   const onSubmit = (e) => {
     e.preventDefault();
     if (validateDates()) {
@@ -63,6 +73,13 @@ const AvailabilityForm = ({ isEditing, newAvailability, setNewAvailability, hand
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
             />
+          </div>
+
+          <div>
+            <ButtonGroup>
+              <Button variant="outline-primary" onClick={() => setHours(6)} >6hrs </Button>
+              <Button variant="outline-secondary" onClick={() => setHours(3)} >3hrs </Button>
+            </ButtonGroup>
           </div>
           <div>
             <label htmlFor="locationType" className="block text-sm font-medium text-gray-700">Location Type</label>
@@ -105,4 +122,4 @@ const AvailabilityForm = ({ isEditing, newAvailability, setNewAvailability, hand
   );
 };
 
-export default AvailabilityForm;
+export default TutorAvailabilityForm;

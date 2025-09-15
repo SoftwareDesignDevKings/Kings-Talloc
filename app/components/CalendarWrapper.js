@@ -23,7 +23,7 @@ import {
 import { eventStyleGetter, messages } from './calendar/helpers';
 import { splitAvailabilities } from './calendar/availabilityUtils';
 import EventForm from './EventForm';
-import AvailabilityForm from './AvailabilityForm';
+import TutorAvailabilityForm from './AvailabilityForm.jsx';
 import StudentEventForm from './StudentEventForm';
 import EventDetailsModal from './EventDetailsModal';
 import CustomTimeSlotWrapper from './CustomTimeSlotWrapper';
@@ -291,6 +291,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           </div>
         )}
       </div>
+
+      {/* render different modals depending on role */}
       {showTeacherModal && userRole === 'teacher' && (
         <EventForm
           isEditing={isEditing}
@@ -318,7 +320,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
         />
       )}
       {showAvailabilityModal && userRole === 'tutor' && (
-        <AvailabilityForm
+        <TutorAvailabilityForm
           isEditing={isEditing}
           newAvailability={newAvailability}
           setNewAvailability={setNewAvailability}
