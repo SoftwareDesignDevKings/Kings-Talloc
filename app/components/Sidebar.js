@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen } from 'react-icons/fi';
+import Image from 'next/image';
 import { signOut } from 'next-auth/react';
 import Settings from './Settings';
 
@@ -21,7 +22,7 @@ const Sidebar = ({ setActiveSection, userRole, user, calendarStartTime, calendar
           </button>
         </div>
         <div className="flex-1">
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-4 space-y-2 list-none pl-0">
             <li
               className={`py-2 px-6 cursor-pointer hover:bg-indigo-100 flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
               onClick={() => setActiveSection('calendar')}
@@ -73,11 +74,13 @@ const Sidebar = ({ setActiveSection, userRole, user, calendarStartTime, calendar
           className={`flex items-center cursor-pointer ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
           onClick={() => setShowProfileMenu(!showProfileMenu)}
         >
-          {user.image ? (
-            <img
+          {user?.image ? (
+            <Image
               src={user.image}
               alt="Profile"
-              className="w-8 h-8 rounded-full"
+              width={32}
+              height={32}
+              className="rounded-full"
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
