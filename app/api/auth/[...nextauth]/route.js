@@ -30,13 +30,15 @@ const handler = NextAuth({
       return session;
     },
 
+    // temp disable to local testing for custom emails 
     async signIn({ user, account, profile, email, credentials }) {
       const emailDomain = user.email.split('@')[1];
-      if (allowedDomains.includes(emailDomain) || allowedEmails.includes(user.email)) {
-        return true;
-      } else {
-        return false;
-      }
+      return true
+      // if (allowedDomains.includes(emailDomain) || allowedEmails.includes(user.email)) {
+      //   return true;
+      // } else {
+      //   return false;
+      // }
     },
   },
 });
