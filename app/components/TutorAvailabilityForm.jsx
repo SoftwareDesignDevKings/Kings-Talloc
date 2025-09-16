@@ -40,11 +40,22 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
       setError("Invalid hours")
     }
   }
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     if (validateDates()) {
       handleSubmit(e);
     }
+
+    // await fetch("/api/send-event", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     subject: "Math Tutoring - Year 10",
+    //     start: "2025-09-17T14:00:00",
+    //     end: "2025-09-17T15:00:00",
+    //     attendees: ["mmei@kings.edu.au", "vpatel@kings.edu.au", "eqsu@kings.edu.au"],
+    //   }),
+    // });
   };
 
   const handleLocationChange = (selectedOption) => {
