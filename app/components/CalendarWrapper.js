@@ -23,7 +23,7 @@ import {
 import { eventStyleGetter, messages } from './calendar/helpers';
 import { splitAvailabilities } from './calendar/availabilityUtils';
 import EventForm from './EventForm';
-import TutorAvailabilityForm from './AvailabilityForm.jsx';
+import TutorAvailabilityForm from './TutorAvailabilityForm.jsx';
 import StudentEventForm from './StudentEventForm';
 import EventDetailsModal from './EventDetailsModal';
 import CustomTimeSlotWrapper from './CustomTimeSlotWrapper';
@@ -103,16 +103,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     }
 
     return filtered;
-  }, [
-    allEvents,
-    userRole,
-    userEmail,
-    hideOwnAvailabilities,
-    hideDeniedStudentEvents,
-    hideTutoringAvailabilites,
-    hideWorkAvailabilities,
-    selectedTutors
-  ]);
+  }, [allEvents, userRole, userEmail, hideOwnAvailabilities, hideDeniedStudentEvents, selectedTutors]);
 
   // Derive filtered availabilities based on selectedSubject and selectedTutors
   const applicableAvailabilities = useMemo(() => {
@@ -163,7 +154,7 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
     }
     // Default to all availabilities if no filters are applied
     return filtered;
-  }, [selectedSubject, selectedTutors, splitAvailabilitiesData, hideTutoringAvailabilites, hideWorkAvailabilities]);
+  }, [splitAvailabilitiesData, userRole, hideTutoringAvailabilites, hideWorkAvailabilities, selectedSubject, selectedTutors]);
 
   // Combine filtered events and availabilities based on user role and visibility
   const finalEvents = useMemo(() => {
@@ -232,6 +223,8 @@ const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTi
           }}
         />
       </div>
+      
+      {/* panel for views on calendar */}
       <div className={`filter-panel ${isFilterPanelOpen ? 'open' : 'collapsed'}`}>
         <div className="collapse-button" onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}>
           {isFilterPanelOpen ? <FiChevronRight /> : <FiChevronLeft />}

@@ -30,14 +30,14 @@ const EventForm = ({
     const fetchStaff = async () => {
       const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
       const querySnapshot = await getDocs(q);
-      const staffList = await Promise.all(querySnapshot.docs.map(async doc => {
-        const tutorData = doc.data();
+      const staffList = await Promise.all(querySnapshot.docs.map(async docSnap => {
+        const tutorData = docSnap.data();
         const availabilityQuery = query(
           collection(db, 'availabilities'),
-          where('tutor', '==', doc.id)
+          where('tutor', '==', docSnap.id)
         );
         const availabilitySnapshot = await getDocs(availabilityQuery);
-        let availabilityStatus = 'unavailable'; // Default status
+        let availabilityStatus = 'unavailable';
 
         if (!availabilitySnapshot.empty) {
           const available = availabilitySnapshot.docs.some(availabilityDoc => {
@@ -56,7 +56,7 @@ const EventForm = ({
         }
 
         return {
-          value: doc.id,
+          value: docSnap.id,
           label: tutorData.name || tutorData.email,
           status: availabilityStatus
         };
@@ -67,9 +67,9 @@ const EventForm = ({
 
     const fetchClasses = async () => {
       const querySnapshot = await getDocs(collection(db, 'classes'));
-      const classList = querySnapshot.docs.map(doc => ({
-        value: doc.id,
-        label: doc.data().name,
+      const classList = querySnapshot.docs.map(docSnap => ({
+        value: docSnap.id,
+        label: docSnap.data().name,
       }));
       setClassOptions(classList);
     };
@@ -77,9 +77,9 @@ const EventForm = ({
     const fetchStudents = async () => {
       const q = query(collection(db, 'users'), where('role', '==', 'student'));
       const querySnapshot = await getDocs(q);
-      const studentList = querySnapshot.docs.map(doc => ({
-        value: doc.id,
-        label: doc.data().name || doc.data().email,
+      const studentList = querySnapshot.docs.map(docSnap => ({
+        value: docSnap.id,
+        label: docSnap.data().name || docSnap.data().email,
       }));
       setStudentOptions(studentList);
     };
@@ -186,169 +186,206 @@ const EventForm = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
-        <h2 className="text-2xl font-bold text-center">{isEditing ? 'Edit Event' : 'Add New Event'}</h2>
-        <form onSubmit={onSubmit} className="space-y-6 mt-4">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 z-60">
+        <h2 className="text-2xl font-bold text-center">
+          {isEditing ? 'Edit Event' : 'Add New Event'}
+        </h2>
+
+        <form onSubmit={onSubmit} className="mt-4">
           {error && <div className="text-red-500">{error}</div>}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
-            <input
-              type="text"
-              name="title"
-              id="title"
-              value={newEvent.title}
-              onChange={handleInputChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              name="description"
-              id="description"
-              value={newEvent.description}
-              onChange={handleInputChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            />
-          </div>
-          <div>
-            <label htmlFor="start" className="block text-sm font-medium text-gray-700">Start Time</label>
-            <input
-              type="datetime-local"
-              name="start"
-              id="start"
-              value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
-              onChange={handleInputChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="end" className="block text-sm font-medium text-gray-700">End Time</label>
-            <input
-              type="datetime-local"
-              name="end"
-              id="end"
-              value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
-              onChange={handleInputChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="staff" className="block text-sm font-medium text-gray-700">Assign Tutor</label>
-            <Select
-              isMulti
-              name="tutor"
-              options={staffOptions}
-              value={selectedStaff}
-              onChange={handleStaffSelectChange}
-              className="basic-multi-select"
-              classNamePrefix="select"
-              components={{ Option: customOption, SingleValue: customSingleValue }}
-            />
-          </div>
-          <div>
-            <label htmlFor="classes" className="block text-sm font-medium text-gray-700">Assign Classes</label>
-            <Select
-              isMulti
-              name="classes"
-              options={classOptions}
-              value={selectedClasses}
-              onChange={handleClassSelectChange}
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
-          </div>
-          <div>
-            <label htmlFor="students" className="block text-sm font-medium text-gray-700">Assign Students</label>
-            <Select
-              isMulti
-              name="students"
-              options={studentOptions}
-              value={selectedStudents}
-              onChange={handleStudentSelectChange}
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
-          </div>
-          <div>
-            <label htmlFor="minStudents" className="block text-sm font-medium text-gray-700">Minimum Students Required</label>
-            <input
-              type="number"
-              name="minStudents"
-              id="minStudents"
-              value={newEvent.minStudents || 0}
-              onChange={handleMinStudentsChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            />
-          </div>
-          {newEvent.minStudents > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Student Responses</label>
-              {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                <ul className="list-disc list-inside">
-                  {newEvent.studentResponses.map((response, index) => (
-                    <li key={index}>
-                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No students have responded yet.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* LEFT COLUMN */}
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  id="title"
+                  value={newEvent.title}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  name="description"
+                  id="description"
+                  value={newEvent.description}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="start" className="block text-sm font-medium text-gray-700">Start Time</label>
+                <input
+                  type="datetime-local"
+                  name="start"
+                  id="start"
+                  value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="end" className="block text-sm font-medium text-gray-700">End Time</label>
+                <input
+                  type="datetime-local"
+                  name="end"
+                  id="end"
+                  value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
+                  onChange={handleInputChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="staff" className="block text-sm font-medium text-gray-700">Assign Tutor</label>
+                <Select
+                  isMulti
+                  name="tutor"
+                  options={staffOptions}
+                  value={selectedStaff}
+                  onChange={handleStaffSelectChange}
+                  classNamePrefix="select"
+                  components={{ Option: customOption, SingleValue: customSingleValue }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="classes" className="block text-sm font-medium text-gray-700">Assign Classes</label>
+                <Select
+                  isMulti
+                  name="classes"
+                  options={classOptions}
+                  value={selectedClasses}
+                  onChange={handleClassSelectChange}
+                  classNamePrefix="select"
+                />
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN */}
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="students" className="block text-sm font-medium text-gray-700">Assign Students</label>
+                <Select
+                  isMulti
+                  name="students"
+                  options={studentOptions}
+                  value={selectedStudents}
+                  onChange={handleStudentSelectChange}
+                  classNamePrefix="select"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="minStudents" className="block text-sm font-medium text-gray-700">Minimum Students Required</label>
+                <input
+                  type="number"
+                  name="minStudents"
+                  id="minStudents"
+                  value={newEvent.minStudents || 0}
+                  onChange={handleMinStudentsChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+
+              {newEvent.minStudents > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Student Responses</label>
+                  {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
+                    <ul className="list-disc list-inside">
+                      {newEvent.studentResponses.map((response, index) => (
+                        <li key={index}>
+                          {response.email}: {response.response ? 'Accepted' : 'Declined'}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No students have responded yet.</p>
+                  )}
+                </div>
               )}
+
+              {newEvent.createdByStudent && (
+                <div>
+                  <label htmlFor="approvalStatus" className="block text-sm font-medium text-gray-700">Approval Status</label>
+                  <Select
+                    name="approvalStatus"
+                    options={approvalOptions}
+                    onChange={handleApprovalChange}
+                    classNamePrefix="select"
+                    defaultValue={
+                      newEvent.approvalStatus === 'approved'
+                        ? { value: 'approved', label: 'Approve' }
+                        : newEvent.approvalStatus === 'denied'
+                        ? { value: 'denied', label: 'Deny' }
+                        : null
+                    }
+                  />
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="workStatus" className="block text-sm font-medium text-gray-700">Work Status</label>
+                <Select
+                  name="workStatus"
+                  options={workStatusOptions}
+                  onChange={(selectedOption) =>
+                    setNewEvent({ ...newEvent, workStatus: selectedOption.value })
+                  }
+                  classNamePrefix="select"
+                  defaultValue={workStatusOptions.find(
+                    option => option.value === (newEvent.workStatus || 'notCompleted')
+                  )}
+                />
+              </div>
             </div>
-          )}
-          {newEvent.createdByStudent && (
-            <div>
-              <label htmlFor="approvalStatus" className="block text-sm font-medium text-gray-700">Approval Status</label>
-              <Select
-                name="approvalStatus"
-                options={approvalOptions}
-                onChange={handleApprovalChange}
-                classNamePrefix="select"
-                defaultValue={newEvent.approvalStatus === 'approved' ? { value: 'approved', label: 'Approve' } : newEvent.approvalStatus === 'denied' ? { value: 'denied', label: 'Deny' } : null}
-              />
-            </div>
-          )}
-          <div>
-            <label htmlFor="workStatus" className="block text-sm font-medium text-gray-700">Work Status</label>
-            <Select
-              name="workStatus"
-              options={workStatusOptions}
-              onChange={(selectedOption) => setNewEvent({ ...newEvent, workStatus: selectedOption.value })}
-              classNamePrefix="select"
-              defaultValue={workStatusOptions.find(option => option.value === (newEvent.workStatus || 'notCompleted'))}
-            />
           </div>
-          <div className="flex justify-between mt-4">
+
+          {/* ACTION BUTTONS */}
+          <div className="flex justify-between mt-6">
+            {/* Left side: Cancel */}
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-transparent rounded-md hover:bg-gray-300"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
             >
               Cancel
             </button>
-            {isEditing && (
+
+            {/* Right side: Delete + Save */}
+            <div className="flex space-x-3">
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              )}
               <button
-                type="button"
-                onClick={confirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
               >
-                Delete
+                {isEditing ? 'Save Changes' : 'Add Event'}
               </button>
-            )}
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              {isEditing ? 'Save Changes' : 'Add Event'}
-            </button>
+            </div>
           </div>
         </form>
       </div>
+
       <ConfirmationModal
         showConfirmationModal={showConfirmationModal}
         setShowConfirmationModal={setShowConfirmationModal}
