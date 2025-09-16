@@ -1,41 +1,66 @@
 import moment from 'moment';
 
+
 // Helper function to calculate the green color intensity based on the number of available tutors
 const calculateGreenIntensity = (numTutors, maxTutors) => {
   const intensity = Math.min(1, numTutors / maxTutors);
   const baseGreen = { r: 144, g: 238, b: 144 };
   return `rgba(${baseGreen.r}, ${baseGreen.g}, ${baseGreen.b}, ${intensity})`;
 };
-
 export const eventStyleGetter = (event, userRole, userEmail) => {
-  const isAvailability = !!event.tutor;
-  const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
+  // Figure out what type of event this is
+  const isAvailability = event.tutor !== undefined && event.tutor !== null;
+  const isStudentEvent = event.createdByStudent === true;
+
+  // Check if the current student has responded
+  const studentResponse = event.studentResponses?.find(
+    response => response.email === userEmail
+  );
   const isDeclined = studentResponse && !studentResponse.response;
   const isAccepted = studentResponse && studentResponse.response;
-  const needsStudentConfirmation = userRole === 'student' && !studentResponse && event.minStudents > 0;
+  const needsStudentConfirmation =
+    userRole === 'student' &&
+    !studentResponse &&
+    event.minStudents > 0;
 
-  let backgroundColor = 'lightblue'; // Default for not completed
-  let borderColor = 'blue'; // Default for not completed
+  // Default style
+  let backgroundColor = 'lightblue';
+  let borderColor = 'blue';
 
+  // --- Student-created events ---
+  if (isStudentEvent) {
+    if (event.approvalStatus === 'pending') {
+      // Pending → red
+      backgroundColor = 'red';
+      borderColor = 'darkred';
+    } else if (event.approvalStatus === 'approved') {
+      // Approved → orange
+      backgroundColor = 'orange';
+      borderColor = 'darkorange';
+    } else if (event.approvalStatus === 'denied') {
+      // Denied → red
+      backgroundColor = 'lightcoral';
+      borderColor = 'red';
+    }
+  }
+
+  // --- Work status (applies to all events) ---
   if (event.workStatus === 'completed') {
-    backgroundColor = 'lightgreen'; // Light green for completed
-    borderColor = 'green'; // Green border for completed
-  } else if (event.workStatus === 'notCompleted') {
-    backgroundColor = 'lightblue';
-    borderColor = 'blue';
+    backgroundColor = 'lightgreen';
+    borderColor = 'green';
   } else if (event.workStatus === 'notAttended') {
     backgroundColor = 'lightcoral';
     borderColor = 'red';
-  } else if (isAvailability) {
-    backgroundColor = 'mediumspringgreen'; // Lighter green for availability
-    borderColor = 'springgreen'; // Slightly darker border color for availability
-  } else if (event.createdByStudent && event.approvalStatus === 'pending') {
-    backgroundColor = 'orange';
-    borderColor = 'darkorange';
-  } else if (event.approvalStatus === 'denied') {
-    backgroundColor = 'lightcoral';
-    borderColor = 'red';
-  } else if (isDeclined) {
+  }
+
+  // --- Tutor availabilities ---
+  if (isAvailability) {
+    backgroundColor = userRole === 'student' ? 'lightgrey' : 'mediumspringgreen';
+    borderColor = userRole === 'student' ? 'grey' : 'springgreen';
+  }
+
+  // --- Student responses ---
+  if (isDeclined) {
     backgroundColor = 'grey';
     borderColor = 'black';
   } else if (isAccepted) {
