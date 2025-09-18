@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Kings-Talloc
 
-## Getting Started
+Kings-Talloc is a Tutor Allocation Web App developed by tutors in the CST Department.  
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Tutor allocation and scheduling  
+- Teacher approval workflow for student session requests  
+- Firebase-backed data storage  
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## MS Teams Integration
 
-## Learn More
+- Integration with Microsoft Teams is under development  
+Currently uses Power Automate. 
+Workflow:
+Teacher Approval -> Email -> PA Email Trigger -> Parse Email Data -> Create Teams Meeting
 
-To learn more about Next.js, take a look at the following resources:
+Update email to computing@kings.edu.au in workflow instead of mmei@kings.edu.au
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Alternative - obtain app registration from ICT. 
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
