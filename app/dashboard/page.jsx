@@ -2,16 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import CalendarWrapper from '../components/CalendarWrapper';
-import NotLoggedIn from '../components/NotLoggedIn';
-import Sidebar from '../components/Sidebar';
-import UserRolesManager from '../components/UserRolesManager';
-import ClassList from '../components/ClassList';
-import TutorHoursSummary from '../components/TutorHoursSummary';
-import SubjectList from '../components/SubjectList';
+import CalendarWrapper from '@components/CalendarWrapper';
+import NotLoggedIn from '@components/NotLoggedIn';
+import Sidebar from '@components/Sidebar';
+import UserRolesManager from '@components/UserRolesManager';
+import ClassList from '@components/ClassList';
+import TutorHoursSummary from '@components/TutorHoursSummary';
+import SubjectList from '@components/SubjectList';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import LoadingPage from '../components/LoadingPage';
+import LoadingPage from '@components/LoadingPage';
 
 const Dashboard = () => {
   const { data: session, status } = useSession();

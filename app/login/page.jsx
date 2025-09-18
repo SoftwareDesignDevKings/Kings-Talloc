@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import LoadingPage from '../components/LoadingPage'; // Import the LoadingPage component
+import LoadingPage from '@components/LoadingPage'; // Import the LoadingPage component
 
 export default function Login() {
   const { data: session, status } = useSession();

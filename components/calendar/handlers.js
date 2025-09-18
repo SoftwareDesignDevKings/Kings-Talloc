@@ -1,5 +1,5 @@
 import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase'; // Adjust the path as necessary
+import { db } from '../../app/firebase'; // Adjust the path as necessary
 
 // Firestore operations for events queue
 
