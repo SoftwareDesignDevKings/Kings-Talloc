@@ -159,7 +159,9 @@ export const handleEventDrop = async ({ event, start, end }, events, availabilit
 export const handleEventResize = async ({ event, start, end }, events, availabilities, setEvents, setAvailabilities, userRole) => {
   const isAvailability = !!event.tutor;
 
-  if (userRole === 'student' || (userRole === 'tutor' && !isAvailability)) return;
+  if (userRole === 'student' || (userRole === 'tutor' && !isAvailability)) {
+    return;
+  }
 
   const updatedEvent = { ...event, start, end };
   const previousEvents = [...events];
@@ -172,11 +174,19 @@ export const handleEventResize = async ({ event, start, end }, events, availabil
   }
 
   try {
+    const newStartTime = new Date(start)
+    const newEndTime = new Date(end)
+
     const eventDoc = doc(db, isAvailability ? 'availabilities' : 'events', event.id);
     await updateDoc(eventDoc, {
-      start: new Date(start),
-      end: new Date(end),
+      start: newStartTime,
+      end: newEndTime,
     });
+    
+    if (!isAvailability && !event.createdByStudent && event.approvalStatus === "approved") {
+      // TODO: add the updateTeamsMeeting func
+    }
+
   } catch (error) {
     console.error('Failed to update event:', error);
     if (isAvailability) {

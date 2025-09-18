@@ -4,6 +4,7 @@ import Select, { components } from 'react-select';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import ConfirmationModal from './ConfirmationModal';
+import { createTeamsMeeting } from '../../mail/mail';
 
 const EventForm = ({
   isEditing,
@@ -113,6 +114,16 @@ const EventForm = ({
     const eventDoc = doc(db, 'events', newEvent.id);
     await updateDoc(eventDoc, { approvalStatus });
     setNewEvent({ ...newEvent, approvalStatus });
+
+    if (approvalStatus === "approved") {
+      const subject = newEvent.title;
+      const description = newEvent.description || "";
+      const startTime = new Date(newEvent.start).toISOString();
+      const endTime = new Date(newEvent.end).toISOString();
+      const attendeesEmailArr = [...newEvent.students, ...newEvent.staff].map(p => p.value)
+      
+      await createTeamsMeeting(newEvent, subject, description, startTime, endTime, attendeesEmailArr)
+    }
   };
 
   const validateDates = () => {

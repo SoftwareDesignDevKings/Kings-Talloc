@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 
 export async function POST(req) {
   try {
-    const { subject, start, end, attendees } = await req.json();
+    const { subject, eventId, start, end, attendees } = await req.json();
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
@@ -14,10 +14,10 @@ export async function POST(req) {
     });
 
     const payload = {
-      token: "ABC123SECRET",
       subject,
       start,
       end,
+      eventId,
       attendees,
     };
 
