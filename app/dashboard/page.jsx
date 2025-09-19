@@ -9,7 +9,7 @@ import UserRolesManager from '@components/UserRolesManager';
 import ClassList from '@components/ClassList';
 import TutorHoursSummary from '@components/TutorHoursSummary';
 import SubjectList from '@components/SubjectList';
-import { db } from '../firebase';
+import { db } from '../../firebase/db';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import LoadingPage from '@components/LoadingPage';
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../app/firebase';
+import { db } from '@firebase/db';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import ConfirmationModal from './ConfirmationModal';
 import LoadingPage from './LoadingPage';

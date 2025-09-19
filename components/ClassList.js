@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../app/firebase';
+import { db } from '@firebase/db';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import ClassRow from './ClassRow';
 import ClassFormModal from './ClassFormModal';

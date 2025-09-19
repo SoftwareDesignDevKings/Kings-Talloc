@@ -6,7 +6,8 @@
       "@components/*": ["components/*"],
       "@hooks/*": ["hooks/*"],
       "@providers/*": ["providers/*"],
-      "@middleware/*": ["middleware/*"]
+      "@middleware/*": ["middleware/*"],
+      "@firebase/*": ["firebase/*"],
     }
   }
 }

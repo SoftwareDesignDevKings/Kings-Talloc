@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select, { components } from 'react-select';
-import { db } from '../app/firebase';
+import { db } from '@firebase/db';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import ConfirmationModal from './ConfirmationModal';
 import { createTeamsMeeting } from '../mail/mail';

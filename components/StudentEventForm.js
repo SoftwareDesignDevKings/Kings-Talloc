@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
-import { db } from '../app/firebase';
+import { db } from '@firebase/db';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { fetchAvailabilities } from './calendar/fetchData'; // Import the fetchAvailabilities function
 

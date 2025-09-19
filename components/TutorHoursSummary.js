@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../app/firebase';
+import { db } from '@firebase/db';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../app/firebase';
+import { db } from '@firebase/db';
 
 const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
