@@ -4,7 +4,7 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Select from 'react-select';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors } from './calendar/fetchData';
+import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors } from '../firebase/fetchData';
 import {
   handleSelectSlot,
   handleSelectEvent,

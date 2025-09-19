@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { db } from '@firebase/db';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import ConfirmationModal from './ConfirmationModal';
-import LoadingPage from './LoadingPage';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
@@ -124,9 +123,7 @@ const UserRolesManager = () => {
           Add User Role
         </button>
       </div>
-      {loading ? (
-        <LoadingPage withBackground={false} />
-      ) : (
+      {(
         <div className="overflow-x-auto" style={{ height: 'calc(100% - 5rem)', overflowY: 'auto' }}>
           <table className="min-w-full bg-white">
             <thead className="sticky top-0 bg-gray-200 z-10">

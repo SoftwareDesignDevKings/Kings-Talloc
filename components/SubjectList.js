@@ -5,7 +5,6 @@ import SubjectFormModal from './SubjectFormModal';
 import TutorFormModal from './TutorFormModal';
 import ConfirmationModal from './ConfirmationModal';
 import SubjectRow from './SubjectRow';
-import LoadingPage from './LoadingPage';
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState([]);
@@ -142,9 +141,7 @@ const SubjectList = () => {
           {isEditing ? 'Edit Subject' : 'Add Subject'}
         </button>
       </div>
-      {loading ? (
-        <LoadingPage withBackground={false} />
-      ) : (
+      {
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
@@ -169,7 +166,7 @@ const SubjectList = () => {
             </tbody>
           </table>
         </div>
-      )}
+      }
       <SubjectFormModal
         showModal={showModal}
         setShowModal={setShowModal}

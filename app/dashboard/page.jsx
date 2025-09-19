@@ -1,96 +1,31 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import CalendarWrapper from '@components/CalendarWrapper';
-import NotLoggedIn from '@components/NotLoggedIn';
-import Sidebar from '@components/Sidebar';
-import UserRolesManager from '@components/UserRolesManager';
-import ClassList from '@components/ClassList';
-import TutorHoursSummary from '@components/TutorHoursSummary';
-import SubjectList from '@components/SubjectList';
-import { db } from '../../firebase/db';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import LoadingPage from '@components/LoadingPage';
+import React, { useState } from "react";
+import CalendarWrapper from "@components/CalendarWrapper";
+import Sidebar from "@components/Sidebar";
+import UserRolesManager from "@components/UserRolesManager";
+import ClassList from "@components/ClassList";
+import TutorHoursSummary from "@components/TutorHoursSummary";
+import SubjectList from "@components/SubjectList";
+import { useUserRole } from "@/hooks/useUserInfo";
 
 const Dashboard = () => {
-  const { data: session, status } = useSession();
+  const { status, session, loading, userRole } = useUserRole();
+  // 👇 keep these here for CalendarWrapper props
   const [selectedDate, setSelectedDate] = useState(null);
   const [events, setEvents] = useState([]);
-  const [activeSection, setActiveSection] = useState('calendar');
-  const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
+  const [activeSection, setActiveSection] = useState("calendar");
   const [calendarStartTime, setCalendarStartTime] = useState("06:00");
   const [calendarEndTime, setCalendarEndTime] = useState("22:00");
 
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
-  };
+  const handleDateChange = (date) => setSelectedDate(date);
 
-  useEffect(() => {
-    const checkUserInFirestore = async (user) => {
-      if (user) {
-        const userRef = doc(db, 'users', user.email);
-        const userDoc = await getDoc(userRef);
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            email: user.email,
-            name: user.name,
-            role: session.user.role || "student",
-            calendarStartTime: "06:00",
-            calendarEndTime: "22:00"
-          });
-          console.log('New user added to Firestore with role:', session.user.role || "student");
-          setUserRole(session.user.role || "student");
-        } else {
-          const userData = userDoc.data();
-          setUserRole(userData.role);
-          setCalendarStartTime(userData.calendarStartTime || "06:00");
-          setCalendarEndTime(userData.calendarEndTime || "22:00");
-
-          if (!userData.name) {
-            await updateDoc(userRef, {
-              name: user.name
-            });
-          }
-        }
-      }
-    };
-
-    if (status === 'authenticated' && session?.user) {
-      checkUserInFirestore(session.user).then(() => {
-        setLoading(false);
-      });
-    } else if (status === 'unauthenticated') {
-      setLoading(false);
-    }
-  }, [status, session]);
-
-  const updateCalendarTimes = async (startTime, endTime) => {
-    if (session?.user) {
-      const userRef = doc(db, 'users', session.user.email);
-      await updateDoc(userRef, {
-        calendarStartTime: startTime,
-        calendarEndTime: endTime
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (!loading) {
-      updateCalendarTimes(calendarStartTime, calendarEndTime);
-    }
-  }, [calendarStartTime, calendarEndTime]);
-
-  if (status === 'loading' || loading) {
-    return <LoadingPage />;
+  let dashboardTitle = "Teacher Dashboard";
+  if (userRole === "student") {
+    dashboardTitle = "Student Dashboard";
+  } else if (userRole === "tutor") {
+    dashboardTitle = "Tutor Dashboard";
   }
-
-  if (status === 'unauthenticated') {
-    return <NotLoggedIn />;
-  }
-
-  const dashboardTitle = userRole === 'student' ? 'Student Dashboard' : userRole === 'teacher' ? 'Teacher Dashboard' : 'Tutor Dashboard';
 
   return (
     <div className="flex h-screen bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
@@ -112,7 +47,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="border-t border-gray-200 pt-4 flex-1 overflow-hidden">
-            {activeSection === 'calendar' && (
+            {activeSection === "calendar" && (
               <div className="h-full overflow-auto">
                 <CalendarWrapper
                   events={events}
@@ -123,28 +58,18 @@ const Dashboard = () => {
                   calendarStartTime={calendarStartTime}
                   calendarEndTime={calendarEndTime}
                 />
-                {selectedDate && <p className="text-center mt-4 text-gray-700">Selected Date: {selectedDate.toString()}</p>}
+                {selectedDate && (
+                  <p className="text-center mt-4 text-gray-700">
+                    Selected Date: {selectedDate.toString()}
+                  </p>
+                )}
               </div>
             )}
-            {userRole === 'teacher' && activeSection === 'userRoles' && (
-              <div className="h-full overflow-auto">
-                <UserRolesManager />
-              </div>
-            )}
-            {userRole === 'teacher' && activeSection === 'classes' && (
-              <div className="h-full overflow-auto">
-                <ClassList />
-              </div>
-            )}
-            {userRole === 'teacher' && activeSection === 'subjects' && (
-              <div className="h-full overflow-auto">
-                <SubjectList />
-              </div>
-            )}
-            {userRole !== 'student' && activeSection === 'tutorHours' && (
-              <div className="h-full overflow-auto">
-                <TutorHoursSummary userRole={userRole} userEmail={session.user.email} />
-              </div>
+            {userRole === "teacher" && activeSection === "userRoles" && <UserRolesManager />}
+            {userRole === "teacher" && activeSection === "classes" && <ClassList />}
+            {userRole === "teacher" && activeSection === "subjects" && <SubjectList />}
+            {userRole !== "student" && activeSection === "tutorHours" && (
+              <TutorHoursSummary userRole={userRole} userEmail={session.user.email} />
             )}
           </div>
         </div>

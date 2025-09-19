@@ -5,7 +5,6 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { CSVLink } from 'react-csv';
-import LoadingPage from './LoadingPage';
 import { FaInfoCircle } from 'react-icons/fa';
 
 const getMonday = (d) => {
@@ -122,9 +121,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
           <p>Any given hours that are between 3 (exclusive) and 6 (inclusive) hours account for a 30-minute break. Any given hours that are greater than 6 (exclusive) account for a 1-hour break.</p>
         </div>
       </div>
-      {loading ? (
-        <LoadingPage withBackground={false} />
-      ) : (
+      {
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
@@ -145,7 +142,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             </tbody>
           </table>
         </div>
-      )}
+      }
     </div>
   );
 };
