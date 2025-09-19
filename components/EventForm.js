@@ -4,7 +4,7 @@ import Select, { components } from 'react-select';
 import { db } from '@firebase/db';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import ConfirmationModal from './ConfirmationModal';
-import { createTeamsMeeting } from '../mail/mail';
+import { createTeamsMeeting } from '../meetings/msTeams';
 
 const EventForm = ({
   isEditing,
