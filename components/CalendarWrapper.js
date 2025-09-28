@@ -35,8 +35,12 @@ moment.updateLocale('en', { week: { dow: 1 } });
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
-const CalendarWrapper = ({ userRole, userEmail, calendarStartTime, calendarEndTime }) => {
+const CalendarWrapper = ({ userRole, userEmail}) => {
   const [allEvents, setAllEvents] = useState([]); // Master list of all events
+
+  const calendarStartTime = "06:00";
+  const calendarEndTime = "22:00";
+
   const [availabilities, setAvailabilities] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.WEEK);

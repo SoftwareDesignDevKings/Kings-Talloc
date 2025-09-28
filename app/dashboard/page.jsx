@@ -15,9 +15,6 @@ const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [events, setEvents] = useState([]);
   const [activeSection, setActiveSection] = useState("calendar");
-  const [calendarStartTime, setCalendarStartTime] = useState("06:00");
-  const [calendarEndTime, setCalendarEndTime] = useState("22:00");
-
   const handleDateChange = (date) => setSelectedDate(date);
 
   let dashboardTitle = "Teacher Dashboard";
@@ -33,11 +30,9 @@ const Dashboard = () => {
         setActiveSection={setActiveSection}
         userRole={userRole}
         user={session.user}
-        calendarStartTime={calendarStartTime}
-        calendarEndTime={calendarEndTime}
-        setCalendarStartTime={setCalendarStartTime}
-        setCalendarEndTime={setCalendarEndTime}
       />
+
+      {/* Calendar Wrapper - display in container */}
       <div className="flex-1 p-4 flex flex-col overflow-hidden">
         <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col flex-1 overflow-hidden">
           <div className="flex justify-between items-center mb-4">
@@ -55,8 +50,6 @@ const Dashboard = () => {
                   onDateChange={handleDateChange}
                   userRole={userRole}
                   userEmail={session.user.email}
-                  calendarStartTime={calendarStartTime}
-                  calendarEndTime={calendarEndTime}
                 />
                 {selectedDate && (
                   <p className="text-center mt-4 text-gray-700">
