@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { db } from '../../../firebase'; // Adjust the path as necessary
+import { db } from '../../../../firebase/db'; // Adjust the path as necessary
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { DateTime } from 'luxon';
 

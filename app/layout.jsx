@@ -1,6 +1,9 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+import AppSessionProvider from "@/providers/AppSessionProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,7 +15,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <AppSessionProvider>
+          {children}
+        </AppSessionProvider>
+      </body>
     </html>
   );
 }
