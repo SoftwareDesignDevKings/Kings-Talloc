@@ -305,17 +305,19 @@ const CalendarWrapper = ({ userRole, userEmail}) => {
               </div>
             )}
             {(userRole === 'tutor' || userRole === 'teacher') && (
+              <div className="checkbox-group">
+                <label className="tw-flex tw-items-center">
+                  <input
+                    type="checkbox"
+                    checked={hideDeniedStudentEvents}
+                    onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
+                  />
+                  <span className="tw-ml-2">Hide Denied Student Events</span>
+                </label>
+              </div>
+            )}
+            {userRole === 'teacher' && (
               <div>
-                <div className="checkbox-group">
-                  <label className="tw-flex tw-items-center">
-                    <input
-                      type="checkbox"
-                      checked={hideDeniedStudentEvents}
-                      onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
-                    />
-                    <span className="tw-ml-2">Hide Denied Student Events</span>
-                  </label>
-                </div>
                 <div className="checkbox-group">
                   <label className="tw-flex tw-items-center">
                     <input
