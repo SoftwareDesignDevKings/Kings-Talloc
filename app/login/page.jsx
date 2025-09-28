@@ -21,14 +21,14 @@ export default function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+    <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen tw-bg-gradient-to-r tw-from-indigo-500 tw-via-purple-500 tw-to-pink-500">
+      <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
+        <div className="tw-text-center">
+          <h2 className="tw-mt-6 tw-text-3xl tw-font-extrabold tw-text-gray-900">Sign in to your account</h2>
         </div>
         <button
           onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-          className="relative flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md group hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="tw-relative tw-flex tw-justify-center tw-w-full tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md tw-group hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
         >
           Sign in with Google
         </button>

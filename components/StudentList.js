@@ -2,19 +2,19 @@ import React from 'react';
 
 const StudentList = ({ cls, confirmRemoveStudent }) => {
   return (
-    <div className="mt-4">
-      <h3 className="text-lg font-medium text-indigo-600">Students</h3>
+    <div className="tw-mt-4">
+      <h3 className="tw-text-lg tw-font-medium tw-text-indigo-600">Students</h3>
       {cls.students && cls.students.length > 0 ? (
-        <ul className="mt-2">
+        <ul className="tw-mt-2">
           {cls.students.map(student => (
             <li
               key={student.email}
-              className="flex justify-between items-center py-2 px-4 border rounded-md mb-2 bg-gray-50"
+              className="tw-flex tw-justify-between tw-items-center tw-py-2 tw-px-4 tw-border tw-rounded-md tw-mb-2 tw-bg-gray-50"
             >
               <span>{student.name ? `${student.name} (${student.email})` : student.email}</span>
               <button
                 onClick={() => confirmRemoveStudent(student, cls)}
-                className="text-red-600 hover:text-red-800 focus:outline-none"
+                className="tw-text-red-600 hover:tw-text-red-800 focus:tw-outline-none"
               >
                 Remove
               </button>
@@ -22,7 +22,7 @@ const StudentList = ({ cls, confirmRemoveStudent }) => {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-gray-600">No students added to this class.</p>
+        <p className="tw-text-sm tw-text-gray-600">No students added to this class.</p>
       )}
     </div>
   );

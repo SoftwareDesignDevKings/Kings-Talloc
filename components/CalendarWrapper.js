@@ -1,7 +1,8 @@
+"use client";
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Select from 'react-select';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors } from '../firebase/fetchData';
@@ -28,7 +29,6 @@ import StudentEventForm from './StudentEventForm';
 import EventDetailsModal from './EventDetailsModal';
 import CustomTimeSlotWrapper from './CustomTimeSlotWrapper';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
 moment.updateLocale('en', { week: { dow: 1 } });
 
@@ -198,7 +198,7 @@ const CalendarWrapper = ({ userRole, userEmail}) => {
           events={finalEvents}
           startAccessor="start"
           endAccessor="end"
-          style={{ height: '100%' }}
+          style={{ height: '600px' }}
           min={minTime}
           max={maxTime}
           onSelectSlot={(slotInfo) => handleSelectSlot(slotInfo, userRole, setNewEvent, setNewAvailability, setIsEditing, setShowTeacherModal, setShowStudentModal, setShowAvailabilityModal, userEmail)}
@@ -273,67 +273,67 @@ const CalendarWrapper = ({ userRole, userEmail}) => {
               />
             )}
             <div className="checkbox-group">
-              <label className="flex items-center">
+              <label className="tw-flex tw-items-center">
                 <input
                   type="checkbox"
                   checked={showEvents}
                   onChange={(e) => setShowEvents(e.target.checked)}
                 />
-                <span className="ml-2">Show Events</span>
+                <span className="tw-ml-2">Show Events</span>
               </label>
             </div>
             <div className="checkbox-group">
-              <label className="flex items-center">
+              <label className="tw-flex tw-items-center">
                 <input
                   type="checkbox"
                   checked={showInitials}
                   onChange={(e) => setShowInitials(e.target.checked)}
                 />
-                <span className="ml-2">Show Tutor Availabilities</span>
+                <span className="tw-ml-2">Show Tutor Availabilities</span>
               </label>
             </div>
             {userRole === 'tutor' && (
               <div className="checkbox-group">
-                <label className="flex items-center">
+                <label className="tw-flex tw-items-center">
                   <input
                     type="checkbox"
                     checked={hideOwnAvailabilities}
                     onChange={(e) => setHideOwnAvailabilities(e.target.checked)}
                   />
-                  <span className="ml-2">Hide My Own Availabilities</span>
+                  <span className="tw-ml-2">Hide My Own Availabilities</span>
                 </label>
               </div>
             )}
             {(userRole === 'tutor' || userRole === 'teacher') && (
               <div>
                 <div className="checkbox-group">
-                  <label className="flex items-center">
+                  <label className="tw-flex tw-items-center">
                     <input
                       type="checkbox"
                       checked={hideDeniedStudentEvents}
                       onChange={(e) => setHideDeniedStudentEvents(e.target.checked)}
                     />
-                    <span className="ml-2">Hide Denied Student Events</span>
+                    <span className="tw-ml-2">Hide Denied Student Events</span>
                   </label>
                 </div>
                 <div className="checkbox-group">
-                  <label className="flex items-center">
+                  <label className="tw-flex tw-items-center">
                     <input
                       type="checkbox"
                       checked={hideTutoringAvailabilites}
                       onChange={(e) => setHideTutoringAvailabilites(e.target.checked)}
                     />
-                    <span className="ml-2">Hide Tutoring Availabilities</span>
+                    <span className="tw-ml-2">Hide Tutoring Availabilities</span>
                   </label>
                 </div>
                 <div className="checkbox-group">
-                  <label className="flex items-center">
+                  <label className="tw-flex tw-items-center">
                     <input
                       type="checkbox"
                       checked={hideWorkAvailabilities}
                       onChange={(e) => setHideWorkAvailabilities(e.target.checked)}
                     />
-                    <span className="ml-2">Hide Work Availabilities</span>
+                    <span className="tw-ml-2">Hide Work Availabilities</span>
                   </label>
                 </div>
               </div>

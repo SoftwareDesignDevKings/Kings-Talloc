@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { db } from '@firebase/db';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
@@ -99,15 +101,15 @@ const UserRolesManager = () => {
   };
 
   return (
-    <div className="p-8 bg-white rounded-lg shadow-lg h-full">
-      <h2 className="text-2xl font-bold mb-4 text-indigo-600">Manage User Roles</h2>
-      <div className="flex mb-4">
+    <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg tw-h-full">
+      <h2 className="tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">Manage User Roles</h2>
+      <div className="tw-flex tw-mb-4">
         <input
           type="text"
           placeholder="Search by name, email, or role"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="tw-p-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
           style={{ flex: 1 }}
         />
         <button
@@ -117,45 +119,45 @@ const UserRolesManager = () => {
             setEmail('');
             setRole('student');
           }}
-          className="ml-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="tw-ml-4 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
           style={{ height: '2.5rem', width: 'auto' }}
         >
           Add User Role
         </button>
       </div>
       {(
-        <div className="overflow-x-auto" style={{ height: 'calc(100% - 5rem)', overflowY: 'auto' }}>
-          <table className="min-w-full bg-white">
-            <thead className="sticky top-0 bg-gray-200 z-10">
+        <div className="tw-overflow-x-auto" style={{ height: 'calc(100% - 5rem)', overflowY: 'auto' }}>
+          <table className="tw-min-w-full tw-bg-white">
+            <thead className="tw-sticky tw-top-0 tw-bg-gray-200 tw-z-10">
               <tr>
-                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Email</th>
-                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Name</th>
-                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Role</th>
-                <th className="py-2 px-4 text-left text-sm font-medium text-gray-700">Actions</th>
+                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Email</th>
+                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Name</th>
+                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Role</th>
+                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b border-gray-200">
-                  <td className="py-2 px-4 text-sm text-gray-900">{user.email}</td>
-                  <td className="py-2 px-4 text-sm text-gray-900">
+                <tr key={user.id} className="tw-border-b tw-border-gray-200">
+                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{user.email}</td>
+                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
                     {user.name ? (
                       user.name
                     ) : (
-                      <span className="text-red-500 italic">User hasn&apos;t logged in yet</span>
+                      <span className="tw-text-red-500 tw-italic">User hasn&apos;t logged in yet</span>
                     )}
                   </td>
-                  <td className="py-2 px-4 text-sm text-gray-900">{user.role}</td>
-                  <td className="py-2 px-4 text-sm text-gray-900">
+                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{user.role}</td>
+                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
                     <button
                       onClick={() => handleEdit(user)}
-                      className="mr-2 px-2 py-1 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="tw-mr-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => confirmDelete(user)}
-                      className="px-2 py-1 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
                     >
                       Delete
                     </button>
@@ -167,44 +169,44 @@ const UserRolesManager = () => {
         </div>
       )}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
-            <h2 className="text-2xl font-bold text-center">{isEditing ? 'Edit User Role' : 'Add User Role'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50 tw-z-50">
+          <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full tw-max-w-md tw-p-6 tw-z-60">
+            <h2 className="tw-text-2xl tw-font-bold tw-text-center">{isEditing ? 'Edit User Role' : 'Add User Role'}</h2>
+            <form onSubmit={handleSubmit} className="tw-space-y-4 tw-mt-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
                   required
                 />
-                {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
+                {error && <p className="tw-text-sm tw-text-red-600 tw-mt-1">{error}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Role</label>
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Role</label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
                 >
                   <option value="student">Student</option>
                   <option value="tutor">Tutor</option>
                   <option value="teacher">Teacher</option>
                 </select>
               </div>
-              <div className="flex justify-between">
+              <div className="tw-flex tw-justify-between">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-transparent rounded-md hover:bg-gray-300"
+                  className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
                 >
                   {isEditing ? 'Save Changes' : 'Add Role'}
                 </button>
@@ -221,7 +223,7 @@ const UserRolesManager = () => {
         handleConfirmAction={() => handleDelete(userToDelete.email)}
         actionType="deleteUser"
       />
-      {success && <p className="text-sm text-green-600 mt-4">{success}</p>}
+      {success && <p className="tw-text-sm tw-text-green-600 tw-mt-4">{success}</p>}
     </div>
   );
 };

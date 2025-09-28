@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select, { components } from 'react-select';
@@ -197,70 +199,70 @@ const EventForm = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 z-60">
-        <h2 className="text-2xl font-bold text-center">
+    <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50 tw-z-50 tw-overflow-y-auto">
+      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full tw-max-w-4xl tw-p-6 tw-z-60">
+        <h2 className="tw-text-2xl tw-font-bold tw-text-center">
           {isEditing ? 'Edit Event' : 'Add New Event'}
         </h2>
 
-        <form onSubmit={onSubmit} className="mt-4">
-          {error && <div className="text-red-500">{error}</div>}
+        <form onSubmit={onSubmit} className="tw-mt-4">
+          {error && <div className="tw-text-red-500">{error}</div>}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
             {/* LEFT COLUMN */}
-            <div className="space-y-6">
+            <div className="tw-space-y-6">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+                <label htmlFor="title" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Title</label>
                 <input
                   type="text"
                   name="title"
                   id="title"
                   value={newEvent.title}
                   onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                <label htmlFor="description" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Description</label>
                 <textarea
                   name="description"
                   id="description"
                   value={newEvent.description}
                   onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
                 />
               </div>
 
               <div>
-                <label htmlFor="start" className="block text-sm font-medium text-gray-700">Start Time</label>
+                <label htmlFor="start" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Start Time</label>
                 <input
                   type="datetime-local"
                   name="start"
                   id="start"
                   value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
                   onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="end" className="block text-sm font-medium text-gray-700">End Time</label>
+                <label htmlFor="end" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">End Time</label>
                 <input
                   type="datetime-local"
                   name="end"
                   id="end"
                   value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
                   onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="staff" className="block text-sm font-medium text-gray-700">Assign Tutor</label>
+                <label htmlFor="staff" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Assign Tutor</label>
                 <Select
                   isMulti
                   name="tutor"
@@ -273,7 +275,7 @@ const EventForm = ({
               </div>
 
               <div>
-                <label htmlFor="classes" className="block text-sm font-medium text-gray-700">Assign Classes</label>
+                <label htmlFor="classes" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Assign Classes</label>
                 <Select
                   isMulti
                   name="classes"
@@ -286,9 +288,9 @@ const EventForm = ({
             </div>
 
             {/* RIGHT COLUMN */}
-            <div className="space-y-6">
+            <div className="tw-space-y-6">
               <div>
-                <label htmlFor="students" className="block text-sm font-medium text-gray-700">Assign Students</label>
+                <label htmlFor="students" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Assign Students</label>
                 <Select
                   isMulti
                   name="students"
@@ -300,22 +302,22 @@ const EventForm = ({
               </div>
 
               <div>
-                <label htmlFor="minStudents" className="block text-sm font-medium text-gray-700">Minimum Students Required</label>
+                <label htmlFor="minStudents" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Minimum Students Required</label>
                 <input
                   type="number"
                   name="minStudents"
                   id="minStudents"
                   value={newEvent.minStudents || 0}
                   onChange={handleMinStudentsChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
                 />
               </div>
 
               {newEvent.minStudents > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Student Responses</label>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Student Responses</label>
                   {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                    <ul className="list-disc list-inside">
+                    <ul className="tw-list-disc tw-list-inside">
                       {newEvent.studentResponses.map((response, index) => (
                         <li key={index}>
                           {response.email}: {response.response ? 'Accepted' : 'Declined'}
@@ -323,14 +325,14 @@ const EventForm = ({
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-gray-500">No students have responded yet.</p>
+                    <p className="tw-text-sm tw-text-gray-500">No students have responded yet.</p>
                   )}
                 </div>
               )}
 
               {newEvent.createdByStudent && (
                 <div>
-                  <label htmlFor="approvalStatus" className="block text-sm font-medium text-gray-700">Approval Status</label>
+                  <label htmlFor="approvalStatus" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Approval Status</label>
                   <Select
                     name="approvalStatus"
                     options={approvalOptions}
@@ -348,7 +350,7 @@ const EventForm = ({
               )}
 
               <div>
-                <label htmlFor="workStatus" className="block text-sm font-medium text-gray-700">Work Status</label>
+                <label htmlFor="workStatus" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Work Status</label>
                 <Select
                   name="workStatus"
                   options={workStatusOptions}
@@ -365,30 +367,30 @@ const EventForm = ({
           </div>
 
           {/* ACTION BUTTONS */}
-          <div className="flex justify-between mt-6">
+          <div className="tw-flex tw-justify-between tw-mt-6">
             {/* Left side: Cancel */}
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+              className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-rounded-md hover:tw-bg-gray-300"
             >
               Cancel
             </button>
 
             {/* Right side: Delete + Save */}
-            <div className="flex space-x-3">
+            <div className="tw-flex tw-space-x-3">
               {isEditing && (
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                  className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-rounded-md hover:tw-bg-red-700"
                 >
                   Delete
                 </button>
               )}
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-rounded-md hover:tw-bg-indigo-700"
               >
                 {isEditing ? 'Save Changes' : 'Add Event'}
               </button>

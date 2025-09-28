@@ -9,13 +9,14 @@ import TutorHoursSummary from "@components/TutorHoursSummary";
 import SubjectList from "@components/SubjectList";
 import { useUserRole } from "@/hooks/useUserInfo";
 
-const Dashboard = () => {
-  const { status, session, loading, userRole } = useUserRole();
-  // 👇 keep these here for CalendarWrapper props
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [events, setEvents] = useState([]);
+export default function Dashboard() {
+  const { session, userRole } = useUserRole();
   const [activeSection, setActiveSection] = useState("calendar");
-  const handleDateChange = (date) => setSelectedDate(date);
+
+  if (!session?.user) {
+    console.log("No user session found.");
+    return <div>Loading...</div>;
+  }
 
   let dashboardTitle = "Teacher Dashboard";
   if (userRole === "student") {
@@ -25,50 +26,46 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+    <div className="tw-flex tw-h-screen tw-bg-gradient-to-r tw-from-indigo-500 tw-via-purple-500 tw-to-pink-500">
       <Sidebar
         setActiveSection={setActiveSection}
         userRole={userRole}
         user={session.user}
       />
 
-      {/* Calendar Wrapper - display in container */}
-      <div className="flex-1 p-4 flex flex-col overflow-hidden">
-        <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col flex-1 overflow-hidden">
-          <div className="flex justify-between items-center mb-4">
+      <div className="tw-flex-1 tw-p-4 tw-flex tw-flex-col tw-overflow-hidden">
+        <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-8 tw-flex tw-flex-col tw-flex-1 tw-overflow-hidden">
+          <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
             <div>
-              <h1 className="text-3xl font-extrabold text-gray-900">{dashboardTitle}</h1>
-              <p className="mt-2 text-sm text-gray-600">Signed in as {session.user.email}</p>
+              <h1 className="tw-text-3xl tw-font-extrabold tw-text-gray-900">
+                {dashboardTitle}
+              </h1>
+              <p className="tw-mt-2 tw-text-sm tw-text-gray-600">
+                Signed in as {session.user.email}
+              </p>
             </div>
           </div>
-          <div className="border-t border-gray-200 pt-4 flex-1 overflow-hidden">
+          <div className="tw-border-t tw-border-gray-200 tw-pt-4 tw-flex-1 tw-overflow-hidden">
             {activeSection === "calendar" && (
-              <div className="h-full overflow-auto">
+              <div className="tw-h-full tw-overflow-auto">
                 <CalendarWrapper
-                  events={events}
-                  setEvents={setEvents}
-                  onDateChange={handleDateChange}
                   userRole={userRole}
                   userEmail={session.user.email}
                 />
-                {selectedDate && (
-                  <p className="text-center mt-4 text-gray-700">
-                    Selected Date: {selectedDate.toString()}
-                  </p>
-                )}
               </div>
             )}
             {userRole === "teacher" && activeSection === "userRoles" && <UserRolesManager />}
             {userRole === "teacher" && activeSection === "classes" && <ClassList />}
             {userRole === "teacher" && activeSection === "subjects" && <SubjectList />}
             {userRole !== "student" && activeSection === "tutorHours" && (
-              <TutorHoursSummary userRole={userRole} userEmail={session.user.email} />
+              <TutorHoursSummary
+                userRole={userRole}
+                userEmail={session.user.email}
+              />
             )}
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

@@ -2,19 +2,19 @@ import React from 'react';
 
 const TutorList = ({ subject, confirmRemoveTutor }) => {
   return (
-    <div className="mt-4">
-      <h3 className="text-lg font-medium text-indigo-600">Tutors</h3>
+    <div className="tw-mt-4">
+      <h3 className="tw-text-lg tw-font-medium tw-text-indigo-600">Tutors</h3>
       {subject.tutors && subject.tutors.length > 0 ? (
-        <ul className="mt-2">
+        <ul className="tw-mt-2">
           {subject.tutors.map(tutor => (
             <li
               key={tutor.email}
-              className="flex justify-between items-center py-2 px-4 border rounded-md mb-2 bg-gray-50"
+              className="tw-flex tw-justify-between tw-items-center tw-py-2 tw-px-4 tw-border tw-rounded-md tw-mb-2 tw-bg-gray-50"
             >
               <span>{tutor.name ? `${tutor.name} (${tutor.email})` : tutor.email}</span>
               <button
                 onClick={() => confirmRemoveTutor(tutor, subject)}
-                className="text-red-600 hover:text-red-800 focus:outline-none"
+                className="tw-text-red-600 hover:tw-text-red-800 focus:tw-outline-none"
               >
                 Remove
               </button>
@@ -22,7 +22,7 @@ const TutorList = ({ subject, confirmRemoveTutor }) => {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-gray-600">No tutors added to this subject.</p>
+        <p className="tw-text-sm tw-text-gray-600">No tutors added to this subject.</p>
       )}
     </div>
   );

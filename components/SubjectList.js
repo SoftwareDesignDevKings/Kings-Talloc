@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { db } from '@firebase/db';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
@@ -122,32 +124,32 @@ const SubjectList = () => {
   };
 
   return (
-    <div className="p-8 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-indigo-600">Manage Subjects</h2>
-      <div className="flex mb-4">
+    <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
+      <h2 className="tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">Manage Subjects</h2>
+      <div className="tw-flex tw-mb-4">
         <input
           type="text"
           placeholder="Search by subject name"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="tw-p-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
           style={{ flex: 1 }}
         />
         <button
           onClick={openAddModal}
-          className="ml-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="tw-ml-4 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
           style={{ height: '2.5rem', width: 'auto' }}
         >
           {isEditing ? 'Edit Subject' : 'Add Subject'}
         </button>
       </div>
       {
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white">
+        <div className="tw-overflow-x-auto">
+          <table className="tw-min-w-full tw-bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Subject Name</th>
-                <th className="py-2 px-4 bg-gray-200 text-left text-sm font-medium text-gray-700">Actions</th>
+                <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Subject Name</th>
+                <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>

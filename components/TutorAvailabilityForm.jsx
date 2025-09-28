@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
@@ -67,32 +69,32 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-60">
-        <h2 className="text-2xl font-bold text-center">{isEditing ? 'Edit Availability' : 'Add Availability'}</h2>
-        <form onSubmit={onSubmit} className="space-y-6 mt-4">
-          {error && <div className="text-red-500">{error}</div>}
+    <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50 tw-z-50">
+      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full tw-max-w-md tw-p-6 tw-z-60">
+        <h2 className="tw-text-2xl tw-font-bold tw-text-center">{isEditing ? 'Edit Availability' : 'Add Availability'}</h2>
+        <form onSubmit={onSubmit} className="tw-space-y-6 tw-mt-4">
+          {error && <div className="tw-text-red-500">{error}</div>}
           <div>
-            <label htmlFor="start" className="block text-sm font-medium text-gray-700">Start Time</label>
+            <label htmlFor="start" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Start Time</label>
             <input
               type="datetime-local"
               name="start"
               id="start"
               value={moment(newAvailability.start).format('YYYY-MM-DDTHH:mm')}
               onChange={handleInputChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
               required
             />
           </div>
           <div>
-            <label htmlFor="end" className="block text-sm font-medium text-gray-700">End Time</label>
+            <label htmlFor="end" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">End Time</label>
             <input
               type="datetime-local"
               name="end"
               id="end"
               value={moment(newAvailability.end).format('YYYY-MM-DDTHH:mm')}
               onChange={handleInputChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
               required
             />
           </div>
@@ -104,7 +106,7 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
             </ButtonGroup>
           </div>
           <div>
-            <label htmlFor="workType" className="block text-sm font-medium text-gray-700">Work Type</label>
+            <label htmlFor="workType" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Work Type</label>
             <Select
               name="workType"
               options={workTypeOptions}
@@ -114,7 +116,7 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
             />
           </div>
           <div>
-            <label htmlFor="locationType" className="block text-sm font-medium text-gray-700">Location Type</label>
+            <label htmlFor="locationType" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Location Type</label>
             <Select
               name="locationType"
               options={locationOptions}
@@ -124,11 +126,11 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
               required
             />
           </div>
-          <div className="flex justify-between">
+          <div className="tw-flex tw-justify-between">
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-transparent rounded-md hover:bg-gray-300"
+              className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-300"
             >
               Cancel
             </button>
@@ -136,14 +138,14 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
               <button
                 type="button"
                 onClick={handleDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
               >
                 Delete
               </button>
             )}
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
             >
               {isEditing ? 'Save Changes' : 'Add Availability'}
             </button>

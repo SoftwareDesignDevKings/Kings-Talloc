@@ -12,30 +12,30 @@ const SubjectRow = ({
 }) => {
   return (
     <>
-      <tr className="border-b border-gray-200">
-        <td className="py-2 px-4 text-sm text-gray-900">{subject.name}</td>
-        <td className="py-2 px-4 text-sm text-gray-900">
+      <tr className="tw-border-b tw-border-gray-200">
+        <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{subject.name}</td>
+        <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
           <button
             onClick={() => handleEditSubject(subject)}
-            className="mr-2 px-2 py-1 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="tw-mr-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-blue-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-blue-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-blue-500"
           >
             Edit
           </button>
           <button
             onClick={() => handleOpenTutorModal(subject)}
-            className="mr-2 px-2 py-1 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="tw-mr-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
           >
             Add Tutors
           </button>
           <button
             onClick={() => confirmDeleteSubject(subject)}
-            className="px-2 py-1 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
           >
             Delete
           </button>
           <button
             onClick={() => handleExpandSubject(subject)}
-            className="ml-2 px-2 py-1 text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            className="tw-ml-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-gray-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-gray-500"
           >
             {expandedSubject === subject.id ? 'Collapse' : 'Expand'}
           </button>
@@ -43,8 +43,8 @@ const SubjectRow = ({
       </tr>
       {expandedSubject === subject.id && (
         <tr>
-          <td colSpan="2" className="py-2 px-4">
-            <div className="max-h-60 overflow-y-auto">
+          <td colSpan="2" className="tw-py-2 tw-px-4">
+            <div className="tw-max-h-60 tw-overflow-y-auto">
               <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
             </div>
           </td>

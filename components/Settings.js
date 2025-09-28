@@ -8,35 +8,35 @@ const Settings = ({ isOpen, onClose, calendarStartTime, calendarEndTime, setCale
   const handleEndTimeChange = (e) => setCalendarEndTime(e.target.value);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Settings</h2>
+    <div className="tw-fixed tw-inset-0 tw-z-50 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50">
+      <div className="tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg tw-w-1/3">
+        <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
+          <h2 className="tw-text-xl tw-font-bold">Settings</h2>
           <button onClick={onClose}>
-            <FiX className="text-xl" />
+            <FiX className="tw-text-xl" />
           </button>
         </div>
-        <div className="space-y-4">
+        <div className="tw-space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
               Calendar Start Time
             </label>
             <input
               type="time"
               value={calendarStartTime}
               onChange={handleStartTimeChange}
-              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="tw-mt-1 tw-block tw-w-full tw-py-2 tw-px-3 tw-border tw-border-gray-300 tw-bg-white tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
               Calendar End Time
             </label>
             <input
               type="time"
               value={calendarEndTime}
               onChange={handleEndTimeChange}
-              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="tw-mt-1 tw-block tw-w-full tw-py-2 tw-px-3 tw-border tw-border-gray-300 tw-bg-white tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
             />
           </div>
         </div>

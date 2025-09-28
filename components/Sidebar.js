@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen } from 'react-icons/fi';
 import Image from 'next/image';
@@ -10,65 +12,65 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
   return (
-    <div className={`h-screen bg-white text-gray-900 shadow-lg flex flex-col justify-between transition-width duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+    <div className={`tw-h-screen tw-bg-white tw-text-gray-900 tw-shadow-lg tw-flex tw-flex-col tw-justify-between tw-transition-width tw-duration-300 ${isCollapsed ? 'tw-w-20' : 'tw-w-64'}`}>
       <div>
-        <div className="p-6 flex justify-between items-center">
-          {!isCollapsed && <h2 className="text-2xl font-bold text-indigo-600">Menu</h2>}
-          <button onClick={toggleSidebar} className="text-indigo-600">
+        <div className="tw-p-6 tw-flex tw-justify-between tw-items-center">
+          {!isCollapsed && <h2 className="tw-text-2xl tw-font-bold tw-text-indigo-600">Menu</h2>}
+          <button onClick={toggleSidebar} className="tw-text-indigo-600">
             {isCollapsed ? <FiChevronRight size={24} /> : <FiChevronLeft size={24} />}
           </button>
         </div>
-        <div className="flex-1">
-          <ul className="mt-4 space-y-2 list-none pl-0">
+        <div className="tw-flex-1">
+          <ul className="tw-mt-4 tw-space-y-2 tw-list-none tw-pl-0">
             <li
-              className={`py-2 px-6 cursor-pointer hover:bg-indigo-100 flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
+              className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
               onClick={() => setActiveSection('calendar')}
             >
-              <FiCalendar className="text-indigo-600" />
+              <FiCalendar className="tw-text-indigo-600" />
               {!isCollapsed && <span>Calendar</span>}
             </li>
             {userRole === 'teacher' && (
               <>
                 <li
-                  className={`py-2 px-6 cursor-pointer hover:bg-indigo-100 flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
+                  className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
                   onClick={() => setActiveSection('userRoles')}
                 >
-                  <FiUsers className="text-indigo-600" />
+                  <FiUsers className="tw-text-indigo-600" />
                   {!isCollapsed && <span>User Roles</span>}
                 </li>
                 <li
-                  className={`py-2 px-6 cursor-pointer hover:bg-indigo-100 flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
+                  className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
                   onClick={() => setActiveSection('classes')}
                 >
-                  <FiBook className="text-indigo-600" />
+                  <FiBook className="tw-text-indigo-600" />
                   {!isCollapsed && <span>Manage Classes</span>}
                 </li>
               </>
             )}
             {userRole === 'teacher' && (
               <li
-                className={`py-2 px-6 cursor-pointer hover:bg-indigo-100 flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
+                className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
                 onClick={() => setActiveSection('subjects')}
               >
-                <FiBookOpen className="text-indigo-600" />
+                <FiBookOpen className="tw-text-indigo-600" />
                 {!isCollapsed && <span>Manage Subjects</span>}
               </li>
             )}
             {userRole !== 'student' && (
               <li
-                className={`py-2 px-6 cursor-pointer hover:bg-indigo-100 flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
+                className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
                 onClick={() => setActiveSection('tutorHours')}
               >
-                <FiClock className="text-indigo-600" />
+                <FiClock className="tw-text-indigo-600" />
                 {!isCollapsed && <span>Tutor Hours</span>}
               </li>
             )}
           </ul>
         </div>
       </div>
-      <div className="p-4 border-t border-gray-200 relative">
+      <div className="tw-p-4 tw-border-t tw-border-gray-200 tw-relative">
         <div
-          className={`flex items-center cursor-pointer ${isCollapsed ? 'justify-center' : 'space-x-2'}`}
+          className={`tw-flex tw-items-center tw-cursor-pointer ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
           onClick={() => setShowProfileMenu(!showProfileMenu)}
         >
           {user?.image ? (
@@ -77,21 +79,21 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
               alt="Profile"
               width={32}
               height={32}
-              className="rounded-full"
+              className="tw-rounded-full"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <FiUser className="text-indigo-600" />
+            <div className="tw-w-8 tw-h-8 tw-rounded-full tw-bg-gray-200 tw-flex tw-items-center tw-justify-center">
+              <FiUser className="tw-text-indigo-600" />
             </div>
           )}
           {!isCollapsed && <span>{user.name}</span>}
-          {!isCollapsed && <FiSettings className="text-indigo-600" />}
+          {!isCollapsed && <FiSettings className="tw-text-indigo-600" />}
         </div>
         {showProfileMenu && (
-          <div className={`mt-2 bg-white shadow-lg rounded-md p-4 absolute bottom-16 z-50 ${isCollapsed ? 'left-0' : 'left-1/2 transform -translate-x-1/2'} w-56`}>
+          <div className={`tw-mt-2 tw-bg-white tw-shadow-lg tw-rounded-md tw-p-4 tw-absolute tw-bottom-16 tw-z-50 ${isCollapsed ? 'tw-left-0' : 'tw-left-1/2 tw-transform tw--translate-x-1/2'} tw-w-56`}>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="tw-w-full tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
             >
               Sign out
             </button>

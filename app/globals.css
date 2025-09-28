@@ -16,18 +16,18 @@ body {
 }
 
 .calendar-container {
-  @apply flex h-full;
+  @apply tw-flex tw-h-full;
 }
 
 .calendar-panel {
-  @apply flex-1 p-5 overflow-hidden relative;
+  @apply tw-flex-1 tw-p-5 tw-overflow-hidden tw-relative;
   padding-right: 3rem;
   background-color: var(--calendar-bg) !important;
   color: var(--calendar-text) !important;
 }
 
 .filter-panel {
-  @apply bg-gray-100 border-l border-gray-300 flex flex-col items-start transition-all duration-300;
+  @apply tw-bg-gray-100 tw-border-l tw-border-gray-300 tw-flex tw-flex-col tw-items-start tw-transition-all tw-duration-300;
   width: 16rem;
   position: relative;
   background-color: var(--calendar-bg) !important;
@@ -39,7 +39,7 @@ body {
 }
 
 .collapse-button {
-  @apply bg-indigo-500 text-white rounded-l-md shadow-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200;
+  @apply tw-bg-indigo-500 tw-text-white tw-rounded-l-md tw-shadow-md hover:tw-bg-indigo-600 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400 tw-transition-all tw-duration-200;
   width: 2.5rem;
   height: 2.5rem;
   display: flex;
@@ -54,20 +54,20 @@ body {
 }
 
 .filter-title {
-  @apply mb-4 text-xl font-semibold text-gray-700;
+  @apply tw-mb-4 tw-text-xl tw-font-semibold tw-text-gray-700;
 }
 
 .filter-content {
-  @apply flex flex-col items-start w-full p-4;
+  @apply tw-flex tw-flex-col tw-items-start tw-w-full tw-p-4;
 }
 
 .basic-select,
 .basic-multi-select {
-  @apply w-full mb-4;
+  @apply tw-w-full tw-mb-4;
 }
 
 .checkbox-group {
-  @apply mb-4;
+  @apply tw-mb-4;
 }
 
 /* Ensure calendar text color */
