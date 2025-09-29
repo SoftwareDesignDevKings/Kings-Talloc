@@ -7,6 +7,7 @@ const calculateGreenIntensity = (numTutors, maxTutors) => {
   const baseGreen = { r: 144, g: 238, b: 144 };
   return `rgba(${baseGreen.r}, ${baseGreen.g}, ${baseGreen.b}, ${intensity})`;
 };
+
 export const eventStyleGetter = (event, userRole, userEmail) => {
   // Figure out what type of event this is
   const isAvailability = event.tutor !== undefined && event.tutor !== null;

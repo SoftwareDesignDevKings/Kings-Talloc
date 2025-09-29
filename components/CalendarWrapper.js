@@ -4,12 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import { eventStyleGetter, messages } from './calendar/helpers';
-import CalendarFilterPanel from './CalendarFilterPanel';
-import EventForm from './EventForm';
-import TutorAvailabilityForm from './TutorAvailabilityForm.jsx';
-import StudentEventForm from './StudentEventForm';
-import EventDetailsModal from './EventDetailsModal';
-import CustomTimeSlotWrapper from './CustomTimeSlotWrapper';
+import CalendarFilterPanel from './calendar/CalendarFilterPanel';
+import EventForm from './forms/EventForm';
+import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
+import StudentEventForm from './forms/StudentEventForm';
+import EventDetailsModal from './modals/EventDetailsModal';
+import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 // Context and Provider
@@ -107,7 +107,7 @@ const CalendarContent = () => {
           eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
           components={{
             timeSlotWrapper: (props) => (
-              <CustomTimeSlotWrapper
+              <CalendarTimeSlotWrapper
                 {...props}
                 applicableAvailabilities={uiState.showInitials ? applicableAvailabilities : []}
                 selectedTutors={filterState.filters.tutors}

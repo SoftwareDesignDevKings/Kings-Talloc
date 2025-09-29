@@ -5,6 +5,7 @@ import moment from 'moment';
 import Select from 'react-select';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@firebase/db';
+import BaseModal from './BaseModal';
 
 const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
@@ -58,10 +59,14 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
   ];
 
   return (
-    <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50 tw-z-50">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full tw-max-w-md tw-p-6 tw-z-60">
-        <h2 className="tw-text-2xl tw-font-bold tw-text-center">Event Details</h2>
-        <form className="tw-space-y-6 tw-mt-4">
+    <BaseModal
+      isOpen={true}
+      onClose={handleClose}
+      title="Event Details"
+      showFooter={false}
+      modalId="event-details"
+    >
+        <form className="tw-space-y-6">
           <div>
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Title</label>
             <input
@@ -165,8 +170,7 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </BaseModal>
   );
 };
 

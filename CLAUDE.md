@@ -28,7 +28,7 @@ npm run lint
 - **Frontend**: Next.js 14.2.5 (App Router) with React 18
 - **Authentication**: NextAuth.js v4 with Google OAuth
 - **Database**: Firebase Firestore with real-time listeners
-- **Styling**: Tailwind CSS 3.4.1 + Bootstrap 5.3.8
+- **Styling**: Tailwind CSS 3.4.1 (prefixed with `tw-`) + Bootstrap 5.3.8
 - **Calendar**: React Big Calendar for scheduling interface
 
 ### Key Directory Structure
@@ -48,14 +48,22 @@ meetings/            # MS Teams integration
 ### Provider Architecture
 The app uses a multi-layered provider structure:
 - `SessionProvider` (NextAuth) → `AuthProvider` (custom) → App components
-- `CalendarDataProvider` manages calendar state across components
+- `CalendarProvider` manages calendar state using composition of hooks:
+  - `useCalendarEvents` - Event data management
+  - `useCalendarUI` - UI state (panel open/closed, view states)
+  - `useCalendarFilterState` - Filter logic and visibility controls
+  - `useCalendarModals` - Modal state management
+  - `useCalendarHandlers` - Event handlers for calendar interactions
 - All providers are configured in `app/layout.jsx`
 
 ### Path Aliases
 Configured in `jsconfig.json`:
+- `@/*` → `./*`
 - `@components/*` → `./components/*`
 - `@hooks/*` → `./hooks/*`
 - `@providers/*` → `./providers/*`
+- `@contexts/*` → `./contexts/*`
+- `@middleware/*` → `./middleware/*`
 - `@firebase/*` → `./firebase/*`
 
 ## Authentication & Authorization
@@ -74,7 +82,9 @@ Configured in `jsconfig.json`:
 ## Key Components
 
 ### Calendar System
-- `CalendarWrapper.js` (17KB) - Main calendar component with custom event handling
+- `CalendarWrapper.js` - Main calendar component with custom event handling
+- `CalendarFilterPanel.js` - Extracted filter panel with role-based UI controls
+- Uses React Big Calendar with drag-and-drop support
 - Supports multiple views and time slot management
 - Integrates with student/tutor availability tracking
 
@@ -91,9 +101,11 @@ Configured in `jsconfig.json`:
 ## MS Teams Integration
 
 - **Current**: Email-triggered Power Automate workflow creates Teams meetings
-- **Future**: Direct app registration with ICT department
+- **Workflow**: Teacher Approval → Email → PA Email Trigger → Parse Email Data → Create Teams Meeting
+- **Email Configuration**: Update email to `computing@kings.edu.au` in workflow (instead of `mmei@kings.edu.au`)
+- **Future**: Direct app registration with ICT department for native integration
 - **Development**: Requires ngrok for local testing with Power Automate webhooks
-- **Configuration**: Teams meeting creation in `meetings/` directory
+- **Configuration**: Teams meeting creation logic in `meetings/` directory
 
 ## Environment Configuration
 
@@ -105,7 +117,7 @@ Configured in `jsconfig.json`:
 ## Development Notes
 
 ### Current Branch
-Working on `mm/tw/refactor/v1` branch focusing on authentication refactoring and provider architecture.
+Working on `react/refactor/v1` branch focusing on component extraction and React hook refactoring.
 
 ### Testing
 No formal testing framework configured. Verify functionality through manual testing of calendar, authentication, and data flows.
@@ -119,7 +131,10 @@ No formal testing framework configured. Verify functionality through manual test
 - Use Firebase real-time listeners for data that needs live updates
 - Maintain provider pattern for shared state (auth, calendar data)
 - Follow Next.js App Router conventions for new pages
-- Use Tailwind utility classes with custom dark mode support
+- Use Tailwind utility classes with `tw-` prefix to avoid Bootstrap conflicts
+- Component extraction: Extract complex UI sections into separate components
+- Hook composition: Break complex state logic into focused custom hooks
+- Role-based rendering: Use conditional rendering for user role permissions
 
 ## Deployment Considerations
 
