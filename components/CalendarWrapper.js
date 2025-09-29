@@ -30,7 +30,7 @@ const CalendarContent = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.WEEK);
 
-  // Get everything from context - much cleaner with no confusing naming!
+  // Get everything from context
   const {
     eventsData,
     uiState,
@@ -43,7 +43,7 @@ const CalendarContent = () => {
     userEmail
   } = useCalendarContext();
 
-  // Get filtered data using context functions with memoization
+  // Get filtered data using context functions with useMemo
   const filteredEvents = useMemo(() =>
     getFilteredEvents(eventsData.allEvents, userEmail),
     [getFilteredEvents, eventsData.allEvents, userEmail]

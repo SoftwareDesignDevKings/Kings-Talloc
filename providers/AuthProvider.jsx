@@ -11,10 +11,9 @@ import { useSession } from 'next-auth/react';
  */
 const AuthProvider = ({ children }) => {
     const sessionObj = useSession();
-
-    
     if (sessionObj.status === "loading") return <LoadingPage />;
     if (sessionObj.status === "unauthenticated") return <NotLoggedIn />;
+    
     return (<>{children}</>);
 }
 

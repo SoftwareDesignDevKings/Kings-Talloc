@@ -7,15 +7,16 @@ import UserRolesManager from "@components/UserRolesManager";
 import ClassList from "@components/ClassList";
 import TutorHoursSummary from "@components/TutorHoursSummary";
 import SubjectList from "@components/SubjectList";
+import LoadingPage from "@components/LoadingPage";
 import { useUserRole } from "@/hooks/useUserInfo";
 
-export default function Dashboard() {
-  const { session, userRole } = useUserRole();
+const Dashboard = () =>  {
+  const { session, userRole, loading } = useUserRole();
   const [activeSection, setActiveSection] = useState("calendar");
 
-  if (!session?.user) {
-    console.log("No user session found.");
-    return <div>Loading...</div>;
+  // Show loading while fetching user role
+  if (loading || !userRole) {
+    return <LoadingPage withBackground={true} />;
   }
 
   let dashboardTitle = "Teacher Dashboard";
@@ -69,3 +70,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard
