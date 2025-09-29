@@ -5,9 +5,9 @@ import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import { eventStyleGetter, messages } from './calendar/helpers';
 import CalendarFilterPanel from './calendar/CalendarFilterPanel';
-import EventForm from './forms/EventForm';
+import EventForm from './forms/EventForm.jsx';
 import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
-import StudentEventForm from './forms/StudentEventForm';
+import StudentEventForm from './forms/StudentEventForm.jsx';
 import EventDetailsModal from './modals/EventDetailsModal';
 import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
@@ -15,6 +15,10 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 // Context and Provider
 import { CalendarProvider } from '@/providers/CalendarProvider';
 import { useCalendarContext } from '@contexts/CalendarContext';
+
+// Specialized hooks
+import { useCalendarInteractions } from '@/hooks/calendar/useCalendarInteractions';
+import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 
 moment.updateLocale('en', { week: { dow: 1 } });
 
@@ -30,18 +34,21 @@ const CalendarContent = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.WEEK);
 
-  // Get everything from context
+  // Get context data
   const {
     eventsData,
     uiState,
     filterState,
     modals,
-    handlers,
     getFilteredEvents,
     getFilteredAvailabilities,
     userRole,
     userEmail
   } = useCalendarContext();
+
+  // Use specialized hooks for specific responsibilities
+  const calendarInteractions = useCalendarInteractions(userRole, userEmail, modals);
+  const eventOperations = useEventOperations(eventsData, userRole, userEmail);
 
   // Get filtered data using context functions with useMemo
   const filteredEvents = useMemo(() =>
@@ -92,10 +99,10 @@ const CalendarContent = () => {
           style={{ height: '600px' }}
           min={minTime}
           max={maxTime}
-          onSelectSlot={handlers.handleSelectSlot}
-          onSelectEvent={handlers.handleSelectEvent}
-          onEventDrop={handlers.handleEventDrop}
-          onEventResize={handlers.handleEventResize}
+          onSelectSlot={calendarInteractions.handleSelectSlot}
+          onSelectEvent={calendarInteractions.handleSelectEvent}
+          onEventDrop={eventOperations.handleEventDrop}
+          onEventResize={eventOperations.handleEventResize}
           resizable
           selectable
           date={currentDate}
@@ -132,45 +139,39 @@ const CalendarContent = () => {
       {modals.showTeacherModal && userRole === 'teacher' && (
         <EventForm
           isEditing={modals.isEditing}
-          newEvent={handlers.newEvent}
-          setNewEvent={handlers.setNewEvent}
-          handleInputChange={handlers.handleInputChange}
-          handleSubmit={handlers.handleSubmit}
-          handleDelete={handlers.handleDelete}
+          newEvent={calendarInteractions.newEvent}
+          setNewEvent={calendarInteractions.setNewEvent}
+          eventToEdit={modals.eventToEdit}
           setShowModal={modals.setShowTeacherModal}
-          handleStaffChange={handlers.handleStaffChange}
-          handleClassChange={handlers.handleClassChange}
-          handleStudentChange={handlers.handleStudentChange}
+          eventsData={eventsData}
         />
       )}
       {modals.showStudentModal && userRole === 'student' && (
         <StudentEventForm
           isEditing={modals.isEditing}
-          newEvent={handlers.newEvent}
-          setNewEvent={handlers.setNewEvent}
-          handleInputChange={handlers.handleInputChange}
-          handleSubmit={handlers.handleStudentSubmit}
-          handleDelete={handlers.handleDelete}
+          newEvent={calendarInteractions.newEvent}
+          setNewEvent={calendarInteractions.setNewEvent}
+          eventToEdit={modals.eventToEdit}
           setShowStudentModal={modals.setShowStudentModal}
           studentEmail={userEmail}
+          eventsData={eventsData}
         />
       )}
       {modals.showAvailabilityModal && userRole === 'tutor' && (
         <TutorAvailabilityForm
           isEditing={modals.isEditing}
-          newAvailability={handlers.newAvailability}
-          setNewAvailability={handlers.setNewAvailability}
-          handleInputChange={handlers.handleAvailabilityChange}
-          handleSubmit={handlers.handleAvailabilitySubmit}
-          handleDelete={handlers.handleDelete}
+          newAvailability={calendarInteractions.newAvailability}
+          setNewAvailability={calendarInteractions.setNewAvailability}
+          eventToEdit={modals.eventToEdit}
           setShowModal={modals.setShowAvailabilityModal}
+          eventsData={eventsData}
         />
       )}
       {modals.showDetailsModal && (
         <EventDetailsModal
           event={modals.eventToEdit}
           handleClose={() => modals.setShowDetailsModal(false)}
-          handleConfirmation={handlers.handleConfirmation}
+          handleConfirmation={eventOperations.handleConfirmation}
           userEmail={userEmail}
           userRole={userRole}
           events={eventsData.allEvents}

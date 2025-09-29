@@ -2,10 +2,10 @@
 
 import React from 'react';
 import CalendarContext from '@contexts/CalendarContext';
-import { useCalendarEvents } from '@hooks/useCalendarEvents';
-import { useCalendarUI, useCalendarFilterState } from '@hooks/useCalendarState';
-import { useCalendarModals } from '@hooks/useCalendarModals';
-import { useCalendarHandlers } from '@hooks/useCalendarHandlers';
+import { useCalendarEvents } from '@hooks/calendar/useCalendarEvents';
+import { useCalendarUI, useCalendarFilterState } from '@hooks/calendar/useCalendarState';
+import { useCalendarModals } from '@hooks/calendar/useCalendarModals';
+import { useCalendarInteractions } from '@hooks/calendar/useCalendarInteractions';
 
 export const CalendarProvider = ({ children, userRole, userEmail }) => {
   // Compose all calendar-related state and logic
@@ -13,7 +13,7 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
   const uiState = useCalendarUI();
   const filterState = useCalendarFilterState();
   const modals = useCalendarModals();
-  const handlers = useCalendarHandlers(userRole, userEmail, modals, eventsData);
+  const handlers = useCalendarInteractions(userRole, userEmail, modals, eventsData);
 
   // Create filtering functions
   const getFilteredEvents = (allEvents, userEmail) => {

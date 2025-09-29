@@ -1,6 +1,6 @@
 'use client';
 
-import LoadingPage from '@/components/LoadingPage';
+import LoadingPage from '@/components/LoadingPage.jsx';
 import NotLoggedIn from '@/components/NotLoggedIn';
 import { useSession } from 'next-auth/react';
 
