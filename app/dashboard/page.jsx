@@ -1,21 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import CalendarWrapper from "@components/CalendarWrapper";
+import CalendarWrapper from "@components/CalendarWrapper.jsx";
 import Sidebar from "@components/Sidebar";
 import UserRolesManager from "@components/UserRolesManager";
 import ClassList from "@components/ClassList";
 import TutorHoursSummary from "@components/TutorHoursSummary";
 import SubjectList from "@components/SubjectList";
-import { useUserRole } from "@/hooks/useUserInfo";
+import LoadingPage from "@components/LoadingPage.jsx";
+import { useUserRole } from "@/hooks/auth/useUserInfo";
 
-export default function Dashboard() {
-  const { session, userRole } = useUserRole();
+const Dashboard = () =>  {
+  const { session, userRole, loading } = useUserRole();
   const [activeSection, setActiveSection] = useState("calendar");
 
-  if (!session?.user) {
-    console.log("No user session found.");
-    return <div>Loading...</div>;
+  // Show loading while fetching user role
+  if (loading || !userRole) {
+    return <LoadingPage withBackground={true} />;
   }
 
   let dashboardTitle = "Teacher Dashboard";
@@ -69,3 +70,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard

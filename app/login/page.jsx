@@ -6,18 +6,15 @@ import { useRouter } from 'next/navigation';
 import LoadingPage from '@components/LoadingPage'; // Import the LoadingPage component
 
 export default function Login() {
-  const { data: session, status } = useSession();
+  const { _, status } = useSession();
   const router = useRouter();
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      // Redirect to the dashboard if already authenticated
-      router.push('/dashboard');
-    }
-  }, [status, router]);
+  if (status === "loading") {
+    return <LoadingPage />;
+  }
 
-  if (status === 'loading') {
-    return <LoadingPage />; // Use the LoadingPage component
+  if (status === "authenticated") {
+    router.push("/dashboard");
   }
 
   return (

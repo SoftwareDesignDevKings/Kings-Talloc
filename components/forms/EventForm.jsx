@@ -5,19 +5,18 @@ import moment from 'moment';
 import Select, { components } from 'react-select';
 import { db } from '@firebase/db';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
-import ConfirmationModal from './ConfirmationModal';
-import { createTeamsMeeting } from '../meetings/msTeams';
+import ConfirmationModal from '../modals/ConfirmationModal';
+import { createTeamsMeeting } from '../../meetings/msTeams';
+import { useEventForm } from '@/hooks/forms/useEventForm';
+import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 
 const EventForm = ({
   isEditing,
   newEvent,
   setNewEvent,
-  handleInputChange,
-  handleSubmit,
-  handleDelete,
+  eventToEdit,
   setShowModal,
-  handleStaffChange,
-  handleStudentChange,
+  eventsData,
   handleClassChange
 }) => {
   const [staffOptions, setStaffOptions] = useState([]);
@@ -28,6 +27,10 @@ const EventForm = ({
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
   const [error, setError] = useState('');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+
+  // Use specialized hooks
+  const eventForm = useEventForm(eventsData);
+  const { handleDeleteEvent } = useEventOperations(eventsData);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -142,7 +145,7 @@ const EventForm = ({
   const onSubmit = (e) => {
     e.preventDefault();
     if (validateDates()) {
-      handleSubmit(e);
+      eventForm.handleSubmit(newEvent, isEditing, eventToEdit, setShowModal)(e);
     }
   };
 
@@ -151,7 +154,7 @@ const EventForm = ({
   };
 
   const handleConfirmDelete = () => {
-    handleDelete();
+    handleDeleteEvent(eventToEdit, { setShowTeacherModal: setShowModal, setShowStudentModal: () => {}, setShowAvailabilityModal: () => {} });
     setShowConfirmationModal(false);
     setShowModal(false);
   };

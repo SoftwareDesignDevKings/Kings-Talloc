@@ -5,7 +5,7 @@ import moment from 'moment';
 import Select from 'react-select';
 import { db } from '@firebase/db';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { fetchAvailabilities } from '../firebase/fetchData';
+import { fetchAvailabilities } from '../../firebase/fetchData';
 
 const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowStudentModal, studentEmail }) => {
   const [tutorOptions, setTutorOptions] = useState([]);

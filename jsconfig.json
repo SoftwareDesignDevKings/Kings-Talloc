@@ -6,6 +6,7 @@
       "@components/*": ["components/*"],
       "@hooks/*": ["hooks/*"],
       "@providers/*": ["providers/*"],
+      "@contexts/*": ["contexts/*"],
       "@middleware/*": ["middleware/*"],
       "@firebase/*": ["firebase/*"],
     }

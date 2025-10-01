@@ -1,7 +1,16 @@
 import React from 'react';
 import { FiCalendar, FiUserCheck, FiClock, FiBookOpen } from 'react-icons/fi';
+import { getServerSession } from "next-auth";
+import { redirect } from 'next/navigation';
 
-export default function LandingPage() {
+const LandingPage = async () => {
+  const session = await getServerSession();
+  if (!session) {
+    redirect('/login')
+  } else {
+    redirect('/dashboard')
+  }
+  
   return (
     <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen tw-bg-gradient-to-r tw-from-indigo-500 tw-via-purple-500 tw-to-pink-500">
       <div className="tw-w-full tw-max-w-4xl tw-p-8 tw-space-y-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
@@ -51,8 +60,8 @@ export default function LandingPage() {
         </div>
         <div className="tw-text-center tw-mt-8">
           <a
-            href="/login"
             className="tw-inline-block tw-px-6 tw-py-3 tw-text-lg tw-font-medium tw-text-white tw-bg-indigo-600 tw-rounded-md hover:tw-bg-indigo-700"
+            href="/login"
           >
             Get Started
           </a>
@@ -61,3 +70,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+export default LandingPage
