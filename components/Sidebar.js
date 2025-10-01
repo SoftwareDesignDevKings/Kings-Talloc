@@ -14,11 +14,13 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
   return (
     <div className={`tw-h-screen tw-bg-white tw-text-gray-900 tw-shadow-lg tw-flex tw-flex-col tw-justify-between tw-transition-width tw-duration-300 ${isCollapsed ? 'tw-w-20' : 'tw-w-64'}`}>
       <div>
-        <div className="tw-p-6 tw-flex tw-justify-between tw-items-center">
-          {!isCollapsed && <h2 className="tw-text-2xl tw-font-bold tw-text-indigo-600">Menu</h2>}
-          <button onClick={toggleSidebar} className="tw-text-indigo-600">
-            {isCollapsed ? <FiChevronRight size={24} /> : <FiChevronLeft size={24} />}
-          </button>
+        <div className="tw-p-6">
+          <div className="tw-flex tw-justify-between tw-items-center">
+            {!isCollapsed && <h2 className="tw-text-2xl tw-font-bold tw-text-indigo-600">Menu</h2>}
+            <button onClick={toggleSidebar} className="tw-text-indigo-600">
+              {isCollapsed ? <FiChevronRight size={24} /> : <FiChevronLeft size={24} />}
+            </button>
+          </div>
         </div>
         <div className="tw-flex-1">
           <ul className="tw-mt-4 tw-space-y-2 tw-list-none tw-pl-0">
