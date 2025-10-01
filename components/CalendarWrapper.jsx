@@ -4,12 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import { eventStyleGetter, messages } from './calendar/helpers';
-import CalendarFilterPanel from './calendar/CalendarFilterPanel';
+import CalendarFilterPanel from './calendar/CalendarFilterPanel.jsx';
 import EventForm from './forms/EventForm.jsx';
 import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
 import StudentEventForm from './forms/StudentEventForm.jsx';
-import EventDetailsModal from './modals/EventDetailsModal';
-import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper';
+import EventDetailsModal from './modals/EventDetailsModal.jsx';
+import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper.jsx';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 // Context and Provider

@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@firebase/db';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import SubjectFormModal from './modals/SubjectFormModal';
-import TutorFormModal from './modals/TutorFormModal';
-import ConfirmationModal from './modals/ConfirmationModal';
-import SubjectRow from './SubjectRow';
+import SubjectFormModal from './modals/SubjectFormModal.jsx';
+import TutorFormModal from './modals/TutorFormModal.jsx';
+import ConfirmationModal from './modals/ConfirmationModal.jsx';
+import SubjectRow from './SubjectRow.jsx';
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState([]);

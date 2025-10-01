@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { useModal } from './ModalManager';
+import { useModal } from './ModalManager.jsx';
 
 const BaseModal = ({
   isOpen,

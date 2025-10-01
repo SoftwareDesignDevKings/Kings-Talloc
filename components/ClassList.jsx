@@ -12,10 +12,10 @@ import {
   getDoc,
   setDoc,
 } from "firebase/firestore";
-import ClassRow from "./ClassRow";
-import ClassFormModal from "./modals/ClassFormModal";
-import StudentFormModal from "./modals/StudentFormModal";
-import ConfirmationModal from "./modals/ConfirmationModal";
+import ClassRow from "./ClassRow.jsx";
+import ClassFormModal from "./modals/ClassFormModal.jsx";
+import StudentFormModal from "./modals/StudentFormModal.jsx";
+import ConfirmationModal from "./modals/ConfirmationModal.jsx";
 
 const ClassList = () => {
   const [classes, setClasses] = useState([]);

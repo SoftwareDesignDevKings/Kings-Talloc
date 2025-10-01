@@ -3,8 +3,8 @@
 import React from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import LoadingPage from '@components/LoadingPage';
-import LoginPage from '@components/LoginPage';
+import LoadingPage from '@components/LoadingPage.jsx';
+import LoginPage from '@components/LoginPage.jsx';
 
 export default function Login() {
   const { _, status } = useSession();

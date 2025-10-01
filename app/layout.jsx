@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import AppSessionProvider from "@/providers/AppSessionProvider";
-import { ModalProvider } from "@/components/modals/ModalManager";
+import { ModalProvider } from "@/components/modals/ModalManager.jsx";
 
 const inter = Inter({ subsets: ["latin"] });
 

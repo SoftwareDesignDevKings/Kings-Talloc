@@ -5,7 +5,7 @@ import moment from 'moment';
 import Select from 'react-select';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@firebase/db';
-import BaseModal from './BaseModal';
+import BaseModal from './BaseModal.jsx';
 
 const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);

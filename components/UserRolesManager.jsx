@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@firebase/db';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
-import ConfirmationModal from './modals/ConfirmationModal';
+import ConfirmationModal from './modals/ConfirmationModal.jsx';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);

@@ -1,5 +1,5 @@
 import React from 'react';
-import BaseModal from './BaseModal';
+import BaseModal from './BaseModal.jsx';
 
 const TutorFormModal = ({
   showTutorModal,

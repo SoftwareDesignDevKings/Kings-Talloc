@@ -5,7 +5,7 @@ import moment from 'moment';
 import Select, { components } from 'react-select';
 import { db } from '@firebase/db';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
-import ConfirmationModal from '../modals/ConfirmationModal';
+import ConfirmationModal from '../modals/ConfirmationModal.jsx';
 import { createTeamsMeeting } from '../../meetings/msTeams';
 import { useEventForm } from '@/hooks/forms/useEventForm';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
