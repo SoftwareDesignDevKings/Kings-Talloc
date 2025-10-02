@@ -32,6 +32,11 @@ const EventForm = ({
   const eventForm = useEventForm(eventsData);
   const { handleDeleteEvent } = useEventOperations(eventsData);
 
+  // Get handlers from the hook
+  const handleInputChange = eventForm.handleInputChange(newEvent, setNewEvent);
+  const handleStaffChange = eventForm.handleStaffChange(newEvent, setNewEvent);
+  const handleStudentChange = eventForm.handleStudentChange(newEvent, setNewEvent);
+
   useEffect(() => {
     const fetchStaff = async () => {
       const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
