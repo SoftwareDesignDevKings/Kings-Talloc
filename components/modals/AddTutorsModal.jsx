@@ -19,9 +19,9 @@ const AddTutorsModal = ({
       show={showTutorModal}
       onHide={() => setShowTutorModal(false)}
       title={`Add Tutors to ${selectedSubject?.name || ''}`}
+      size="md"
       onSubmit={handleSubmit}
       submitText="Add Tutors"
-      size="md"
     >
       <Form.Group className="mb-3">
         <Form.Label>Tutor Emails</Form.Label>

@@ -15,9 +15,9 @@ const AddStudentsModal = ({
       show={showStudentModal}
       onHide={() => setShowStudentModal(false)}
       title={`Add Students to ${selectedClass?.name || ''}`}
+      size="md"
       onSubmit={handleAddStudents}
       submitText="Add Students"
-      size="md"
     >
       <Form.Group className="mb-3">
         <Form.Label>Student Emails</Form.Label>

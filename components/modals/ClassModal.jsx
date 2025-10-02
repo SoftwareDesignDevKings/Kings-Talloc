@@ -28,9 +28,9 @@ const ClassModal = ({
       show={showModal}
       onHide={() => setShowModal(false)}
       title={isEditing ? 'Edit Class' : 'Add Class'}
+      size="md"
       onSubmit={handleAddClass}
       submitText={isEditing ? 'Save Changes' : 'Add Class'}
-      size="md"
     >
       <Form.Group className="mb-3">
         <Form.Label>Class Name</Form.Label>

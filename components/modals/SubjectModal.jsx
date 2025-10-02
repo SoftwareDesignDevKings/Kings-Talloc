@@ -26,9 +26,9 @@ const SubjectModal = ({ showModal, setShowModal, subject, handleSubmit }) => {
       show={showModal}
       onHide={() => setShowModal(false)}
       title={subject ? 'Edit Subject' : 'Add Subject'}
+      size="md"
       onSubmit={handleFormSubmit}
       submitText={subject ? 'Save Changes' : 'Add Subject'}
-      size="md"
     >
       <Form.Group className="mb-3">
         <Form.Label>Subject Name</Form.Label>

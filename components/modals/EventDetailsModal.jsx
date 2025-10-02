@@ -77,6 +77,7 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
       show={true}
       onHide={handleClose}
       title="Event Details"
+      size="md"
       customFooter={
         <div className="w-100 d-flex justify-content-end gap-2">
           <Button variant="secondary" onClick={handleClose} disabled={isSaving}>
@@ -93,7 +94,6 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
           )}
         </div>
       }
-      size="md"
     >
       <Form.Group className="mb-2">
         <Form.Label>Title</Form.Label>

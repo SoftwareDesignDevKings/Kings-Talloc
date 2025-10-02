@@ -4,32 +4,30 @@ import React from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 
 /**
- * Bootstrap-based BaseModal component that provides a consistent modal interface
- * for all modals in the application. Replaces the old custom modal system.
+ * Clean, simple BaseModal component
  */
 const BaseModal = ({
   show = false,
   onHide,
   title,
   children,
+
+  // Form props
   onSubmit,
   submitText = "Submit",
-  submitVariant = "primary",
   cancelText = "Cancel",
-  showFooter = true,
-  size = "lg", // xs, sm, lg, xl
-  centered = true,
-  backdrop = "static",
-  keyboard = true,
-  showCloseButton = true,
-  customFooter = null,
-  headerContent = null,
-  bodyClassName = "",
-  modalClassName = "",
-  formId = "base-modal-form",
-  disabled = false,
+
+  // Button props
+  deleteButton,
+  customFooter,
+
+  // Modal props
+  size = "lg",
   loading = false,
-  deleteButton = null, // { text: "Delete", onClick: () => {}, variant: "danger" }
+  disabled = false,
+
+  // Layout props
+  showFooter = true,
   ...modalProps
 }) => {
   const handleSubmit = (e) => {
@@ -49,33 +47,31 @@ const BaseModal = ({
       show={show}
       onHide={onHide}
       size={size}
-      centered={centered}
-      backdrop={backdrop}
-      keyboard={keyboard}
-      className={modalClassName}
+      centered={true}
+      backdrop="static"
+      keyboard={true}
       {...modalProps}
     >
       {/* Header */}
-      <Modal.Header closeButton={showCloseButton}>
+      <Modal.Header closeButton>
         {title && (
           <Modal.Title
             className="w-100 text-center fw-bold"
             style={{
-              marginLeft: showCloseButton ? '32px' : '0',
-              marginRight: showCloseButton ? '32px' : '0',
+              marginLeft: '32px',
+              marginRight: '32px',
               fontSize: '1.5rem'
             }}
           >
             {title}
           </Modal.Title>
         )}
-        {headerContent}
       </Modal.Header>
 
       {/* Body */}
-      <Modal.Body className={bodyClassName}>
+      <Modal.Body>
         {onSubmit ? (
-          <Form id={formId} onSubmit={handleSubmit}>
+          <Form onSubmit={handleSubmit}>
             {children}
           </Form>
         ) : (
@@ -109,9 +105,8 @@ const BaseModal = ({
                 )}
                 {onSubmit && (
                   <Button
-                    variant={submitVariant}
+                    variant="primary"
                     type="submit"
-                    form={formId}
                     disabled={disabled || loading}
                   >
                     {getSubmitButtonText()}

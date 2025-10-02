@@ -92,10 +92,10 @@ const BaseModalExamples = () => {
         show={modals.form}
         onHide={() => toggleModal('form')}
         title="User Registration Form"
+        size="lg"
         onSubmit={handleFormSubmit}
         submitText={loading ? "Creating Account..." : "Create Account"}
         loading={loading}
-        size="lg"
       >
         <Form.Group className="mb-3">
           <Form.Label>Full Name</Form.Label>
@@ -235,6 +235,37 @@ const BaseModalExamples = () => {
           <p className="text-muted">This may take a few moments.</p>
         </div>
       </BaseModal>
+
+      {/* New Configuration Object Examples */}
+      <div className="mt-5">
+        <h3>Clean, Simple API</h3>
+        <p className="text-muted mb-4">BaseModal now uses a streamlined prop interface that's intuitive and easy to use:</p>
+
+        <div className="alert alert-success">
+          <h5>✨ Simple, Clean API</h5>
+          <p>The BaseModal now uses a streamlined prop interface that's intuitive and easy to use:</p>
+          <pre className="bg-white p-3 rounded border">
+{`<BaseModal
+  show={true}
+  onHide={handleClose}
+  title="Example"
+  size="lg"
+  onSubmit={handleSubmit}
+  submitText="Save"
+  loading={false}
+  disabled={false}
+/>`}
+          </pre>
+
+          <h6 className="mt-3">Key Benefits:</h6>
+          <ul className="mb-0">
+            <li><strong>Intuitive:</strong> Props named exactly what you'd expect</li>
+            <li><strong>Minimal:</strong> Only pass the props you actually need</li>
+            <li><strong>Clean:</strong> No nested configuration objects</li>
+            <li><strong>Fast:</strong> Easy to write and read</li>
+          </ul>
+        </div>
+      </div>
 
       {/* Usage Documentation */}
       <div className="mt-5">
