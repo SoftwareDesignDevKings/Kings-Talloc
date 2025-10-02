@@ -61,6 +61,7 @@ const BaseModal = ({
           <Modal.Title
             className="w-100 text-center fw-bold"
             style={{
+              marginLeft: showCloseButton ? '32px' : '0',
               marginRight: showCloseButton ? '32px' : '0',
               fontSize: '1.5rem'
             }}
