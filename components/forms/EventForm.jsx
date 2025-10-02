@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select, { components } from 'react-select';
+import { Form, Row, Col, Alert } from 'react-bootstrap';
+import BaseModal from '../modals/BaseModal.jsx';
 import { db } from '@firebase/db';
-import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
-import ConfirmationModal from '../modals/ConfirmationModal.jsx';
-import { createTeamsMeeting } from '../../meetings/msTeams';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useEventForm } from '@/hooks/forms/useEventForm';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 
@@ -26,7 +26,6 @@ const EventForm = ({
   const [studentOptions, setStudentOptions] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
   const [error, setError] = useState('');
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
   // Use specialized hooks
   const eventForm = useEventForm(eventsData);
@@ -119,21 +118,9 @@ const EventForm = ({
     setNewEvent({ ...newEvent, minStudents: parseInt(e.target.value, 10) });
   };
 
-  const handleApprovalChange = async (selectedOption) => {
+  const handleApprovalChange = (selectedOption) => {
     const approvalStatus = selectedOption.value;
-    const eventDoc = doc(db, 'events', newEvent.id);
-    await updateDoc(eventDoc, { approvalStatus });
     setNewEvent({ ...newEvent, approvalStatus });
-
-    if (approvalStatus === "approved") {
-      const subject = newEvent.title;
-      const description = newEvent.description || "";
-      const startTime = new Date(newEvent.start).toISOString();
-      const endTime = new Date(newEvent.end).toISOString();
-      const attendeesEmailArr = [...newEvent.students, ...newEvent.staff].map(p => p.value)
-      
-      await createTeamsMeeting(newEvent, subject, description, startTime, endTime, attendeesEmailArr)
-    }
   };
 
   const validateDates = () => {
@@ -154,13 +141,8 @@ const EventForm = ({
     }
   };
 
-  const confirmDelete = () => {
-    setShowConfirmationModal(true);
-  };
-
-  const handleConfirmDelete = () => {
+  const handleDelete = () => {
     handleDeleteEvent(eventToEdit, { setShowTeacherModal: setShowModal, setShowStudentModal: () => {}, setShowAvailabilityModal: () => {} });
-    setShowConfirmationModal(false);
     setShowModal(false);
   };
 
@@ -207,214 +189,179 @@ const EventForm = ({
   };
 
   return (
-    <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50 tw-z-50 tw-overflow-y-auto">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full tw-max-w-4xl tw-p-6 tw-z-60">
-        <h2 className="tw-text-2xl tw-font-bold tw-text-center">
-          {isEditing ? 'Edit Event' : 'Add New Event'}
-        </h2>
+    <BaseModal
+        show={true}
+        onHide={() => setShowModal(false)}
+        title={isEditing ? 'Edit Event' : 'Add New Event'}
+        size="lg"
+        onSubmit={onSubmit}
+        submitText={isEditing ? 'Save Changes' : 'Add Event'}
+        deleteButton={isEditing ? {
+          text: "Delete",
+          onClick: handleDelete,
+          variant: "danger"
+        } : null}
+      >
+        {error && <Alert variant="danger">{error}</Alert>}
 
-        <form onSubmit={onSubmit} className="tw-mt-4">
-          {error && <div className="tw-text-red-500">{error}</div>}
-
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
-            {/* LEFT COLUMN */}
-            <div className="tw-space-y-6">
-              <div>
-                <label htmlFor="title" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Title</label>
-                <input
-                  type="text"
-                  name="title"
-                  id="title"
-                  value={newEvent.title}
-                  onChange={handleInputChange}
-                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="description" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Description</label>
-                <textarea
-                  name="description"
-                  id="description"
-                  value={newEvent.description}
-                  onChange={handleInputChange}
-                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="start" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Start Time</label>
-                <input
-                  type="datetime-local"
-                  name="start"
-                  id="start"
-                  value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
-                  onChange={handleInputChange}
-                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="end" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">End Time</label>
-                <input
-                  type="datetime-local"
-                  name="end"
-                  id="end"
-                  value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
-                  onChange={handleInputChange}
-                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="staff" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Assign Tutor</label>
-                <Select
-                  isMulti
-                  name="tutor"
-                  options={staffOptions}
-                  value={selectedStaff}
-                  onChange={handleStaffSelectChange}
-                  classNamePrefix="select"
-                  components={{ Option: customOption, SingleValue: customSingleValue }}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="classes" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Assign Classes</label>
-                <Select
-                  isMulti
-                  name="classes"
-                  options={classOptions}
-                  value={selectedClasses}
-                  onChange={handleClassSelectChange}
-                  classNamePrefix="select"
-                />
-              </div>
-            </div>
-
-            {/* RIGHT COLUMN */}
-            <div className="tw-space-y-6">
-              <div>
-                <label htmlFor="students" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Assign Students</label>
-                <Select
-                  isMulti
-                  name="students"
-                  options={studentOptions}
-                  value={selectedStudents}
-                  onChange={handleStudentSelectChange}
-                  classNamePrefix="select"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="minStudents" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Minimum Students Required</label>
-                <input
-                  type="number"
-                  name="minStudents"
-                  id="minStudents"
-                  value={newEvent.minStudents || 0}
-                  onChange={handleMinStudentsChange}
-                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                />
-              </div>
-
-              {newEvent.minStudents > 0 && (
-                <div>
-                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Student Responses</label>
-                  {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                    <ul className="tw-list-disc tw-list-inside">
-                      {newEvent.studentResponses.map((response, index) => (
-                        <li key={index}>
-                          {response.email}: {response.response ? 'Accepted' : 'Declined'}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="tw-text-sm tw-text-gray-500">No students have responded yet.</p>
-                  )}
-                </div>
-              )}
-
-              {newEvent.createdByStudent && (
-                <div>
-                  <label htmlFor="approvalStatus" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Approval Status</label>
-                  <Select
-                    name="approvalStatus"
-                    options={approvalOptions}
-                    onChange={handleApprovalChange}
-                    classNamePrefix="select"
-                    defaultValue={
-                      newEvent.approvalStatus === 'approved'
-                        ? { value: 'approved', label: 'Approve' }
-                        : newEvent.approvalStatus === 'denied'
-                        ? { value: 'denied', label: 'Deny' }
-                        : null
-                    }
+        <Row>
+          {/* LEFT COLUMN */}
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="title">Title</Form.Label>
+              <Form.Control
+                    type="text"
+                    name="title"
+                    id="title"
+                    value={newEvent.title}
+                    onChange={handleInputChange}
+                    required
                   />
-                </div>
-              )}
+            </Form.Group>
 
-              <div>
-                <label htmlFor="workStatus" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Work Status</label>
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="description">Description</Form.Label>
+              <Form.Control
+                    as="textarea"
+                    rows={3}
+                    name="description"
+                    id="description"
+                    value={newEvent.description}
+                    onChange={handleInputChange}
+                  />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="start">Start Time</Form.Label>
+              <Form.Control
+                    type="datetime-local"
+                    name="start"
+                    id="start"
+                    value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
+                    onChange={handleInputChange}
+                    required
+                  />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="end">End Time</Form.Label>
+              <Form.Control
+                    type="datetime-local"
+                    name="end"
+                    id="end"
+                    value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
+                    onChange={handleInputChange}
+                    required
+                  />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="staff">Assign Tutor</Form.Label>
+              <Select
+                    isMulti
+                    name="tutor"
+                    options={staffOptions}
+                    value={selectedStaff}
+                    onChange={handleStaffSelectChange}
+                    classNamePrefix="select"
+                    components={{ Option: customOption, SingleValue: customSingleValue }}
+                  />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="classes">Assign Classes</Form.Label>
+              <Select
+                    isMulti
+                    name="classes"
+                    options={classOptions}
+                    value={selectedClasses}
+                    onChange={handleClassSelectChange}
+                    classNamePrefix="select"
+                  />
+            </Form.Group>
+          </Col>
+
+          {/* RIGHT COLUMN */}
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="students">Assign Students</Form.Label>
+              <Select
+                    isMulti
+                    name="students"
+                    options={studentOptions}
+                    value={selectedStudents}
+                    onChange={handleStudentSelectChange}
+                    classNamePrefix="select"
+                  />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="minStudents">Minimum Students Required</Form.Label>
+              <Form.Control
+                    type="number"
+                    name="minStudents"
+                    id="minStudents"
+                    value={newEvent.minStudents || 0}
+                    onChange={handleMinStudentsChange}
+                  />
+            </Form.Group>
+
+                {newEvent.minStudents > 0 && (
+              <Form.Group className="mb-3">
+                <Form.Label>Student Responses</Form.Label>
+                    {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
+                      <ul className="list-unstyled">
+                        {newEvent.studentResponses.map((response, index) => (
+                          <li key={index} className="mb-1">
+                            <span className="fw-semibold">{response.email}:</span>{' '}
+                            <span className={`badge ${response.response ? 'bg-success' : 'bg-danger'}`}>
+                              {response.response ? 'Accepted' : 'Declined'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted mb-0">No students have responded yet.</p>
+                    )}
+              </Form.Group>
+                )}
+
+                {newEvent.createdByStudent && (
+              <Form.Group className="mb-3">
+                <Form.Label htmlFor="approvalStatus">Approval Status</Form.Label>
                 <Select
-                  name="workStatus"
-                  options={workStatusOptions}
-                  onChange={(selectedOption) =>
-                    setNewEvent({ ...newEvent, workStatus: selectedOption.value })
-                  }
-                  classNamePrefix="select"
-                  defaultValue={workStatusOptions.find(
-                    option => option.value === (newEvent.workStatus || 'notCompleted')
-                  )}
-                />
-              </div>
-            </div>
-          </div>
+                      name="approvalStatus"
+                      options={approvalOptions}
+                      onChange={handleApprovalChange}
+                      classNamePrefix="select"
+                      defaultValue={
+                        newEvent.approvalStatus === 'approved'
+                          ? { value: 'approved', label: 'Approve' }
+                          : newEvent.approvalStatus === 'denied'
+                          ? { value: 'denied', label: 'Deny' }
+                          : null
+                      }
+                    />
+              </Form.Group>
+                )}
 
-          {/* ACTION BUTTONS */}
-          <div className="tw-flex tw-justify-between tw-mt-6">
-            {/* Left side: Cancel */}
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-rounded-md hover:tw-bg-gray-300"
-            >
-              Cancel
-            </button>
-
-            {/* Right side: Delete + Save */}
-            <div className="tw-flex tw-space-x-3">
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={confirmDelete}
-                  className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-rounded-md hover:tw-bg-red-700"
-                >
-                  Delete
-                </button>
-              )}
-              <button
-                type="submit"
-                className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-rounded-md hover:tw-bg-indigo-700"
-              >
-                {isEditing ? 'Save Changes' : 'Add Event'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <ConfirmationModal
-        showConfirmationModal={showConfirmationModal}
-        setShowConfirmationModal={setShowConfirmationModal}
-        handleConfirmAction={handleConfirmDelete}
-        entityName="Event"
-        actionType="deleteEvent"
-      />
-    </div>
+            <Form.Group className="mb-3">
+              <Form.Label htmlFor="workStatus">Work Status</Form.Label>
+              <Select
+                    name="workStatus"
+                    options={workStatusOptions}
+                    onChange={(selectedOption) =>
+                      setNewEvent({ ...newEvent, workStatus: selectedOption.value })
+                    }
+                    classNamePrefix="select"
+                    defaultValue={workStatusOptions.find(
+                      option => option.value === (newEvent.workStatus || 'notCompleted')
+                    )}
+                  />
+            </Form.Group>
+          </Col>
+        </Row>
+    </BaseModal>
   );
 };
 

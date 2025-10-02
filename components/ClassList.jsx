@@ -13,9 +13,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 import ClassRow from "./ClassRow.jsx";
-import ClassFormModal from "./modals/ClassFormModal.jsx";
-import StudentFormModal from "./modals/StudentFormModal.jsx";
-import ConfirmationModal from "./modals/ConfirmationModal.jsx";
+import ClassModal from "./modals/ClassModal.jsx";
+import AddStudentsModal from "./modals/AddStudentsModal.jsx";
 
 const ClassList = () => {
   const [classes, setClasses] = useState([]);
@@ -23,8 +22,6 @@ const ClassList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [confirmationAction, setConfirmationAction] = useState(null);
   const [className, setClassName] = useState("");
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -32,8 +29,6 @@ const ClassList = () => {
   const [studentsToAdd, setStudentsToAdd] = useState("");
   const [selectedClass, setSelectedClass] = useState(null);
   const [expandedClass, setExpandedClass] = useState(null);
-  const [studentToRemove, setStudentToRemove] = useState(null);
-  const [classToDelete, setClassToDelete] = useState(null);
   const [filteredClasses, setFilteredClasses] = useState([]);
 
   const fetchClasses = async () => {
@@ -108,13 +103,11 @@ const ClassList = () => {
     setShowModal(true);
   };
 
-  const handleDeleteClass = async () => {
+  const handleDeleteClass = async (classToDelete) => {
     if (classToDelete) {
       await deleteDoc(doc(db, "classes", classToDelete.id));
       setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
       setSuccess("Class deleted successfully");
-      setClassToDelete(null);
-      setShowConfirmationModal(false);
     }
   };
 
@@ -144,15 +137,13 @@ const ClassList = () => {
     fetchClasses();
   };
 
-  const handleRemoveStudent = async () => {
-    const updatedStudents = selectedClass.students.filter(
+  const handleRemoveStudent = async (classToUpdate, studentToRemove) => {
+    const updatedStudents = classToUpdate.students.filter(
       (s) => s.email !== studentToRemove.email
     );
-    const classRef = doc(db, "classes", selectedClass.id);
+    const classRef = doc(db, "classes", classToUpdate.id);
     await updateDoc(classRef, { students: updatedStudents });
     setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
-    setShowConfirmationModal(false);
-    setStudentToRemove(null);
     setSuccess("Student removed successfully");
     fetchClasses();
   };
@@ -167,24 +158,11 @@ const ClassList = () => {
   };
 
   const confirmRemoveStudent = (student, cls) => {
-    setSelectedClass(cls);
-    setStudentToRemove(student);
-    setConfirmationAction("removeStudent");
-    setShowConfirmationModal(true);
+    handleRemoveStudent(cls, student);
   };
 
   const confirmDeleteClass = (cls) => {
-    setClassToDelete(cls);
-    setConfirmationAction("deleteClass");
-    setShowConfirmationModal(true);
-  };
-
-  const handleConfirmAction = () => {
-    if (confirmationAction === "deleteClass") {
-      handleDeleteClass();
-    } else if (confirmationAction === "removeStudent") {
-      handleRemoveStudent();
-    }
+    handleDeleteClass(cls);
   };
 
   return (
@@ -245,7 +223,7 @@ const ClassList = () => {
         </table>
       </div>
 
-      <ClassFormModal
+      <ClassModal
         showModal={showModal}
         setShowModal={setShowModal}
         className={className}
@@ -256,29 +234,13 @@ const ClassList = () => {
         setSelectedSubject={setSelectedSubject}
         isEditing={isEditing}
       />
-      <StudentFormModal
+      <AddStudentsModal
         showStudentModal={showStudentModal}
         setShowStudentModal={setShowStudentModal}
         selectedClass={selectedClass}
         studentsToAdd={studentsToAdd}
         setStudentsToAdd={setStudentsToAdd}
         handleAddStudents={handleAddStudents}
-      />
-      <ConfirmationModal
-        showConfirmationModal={showConfirmationModal}
-        setShowConfirmationModal={setShowConfirmationModal}
-        entity={
-          confirmationAction === "deleteClass" ? classToDelete : studentToRemove
-        }
-        entityName={
-          confirmationAction === "deleteClass"
-            ? "Class"
-            : studentToRemove
-            ? studentToRemove.name || studentToRemove.email
-            : "Student"
-        }
-        handleConfirmAction={handleConfirmAction}
-        actionType={confirmationAction}
       />
       {success && <p className="tw-text-sm tw-text-green-600 tw-mt-4">{success}</p>}
     </div>

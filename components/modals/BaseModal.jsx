@@ -1,101 +1,127 @@
 "use client";
 
-import React, { useEffect } from 'react';
-import { useModal } from './ModalManager.jsx';
+import React from 'react';
+import { Modal, Button, Form } from 'react-bootstrap';
 
+/**
+ * Bootstrap-based BaseModal component that provides a consistent modal interface
+ * for all modals in the application. Replaces the old custom modal system.
+ */
 const BaseModal = ({
-  isOpen,
-  onClose,
+  show = false,
+  onHide,
   title,
   children,
   onSubmit,
   submitText = "Submit",
-  submitButtonClass = "tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500",
+  submitVariant = "primary",
   cancelText = "Cancel",
   showFooter = true,
-  maxWidth = "tw-max-w-md",
-  modalId
+  size = "lg", // xs, sm, lg, xl
+  centered = true,
+  backdrop = "static",
+  keyboard = true,
+  showCloseButton = true,
+  customFooter = null,
+  headerContent = null,
+  bodyClassName = "",
+  modalClassName = "",
+  formId = "base-modal-form",
+  disabled = false,
+  loading = false,
+  deleteButton = null, // { text: "Delete", onClick: () => {}, variant: "danger" }
+  ...modalProps
 }) => {
-  const { openModal, closeModal, getZIndex, isModalOpen } = useModal();
-
-  useEffect(() => {
-    if (isOpen && modalId) {
-      openModal(modalId);
-    } else if (!isOpen && modalId) {
-      closeModal(modalId);
-    }
-  }, [isOpen, modalId, openModal, closeModal]);
-
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && isModalOpen(modalId)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose, modalId, isModalOpen]);
-
-  if (!isOpen) return null;
-
-  const zIndexes = getZIndex(modalId);
-  const backdropStyle = { zIndex: zIndexes.backdrop };
-  const contentStyle = { zIndex: zIndexes.content };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (onSubmit) {
+    if (onSubmit && !disabled && !loading) {
       onSubmit(e);
     }
   };
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
+  const getSubmitButtonText = () => {
+    if (loading) return "Loading...";
+    return submitText;
   };
 
   return (
-    <div
-      className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50"
-      style={backdropStyle}
-      onClick={handleBackdropClick}
+    <Modal
+      show={show}
+      onHide={onHide}
+      size={size}
+      centered={centered}
+      backdrop={backdrop}
+      keyboard={keyboard}
+      className={modalClassName}
+      {...modalProps}
     >
-      <div
-        className={`tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full ${maxWidth} tw-p-6 tw-max-h-[90vh] tw-overflow-y-auto`}
-        style={contentStyle}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* Header */}
+      <Modal.Header closeButton={showCloseButton}>
         {title && (
-          <h2 className="tw-text-2xl tw-font-bold tw-text-center tw-mb-4">{title}</h2>
+          <Modal.Title
+            className="w-100 text-center fw-bold"
+            style={{
+              marginRight: showCloseButton ? '32px' : '0',
+              fontSize: '1.5rem'
+            }}
+          >
+            {title}
+          </Modal.Title>
         )}
+        {headerContent}
+      </Modal.Header>
 
-        <form onSubmit={handleSubmit} className="tw-space-y-4">
-          <div className="tw-space-y-4">
+      {/* Body */}
+      <Modal.Body className={bodyClassName}>
+        {onSubmit ? (
+          <Form id={formId} onSubmit={handleSubmit}>
             {children}
-          </div>
+          </Form>
+        ) : (
+          children
+        )}
+      </Modal.Body>
 
-          {showFooter && (
-            <div className="tw-flex tw-justify-between tw-pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-300"
+      {/* Footer */}
+      {showFooter && (
+        <Modal.Footer>
+          {customFooter ? (
+            customFooter
+          ) : (
+            <>
+              <Button
+                variant="secondary"
+                onClick={onHide}
+                disabled={loading}
               >
                 {cancelText}
-              </button>
-              <button
-                type="submit"
-                className={submitButtonClass}
-              >
-                {submitText}
-              </button>
-            </div>
+              </Button>
+              <div className="d-flex gap-2">
+                {deleteButton && (
+                  <Button
+                    variant={deleteButton.variant || "danger"}
+                    onClick={deleteButton.onClick}
+                    disabled={disabled || loading}
+                  >
+                    {deleteButton.text || "Delete"}
+                  </Button>
+                )}
+                {onSubmit && (
+                  <Button
+                    variant={submitVariant}
+                    type="submit"
+                    form={formId}
+                    disabled={disabled || loading}
+                  >
+                    {getSubmitButtonText()}
+                  </Button>
+                )}
+              </div>
+            </>
           )}
-        </form>
-      </div>
-    </div>
+        </Modal.Footer>
+      )}
+    </Modal>
   );
 };
 

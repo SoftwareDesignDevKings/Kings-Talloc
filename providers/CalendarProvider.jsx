@@ -4,7 +4,7 @@ import React from 'react';
 import CalendarContext from '@contexts/CalendarContext';
 import { useCalendarEvents } from '@hooks/calendar/useCalendarEvents';
 import { useCalendarUI, useCalendarFilterState } from '@hooks/calendar/useCalendarState';
-import { useCalendarModals } from '@hooks/calendar/useCalendarModals';
+import { useCalendarForms } from '@hooks/calendar/useCalendarForms';
 import { useCalendarInteractions } from '@hooks/calendar/useCalendarInteractions';
 
 export const CalendarProvider = ({ children, userRole, userEmail }) => {
@@ -12,8 +12,8 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
   const eventsData = useCalendarEvents(userRole, userEmail);
   const uiState = useCalendarUI();
   const filterState = useCalendarFilterState();
-  const modals = useCalendarModals();
-  const handlers = useCalendarInteractions(userRole, userEmail, modals, eventsData);
+  const forms = useCalendarForms();
+  const handlers = useCalendarInteractions(userRole, userEmail, forms, eventsData);
 
   // Create filtering functions
   const getFilteredEvents = (allEvents, userEmail) => {
@@ -107,8 +107,8 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
     // Filter State
     filterState,
 
-    // Modal State
-    modals,
+    // Form State
+    forms,
 
     // Handlers
     handlers,

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue } from '@/utils/firebaseOperations';
+import { createTeamsMeeting } from '../../meetings/msTeams';
 
 /**
  * Hook for handling EventForm (teacher) operations
@@ -57,11 +58,33 @@ export const useEventForm = (eventsData) => {
           event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event
         ));
         await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+
+        // Check if event was just approved and create Teams meeting
+        if (eventData.approvalStatus === "approved" && eventToEdit.approvalStatus !== "approved") {
+          const subject = eventData.title;
+          const description = eventData.description || "";
+          const startTime = new Date(eventData.start).toISOString();
+          const endTime = new Date(eventData.end).toISOString();
+          const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+
+          await createTeamsMeeting({ ...eventData, id: eventToEdit.id }, subject, description, startTime, endTime, attendeesEmailArr);
+        }
       } else {
         const docId = await createEventInFirestore(eventData);
         eventData.id = docId;
         eventsData.setAllEvents([...eventsData.allEvents, { ...eventData, id: docId }]);
         await addOrUpdateEventInQueue(eventData, 'store');
+
+        // Create Teams meeting if event is approved on creation
+        if (eventData.approvalStatus === "approved") {
+          const subject = eventData.title;
+          const description = eventData.description || "";
+          const startTime = new Date(eventData.start).toISOString();
+          const endTime = new Date(eventData.end).toISOString();
+          const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+
+          await createTeamsMeeting({ ...eventData, id: docId }, subject, description, startTime, endTime, attendeesEmailArr);
+        }
       }
       setShowModal(false);
     } catch (error) {

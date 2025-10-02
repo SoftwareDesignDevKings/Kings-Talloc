@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
+import { Form, Button, Row, Col } from 'react-bootstrap';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@firebase/db';
 import BaseModal from './BaseModal.jsx';
@@ -11,44 +12,57 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
   const [response, setResponse] = useState(studentResponse ? (studentResponse.response ? 'accepted' : 'declined') : '');
   const [workStatus, setWorkStatus] = useState(event.workStatus || 'notCompleted');
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleResponseChange = async (selectedOption) => {
-    const isAccepted = selectedOption.value === 'accepted';
+  const handleResponseChange = (selectedOption) => {
     setResponse(selectedOption.value);
-
-    // Update student response in Firebase
-    const updatedStudentResponses = [
-      ...(event.studentResponses || []).filter(response => response.email !== userEmail),
-      { email: userEmail, response: isAccepted },
-    ];
-
-    const updatedEvent = { ...event, studentResponses: updatedStudentResponses };
-    const eventDoc = doc(db, 'events', event.id);
-
-    try {
-      await updateDoc(eventDoc, {
-        studentResponses: updatedStudentResponses,
-      });
-      setEvents(events.map(evt => (evt.id === event.id ? updatedEvent : evt)));
-    } catch (error) {
-      console.error('Failed to update student response:', error);
-    }
+    setHasChanges(true);
   };
 
-  const handleWorkStatusChange = async (selectedOption) => {
-    const newWorkStatus = selectedOption.value;
-    setWorkStatus(newWorkStatus);
+  const handleWorkStatusChange = (selectedOption) => {
+    setWorkStatus(selectedOption.value);
+    setHasChanges(true);
+  };
 
-    const updatedEvent = { ...event, workStatus: newWorkStatus };
-    const eventDoc = doc(db, 'events', event.id);
+  const handleSave = async () => {
+    if (!hasChanges) {
+      handleClose();
+      return;
+    }
 
+    setIsSaving(true);
     try {
-      await updateDoc(eventDoc, {
-        workStatus: newWorkStatus,
-      });
+      const updateData = {};
+
+      // Update student response if changed
+      if (userRole === 'student' && event.minStudents > 0) {
+        const isAccepted = response === 'accepted';
+        const updatedStudentResponses = [
+          ...(event.studentResponses || []).filter(resp => resp.email !== userEmail),
+          { email: userEmail, response: isAccepted },
+        ];
+        updateData.studentResponses = updatedStudentResponses;
+      }
+
+      // Update work status if changed
+      if (userRole === 'tutor' && workStatus !== event.workStatus) {
+        updateData.workStatus = workStatus;
+      }
+
+      // Save to Firebase
+      const eventDoc = doc(db, 'events', event.id);
+      await updateDoc(eventDoc, updateData);
+
+      // Update local state
+      const updatedEvent = { ...event, ...updateData };
       setEvents(events.map(evt => (evt.id === event.id ? updatedEvent : evt)));
+
+      handleClose();
     } catch (error) {
-      console.error('Failed to update work status:', error);
+      console.error('Failed to save changes:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -60,116 +74,139 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
 
   return (
     <BaseModal
-      isOpen={true}
-      onClose={handleClose}
+      show={true}
+      onHide={handleClose}
       title="Event Details"
-      showFooter={false}
-      modalId="event-details"
+      customFooter={
+        <div className="w-100 d-flex justify-content-end gap-2">
+          <Button variant="secondary" onClick={handleClose} disabled={isSaving}>
+            Cancel
+          </Button>
+          {hasChanges && (
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          )}
+        </div>
+      }
+      size="md"
     >
-        <form className="tw-space-y-6">
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Title</label>
-            <input
-              type="text"
-              value={event.title}
-              readOnly
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm tw-bg-gray-100 focus:tw-outline-none sm:tw-text-sm"
-            />
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Description</label>
-            <textarea
-              value={event.description}
-              readOnly
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm tw-bg-gray-100 focus:tw-outline-none sm:tw-text-sm"
-            />
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Start Time</label>
-            <input
+      <Form.Group className="mb-2">
+        <Form.Label>Title</Form.Label>
+        <Form.Control
+          type="text"
+          value={event.title}
+          readOnly
+          className="bg-light"
+          size="sm"
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-2">
+        <Form.Label>Description</Form.Label>
+        <Form.Control
+          as="textarea"
+          rows={2}
+          value={event.description}
+          readOnly
+          className="bg-light"
+          size="sm"
+        />
+      </Form.Group>
+
+      <Row>
+        <Col md={6}>
+          <Form.Group className="mb-2">
+            <Form.Label>Start Time</Form.Label>
+            <Form.Control
               type="datetime-local"
               value={moment(event.start).format('YYYY-MM-DDTHH:mm')}
               readOnly
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm tw-bg-gray-100 focus:tw-outline-none sm:tw-text-sm"
+              className="bg-light"
+              size="sm"
             />
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">End Time</label>
-            <input
+          </Form.Group>
+        </Col>
+        <Col md={6}>
+          <Form.Group className="mb-2">
+            <Form.Label>End Time</Form.Label>
+            <Form.Control
               type="datetime-local"
               value={moment(event.end).format('YYYY-MM-DDTHH:mm')}
               readOnly
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm tw-bg-gray-100 focus:tw-outline-none sm:tw-text-sm"
+              className="bg-light"
+              size="sm"
             />
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Staff</label>
-            <Select
-              isMulti
-              value={event.staff}
-              isDisabled
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Classes</label>
-            <Select
-              isMulti
-              value={event.classes}
-              isDisabled
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Students</label>
-            <Select
-              isMulti
-              value={event.students}
-              isDisabled
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
-          </div>
-          {userRole === 'student' && event.minStudents > 0 && (
-            <div className="tw-mt-4">
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Your Response</label>
-              <Select
-                name="userResponse"
-                options={[
-                  { value: 'accepted', label: 'Accept' },
-                  { value: 'declined', label: 'Decline' },
-                ]}
-                value={response ? { value: response, label: response.charAt(0).toUpperCase() + response.slice(1) } : null}
-                onChange={handleResponseChange}
-                className="basic-single-select"
-                classNamePrefix="select"
-              />
-            </div>
-          )}
-          {userRole === 'tutor' && (
-            <div>
-              <label htmlFor="workStatus" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Work Status</label>
-              <Select
-                name="workStatus"
-                options={workStatusOptions}
-                value={workStatusOptions.find(option => option.value === workStatus)}
-                onChange={handleWorkStatusChange}
-                classNamePrefix="select"
-              />
-            </div>
-          )}
-          <div className="tw-flex tw-justify-center tw-mt-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-300"
-            >
-              Close
-            </button>
-          </div>
-        </form>
+          </Form.Group>
+        </Col>
+      </Row>
+
+      <Form.Group className="mb-2">
+        <Form.Label>Staff</Form.Label>
+        <Select
+          isMulti
+          value={event.staff}
+          isDisabled
+          className="basic-multi-select"
+          classNamePrefix="select"
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-2">
+        <Form.Label>Classes</Form.Label>
+        <Select
+          isMulti
+          value={event.classes}
+          isDisabled
+          className="basic-multi-select"
+          classNamePrefix="select"
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-2">
+        <Form.Label>Students</Form.Label>
+        <Select
+          isMulti
+          value={event.students}
+          isDisabled
+          className="basic-multi-select"
+          classNamePrefix="select"
+        />
+      </Form.Group>
+
+      {userRole === 'student' && event.minStudents > 0 && (
+        <Form.Group className="mb-2">
+          <Form.Label>Your Response</Form.Label>
+          <Select
+            name="userResponse"
+            options={[
+              { value: 'accepted', label: 'Accept' },
+              { value: 'declined', label: 'Decline' },
+            ]}
+            value={response ? { value: response, label: response.charAt(0).toUpperCase() + response.slice(1) } : null}
+            onChange={handleResponseChange}
+            className="basic-single-select"
+            classNamePrefix="select"
+          />
+        </Form.Group>
+      )}
+
+      {userRole === 'tutor' && (
+        <Form.Group className="mb-2">
+          <Form.Label>Work Status</Form.Label>
+          <Select
+            name="workStatus"
+            options={workStatusOptions}
+            value={workStatusOptions.find(option => option.value === workStatus)}
+            onChange={handleWorkStatusChange}
+            classNamePrefix="select"
+          />
+        </Form.Group>
+      )}
     </BaseModal>
   );
 };

@@ -5,7 +5,7 @@ import { useAvailabilityOperations } from './useAvailabilityOperations';
  * Used by: TutorAvailabilityForm
  */
 export const useTutorAvailabilityForm = (eventsData) => {
-  const { submitAvailability } = useAvailabilityOperations(eventsData);
+  const { submitAvailability, deleteAvailability } = useAvailabilityOperations(eventsData);
 
   const handleInputChange = (newAvailability, setNewAvailability) => (e) => {
     const { name, value } = e.target;
@@ -32,8 +32,18 @@ export const useTutorAvailabilityForm = (eventsData) => {
     }
   };
 
+  const handleDelete = (eventToEdit, setShowModal) => async () => {
+    try {
+      await deleteAvailability(eventToEdit);
+      setShowModal(false);
+    } catch (error) {
+      console.error('Failed to delete availability:', error);
+    }
+  };
+
   return {
     handleInputChange,
     handleSubmit,
+    handleDelete,
   };
 };

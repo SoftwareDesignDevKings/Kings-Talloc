@@ -1,7 +1,8 @@
 import React from 'react';
+import { Form } from 'react-bootstrap';
 import BaseModal from './BaseModal.jsx';
 
-const StudentFormModal = ({
+const AddStudentsModal = ({
   showStudentModal,
   setShowStudentModal,
   selectedClass,
@@ -11,26 +12,26 @@ const StudentFormModal = ({
 }) => {
   return (
     <BaseModal
-      isOpen={showStudentModal}
-      onClose={() => setShowStudentModal(false)}
+      show={showStudentModal}
+      onHide={() => setShowStudentModal(false)}
       title={`Add Students to ${selectedClass?.name || ''}`}
       onSubmit={handleAddStudents}
       submitText="Add Students"
-      modalId="student-form"
+      size="md"
     >
-      <div>
-        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Student Emails</label>
-        <textarea
+      <Form.Group className="mb-3">
+        <Form.Label>Student Emails</Form.Label>
+        <Form.Control
+          as="textarea"
+          rows={4}
           value={studentsToAdd}
           onChange={(e) => setStudentsToAdd(e.target.value)}
-          className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-          rows="4"
           placeholder="Enter emails separated by commas"
           required
         />
-      </div>
+      </Form.Group>
     </BaseModal>
   );
 };
 
-export default StudentFormModal;
+export default AddStudentsModal;

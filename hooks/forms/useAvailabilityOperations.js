@@ -1,4 +1,4 @@
-import { updateEventInFirestore, createEventInFirestore } from '@/utils/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/utils/firebaseOperations';
 
 /**
  * Hook for handling availability CRUD operations
@@ -23,7 +23,20 @@ export const useAvailabilityOperations = (eventsData) => {
     }
   };
 
+  const deleteAvailability = async (eventToEdit) => {
+    try {
+      await deleteEventFromFirestore(eventToEdit.id, 'availabilities');
+      eventsData.setAvailabilities(eventsData.availabilities.filter(
+        availability => availability.id !== eventToEdit.id
+      ));
+    } catch (error) {
+      console.error('Failed to delete availability:', error);
+      throw error;
+    }
+  };
+
   return {
     submitAvailability,
+    deleteAvailability,
   };
 };

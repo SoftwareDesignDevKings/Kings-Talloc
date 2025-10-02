@@ -1,4 +1,4 @@
-import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue } from '@/utils/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/utils/firebaseOperations';
 
 /**
  * Hook for handling StudentEventForm operations
@@ -52,8 +52,21 @@ export const useStudentEventForm = (eventsData) => {
     }
   };
 
+  const handleDelete = (eventToEdit, setShowModal) => async () => {
+    try {
+      await deleteEventFromFirestore(eventToEdit.id);
+      eventsData.setAllEvents(eventsData.allEvents.filter(
+        event => event.id !== eventToEdit.id
+      ));
+      setShowModal(false);
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+    }
+  };
+
   return {
     handleInputChange,
     handleSubmit,
+    handleDelete,
   };
 };

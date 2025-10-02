@@ -4,7 +4,7 @@ import { useState } from 'react';
  * Hook for handling calendar interactions (slot selection, event selection)
  * Used by: CalendarWrapper
  */
-export const useCalendarInteractions = (userRole, userEmail, modals) => {
+export const useCalendarInteractions = (userRole, userEmail, forms) => {
   const [newEvent, setNewEvent] = useState({});
   const [newAvailability, setNewAvailability] = useState({});
 
@@ -26,8 +26,8 @@ export const useCalendarInteractions = (userRole, userEmail, modals) => {
         workStatus: 'notCompleted',
         locationType: '',
       });
-      modals.setIsEditing(false);
-      modals.setShowStudentModal(true);
+      forms.setIsEditing(false);
+      forms.setShowStudentForm(true);
       return;
     }
 
@@ -40,8 +40,8 @@ export const useCalendarInteractions = (userRole, userEmail, modals) => {
         workType: 'tutoringOrWork',
         locationType: ''
       });
-      modals.setIsEditing(false);
-      modals.setShowAvailabilityModal(true);
+      forms.setIsEditing(false);
+      forms.setShowAvailabilityForm(true);
     } else {
       setNewEvent({
         title: '',
@@ -58,8 +58,8 @@ export const useCalendarInteractions = (userRole, userEmail, modals) => {
         workStatus: 'notCompleted',
         locationType: '',
       });
-      modals.setIsEditing(false);
-      modals.setShowTeacherModal(true);
+      forms.setIsEditing(false);
+      forms.setShowTeacherForm(true);
     }
   };
 
@@ -67,32 +67,32 @@ export const useCalendarInteractions = (userRole, userEmail, modals) => {
     if (event.tutor) {
       if (userRole === 'tutor' && event.tutor === userEmail) {
         setNewAvailability(event);
-        modals.setIsEditing(true);
-        modals.setEventToEdit(event);
-        modals.setShowAvailabilityModal(true);
+        forms.setIsEditing(true);
+        forms.setEventToEdit(event);
+        forms.setShowAvailabilityForm(true);
       } else {
-        modals.setEventToEdit(event);
-        modals.setShowDetailsModal(true);
+        forms.setEventToEdit(event);
+        forms.setShowDetailsModal(true);
       }
     } else {
       if (userRole === 'teacher') {
         setNewEvent(event);
-        modals.setIsEditing(true);
-        modals.setEventToEdit(event);
-        modals.setShowTeacherModal(true);
+        forms.setIsEditing(true);
+        forms.setEventToEdit(event);
+        forms.setShowTeacherForm(true);
       } else if (userRole === 'student' && event.createdByStudent) {
         if (event.approvalStatus === 'pending') {
           setNewEvent(event);
-          modals.setIsEditing(true);
-          modals.setEventToEdit(event);
-          modals.setShowStudentModal(true);
+          forms.setIsEditing(true);
+          forms.setEventToEdit(event);
+          forms.setShowStudentForm(true);
         } else {
-          modals.setEventToEdit(event);
-          modals.setShowDetailsModal(true);
+          forms.setEventToEdit(event);
+          forms.setShowDetailsModal(true);
         }
       } else {
-        modals.setEventToEdit(event);
-        modals.setShowDetailsModal(true);
+        forms.setEventToEdit(event);
+        forms.setShowDetailsModal(true);
       }
     }
   };
