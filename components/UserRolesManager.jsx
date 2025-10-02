@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@firebase/db';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
-import ConfirmationModal from './modals/ConfirmationModal';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
@@ -15,9 +14,7 @@ const UserRolesManager = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -85,7 +82,6 @@ const UserRolesManager = () => {
     setUsers(updatedUsers);
     setFilteredUsers(updatedUsers);
     setSuccess(`User ${userEmail} deleted successfully.`);
-    setShowConfirmationModal(false);
   };
 
   const handleEdit = (user) => {
@@ -95,10 +91,6 @@ const UserRolesManager = () => {
     setShowModal(true);
   };
 
-  const confirmDelete = (user) => {
-    setUserToDelete(user);
-    setShowConfirmationModal(true);
-  };
 
   return (
     <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg tw-h-full">
@@ -156,7 +148,7 @@ const UserRolesManager = () => {
                       Edit
                     </button>
                     <button
-                      onClick={() => confirmDelete(user)}
+                      onClick={() => handleDelete(user.email)}
                       className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
                     >
                       Delete
@@ -215,14 +207,6 @@ const UserRolesManager = () => {
           </div>
         </div>
       )}
-      <ConfirmationModal
-        showConfirmationModal={showConfirmationModal}
-        setShowConfirmationModal={setShowConfirmationModal}
-        entity={userToDelete}
-        entityName="User"
-        handleConfirmAction={() => handleDelete(userToDelete.email)}
-        actionType="deleteUser"
-      />
       {success && <p className="tw-text-sm tw-text-green-600 tw-mt-4">{success}</p>}
     </div>
   );

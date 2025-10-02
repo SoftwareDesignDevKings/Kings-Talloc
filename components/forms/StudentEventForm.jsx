@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
+import { Form, Alert } from 'react-bootstrap';
+import BaseModal from '../modals/BaseModal.jsx';
 import { db } from '@firebase/db';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { fetchAvailabilities } from '../../firebase/fetchData';
@@ -90,121 +92,104 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
     }
   };
 
-  const isStudentCreated = newEvent.createdByStudent && newEvent.students.some(student => student.value === studentEmail);
+  // For new events, allow editing. For existing events, only allow if student created it
+  const isStudentCreated = !isEditing || (newEvent.createdByStudent && newEvent.students?.some(student => student.value === studentEmail));
 
   return (
-    <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50 tw-z-50">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full tw-max-w-md tw-p-6 tw-z-60">
-        <h2 className="tw-text-2xl tw-font-bold tw-text-center">{isEditing ? 'Edit Event' : 'Add New Event'}</h2>
-        <form onSubmit={onSubmit} className="tw-space-y-6 tw-mt-4">
-          {error && <div className="tw-text-red-500">{error}</div>}
-          <div>
-            <label htmlFor="title" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Title</label>
-            <input
-              type="text"
-              name="title"
-              id="title"
-              value={newEvent.title}
-              onChange={handleInputChange}
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-              required
-              disabled={!isStudentCreated}
-            />
-          </div>
-          <div>
-            <label htmlFor="description" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Description</label>
-            <textarea
-              name="description"
-              id="description"
-              value={newEvent.description}
-              onChange={handleInputChange}
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-              disabled={!isStudentCreated}
-            />
-          </div>
-          <div>
-            <label htmlFor="start" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Start Time</label>
-            <input
-              type="datetime-local"
-              name="start"
-              id="start"
-              value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
-              onChange={handleDateChange}
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-              required
-              disabled={!isStudentCreated}
-            />
-          </div>
-          <div>
-            <label htmlFor="end" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">End Time</label>
-            <input
-              type="datetime-local"
-              name="end"
-              id="end"
-              value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
-              onChange={handleDateChange}
-              className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-              required
-              disabled={!isStudentCreated}
-            />
-          </div>
-          <div>
-            <label htmlFor="tutor" className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Assign Tutor</label>
-            <Select
-              name="tutor"
-              options={filteredTutors}
-              value={selectedTutor}
-              onChange={handleTutorSelectChange}
-              onMenuOpen={handleMenuOpen}
-              classNamePrefix="select"
-              isDisabled={!isStudentCreated}
-              noOptionsMessage={() => "No tutors available for the selected time range"}
-            />
-          </div>
-          {newEvent.minStudents > 0 && (
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Student Responses</label>
-              {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                <ul className="tw-list-disc tw-list-inside">
-                  {newEvent.studentResponses.map((response, index) => (
-                    <li key={index}>
-                      {response.email}: {response.response ? 'Accepted' : 'Declined'}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="tw-text-sm tw-text-gray-500">No students have responded yet.</p>
-              )}
-            </div>
+    <BaseModal
+      show={true}
+      onHide={() => setShowStudentModal(false)}
+      title={isEditing ? 'Edit Event' : 'Add New Event'}
+      size="md"
+      onSubmit={onSubmit}
+      submitText={isEditing ? 'Save Changes' : 'Add Event'}
+      disabled={!isStudentCreated}
+      deleteButton={(isEditing && isStudentCreated) ? {
+        text: "Delete",
+        onClick: handleDelete,
+        variant: "danger"
+      } : null}
+    >
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <Form.Group className="mb-3">
+        <Form.Label htmlFor="title">Title</Form.Label>
+        <Form.Control
+          type="text"
+          name="title"
+          id="title"
+          value={newEvent.title}
+          onChange={handleInputChange}
+          required
+          disabled={!isStudentCreated}
+        />
+      </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label htmlFor="description">Description</Form.Label>
+        <Form.Control
+          as="textarea"
+          rows={3}
+          name="description"
+          id="description"
+          value={newEvent.description}
+          onChange={handleInputChange}
+          disabled={!isStudentCreated}
+        />
+      </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label htmlFor="start">Start Time</Form.Label>
+        <Form.Control
+          type="datetime-local"
+          name="start"
+          id="start"
+          value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
+          onChange={handleDateChange}
+          required
+          disabled={!isStudentCreated}
+        />
+      </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label htmlFor="end">End Time</Form.Label>
+        <Form.Control
+          type="datetime-local"
+          name="end"
+          id="end"
+          value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
+          onChange={handleDateChange}
+          required
+          disabled={!isStudentCreated}
+        />
+      </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label htmlFor="tutor">Assign Tutor</Form.Label>
+        <Select
+          name="tutor"
+          options={filteredTutors}
+          value={selectedTutor}
+          onChange={handleTutorSelectChange}
+          onMenuOpen={handleMenuOpen}
+          classNamePrefix="select"
+          isDisabled={!isStudentCreated}
+          noOptionsMessage={() => "No tutors available for the selected time range"}
+        />
+      </Form.Group>
+      {newEvent.minStudents > 0 && (
+        <Form.Group className="mb-3">
+          <Form.Label>Student Responses</Form.Label>
+          {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
+            <ul className="list-unstyled">
+              {newEvent.studentResponses.map((response, index) => (
+                <li key={index} className="mb-1">
+                  {response.email}: {response.response ? 'Accepted' : 'Declined'}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted">No students have responded yet.</p>
           )}
-          <div className="tw-flex tw-justify-between">
-            <button
-              type="button"
-              onClick={() => setShowStudentModal(false)}
-              className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-300"
-            >
-              Cancel
-            </button>
-            {isEditing && isStudentCreated && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
-              >
-                Delete
-              </button>
-            )}
-            <button
-              type="submit"
-              className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-              disabled={!isStudentCreated}
-            >
-              {isEditing ? 'Save Changes' : 'Add Event'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </Form.Group>
+      )}
+    </BaseModal>
   );
 };
 

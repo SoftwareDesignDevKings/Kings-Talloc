@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@firebase/db';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import SubjectFormModal from './modals/SubjectFormModal';
-import TutorFormModal from './modals/TutorFormModal';
-import ConfirmationModal from './modals/ConfirmationModal';
-import SubjectRow from './SubjectRow';
+import SubjectModal from './modals/SubjectModal.jsx';
+import AddTutorsModal from './modals/AddTutorsModal.jsx';
+import SubjectRow from './SubjectRow.jsx';
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState([]);
@@ -15,8 +14,6 @@ const SubjectList = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentSubject, setCurrentSubject] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [subjectToDelete, setSubjectToDelete] = useState(null);
   const [showTutorModal, setShowTutorModal] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [tutorsToAdd, setTutorsToAdd] = useState('');
@@ -61,12 +58,10 @@ const SubjectList = () => {
     setShowModal(true);
   };
 
-  const handleDeleteSubject = async () => {
+  const handleDeleteSubject = async (subjectToDelete) => {
     if (subjectToDelete) {
       await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
       setSubjects(subjects.filter(subject => subject.id !== subjectToDelete.id));
-      setSubjectToDelete(null);
-      setShowConfirmationModal(false);
     }
   };
 
@@ -110,8 +105,7 @@ const SubjectList = () => {
   };
 
   const openDeleteModal = (subject) => {
-    setSubjectToDelete(subject);
-    setShowConfirmationModal(true);
+    handleDeleteSubject(subject);
   };
 
   const openAddTutorModal = (subject) => {
@@ -169,14 +163,14 @@ const SubjectList = () => {
           </table>
         </div>
       }
-      <SubjectFormModal
+      <SubjectModal
         showModal={showModal}
         setShowModal={setShowModal}
         subject={currentSubject}
         handleSubmit={handleAddSubject}
         isEditing={isEditing}
       />
-      <TutorFormModal
+      <AddTutorsModal
         showTutorModal={showTutorModal}
         setShowTutorModal={setShowTutorModal}
         selectedSubject={selectedSubject}
@@ -184,16 +178,6 @@ const SubjectList = () => {
         setTutorsToAdd={setTutorsToAdd}
         handleAddTutors={handleAddTutors}
       />
-      {showConfirmationModal && (
-        <ConfirmationModal
-          showConfirmationModal={showConfirmationModal}
-          setShowConfirmationModal={setShowConfirmationModal}
-          entity={subjectToDelete}
-          entityName="Subject"
-          handleConfirmAction={handleDeleteSubject}
-          actionType="deleteSubject"
-        />
-      )}
     </div>
   );
 };

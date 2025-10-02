@@ -37,4 +37,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-firebase/serviceAccountKey.json
+# claude
+.claude 
+
+# swc
+.swc
+
+# cypress
+/cypress/screenshots
+/cypress/videos
+/cypress/downloads

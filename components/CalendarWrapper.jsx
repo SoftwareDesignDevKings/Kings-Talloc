@@ -4,12 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import { eventStyleGetter, messages } from './calendar/helpers';
-import CalendarFilterPanel from './calendar/CalendarFilterPanel';
+import CalendarFilterPanel from './calendar/CalendarFilterPanel.jsx';
 import EventForm from './forms/EventForm.jsx';
 import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
 import StudentEventForm from './forms/StudentEventForm.jsx';
-import EventDetailsModal from './modals/EventDetailsModal';
-import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper';
+import EventDetailsModal from './modals/EventDetailsModal.jsx';
+import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper.jsx';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 // Context and Provider
@@ -19,6 +19,8 @@ import { useCalendarContext } from '@contexts/CalendarContext';
 // Specialized hooks
 import { useCalendarInteractions } from '@/hooks/calendar/useCalendarInteractions';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
+import { useTutorAvailabilityForm } from '@/hooks/forms/useTutorAvailabilityForm';
+import { useStudentEventForm } from '@/hooks/forms/useStudentEventForm';
 
 moment.updateLocale('en', { week: { dow: 1 } });
 
@@ -39,7 +41,7 @@ const CalendarContent = () => {
     eventsData,
     uiState,
     filterState,
-    modals,
+    forms,
     getFilteredEvents,
     getFilteredAvailabilities,
     userRole,
@@ -47,8 +49,10 @@ const CalendarContent = () => {
   } = useCalendarContext();
 
   // Use specialized hooks for specific responsibilities
-  const calendarInteractions = useCalendarInteractions(userRole, userEmail, modals);
+  const calendarInteractions = useCalendarInteractions(userRole, userEmail, forms);
   const eventOperations = useEventOperations(eventsData, userRole, userEmail);
+  const tutorAvailabilityForm = useTutorAvailabilityForm(eventsData);
+  const studentEventForm = useStudentEventForm(eventsData);
 
   // Get filtered data using context functions with useMemo
   const filteredEvents = useMemo(() =>
@@ -135,42 +139,48 @@ const CalendarContent = () => {
         uniqueTutors={uniqueTutors}
       />
 
-      {/* render different modals depending on role */}
-      {modals.showTeacherModal && userRole === 'teacher' && (
+      {/* render different forms depending on role */}
+      {forms.showTeacherForm && userRole === 'teacher' && (
         <EventForm
-          isEditing={modals.isEditing}
+          isEditing={forms.isEditing}
           newEvent={calendarInteractions.newEvent}
           setNewEvent={calendarInteractions.setNewEvent}
-          eventToEdit={modals.eventToEdit}
-          setShowModal={modals.setShowTeacherModal}
+          eventToEdit={forms.eventToEdit}
+          setShowModal={forms.setShowTeacherForm}
           eventsData={eventsData}
         />
       )}
-      {modals.showStudentModal && userRole === 'student' && (
+      {forms.showStudentForm && userRole === 'student' && (
         <StudentEventForm
-          isEditing={modals.isEditing}
+          isEditing={forms.isEditing}
           newEvent={calendarInteractions.newEvent}
           setNewEvent={calendarInteractions.setNewEvent}
-          eventToEdit={modals.eventToEdit}
-          setShowStudentModal={modals.setShowStudentModal}
+          eventToEdit={forms.eventToEdit}
+          setShowStudentModal={forms.setShowStudentForm}
           studentEmail={userEmail}
           eventsData={eventsData}
+          handleInputChange={studentEventForm.handleInputChange(calendarInteractions.newEvent, calendarInteractions.setNewEvent)}
+          handleSubmit={studentEventForm.handleSubmit(calendarInteractions.newEvent, forms.isEditing, forms.eventToEdit, forms.setShowStudentForm)}
+          handleDelete={studentEventForm.handleDelete(forms.eventToEdit, forms.setShowStudentForm)}
         />
       )}
-      {modals.showAvailabilityModal && userRole === 'tutor' && (
+      {forms.showAvailabilityForm && userRole === 'tutor' && (
         <TutorAvailabilityForm
-          isEditing={modals.isEditing}
+          isEditing={forms.isEditing}
           newAvailability={calendarInteractions.newAvailability}
           setNewAvailability={calendarInteractions.setNewAvailability}
-          eventToEdit={modals.eventToEdit}
-          setShowModal={modals.setShowAvailabilityModal}
+          eventToEdit={forms.eventToEdit}
+          setShowModal={forms.setShowAvailabilityForm}
           eventsData={eventsData}
+          handleInputChange={tutorAvailabilityForm.handleInputChange(calendarInteractions.newAvailability, calendarInteractions.setNewAvailability)}
+          handleSubmit={tutorAvailabilityForm.handleSubmit(calendarInteractions.newAvailability, forms.isEditing, forms.eventToEdit, forms.setShowAvailabilityForm)}
+          handleDelete={tutorAvailabilityForm.handleDelete(forms.eventToEdit, forms.setShowAvailabilityForm)}
         />
       )}
-      {modals.showDetailsModal && (
+      {forms.showDetailsModal && (
         <EventDetailsModal
-          event={modals.eventToEdit}
-          handleClose={() => modals.setShowDetailsModal(false)}
+          event={forms.eventToEdit}
+          handleClose={() => forms.setShowDetailsModal(false)}
           handleConfirmation={eventOperations.handleConfirmation}
           userEmail={userEmail}
           userRole={userRole}
@@ -182,7 +192,10 @@ const CalendarContent = () => {
   );
 };
 
-// Main wrapper component that provides context
+/**
+ * React Big Calendar Wrapper based on role and email
+ * @returns 
+ */
 const CalendarWrapper = ({ userRole, userEmail }) => {
   return (
     <CalendarProvider userRole={userRole} userEmail={userEmail}>

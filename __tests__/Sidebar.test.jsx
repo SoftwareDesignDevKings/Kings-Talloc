@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import Sidebar from '../components/Sidebar.js'
+import Sidebar from '../components/Sidebar.jsx'
 
 const setup = (userRole = 'student', userOverrides = {}) => {
   const setActiveSection = jest.fn()

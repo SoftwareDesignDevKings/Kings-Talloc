@@ -1,7 +1,7 @@
 'use client';
 
 import LoadingPage from '@/components/LoadingPage.jsx';
-import NotLoggedIn from '@/components/NotLoggedIn';
+import LoginPage from '@/components/LoginPage.jsx';
 import { useSession } from 'next-auth/react';
 
 /**
@@ -12,7 +12,7 @@ import { useSession } from 'next-auth/react';
 const AuthProvider = ({ children }) => {
     const sessionObj = useSession();
     if (sessionObj.status === "loading") return <LoadingPage />;
-    if (sessionObj.status === "unauthenticated") return <NotLoggedIn />;
+    if (sessionObj.status === "unauthenticated") return <LoginPage />;
     
     return (<>{children}</>);
 }

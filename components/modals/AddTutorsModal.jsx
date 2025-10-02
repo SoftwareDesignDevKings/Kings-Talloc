@@ -1,7 +1,8 @@
 import React from 'react';
-import BaseModal from './BaseModal';
+import { Form } from 'react-bootstrap';
+import BaseModal from './BaseModal.jsx';
 
-const TutorFormModal = ({
+const AddTutorsModal = ({
   showTutorModal,
   setShowTutorModal,
   selectedSubject,
@@ -15,26 +16,26 @@ const TutorFormModal = ({
 
   return (
     <BaseModal
-      isOpen={showTutorModal}
-      onClose={() => setShowTutorModal(false)}
+      show={showTutorModal}
+      onHide={() => setShowTutorModal(false)}
       title={`Add Tutors to ${selectedSubject?.name || ''}`}
       onSubmit={handleSubmit}
       submitText="Add Tutors"
-      modalId="tutor-form"
+      size="md"
     >
-      <div>
-        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Tutor Emails</label>
-        <textarea
+      <Form.Group className="mb-3">
+        <Form.Label>Tutor Emails</Form.Label>
+        <Form.Control
+          as="textarea"
+          rows={4}
           value={tutorsToAdd}
           onChange={(e) => setTutorsToAdd(e.target.value)}
-          className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-          rows="4"
           placeholder="Enter emails separated by commas"
           required
         />
-      </div>
+      </Form.Group>
     </BaseModal>
   );
 };
 
-export default TutorFormModal;
+export default AddTutorsModal;

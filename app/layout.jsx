@@ -4,7 +4,6 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import AppSessionProvider from "@/providers/AppSessionProvider";
-import { ModalProvider } from "@/components/modals/ModalManager";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,9 +17,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         <AppSessionProvider>
-          <ModalProvider>
-            {children}
-          </ModalProvider>
+          {children}
         </AppSessionProvider>
       </body>
     </html>

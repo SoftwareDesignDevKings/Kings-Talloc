@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import CalendarWrapper from "@components/CalendarWrapper.jsx";
-import Sidebar from "@components/Sidebar";
-import UserRolesManager from "@components/UserRolesManager";
-import ClassList from "@components/ClassList";
-import TutorHoursSummary from "@components/TutorHoursSummary";
-import SubjectList from "@components/SubjectList";
+import Sidebar from "@components/Sidebar.jsx";
+import UserRolesManager from "@components/UserRolesManager.jsx";
+import ClassList from "@components/ClassList.jsx";
+import TutorHoursSummary from "@components/TutorHoursSummary.jsx";
+import SubjectList from "@components/SubjectList.jsx";
 import LoadingPage from "@components/LoadingPage.jsx";
 import { useUserRole } from "@/hooks/auth/useUserInfo";
 
