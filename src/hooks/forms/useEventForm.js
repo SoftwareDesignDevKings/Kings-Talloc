@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue } from '@/utils/firebaseOperations';
-import { createTeamsMeeting } from '../../meetings/msTeams';
+import { createTeamsMeeting } from '@/utils/msTeams';
 
 /**
  * Hook for handling EventForm (teacher) operations

@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
-      "@/*": ["*"],
-      "@components/*": ["components/*"],
-      "@hooks/*": ["hooks/*"],
-      "@providers/*": ["providers/*"],
-      "@contexts/*": ["contexts/*"],
-      "@middleware/*": ["middleware/*"],
-      "@firebase/*": ["firebase/*"],
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@providers/*": ["src/providers/*"],
+      "@contexts/*": ["src/contexts/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@firebase/*": ["src/firebase/*"]
     }
   }
 }
