@@ -55,14 +55,7 @@ const BaseModal = ({
       {/* Header */}
       <Modal.Header closeButton>
         {title && (
-          <Modal.Title
-            className="w-100 text-center fw-bold"
-            style={{
-              marginLeft: '32px',
-              marginRight: '32px',
-              fontSize: '1.5rem'
-            }}
-          >
+          <Modal.Title className="w-100 text-center fw-bold">
             {title}
           </Modal.Title>
         )}
