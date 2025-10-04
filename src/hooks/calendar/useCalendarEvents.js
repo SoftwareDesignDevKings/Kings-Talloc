@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors } from '@/firestore/fetchData';
+import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors } from '@/firestore/firebaseFetch';
 import { splitAvailabilities } from '@components/calendar/availabilityUtils';
 
 /**

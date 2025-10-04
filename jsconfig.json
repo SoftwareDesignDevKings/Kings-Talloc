@@ -9,7 +9,8 @@
       "@providers/*": ["src/providers/*"],
       "@contexts/*": ["src/contexts/*"],
       "@middleware/*": ["src/middleware/*"],
-      "@firebase/*": ["src/firebase/*"]
+      "@firebase/*": ["src/firebase/*"],
+      "@firestore/*": ["src/firestore/*"]
     }
   }
 }

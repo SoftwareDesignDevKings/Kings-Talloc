@@ -7,7 +7,7 @@ import { Form, Alert } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
 import { db } from '@/firestore/db.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { fetchAvailabilities } from '../../firestore/fetchData';
+import { fetchAvailabilities } from '../../firestore/firebaseFetch';
 
 const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowStudentModal, studentEmail }) => {
   const [tutorOptions, setTutorOptions] = useState([]);
