@@ -3,7 +3,6 @@ import GoogleProvider from 'next-auth/providers/google';
 import AzureADProvider from "next-auth/providers/azure-ad";
 
 const allowedDomains = ['kings.edu.au', 'student.kings.edu.au'];
-const allowedEmails = ['liam22840@gmail.com', 'liha2347@gmail.com', "patelhariwork@gmail.com", "patelhari134900@gmail.com"];
 
 const handler = NextAuth({
   providers: [

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { db } from "@/firebase/db";
+import { db } from "@/firestore/db";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export function useUserRole() {
@@ -13,6 +13,8 @@ export function useUserRole() {
 
 		const userRef = doc(db, "users", user.email);
 		const userDoc = await getDoc(userRef);
+
+		// set default role as student, on NextAuth callback. else, retrieve the store role in React state
 		if (!userDoc.exists()) {
 			await setDoc(userRef, {email: user.email, name: user.name, role: "student"});
 			setUserRole("student");

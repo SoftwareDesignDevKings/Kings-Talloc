@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { db } from '@firebase/db';
+import { db } from '@/firestore/db.js';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';

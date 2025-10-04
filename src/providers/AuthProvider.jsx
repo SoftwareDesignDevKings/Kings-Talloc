@@ -11,7 +11,6 @@ import { useEffect, useState } from 'react'
  * @returns 
  */
 const AuthProvider = ({ children }) => {
-    
     const sessionObj = useSession();
     const [isLoading, setIsLoading] = useState(true);    
 

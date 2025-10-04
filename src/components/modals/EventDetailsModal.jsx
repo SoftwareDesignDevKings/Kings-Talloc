@@ -5,7 +5,7 @@ import moment from 'moment';
 import Select from 'react-select';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@firebase/db';
+import { db } from '@/firestore/db.js';
 import BaseModal from './BaseModal.jsx';
 
 const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {

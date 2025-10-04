@@ -1,5 +1,5 @@
 import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc } from 'firebase/firestore';
-import { db } from '@firebase/db';
+import { db } from '@/firestore/db';
 
 export const addOrUpdateEventInQueue = async (event, action) => {
   try {

@@ -1,4 +1,4 @@
-import { db } from '@firebase/db';
+import { db } from '@/firestore/db';
 import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 
 export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, setStudents) => {

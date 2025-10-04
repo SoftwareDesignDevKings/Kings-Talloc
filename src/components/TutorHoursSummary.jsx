@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { db } from '@firebase/db';
+import { db } from '@/firestore/db';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';

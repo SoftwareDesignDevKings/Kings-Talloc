@@ -1,4 +1,4 @@
-import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/utils/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
 
 /**
  * Hook for handling StudentEventForm operations

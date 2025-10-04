@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue } from '@/utils/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue } from '@/firestore/firebaseOperations';
 import { createTeamsMeeting } from '@/utils/msTeams';
 
 /**

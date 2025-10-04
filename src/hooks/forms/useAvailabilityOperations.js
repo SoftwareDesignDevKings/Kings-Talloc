@@ -1,4 +1,4 @@
-import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/utils/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
 
 /**
  * Hook for handling availability CRUD operations

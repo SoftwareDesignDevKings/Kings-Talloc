@@ -5,7 +5,7 @@ import moment from 'moment';
 import Select, { components } from 'react-select';
 import { Form, Row, Col, Alert } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
-import { db } from '@firebase/db';
+import { db } from '@/firestore/db.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useEventForm } from '@/hooks/forms/useEventForm';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
