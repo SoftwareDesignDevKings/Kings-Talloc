@@ -1,4 +1,6 @@
 import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/firestore/clientFirestore';
 
 /**
  * Hook for handling StudentEventForm operations
@@ -31,36 +33,36 @@ export const useStudentEventForm = (eventsData) => {
       approvalStatus: newEvent.approvalStatus || 'pending',
       workStatus: newEvent.workStatus || 'notCompleted',
       locationType: newEvent.locationType || '',
+      subject: newEvent.subject || null,
+      preference: newEvent.preference || null,
     };
 
     try {
       if (isEditing) {
-        await updateEventInFirestore(eventToEdit.id, eventData);
-        eventsData.setAllEvents(eventsData.allEvents.map(event =>
-          event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event
-        ));
+        // Update student request (not approved event)
+        const requestRef = doc(db, 'studentEventRequests', eventToEdit.id);
+        await setDoc(requestRef, eventData);
         await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
       } else {
-        const docId = await createEventInFirestore(eventData);
-        eventData.id = docId;
-        eventsData.setAllEvents([...eventsData.allEvents, { ...eventData, id: docId }]);
+        // Create new student request (not approved event)
+        const requestRef = doc(db, 'studentEventRequests', Date.now().toString());
+        eventData.id = requestRef.id;
+        await setDoc(requestRef, eventData);
         await addOrUpdateEventInQueue(eventData, 'store');
       }
       setShowModal(false);
     } catch (error) {
-      console.error('Failed to submit event:', error);
+      console.error('Failed to submit student request:', error);
     }
   };
 
   const handleDelete = (eventToEdit, setShowModal) => async () => {
     try {
-      await deleteEventFromFirestore(eventToEdit.id);
-      eventsData.setAllEvents(eventsData.allEvents.filter(
-        event => event.id !== eventToEdit.id
-      ));
+      // Delete from studentEventRequests collection
+      await deleteDoc(doc(db, 'studentEventRequests', eventToEdit.id));
       setShowModal(false);
     } catch (error) {
-      console.error('Failed to delete event:', error);
+      console.error('Failed to delete student request:', error);
     }
   };
 

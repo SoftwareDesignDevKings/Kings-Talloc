@@ -8,8 +8,18 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 
   const handleEventDrop = async ({ event, start, end }) => {
     const isAvailability = !!event.tutor;
+    const isStudentRequest = !!event.isStudentRequest;
 
-    if (userRole === 'student' || (userRole === 'tutor' && !isAvailability)) return;
+    // Students can only drag their own student requests
+    if (userRole === 'student') {
+      if (!isStudentRequest) return; // Can't drag approved events
+      // Check if student owns this request
+      const isOwnRequest = event.students?.some(s => s.value === userEmail || s === userEmail);
+      if (!isOwnRequest) return;
+    }
+
+    // Tutors can only drag their own availabilities
+    if (userRole === 'tutor' && !isAvailability) return;
 
     const duration = (event.end - event.start);
     const updatedEnd = new Date(start.getTime() + duration);
@@ -17,10 +27,19 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
     const updatedEvent = { ...event, start, end: updatedEnd };
     const previousEvents = [...eventsData.allEvents];
     const previousAvailabilities = [...eventsData.availabilities];
+    const previousStudentRequests = [...eventsData.studentRequests];
 
+    // Determine which collection to update
+    let collectionName = 'events';
     if (isAvailability) {
+      collectionName = 'tutorAvailabilities';
       eventsData.setAvailabilities(eventsData.availabilities.map(avail =>
         avail.id === event.id ? updatedEvent : avail
+      ));
+    } else if (isStudentRequest) {
+      collectionName = 'studentEventRequests';
+      eventsData.setStudentRequests(eventsData.studentRequests.map(req =>
+        req.id === event.id ? updatedEvent : req
       ));
     } else {
       eventsData.setAllEvents(eventsData.allEvents.map(evt =>
@@ -32,11 +51,13 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
       await updateEventInFirestore(event.id, {
         start: new Date(start),
         end: updatedEnd,
-      }, isAvailability ? 'availabilities' : 'events');
+      }, collectionName);
     } catch (error) {
       console.error('Failed to update event:', error);
       if (isAvailability) {
         eventsData.setAvailabilities(previousAvailabilities);
+      } else if (isStudentRequest) {
+        eventsData.setStudentRequests(previousStudentRequests);
       } else {
         eventsData.setAllEvents(previousEvents);
       }
@@ -45,18 +66,37 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 
   const handleEventResize = async ({ event, start, end }) => {
     const isAvailability = !!event.tutor;
+    const isStudentRequest = !!event.isStudentRequest;
 
-    if (userRole === 'student' || (userRole === 'tutor' && !isAvailability)) {
+    // Students can only resize their own student requests
+    if (userRole === 'student') {
+      if (!isStudentRequest) return; // Can't resize approved events
+      // Check if student owns this request
+      const isOwnRequest = event.students?.some(s => s.value === userEmail || s === userEmail);
+      if (!isOwnRequest) return;
+    }
+
+    // Tutors can only resize their own availabilities
+    if (userRole === 'tutor' && !isAvailability) {
       return;
     }
 
     const updatedEvent = { ...event, start, end };
     const previousEvents = [...eventsData.allEvents];
     const previousAvailabilities = [...eventsData.availabilities];
+    const previousStudentRequests = [...eventsData.studentRequests];
 
+    // Determine which collection to update
+    let collectionName = 'events';
     if (isAvailability) {
+      collectionName = 'tutorAvailabilities';
       eventsData.setAvailabilities(eventsData.availabilities.map(avail =>
         avail.id === event.id ? updatedEvent : avail
+      ));
+    } else if (isStudentRequest) {
+      collectionName = 'studentEventRequests';
+      eventsData.setStudentRequests(eventsData.studentRequests.map(req =>
+        req.id === event.id ? updatedEvent : req
       ));
     } else {
       eventsData.setAllEvents(eventsData.allEvents.map(evt =>
@@ -68,9 +108,9 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
       await updateEventInFirestore(event.id, {
         start: new Date(start),
         end: new Date(end),
-      }, isAvailability ? 'availabilities' : 'events');
+      }, collectionName);
 
-      if (!isAvailability && !event.createdByStudent && event.approvalStatus === "approved") {
+      if (!isAvailability && !isStudentRequest && !event.createdByStudent && event.approvalStatus === "approved") {
         // TODO: add the updateTeamsMeeting func
       }
 
@@ -78,6 +118,8 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
       console.error('Failed to update event:', error);
       if (isAvailability) {
         eventsData.setAvailabilities(previousAvailabilities);
+      } else if (isStudentRequest) {
+        eventsData.setStudentRequests(previousStudentRequests);
       } else {
         eventsData.setAllEvents(previousEvents);
       }
@@ -86,10 +128,10 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 
   const handleDeleteEvent = async (eventToEdit, modals) => {
     if (eventToEdit && eventToEdit.id) {
-      const collectionName = eventToEdit.tutor ? 'availabilities' : 'events';
+      const collectionName = eventToEdit.tutor ? 'tutorAvailabilities' : 'events';
       try {
         await deleteEventFromFirestore(eventToEdit.id, collectionName);
-        if (collectionName === 'availabilities') {
+        if (collectionName === 'tutorAvailabilities') {
           eventsData.setAvailabilities(eventsData.availabilities.filter(availability =>
             availability.id !== eventToEdit.id
           ));

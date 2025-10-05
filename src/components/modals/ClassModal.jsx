@@ -50,7 +50,7 @@ const ClassModal = ({
           onChange={setSelectedSubject}
           getOptionLabel={(option) => option.name}
           getOptionValue={(option) => option.id}
-          className="basic-select"
+          className="tw-w-full tw-mb-4"
           classNamePrefix="select"
           placeholder="Select a subject"
           required

@@ -1,5 +1,3 @@
-/* styles.css or any global CSS file */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,67 +8,12 @@
 }
 
 body {
-  color: #000000; /* Ensure body text is always black */
-  background-color: #ffffff; /* Ensure background is always white */
+  color: #000000;
+  background-color: #ffffff;
   min-height: 100vh;
 }
 
-.calendar-container {
-  @apply tw-flex tw-h-full;
-}
-
-.calendar-panel {
-  @apply tw-flex-1 tw-p-5 tw-overflow-hidden tw-relative;
-  padding-right: 3rem;
-  background-color: var(--calendar-bg) !important;
-  color: var(--calendar-text) !important;
-}
-
-.filter-panel {
-  @apply tw-bg-gray-100 tw-border-l tw-border-gray-300 tw-flex tw-flex-col tw-items-start tw-transition-all tw-duration-300;
-  width: 16rem;
-  position: relative;
-  background-color: var(--calendar-bg) !important;
-  color: var(--calendar-text) !important;
-}
-
-.filter-panel.collapsed {
-  width: 0;
-}
-
-.collapse-button {
-  @apply tw-bg-indigo-500 tw-text-white tw-rounded-l-md tw-shadow-md hover:tw-bg-indigo-600 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-indigo-400 tw-transition-all tw-duration-200;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  left: -2.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  cursor: pointer;
-}
-
-.filter-title {
-  @apply tw-mb-4 tw-text-xl tw-font-semibold tw-text-gray-700;
-}
-
-.filter-content {
-  @apply tw-flex tw-flex-col tw-items-start tw-w-full tw-p-4;
-}
-
-.basic-select,
-.basic-multi-select {
-  @apply tw-w-full tw-mb-4;
-}
-
-.checkbox-group {
-  @apply tw-mb-4;
-}
-
-/* Ensure calendar text color */
+/* React Big Calendar fixes */
 .rbc-calendar {
   color: var(--calendar-text) !important;
 }
@@ -117,7 +60,7 @@ body {
 }
 
 .rbc-time-slot {
-  min-height: 30px; /* Adjust this value as needed */
+  min-height: 30px;
 }
 
 .rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper {
@@ -134,4 +77,58 @@ body {
 
 .rbc-time-gutter .custom-time-slot-wrapper .custom-slot-text {
   display: none;
+}
+
+/* Fix React Big Calendar column alignment issues */
+/* Critical: Force flex layout for time content wrapper */
+.rbc-time-content {
+  display: flex !important;
+  flex: 1 0 0% !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  position: relative;
+}
+
+/* Critical: Each day column must flex equally */
+.rbc-time-content > .rbc-day-slot {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important;
+}
+
+/* Critical: Header content must match */
+.rbc-time-header-content {
+  display: flex !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+}
+
+/* Critical: Header cells must flex equally */
+.rbc-header {
+  flex: 1 0 0% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure header row is flexbox */
+.rbc-row {
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+/* Time gutter should not flex */
+.rbc-time-gutter {
+  flex: none !important;
+}
+
+/* Ensure consistent box-sizing across calendar */
+.rbc-calendar,
+.rbc-calendar *,
+.rbc-calendar *:before,
+.rbc-calendar *:after {
+  box-sizing: border-box !important;
 }

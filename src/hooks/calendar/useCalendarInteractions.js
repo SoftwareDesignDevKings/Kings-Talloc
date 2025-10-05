@@ -64,37 +64,47 @@ export const useCalendarInteractions = (userRole, userEmail, forms) => {
   };
 
   const handleSelectEvent = (event) => {
+    // Tutor clicked on an availability
     if (event.tutor) {
+      // Only tutors can edit their own availabilities
       if (userRole === 'tutor' && event.tutor === userEmail) {
         setNewAvailability(event);
         forms.setIsEditing(true);
         forms.setEventToEdit(event);
         forms.setShowAvailabilityForm(true);
       } else {
+        // Everyone else just views details
         forms.setEventToEdit(event);
         forms.setShowDetailsModal(true);
       }
-    } else {
-      if (userRole === 'teacher') {
+      return;
+    }
+
+    // Teachers can edit all events (approved events)
+    if (userRole === 'teacher') {
+      setNewEvent(event);
+      forms.setIsEditing(true);
+      forms.setEventToEdit(event);
+      forms.setShowTeacherForm(true);
+      return;
+    }
+
+    // Students can only edit their own pending student requests
+    if (userRole === 'student' && event.isStudentRequest) {
+      // Check if student owns this request
+      const isOwnRequest = event.students?.some(s => s.value === userEmail || s === userEmail);
+      if (isOwnRequest) {
         setNewEvent(event);
         forms.setIsEditing(true);
         forms.setEventToEdit(event);
-        forms.setShowTeacherForm(true);
-      } else if (userRole === 'student' && event.createdByStudent) {
-        if (event.approvalStatus === 'pending') {
-          setNewEvent(event);
-          forms.setIsEditing(true);
-          forms.setEventToEdit(event);
-          forms.setShowStudentForm(true);
-        } else {
-          forms.setEventToEdit(event);
-          forms.setShowDetailsModal(true);
-        }
-      } else {
-        forms.setEventToEdit(event);
-        forms.setShowDetailsModal(true);
+        forms.setShowStudentForm(true);
+        return;
       }
     }
+
+    // Default: just show details modal
+    forms.setEventToEdit(event);
+    forms.setShowDetailsModal(true);
   };
 
   return {

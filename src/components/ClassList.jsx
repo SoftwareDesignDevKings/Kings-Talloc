@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { db } from "@/firestore/db.js";
+import { db } from "@/firestore/clientFirestore.js";
 import {
   collection,
   getDocs,
@@ -119,7 +119,7 @@ const ClassList = () => {
         const userRef = doc(db, "users", email);
         const userDoc = await getDoc(userRef);
         if (!userDoc.exists()) {
-          await setDoc(userRef, { email, role: "student" }, { merge: true });
+          // User doesn't exist - role will be created on first login (server-side)
           return { email, name: "" };
         } else {
           const userData = userDoc.data();

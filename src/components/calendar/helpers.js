@@ -11,6 +11,7 @@ const calculateGreenIntensity = (numTutors, maxTutors) => {
 export const eventStyleGetter = (event, userRole, userEmail) => {
   // Figure out what type of event this is
   const isAvailability = event.tutor !== undefined && event.tutor !== null;
+  const isStudentRequest = event.isStudentRequest === true;
   const isStudentEvent = event.createdByStudent === true;
 
   // Check if the current student has responded
@@ -52,6 +53,12 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   } else if (event.workStatus === 'notAttended') {
     backgroundColor = 'lightcoral';
     borderColor = 'red';
+  }
+
+  // --- Student requests (pending approval) ---
+  if (isStudentRequest) {
+    backgroundColor = 'red';
+    borderColor = 'darkred';
   }
 
   // --- Tutor availabilities ---

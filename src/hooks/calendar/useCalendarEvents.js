@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors } from '@/firestore/firebaseFetch';
+import { fetchEvents, fetchAvailabilities, fetchSubjectsWithTutors, fetchTutors, fetchStudentRequests } from '@/firestore/firebaseFetch';
 import { splitAvailabilities } from '@components/calendar/availabilityUtils';
 
 /**
@@ -10,6 +10,7 @@ import { splitAvailabilities } from '@components/calendar/availabilityUtils';
 export const useCalendarEvents = (userRole, userEmail) => {
   const [allEvents, setAllEvents] = useState([]);
   const [availabilities, setAvailabilities] = useState([]);
+  const [studentRequests, setStudentRequests] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [tutors, setTutors] = useState([]);
   const [students, setStudents] = useState([]);
@@ -18,6 +19,7 @@ export const useCalendarEvents = (userRole, userEmail) => {
   useEffect(() => {
     fetchEvents(userRole, userEmail, setAllEvents, setAllEvents, setStudents);
     fetchAvailabilities(setAvailabilities);
+    fetchStudentRequests(setStudentRequests);
     fetchSubjectsWithTutors(setSubjects);
     fetchTutors(setTutors);
   }, [userRole, userEmail]);
@@ -33,6 +35,8 @@ export const useCalendarEvents = (userRole, userEmail) => {
     setAllEvents,
     availabilities,
     setAvailabilities,
+    studentRequests,
+    setStudentRequests,
     splitAvailabilitiesData,
     subjects,
     tutors,

@@ -1,4 +1,4 @@
-import { db } from '@/firestore/db';
+import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 
 export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, setStudents) => {
@@ -48,7 +48,7 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
 
 
 export const fetchAvailabilities = async (setAvailabilities) => {
-  const q = query(collection(db, 'availabilities'));
+  const q = query(collection(db, 'tutorAvailabilities'));
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const availabilitiesFromDb = querySnapshot.docs.map(doc => ({
       ...doc.data(),
@@ -58,6 +58,23 @@ export const fetchAvailabilities = async (setAvailabilities) => {
     }));
 
     setAvailabilities(availabilitiesFromDb);
+  });
+
+  return () => unsubscribe();
+};
+
+export const fetchStudentRequests = async (setStudentRequests) => {
+  const q = query(collection(db, 'studentEventRequests'));
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const requestsFromDb = querySnapshot.docs.map(doc => ({
+      ...doc.data(),
+      id: doc.id,
+      start: doc.data().start.toDate(),
+      end: doc.data().end.toDate(),
+      isStudentRequest: true, // Flag to identify student requests
+    }));
+
+    setStudentRequests(requestsFromDb);
   });
 
   return () => unsubscribe();

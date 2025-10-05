@@ -8,10 +8,10 @@ import ClassList from "@components/ClassList.jsx";
 import TutorHoursSummary from "@components/TutorHoursSummary.jsx";
 import SubjectList from "@components/SubjectList.jsx";
 import LoadingPage from "@components/LoadingPage.jsx";
-import { useUserRole } from "@/hooks/auth/useUserInfo";
+import { useAuthSession } from "@/hooks/auth/useAuthSession";
 
 const Dashboard = () =>  {
-  const { session, userRole, loading } = useUserRole();
+  const { session, userRole, loading } = useAuthSession();
   const [activeSection, setActiveSection] = useState("calendar");
 
   // Show loading while fetching user role

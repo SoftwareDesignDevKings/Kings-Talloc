@@ -65,7 +65,7 @@ const CalendarContent = () => {
     [getFilteredAvailabilities, eventsData.splitAvailabilitiesData]
   );
 
-  // Combine filtered events and availabilities based on user role and visibility
+  // Combine filtered events, student requests, and availabilities based on user role and visibility
   const finalEvents = useMemo(() => {
     if (!uiState.showEvents) return [];
 
@@ -73,11 +73,18 @@ const CalendarContent = () => {
       const tutorAvailabilities = eventsData.splitAvailabilitiesData.filter(
         avail => avail.tutor === userEmail && !filterState.filters.visibility.hideOwnAvailabilities
       );
+      // Tutors don't see student requests - it clogs the calendar
       return [...filteredEvents, ...tutorAvailabilities];
     }
 
-    return filteredEvents;
-  }, [uiState.showEvents, userRole, userEmail, filteredEvents, eventsData.splitAvailabilitiesData, filterState.filters.visibility.hideOwnAvailabilities]);
+    if (userRole === 'student') {
+      // Students see their own requests
+      return [...filteredEvents, ...eventsData.studentRequests];
+    }
+
+    // Teachers see everything including student requests
+    return [...filteredEvents, ...eventsData.studentRequests];
+  }, [uiState.showEvents, userRole, userEmail, filteredEvents, eventsData.splitAvailabilitiesData, eventsData.studentRequests, filterState.filters.visibility.hideOwnAvailabilities]);
 
   const minTime = moment(calendarStartTime, "HH:mm").toDate();
   const maxTime = moment(calendarEndTime, "HH:mm").toDate();
@@ -92,9 +99,20 @@ const CalendarContent = () => {
   const currentWeekStart = moment(currentDate).startOf('week');
   const currentWeekEnd = moment(currentDate).endOf('week');
 
+  const calendarContainerStyle = {
+    backgroundColor: '#ffffff',
+    color: '#000000'
+  };
+
+  const calendarPanelStyle = {
+    paddingRight: '3rem',
+    backgroundColor: '#ffffff',
+    color: '#000000'
+  };
+
   return (
-    <div className="calendar-container">
-      <div className="calendar-panel">
+    <div className="tw-flex tw-h-full" style={calendarContainerStyle}>
+      <div className="tw-flex-1 tw-p-5 tw-overflow-hidden tw-relative" style={calendarPanelStyle}>
         <DnDCalendar
           localizer={localizer}
           events={finalEvents}

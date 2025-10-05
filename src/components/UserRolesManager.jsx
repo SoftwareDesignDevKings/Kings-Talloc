@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { db } from '@/firestore/db';
+import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 
 const UserRolesManager = () => {

@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to get user role from users collection
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role;
+    }
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is teacher (admin)
+    function isTeacher() {
+      return isAuthenticated() && getUserRole() == 'teacher';
+    }
+
+    // Helper function to check if user is tutor
+    function isTutor() {
+      return isAuthenticated() && getUserRole() == 'tutor';
+    }
+
+    // Helper function to check if user is student
+    function isStudent() {
+      return isAuthenticated() && getUserRole() == 'student';
+    }
+
+    // Helper to check if user's email is in students array (students is array of {value: email, label: name})
+    function isStudentInList(students) {
+      return students.hasAny([request.auth.token.email]) ||
+             students.map((s) => s.value).hasAny([request.auth.token.email]);
+    }
+
+    // Users collection - only teachers can modify roles
+    match /users/{email} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.token.email == email;
+      allow update: if isTeacher() || (isAuthenticated() && request.auth.token.email == email && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      allow delete: if isTeacher();
+    }
+
+    // Events collection (APPROVED events only - counts for payroll/hours)
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+
+      // Only teachers can create/approve final events
+      allow create, delete: if isTeacher();
+
+      // Teachers can update everything, tutors can only update workStatus
+      allow update: if isTeacher()
+        || (isTutor() && request.auth.token.email in resource.data.staff && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
+    }
+
+    // Email Events Queue collection (temporary queue for email notifications)
+    match /emailEventsQueue/{eventId} {
+      allow read: if isAuthenticated();
+
+      // Students and tutors can create event requests
+      allow create: if isStudent() || isTutor();
+
+      // Only teachers can approve/reject (update/delete)
+      allow update, delete: if isTeacher();
+    }
+
+    // Student Event Requests collection (displays on calendar in red, no payroll impact)
+    match /studentEventRequests/{requestId} {
+      allow read: if isAuthenticated();
+
+      // Students can create their own requests
+      allow create: if isStudent();
+
+      // Teachers can do anything, students can update/delete their own requests
+      allow update, delete: if isTeacher()
+        || (isStudent() && isStudentInList(resource.data.students));
+    }
+
+    // Tutor Availabilities collection (tutor availability slots)
+    match /tutorAvailabilities/{availabilityId} {
+      allow read: if isAuthenticated();
+      allow create: if isTutor() && request.auth.token.email == request.resource.data.email;
+      allow update: if isTeacher() || (isTutor() && request.auth.token.email == resource.data.email);
+      allow delete: if isTeacher() || (isTutor() && request.auth.token.email == resource.data.email);
+    }
+
+    // Classes collection - only teachers can modify
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow write: if isTeacher();
+    }
+
+    // Subjects collection - only teachers can modify
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow write: if isTeacher();
+    }
+  }
+}

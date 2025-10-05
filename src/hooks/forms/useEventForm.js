@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue } from '@/firestore/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
 import { createTeamsMeeting } from '@/utils/msTeams';
 
 /**
@@ -49,25 +49,61 @@ export const useEventForm = (eventsData) => {
       approvalStatus: newEvent.approvalStatus || 'pending',
       workStatus: newEvent.workStatus || 'notCompleted',
       locationType: newEvent.locationType || '',
+      subject: newEvent.subject || null,
+      preference: newEvent.preference || null,
     };
 
     try {
       if (isEditing) {
-        await updateEventInFirestore(eventToEdit.id, eventData);
-        eventsData.setAllEvents(eventsData.allEvents.map(event =>
-          event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event
-        ));
-        await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+        console.log('DEBUG: Editing event', {
+          isStudentRequest: eventToEdit.isStudentRequest,
+          approvalStatus: eventData.approvalStatus,
+          eventToEdit
+        });
 
-        // Check if event was just approved and create Teams meeting
-        if (eventData.approvalStatus === "approved" && eventToEdit.approvalStatus !== "approved") {
+        // If this is a student request being approved, move it from studentEventRequests to events
+        if (eventToEdit.isStudentRequest && eventData.approvalStatus === "approved") {
+          console.log('DEBUG: Approving student request - moving to events collection');
+          // Delete from studentEventRequests
+          await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
+
+          // Create in events collection (approved event)
+          const docId = await createEventInFirestore(eventData);
+          eventData.id = docId;
+          eventsData.setAllEvents([...eventsData.allEvents.filter(e => e.id !== eventToEdit.id), { ...eventData, id: docId }]);
+
+          await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
+
+          // Create Teams meeting
           const subject = eventData.title;
           const description = eventData.description || "";
           const startTime = new Date(eventData.start).toISOString();
           const endTime = new Date(eventData.end).toISOString();
           const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
 
-          await createTeamsMeeting({ ...eventData, id: eventToEdit.id }, subject, description, startTime, endTime, attendeesEmailArr);
+          await createTeamsMeeting({ ...eventData, id: docId }, subject, description, startTime, endTime, attendeesEmailArr);
+        } else if (eventToEdit.isStudentRequest) {
+          // Student request being edited but not approved - update in studentEventRequests
+          await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
+          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+        } else {
+          // Regular event update
+          await updateEventInFirestore(eventToEdit.id, eventData);
+          eventsData.setAllEvents(eventsData.allEvents.map(event =>
+            event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event
+          ));
+          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+
+          // Check if event was just approved and create Teams meeting
+          if (eventData.approvalStatus === "approved" && eventToEdit.approvalStatus !== "approved") {
+            const subject = eventData.title;
+            const description = eventData.description || "";
+            const startTime = new Date(eventData.start).toISOString();
+            const endTime = new Date(eventData.end).toISOString();
+            const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+
+            await createTeamsMeeting({ ...eventData, id: eventToEdit.id }, subject, description, startTime, endTime, attendeesEmailArr);
+          }
         }
       } else {
         const docId = await createEventInFirestore(eventData);

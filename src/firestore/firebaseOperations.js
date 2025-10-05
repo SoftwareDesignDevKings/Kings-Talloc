@@ -1,28 +1,28 @@
 import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc } from 'firebase/firestore';
-import { db } from '@/firestore/db';
+import { db } from '@/firestore/clientFirestore';
 
 export const addOrUpdateEventInQueue = async (event, action) => {
   try {
-    const eventDoc = doc(db, 'eventsQueue', event.id);
+    const eventDoc = doc(db, 'emailEventsQueue', event.id);
     await setDoc(eventDoc, {
       ...event,
       timestamp: new Date(),
     });
-    return { message: `Event ${action}d successfully in queue` };
+    return { message: `Event ${action}d successfully in email queue` };
   } catch (error) {
-    console.error(`Error during ${action} event in queue:`, error);
-    throw new Error(`Failed to ${action} event in queue`);
+    console.error(`Error during ${action} event in email queue:`, error);
+    throw new Error(`Failed to ${action} event in email queue`);
   }
 };
 
 export const removeEventFromQueue = async (id) => {
   try {
-    const eventDoc = doc(db, 'eventsQueue', id);
+    const eventDoc = doc(db, 'emailEventsQueue', id);
     await deleteDoc(eventDoc);
-    return { message: 'Event removed successfully from queue' };
+    return { message: 'Event removed successfully from email queue' };
   } catch (error) {
-    console.error('Error removing event from queue:', error);
-    throw new Error('Failed to remove event from queue');
+    console.error('Error removing event from email queue:', error);
+    throw new Error('Failed to remove event from email queue');
   }
 };
 

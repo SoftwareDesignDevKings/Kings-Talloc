@@ -3,12 +3,17 @@
 import React, { useState } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
-import { Form, Button, Row, Col } from 'react-bootstrap';
+import { Form, Button, Row, Col, Badge } from 'react-bootstrap';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/firestore/db.js';
+import { db } from '@/firestore/clientFirestore.js';
 import BaseModal from './BaseModal.jsx';
 
 const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
+  console.log('EventDetailsModal - event:', event);
+  console.log('createdByStudent:', event.createdByStudent);
+  console.log('subject:', event.subject);
+  console.log('preference:', event.preference);
+
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
   const [response, setResponse] = useState(studentResponse ? (studentResponse.response ? 'accepted' : 'declined') : '');
   const [workStatus, setWorkStatus] = useState(event.workStatus || 'notCompleted');
@@ -177,6 +182,30 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
           classNamePrefix="select"
         />
       </Form.Group>
+
+      {(event.createdByStudent || event.isStudentRequest) && event.subject && (
+        <Form.Group className="mb-2">
+          <Form.Label>Subject</Form.Label>
+          <Form.Control
+            type="text"
+            value={typeof event.subject === 'object' ? event.subject.label : event.subject}
+            readOnly
+            className="bg-light"
+            size="sm"
+          />
+        </Form.Group>
+      )}
+
+      {(event.createdByStudent || event.isStudentRequest) && event.preference && (
+        <Form.Group className="mb-2">
+          <Form.Label>Preference</Form.Label>
+          <div>
+            <Badge bg="primary" className="fs-6 fw-normal">
+              {event.preference}
+            </Badge>
+          </div>
+        </Form.Group>
+      )}
 
       {userRole === 'student' && event.minStudents > 0 && (
         <Form.Group className="mb-2">

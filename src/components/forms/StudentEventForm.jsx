@@ -3,19 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select from 'react-select';
-import { Form, Alert } from 'react-bootstrap';
+import { Form, Alert, Button, ButtonGroup } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
-import { db } from '@/firestore/db.js';
+import { db } from '@/firestore/clientFirestore.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { fetchAvailabilities } from '../../firestore/firebaseFetch';
 
 const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange, handleSubmit, handleDelete, setShowStudentModal, studentEmail }) => {
   const [tutorOptions, setTutorOptions] = useState([]);
+  const [subjectOptions, setSubjectOptions] = useState([]);
   const [filteredTutors, setFilteredTutors] = useState([]);
   const [selectedTutor, setSelectedTutor] = useState(newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null);
+  const [selectedSubject, setSelectedSubject] = useState(newEvent.subject || null);
+  const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
   const [selectedStudent, setSelectedStudent] = useState(newEvent.students && newEvent.students.length > 0 ? newEvent.students[0] : { value: studentEmail, label: studentEmail });
   const [availabilities, setAvailabilities] = useState([]);
   const [error, setError] = useState('');
+
+  const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
 
   useEffect(() => {
     const fetchTutors = async () => {
@@ -28,8 +33,18 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
       setTutorOptions(tutorList);
     };
 
+    const fetchSubjects = async () => {
+      const querySnapshot = await getDocs(collection(db, 'subjects'));
+      const subjectList = querySnapshot.docs.map(doc => ({
+        value: doc.id,
+        label: doc.data().name,
+      }));
+      setSubjectOptions(subjectList);
+    };
+
     const fetchAllData = async () => {
       await fetchTutors();
+      await fetchSubjects();
       await fetchAvailabilities(setAvailabilities);
     };
 
@@ -45,6 +60,16 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
   const handleTutorSelectChange = (selectedOption) => {
     setSelectedTutor(selectedOption);
     setNewEvent({ ...newEvent, staff: [selectedOption] });
+  };
+
+  const handleSubjectChange = (selectedOption) => {
+    setSelectedSubject(selectedOption);
+    setNewEvent({ ...newEvent, subject: selectedOption });
+  };
+
+  const handlePreferenceClick = (preference) => {
+    setSelectedPreference(preference);
+    setNewEvent({ ...newEvent, preference });
   };
 
   const validateDates = () => {
@@ -88,6 +113,9 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
   const onSubmit = (e) => {
     e.preventDefault();
     if (validateDates()) {
+      // Set title to just "Tutoring"
+      newEvent.title = 'Tutoring';
+
       handleSubmit(e);
     }
   };
@@ -113,30 +141,6 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
       {error && <Alert variant="danger">{error}</Alert>}
 
       <Form.Group className="mb-3">
-        <Form.Label htmlFor="title">Title</Form.Label>
-        <Form.Control
-          type="text"
-          name="title"
-          id="title"
-          value={newEvent.title}
-          onChange={handleInputChange}
-          required
-          disabled={!isStudentCreated}
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label htmlFor="description">Description</Form.Label>
-        <Form.Control
-          as="textarea"
-          rows={3}
-          name="description"
-          id="description"
-          value={newEvent.description}
-          onChange={handleInputChange}
-          disabled={!isStudentCreated}
-        />
-      </Form.Group>
-      <Form.Group className="mb-3">
         <Form.Label htmlFor="start">Start Time</Form.Label>
         <Form.Control
           type="datetime-local"
@@ -159,6 +163,34 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           required
           disabled={!isStudentCreated}
         />
+      </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label htmlFor="subject">Subject</Form.Label>
+        <Select
+          name="subject"
+          options={subjectOptions}
+          value={selectedSubject}
+          onChange={handleSubjectChange}
+          classNamePrefix="select"
+          placeholder="Select a subject"
+          isDisabled={!isStudentCreated}
+        />
+      </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label>Preference</Form.Label>
+        <div className="d-flex flex-wrap gap-2">
+          {preferenceOptions.map((preference) => (
+            <Button
+              key={preference}
+              variant={selectedPreference === preference ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => handlePreferenceClick(preference)}
+              disabled={!isStudentCreated}
+            >
+              {preference}
+            </Button>
+          ))}
+        </div>
       </Form.Group>
       <Form.Group className="mb-3">
         <Form.Label htmlFor="tutor">Assign Tutor</Form.Label>

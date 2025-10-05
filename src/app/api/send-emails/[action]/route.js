@@ -4,6 +4,9 @@ import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { DateTime } from 'luxon';
 
 export async function GET(req, { params }) {
+  // Temporarily disabled
+  return new Response(JSON.stringify({ message: 'Email sending temporarily disabled' }), { status: 503 });
+
   const { action } = params;
 
   if (action !== 'send') {
@@ -72,15 +75,15 @@ export async function GET(req, { params }) {
   };
 
   try {
-    const querySnapshot = await getDocs(collection(db, 'eventsQueue'));
-    const eventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getDocs(collection(db, 'emailEventsQueue'));
+    const emailEventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    if (eventsQueue.length > 0) {
-      await sendEmailNotification(eventsQueue);
+    if (emailEventsQueue.length > 0) {
+      await sendEmailNotification(emailEventsQueue);
 
-      // Delete processed events from the queue
-      const deletePromises = eventsQueue.map(event => {
-        return deleteDoc(doc(db, 'eventsQueue', event.id));
+      // Delete processed events from the email queue
+      const deletePromises = emailEventsQueue.map(event => {
+        return deleteDoc(doc(db, 'emailEventsQueue', event.id));
       });
       await Promise.all(deletePromises);
 

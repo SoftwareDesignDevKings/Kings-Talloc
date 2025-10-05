@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import Select, { components } from 'react-select';
-import { Form, Row, Col, Alert } from 'react-bootstrap';
+import { Form, Row, Col, Alert, Badge } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
-import { db } from '@/firestore/db.js';
+import { db } from '@/firestore/clientFirestore.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useEventForm } from '@/hooks/forms/useEventForm';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
@@ -43,7 +43,7 @@ const EventForm = ({
       const staffList = await Promise.all(querySnapshot.docs.map(async docSnap => {
         const tutorData = docSnap.data();
         const availabilityQuery = query(
-          collection(db, 'availabilities'),
+          collection(db, 'tutorAvailabilities'),
           where('tutor', '==', docSnap.id)
         );
         const availabilitySnapshot = await getDocs(availabilityQuery);
@@ -323,6 +323,29 @@ const EventForm = ({
                     ) : (
                       <p className="text-muted mb-0">No students have responded yet.</p>
                     )}
+              </Form.Group>
+                )}
+
+                {newEvent.createdByStudent && newEvent.subject && (
+              <Form.Group className="mb-3">
+                <Form.Label>Subject (Student Request)</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={newEvent.subject.label || newEvent.subject}
+                  readOnly
+                  className="bg-light"
+                />
+              </Form.Group>
+                )}
+
+                {newEvent.createdByStudent && newEvent.preference && (
+              <Form.Group className="mb-3">
+                <Form.Label>Preference (Student Request)</Form.Label>
+                <div>
+                  <Badge bg="primary" className="fs-6 fw-normal">
+                    {newEvent.preference}
+                  </Badge>
+                </div>
               </Form.Group>
                 )}
 
