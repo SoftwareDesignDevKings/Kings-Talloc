@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import { eventStyleGetter, messages } from './calendar/helpers';
 import CalendarFilterPanel from './calendar/CalendarFilterPanel.jsx';
-import EventForm from './forms/EventForm.jsx';
-import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
-import StudentEventForm from './forms/StudentEventForm.jsx';
-import EventDetailsModal from './modals/EventDetailsModal.jsx';
 import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper.jsx';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+
+// Load calendar CSS only when calendar is rendered
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
 // Context and Provider
 import { CalendarProvider } from '@/providers/CalendarProvider';
@@ -21,6 +21,12 @@ import { useCalendarInteractions } from '@/hooks/calendar/useCalendarInteraction
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 import { useTutorAvailabilityForm } from '@/hooks/forms/useTutorAvailabilityForm';
 import { useStudentEventForm } from '@/hooks/forms/useStudentEventForm';
+
+// Lazy load heavy form/modal components - only load when needed
+const EventForm = lazy(() => import('./forms/EventForm.jsx'));
+const TutorAvailabilityForm = lazy(() => import('./forms/TutorAvailabilityForm.jsx'));
+const StudentEventForm = lazy(() => import('./forms/StudentEventForm.jsx'));
+const EventDetailsModal = lazy(() => import('./modals/EventDetailsModal.jsx'));
 
 moment.updateLocale('en', { week: { dow: 1 } });
 
@@ -157,55 +163,57 @@ const CalendarContent = () => {
         uniqueTutors={uniqueTutors}
       />
 
-      {/* render different forms depending on role */}
-      {forms.showTeacherForm && userRole === 'teacher' && (
-        <EventForm
-          isEditing={forms.isEditing}
-          newEvent={calendarInteractions.newEvent}
-          setNewEvent={calendarInteractions.setNewEvent}
-          eventToEdit={forms.eventToEdit}
-          setShowModal={forms.setShowTeacherForm}
-          eventsData={eventsData}
-        />
-      )}
-      {forms.showStudentForm && userRole === 'student' && (
-        <StudentEventForm
-          isEditing={forms.isEditing}
-          newEvent={calendarInteractions.newEvent}
-          setNewEvent={calendarInteractions.setNewEvent}
-          eventToEdit={forms.eventToEdit}
-          setShowStudentModal={forms.setShowStudentForm}
-          studentEmail={userEmail}
-          eventsData={eventsData}
-          handleInputChange={studentEventForm.handleInputChange(calendarInteractions.newEvent, calendarInteractions.setNewEvent)}
-          handleSubmit={studentEventForm.handleSubmit(calendarInteractions.newEvent, forms.isEditing, forms.eventToEdit, forms.setShowStudentForm)}
-          handleDelete={studentEventForm.handleDelete(forms.eventToEdit, forms.setShowStudentForm)}
-        />
-      )}
-      {forms.showAvailabilityForm && userRole === 'tutor' && (
-        <TutorAvailabilityForm
-          isEditing={forms.isEditing}
-          newAvailability={calendarInteractions.newAvailability}
-          setNewAvailability={calendarInteractions.setNewAvailability}
-          eventToEdit={forms.eventToEdit}
-          setShowModal={forms.setShowAvailabilityForm}
-          eventsData={eventsData}
-          handleInputChange={tutorAvailabilityForm.handleInputChange(calendarInteractions.newAvailability, calendarInteractions.setNewAvailability)}
-          handleSubmit={tutorAvailabilityForm.handleSubmit(calendarInteractions.newAvailability, forms.isEditing, forms.eventToEdit, forms.setShowAvailabilityForm)}
-          handleDelete={tutorAvailabilityForm.handleDelete(forms.eventToEdit, forms.setShowAvailabilityForm)}
-        />
-      )}
-      {forms.showDetailsModal && (
-        <EventDetailsModal
-          event={forms.eventToEdit}
-          handleClose={() => forms.setShowDetailsModal(false)}
-          handleConfirmation={eventOperations.handleConfirmation}
-          userEmail={userEmail}
-          userRole={userRole}
-          events={eventsData.allEvents}
-          setEvents={eventsData.setAllEvents}
-        />
-      )}
+      {/* render different forms depending on role - lazy loaded */}
+      <Suspense fallback={<div className="tw-fixed tw-inset-0 tw-bg-black tw-bg-opacity-50 tw-flex tw-items-center tw-justify-center tw-z-50">Loading...</div>}>
+        {forms.showTeacherForm && userRole === 'teacher' && (
+          <EventForm
+            isEditing={forms.isEditing}
+            newEvent={calendarInteractions.newEvent}
+            setNewEvent={calendarInteractions.setNewEvent}
+            eventToEdit={forms.eventToEdit}
+            setShowModal={forms.setShowTeacherForm}
+            eventsData={eventsData}
+          />
+        )}
+        {forms.showStudentForm && userRole === 'student' && (
+          <StudentEventForm
+            isEditing={forms.isEditing}
+            newEvent={calendarInteractions.newEvent}
+            setNewEvent={calendarInteractions.setNewEvent}
+            eventToEdit={forms.eventToEdit}
+            setShowStudentModal={forms.setShowStudentForm}
+            studentEmail={userEmail}
+            eventsData={eventsData}
+            handleInputChange={studentEventForm.handleInputChange(calendarInteractions.newEvent, calendarInteractions.setNewEvent)}
+            handleSubmit={studentEventForm.handleSubmit(calendarInteractions.newEvent, forms.isEditing, forms.eventToEdit, forms.setShowStudentForm)}
+            handleDelete={studentEventForm.handleDelete(forms.eventToEdit, forms.setShowStudentForm)}
+          />
+        )}
+        {forms.showAvailabilityForm && userRole === 'tutor' && (
+          <TutorAvailabilityForm
+            isEditing={forms.isEditing}
+            newAvailability={calendarInteractions.newAvailability}
+            setNewAvailability={calendarInteractions.setNewAvailability}
+            eventToEdit={forms.eventToEdit}
+            setShowModal={forms.setShowAvailabilityForm}
+            eventsData={eventsData}
+            handleInputChange={tutorAvailabilityForm.handleInputChange(calendarInteractions.newAvailability, calendarInteractions.setNewAvailability)}
+            handleSubmit={tutorAvailabilityForm.handleSubmit(calendarInteractions.newAvailability, forms.isEditing, forms.eventToEdit, forms.setShowAvailabilityForm)}
+            handleDelete={tutorAvailabilityForm.handleDelete(forms.eventToEdit, forms.setShowAvailabilityForm)}
+          />
+        )}
+        {forms.showDetailsModal && (
+          <EventDetailsModal
+            event={forms.eventToEdit}
+            handleClose={() => forms.setShowDetailsModal(false)}
+            handleConfirmation={eventOperations.handleConfirmation}
+            userEmail={userEmail}
+            userRole={userRole}
+            events={eventsData.allEvents}
+            setEvents={eventsData.setAllEvents}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

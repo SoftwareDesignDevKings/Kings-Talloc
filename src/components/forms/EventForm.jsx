@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import moment from 'moment';
 import Select, { components } from 'react-select';
 import { Form, Row, Col, Alert, Badge, Accordion } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
-import { db } from '@/firestore/clientFirestore.js';
-import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useEventForm } from '@/hooks/forms/useEventForm';
+import { useEventFormData } from '@/hooks/forms/useEventFormData';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
-import { MdEventNote, MdPeople, MdSettings, MdNoteAlt, MdAccessTime, MdSchool, MdMenuBook, MdFlag } from 'react-icons/md';
-import { FaChalkboardTeacher, FaUserGraduate } from 'react-icons/fa';
+import { MdEventNote, MdPeople, MdSettings, MdNoteAlt, MdAccessTime, MdSchool, MdMenuBook, MdFlag, FaChalkboardTeacher, FaUserGraduate } from '@/components/icons';
 
 const EventForm = ({
   isEditing,
@@ -21,11 +19,8 @@ const EventForm = ({
   eventsData,
   handleClassChange
 }) => {
-  const [staffOptions, setStaffOptions] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
-  const [classOptions, setClassOptions] = useState([]);
   const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
-  const [studentOptions, setStudentOptions] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
   const [error, setError] = useState('');
 
@@ -33,73 +28,13 @@ const EventForm = ({
   const eventForm = useEventForm(eventsData);
   const { handleDeleteEvent } = useEventOperations(eventsData);
 
+  // Fetch form data using custom hook
+  const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
+
   // Get handlers from the hook
   const handleInputChange = eventForm.handleInputChange(newEvent, setNewEvent);
   const handleStaffChange = eventForm.handleStaffChange(newEvent, setNewEvent);
   const handleStudentChange = eventForm.handleStudentChange(newEvent, setNewEvent);
-
-  useEffect(() => {
-    const fetchStaff = async () => {
-      const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
-      const querySnapshot = await getDocs(q);
-      const staffList = await Promise.all(querySnapshot.docs.map(async docSnap => {
-        const tutorData = docSnap.data();
-        const availabilityQuery = query(
-          collection(db, 'tutorAvailabilities'),
-          where('tutor', '==', docSnap.id)
-        );
-        const availabilitySnapshot = await getDocs(availabilityQuery);
-        let availabilityStatus = 'unavailable';
-
-        if (!availabilitySnapshot.empty) {
-          const available = availabilitySnapshot.docs.some(availabilityDoc => {
-            const availabilityData = availabilityDoc.data();
-            const availabilityStart = availabilityData.start.toDate();
-            const availabilityEnd = availabilityData.end.toDate();
-            const eventStart = new Date(newEvent.start);
-            const eventEnd = new Date(newEvent.end);
-
-            return eventStart >= availabilityStart && eventEnd <= availabilityEnd;
-          });
-
-          if (available) {
-            availabilityStatus = availabilitySnapshot.docs[0].data().locationType || 'onsite';
-          }
-        }
-
-        return {
-          value: docSnap.id,
-          label: tutorData.name || tutorData.email,
-          status: availabilityStatus
-        };
-      }));
-
-      setStaffOptions(staffList);
-    };
-
-    const fetchClasses = async () => {
-      const querySnapshot = await getDocs(collection(db, 'classes'));
-      const classList = querySnapshot.docs.map(docSnap => ({
-        value: docSnap.id,
-        label: docSnap.data().name,
-      }));
-      setClassOptions(classList);
-    };
-
-    const fetchStudents = async () => {
-      const q = query(collection(db, 'users'), where('role', '==', 'student'));
-      const querySnapshot = await getDocs(q);
-      const studentList = querySnapshot.docs.map(docSnap => ({
-        value: docSnap.id,
-        label: docSnap.data().name || docSnap.data().email,
-      }));
-      setStudentOptions(studentList);
-    };
-
-    fetchStaff();
-    fetchClasses();
-    fetchStudents();
-  }, [newEvent.start, newEvent.end]);
 
   const handleStaffSelectChange = (selectedOptions) => {
     setSelectedStaff(selectedOptions);

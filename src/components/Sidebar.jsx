@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen } from 'react-icons/fi';
+import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen } from '@/components/icons';
 import Image from 'next/image';
 import { signOut } from 'next-auth/react';
 

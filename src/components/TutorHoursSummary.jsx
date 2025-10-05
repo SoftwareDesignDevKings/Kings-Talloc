@@ -7,7 +7,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { CSVLink } from 'react-csv';
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaInfoCircle } from '@/components/icons';
 
 const getMonday = (d) => {
   d = new Date(d);

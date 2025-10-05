@@ -3,7 +3,7 @@
 import React from 'react';
 import { Image } from 'react-bootstrap';
 import { signIn } from 'next-auth/react';
-import { FcGoogle } from 'react-icons/fc';
+import { FcGoogle } from '@/components/icons';
 
 export default function LoginPage() {
   return (

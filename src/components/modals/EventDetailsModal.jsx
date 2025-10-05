@@ -6,8 +6,7 @@ import Select from 'react-select';
 import { Form, Button, Row, Col, Badge, Card, Offcanvas } from 'react-bootstrap';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firestore/clientFirestore.js';
-import { MdEventNote, MdPeople, MdSchool, MdAccessTime, MdNoteAlt, MdMenuBook, MdFlag, MdEdit } from 'react-icons/md';
-import { FaChalkboardTeacher, FaUserGraduate } from 'react-icons/fa';
+import { MdEventNote, MdPeople, MdSchool, MdAccessTime, MdNoteAlt, MdMenuBook, MdFlag, MdEdit, FaChalkboardTeacher, FaUserGraduate } from '@/components/icons';
 
 const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
   console.log('EventDetailsModal - event:', event);

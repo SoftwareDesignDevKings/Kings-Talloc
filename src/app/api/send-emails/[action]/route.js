@@ -1,6 +1,5 @@
 import nodemailer from 'nodemailer';
-import { db } from '../../../../firebase/db'; // Adjust the path as necessary
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { adminDb } from '../../../../firebase/adminFirebase';
 import { DateTime } from 'luxon';
 
 export async function GET(req, { params }) {
@@ -75,7 +74,7 @@ export async function GET(req, { params }) {
   };
 
   try {
-    const querySnapshot = await getDocs(collection(db, 'emailEventsQueue'));
+    const querySnapshot = await adminDb.collection('emailEventsQueue').get();
     const emailEventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     if (emailEventsQueue.length > 0) {
@@ -83,7 +82,7 @@ export async function GET(req, { params }) {
 
       // Delete processed events from the email queue
       const deletePromises = emailEventsQueue.map(event => {
-        return deleteDoc(doc(db, 'emailEventsQueue', event.id));
+        return adminDb.collection('emailEventsQueue').doc(event.id).delete();
       });
       await Promise.all(deletePromises);
 

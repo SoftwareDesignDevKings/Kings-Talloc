@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiCalendar, FiUserCheck, FiClock, FiBookOpen } from 'react-icons/fi';
+import { FiCalendar, FiUserCheck, FiClock, FiBookOpen } from '@/components/icons';
 import { getServerSession } from "next-auth";
 import { redirect } from 'next/navigation';
 

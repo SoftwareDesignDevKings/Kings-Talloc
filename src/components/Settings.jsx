@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiX } from 'react-icons/fi';
+import { FiX } from '@/components/icons';
 
 const Settings = ({ isOpen, onClose, calendarStartTime, calendarEndTime, setCalendarStartTime, setCalendarEndTime }) => {
   if (!isOpen) return null;
@@ -12,8 +12,8 @@ const Settings = ({ isOpen, onClose, calendarStartTime, calendarEndTime, setCale
       <div className="tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg tw-w-1/3">
         <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
           <h2 className="tw-text-xl tw-font-bold">Settings</h2>
-          <button onClick={onClose}>
-            <FiX className="tw-text-xl" />
+          <button onClick={onClose} className="tw-p-1 hover:tw-bg-gray-100 tw-rounded">
+            <FiX size={24} className="tw-text-gray-600 hover:tw-text-gray-900" />
           </button>
         </div>
         <div className="tw-space-y-4">

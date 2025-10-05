@@ -1,6 +1,6 @@
 import React from 'react';
 import Select from 'react-select';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight } from '@/components/icons';
 
 const CalendarFilterPanel = ({
   uiState,

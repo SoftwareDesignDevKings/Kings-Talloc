@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import CalendarWrapper from "@components/CalendarWrapper.jsx";
 import Sidebar from "@components/Sidebar.jsx";
+import LoadingPage from "@components/LoadingPage.jsx";
+import { useAuthSession } from "@/hooks/auth/useAuthSession";
+import CalendarWrapper from "@components/CalendarWrapper.jsx";
 import UserRolesManager from "@components/UserRolesManager.jsx";
 import ClassList from "@components/ClassList.jsx";
 import TutorHoursSummary from "@components/TutorHoursSummary.jsx";
 import SubjectList from "@components/SubjectList.jsx";
-import LoadingPage from "@components/LoadingPage.jsx";
-import { useAuthSession } from "@/hooks/auth/useAuthSession";
 
 const Dashboard = () =>  {
   const { session, userRole, loading } = useAuthSession();
