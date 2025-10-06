@@ -96,50 +96,52 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
   }));
 
   return (
-    <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
-      <h2 className="tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">Tutor Hours Summary</h2>
-      <div className="tw-flex tw-space-x-4 tw-mb-4">
-        <div>
+    <div className="tw-p-4 sm:tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
+      <h2 className="tw-text-xl sm:tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">Tutor Hours Summary</h2>
+      <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end sm:tw-space-x-4 tw-space-y-3 sm:tw-space-y-0 tw-mb-4">
+        <div className="tw-w-full sm:tw-w-auto">
           <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Start Date</label>
-          <DatePicker selected={startDate} onChange={date => setStartDate(getMonday(date))} className="tw-mt-1 tw-p-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm" />
+          <DatePicker selected={startDate} onChange={date => setStartDate(getMonday(date))} className="tw-mt-1 tw-p-2 tw-w-full tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm" />
         </div>
-        <div>
+        <div className="tw-w-full sm:tw-w-auto">
           <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">End Date</label>
-          <DatePicker selected={endDate} onChange={date => setEndDate(new Date(date.setHours(23, 59, 59, 999)))} className="tw-mt-1 tw-p-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm" />
+          <DatePicker selected={endDate} onChange={date => setEndDate(new Date(date.setHours(23, 59, 59, 999)))} className="tw-mt-1 tw-p-2 tw-w-full tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm" />
         </div>
-        <CSVLink data={csvData} filename={`tutor_hours_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.csv`} className="tw-mt-auto">
-          <button className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500">
+        <CSVLink data={csvData} filename={`tutor_hours_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.csv`} className="tw-w-full sm:tw-w-auto">
+          <button className="tw-w-full tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500">
             Export as CSV
           </button>
         </CSVLink>
       </div>
-      <div className="tw-mb-4 tw-p-4 tw-border tw-border-gray-300 tw-bg-gray-100 tw-rounded-md tw-flex tw-items-start tw-space-x-2">
-        <FaInfoCircle className="tw-h-5 tw-w-5 tw-text-gray-500 tw-mt-1" />
-        <div className="tw-text-sm tw-text-gray-700 tw-space-y-2">
+      <div className="tw-mb-4 tw-p-3 sm:tw-p-4 tw-border tw-border-gray-300 tw-bg-gray-100 tw-rounded-md tw-flex tw-items-start tw-space-x-2">
+        <FaInfoCircle className="tw-h-5 tw-w-5 tw-text-gray-500 tw-mt-0.5 tw-flex-shrink-0" />
+        <div className="tw-text-xs sm:tw-text-sm tw-text-gray-700 tw-space-y-2">
           <p>Please check if the hours are correct by Friday. If there are any discrepancies, report them to Michael Ienna.</p>
           <p>Any given hours that are between 3 (exclusive) and 6 (inclusive) hours account for a 30-minute break. Any given hours that are greater than 6 (exclusive) account for a 1-hour break.</p>
         </div>
       </div>
       {
-        <div className="tw-overflow-x-auto">
-          <table className="tw-min-w-full tw-bg-white">
-            <thead>
-              <tr>
-                <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Email</th>
-                <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Name</th>
-                <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tutorHours.map((tutor, index) => (
-                <tr key={index} className="tw-border-b tw-border-gray-200">
-                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{tutor.email}</td>
-                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{tutor.name}</td>
-                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{tutor.hours.toFixed(2)}</td>
+        <div className="tw-overflow-x-auto tw--mx-4 sm:tw-mx-0">
+          <div className="tw-inline-block tw-min-w-full tw-align-middle">
+            <table className="tw-min-w-full tw-bg-white">
+              <thead>
+                <tr>
+                  <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Email</th>
+                  <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Name</th>
+                  <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Hours</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tutorHours.map((tutor, index) => (
+                  <tr key={index} className="tw-border-b tw-border-gray-200">
+                    <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900 tw-break-all">{tutor.email}</td>
+                    <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.name}</td>
+                    <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.hours.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       }
     </div>
