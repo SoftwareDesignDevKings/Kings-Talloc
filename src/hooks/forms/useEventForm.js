@@ -48,6 +48,7 @@ export const useEventForm = (eventsData) => {
       createdByStudent: newEvent.createdByStudent || false,
       approvalStatus: newEvent.approvalStatus || 'pending',
       workStatus: newEvent.workStatus || 'notCompleted',
+      workType: newEvent.workType || 'tutoring',
       locationType: newEvent.locationType || '',
       subject: newEvent.subject || null,
       preference: newEvent.preference || null,

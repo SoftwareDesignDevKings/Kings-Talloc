@@ -17,7 +17,6 @@ const EventForm = ({
   eventToEdit,
   setShowModal,
   eventsData,
-  handleClassChange
 }) => {
   const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
   const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
@@ -34,6 +33,7 @@ const EventForm = ({
   // Get handlers from the hook
   const handleInputChange = eventForm.handleInputChange(newEvent, setNewEvent);
   const handleStaffChange = eventForm.handleStaffChange(newEvent, setNewEvent);
+  const handleClassChange = eventForm.handleClassChange(newEvent, setNewEvent);
   const handleStudentChange = eventForm.handleStudentChange(newEvent, setNewEvent);
 
   const handleStaffSelectChange = (selectedOptions) => {
@@ -310,7 +310,7 @@ const EventForm = ({
                     setNewEvent({ ...newEvent, workType: selectedOption.value })
                   }
                   classNamePrefix="select"
-                  defaultValue={workTypeOptions.find(
+                  value={workTypeOptions.find(
                     option => option.value === (newEvent.workType || 'tutoring')
                   )}
                 />
@@ -325,7 +325,7 @@ const EventForm = ({
                     setNewEvent({ ...newEvent, workStatus: selectedOption.value })
                   }
                   classNamePrefix="select"
-                  defaultValue={workStatusOptions.find(
+                  value={workStatusOptions.find(
                     option => option.value === (newEvent.workStatus || 'notCompleted')
                   )}
                 />

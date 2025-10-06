@@ -46,26 +46,20 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
     }
   }
 
-  // --- Work type (for coaching events) ---
-  if (event.workType === 'coaching') {
-    backgroundColor = 'lightcyan';
-    borderColor = 'darkcyan';
-  }
-
-  // --- Work status (applies to all events) ---
+  // --- Work type and status combined ---
   if (event.workStatus === 'completed') {
-    // Use different color for completed coaching vs tutoring
-    if (event.workType === 'coaching') {
-      backgroundColor = 'aquamarine';
-      borderColor = 'darkturquoise';
-    } else {
-      backgroundColor = 'lightgreen';
-      borderColor = 'green';
-    }
+    // All completed work is green
+    backgroundColor = 'lightgreen';
+    borderColor = 'green';
   } else if (event.workStatus === 'notAttended') {
     backgroundColor = 'lightcoral';
     borderColor = 'red';
+  } else if (event.workType === 'coaching' && event.workStatus === 'notCompleted') {
+    // Not completed coaching is purple
+    backgroundColor = '#E6D5F5';
+    borderColor = '#9B59B6';
   }
+  // Other not completed work keeps the default blue (from above)
 
   // --- Student requests (pending approval) ---
   if (isStudentRequest) {

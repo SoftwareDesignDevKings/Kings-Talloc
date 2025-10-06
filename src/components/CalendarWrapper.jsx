@@ -27,6 +27,7 @@ import EventForm from './forms/EventForm.jsx';
 import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
 import StudentEventForm from './forms/StudentEventForm.jsx';
 import EventDetailsModal from './modals/EventDetailsModal.jsx';
+import CustomEvent from './calendar/CustomEvent.jsx';
 
 moment.updateLocale('en', { week: { dow: 1 } });
 
@@ -72,7 +73,7 @@ const CalendarContent = () => {
   } = useCalendarContext();
 
   // Use specialized hooks for specific responsibilities
-  const calendarInteractions = useCalendarInteractions(userRole, userEmail, forms);
+  const calendarInteractions = useCalendarInteractions(userRole, userEmail, forms, eventsData);
   const eventOperations = useEventOperations(eventsData, userRole, userEmail);
   const tutorAvailabilityForm = useTutorAvailabilityForm(eventsData);
   const studentEventForm = useStudentEventForm(eventsData);
@@ -96,16 +97,17 @@ const CalendarContent = () => {
       const tutorAvailabilities = eventsData.splitAvailabilitiesData.filter(
         avail => avail.tutor === userEmail && !filterState.filters.visibility.hideOwnAvailabilities
       );
-      // Tutors don't see student requests - it clogs the calendar
+
+      // Tutors don't see student requests 
       return [...filteredEvents, ...tutorAvailabilities];
     }
 
     if (userRole === 'student') {
-      // Students see their own requests
+      // Students see their own requests only
       return [...filteredEvents, ...eventsData.studentRequests];
     }
 
-    // Teachers see everything including student requests
+    // Teachers see everything
     return [...filteredEvents, ...eventsData.studentRequests];
   }, [uiState.showEvents, userRole, userEmail, filteredEvents, eventsData.splitAvailabilitiesData, eventsData.studentRequests, filterState.filters.visibility.hideOwnAvailabilities]);
 
@@ -192,6 +194,14 @@ const CalendarContent = () => {
             messages={messages}
             eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
             components={{
+              event: (props) => (
+                <CustomEvent
+                  {...props}
+                  userRole={userRole}
+                  userEmail={userEmail}
+                  onDuplicate={calendarInteractions.handleDuplicateEvent}
+                />
+              ),
               timeSlotWrapper: (props) => (
                 <CalendarTimeSlotWrapper
                   {...props}
