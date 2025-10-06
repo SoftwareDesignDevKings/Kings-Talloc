@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { MdContentCopy } from '@/components/icons';
 
-const CustomEvent = ({ event, userRole, onDuplicate, userEmail }) => {
+const CustomEvent = ({ event, userRole, onDuplicate, userEmail, currentView }) => {
   const [showDuplicate, setShowDuplicate] = useState(false);
 
   // Teachers can duplicate events, tutors can duplicate their own availabilities
+  // But not in agenda view
   const canDuplicate =
-    (userRole === 'teacher' && !event.tutor) ||
-    (userRole === 'tutor' && event.tutor === userEmail);
+    currentView !== 'agenda' &&
+    ((userRole === 'teacher' && !event.tutor) ||
+    (userRole === 'tutor' && event.tutor === userEmail));
 
   const handleDuplicateClick = (e) => {
     e.stopPropagation(); // Prevent event selection

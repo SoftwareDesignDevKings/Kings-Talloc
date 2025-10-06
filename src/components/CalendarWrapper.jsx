@@ -199,6 +199,7 @@ const CalendarContent = () => {
                   {...props}
                   userRole={userRole}
                   userEmail={userEmail}
+                  currentView={currentView}
                   onDuplicate={calendarInteractions.handleDuplicateEvent}
                 />
               ),
