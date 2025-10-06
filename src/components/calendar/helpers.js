@@ -46,10 +46,22 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
     }
   }
 
+  // --- Work type (for coaching events) ---
+  if (event.workType === 'coaching') {
+    backgroundColor = 'lightcyan';
+    borderColor = 'darkcyan';
+  }
+
   // --- Work status (applies to all events) ---
   if (event.workStatus === 'completed') {
-    backgroundColor = 'lightgreen';
-    borderColor = 'green';
+    // Use different color for completed coaching vs tutoring
+    if (event.workType === 'coaching') {
+      backgroundColor = 'aquamarine';
+      borderColor = 'darkturquoise';
+    } else {
+      backgroundColor = 'lightgreen';
+      borderColor = 'green';
+    }
   } else if (event.workStatus === 'notAttended') {
     backgroundColor = 'lightcoral';
     borderColor = 'red';

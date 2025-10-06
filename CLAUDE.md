@@ -142,3 +142,4 @@ No formal testing framework configured. Verify functionality through manual test
 - Firebase security rules should be reviewed before production
 - Environment variables need proper production configuration
 - Domain authentication restrictions should be re-enabled for production
+- avoid custom Css when position

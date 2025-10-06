@@ -94,6 +94,11 @@ const EventForm = ({
     { value: 'notAttended', label: "Student Didn't Attend" },
   ];
 
+  const workTypeOptions = [
+    { value: 'tutoring', label: 'Tutoring' },
+    { value: 'coaching', label: 'Coaching' },
+  ];
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'onsite':
@@ -295,6 +300,21 @@ const EventForm = ({
                   )}
                 </div>
               )}
+
+              <Form.Group className="mb-3">
+                <Form.Label htmlFor="workType" className="small text-muted mb-1">Work Type</Form.Label>
+                <Select
+                  name="workType"
+                  options={workTypeOptions}
+                  onChange={(selectedOption) =>
+                    setNewEvent({ ...newEvent, workType: selectedOption.value })
+                  }
+                  classNamePrefix="select"
+                  defaultValue={workTypeOptions.find(
+                    option => option.value === (newEvent.workType || 'tutoring')
+                  )}
+                />
+              </Form.Group>
 
               <Form.Group className="mb-0">
                 <Form.Label htmlFor="workStatus" className="small text-muted mb-1">Work Status</Form.Label>

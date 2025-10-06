@@ -60,10 +60,10 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
         if (isConfirmed) {
           if (!tutorHoursMap[staff.value]) {
-            tutorHoursMap[staff.value] = { name: staff.label, hours: 0 };
+            tutorHoursMap[staff.value] = { name: staff.label, tutoringHours: 0, coachingHours: 0 };
           }
           let eventDuration = (event.end.seconds - event.start.seconds) / 3600;
-          
+
           // Subtract break times
           if (eventDuration > 3 && eventDuration < 6) {
             eventDuration -= 0.5; // 3 < eventDuration < 6
@@ -71,7 +71,13 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             eventDuration -= 1; // eventDuration >= 6
           }
 
-          tutorHoursMap[staff.value].hours += eventDuration;
+          // Add to appropriate category based on workType
+          if (event.workType === 'coaching') {
+            tutorHoursMap[staff.value].coachingHours += eventDuration;
+          } else {
+            // Default to tutoring if not specified
+            tutorHoursMap[staff.value].tutoringHours += eventDuration;
+          }
         }
       }
     }
@@ -92,7 +98,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
   const csvData = tutorHours.map(tutor => ({
     Email: tutor.email,
     Name: tutor.name,
-    Hours: tutor.hours.toFixed(2)
+    'Tutoring Hours': tutor.tutoringHours.toFixed(2),
+    'Coaching Hours': tutor.coachingHours.toFixed(2),
+    'Total Hours': (tutor.tutoringHours + tutor.coachingHours).toFixed(2)
   }));
 
   return (
@@ -128,7 +136,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 <tr>
                   <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Email</th>
                   <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Name</th>
-                  <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Hours</th>
+                  <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Tutoring</th>
+                  <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Coaching</th>
+                  <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,7 +146,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                   <tr key={index} className="tw-border-b tw-border-gray-200">
                     <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900 tw-break-all">{tutor.email}</td>
                     <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.name}</td>
-                    <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.hours.toFixed(2)}</td>
+                    <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.tutoringHours.toFixed(2)}</td>
+                    <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.coachingHours.toFixed(2)}</td>
+                    <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900 tw-font-semibold">{(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
