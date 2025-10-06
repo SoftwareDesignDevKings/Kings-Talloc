@@ -9,7 +9,6 @@ import SubjectRow from './SubjectRow.jsx';
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [currentSubject, setCurrentSubject] = useState(null);
@@ -26,7 +25,6 @@ const SubjectList = () => {
       const subjectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSubjects(subjectsList);
       setFilteredSubjects(subjectsList);
-      setLoading(false);
     };
 
     fetchSubjects();

@@ -7,7 +7,6 @@ import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore'
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('student');
@@ -28,7 +27,6 @@ const UserRolesManager = () => {
 
       setUsers(sortedUsers);
       setFilteredUsers(sortedUsers);
-      setLoading(false);
     };
 
     fetchUsers();

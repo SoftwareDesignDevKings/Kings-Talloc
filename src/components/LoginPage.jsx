@@ -1,4 +1,4 @@
-"use client"; // This directive must be at the top of the file
+"use client"; 
 
 import React from 'react';
 import { Image } from 'react-bootstrap';

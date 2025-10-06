@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen } from '@/components/icons';
 import Image from 'next/image';
 import { signOut } from 'next-auth/react';
@@ -8,6 +8,18 @@ import { signOut } from 'next-auth/react';
 const Sidebar = ({ setActiveSection, userRole, user }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Collapse sidebar by default on mobile
+    const checkMobile = () => {
+      if (window.innerWidth < 768) {
+        setIsCollapsed(true);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 

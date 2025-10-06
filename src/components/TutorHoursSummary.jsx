@@ -28,10 +28,8 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     return sunday;
   });
   const [tutorHours, setTutorHours] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   const fetchTutorHours = async () => {
-    setLoading(true);
 
     const q = query(
       collection(db, 'events'),
@@ -85,7 +83,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     }
 
     setTutorHours(tutorHoursArray);
-    setLoading(false);
   };
 
   useEffect(() => {

@@ -8,7 +8,13 @@ import { useState } from 'react';
 export const useCalendarUI = () => {
   const [showEvents, setShowEvents] = useState(true);
   const [showInitials, setShowInitials] = useState(true);
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
+  // Collapse filter panel by default on mobile
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
 
   return {
     showEvents,

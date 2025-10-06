@@ -17,10 +17,19 @@ const nextConfig = {
     },
     // Improve hot reload performance
     experimental: {
-        esmExternals: false,
+        optimizePackageImports: ['react-bootstrap', 'react-big-calendar', 'firebase/firestore', 'firebase/auth', 'react-select'],
     },
     // Speed up Fast Refresh
     reactStrictMode: false,
+    swcMinify: true,
+    compiler: {
+        removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+    },
+    modularizeImports: {
+        'react-bootstrap': {
+            transform: 'react-bootstrap/{{member}}',
+        },
+    },
     webpack: (config, { dev, isServer, webpack }) => {
         if (dev) {
             config.watchOptions = {

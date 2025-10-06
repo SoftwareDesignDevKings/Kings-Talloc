@@ -38,19 +38,22 @@ async function handleJwt({ token, user }) {
 
 	// ensure that userUid exists on the firebase record, so when they mint token they arent rejected
 	try {
-		await adminAuth.updateUser(userUid, {
-			email: user.email,
-			displayName: user.name,
-		})
+		// Try to get user first
+		await adminAuth.getUser(userUid);
 	} catch (error) {
 		if (error.code === "auth/user-not-found") {
-			await adminAuth.createUser({
-				uid: userUid,
-				email: user.email,
-				displayName: user.name,
-			})
+			// Create user if not found
+			try {
+				await adminAuth.createUser({
+					uid: userUid,
+					email: user.email,
+					displayName: user.name,
+				});
+			} catch (createError) {
+				console.log("Error creating user:", createError);
+			}
 		} else {
-			console.log("Error updating user:", error)
+			console.log("Error getting user:", error);
 		}
 	}
 

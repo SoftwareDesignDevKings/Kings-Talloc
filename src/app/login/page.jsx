@@ -1,21 +1,13 @@
-"use client";
-
 import React from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import LoadingPage from '@components/LoadingPage.jsx';
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 import LoginPage from '@components/LoginPage.jsx';
 
-export default function Login() {
-  const { _, status } = useSession();
-  const router = useRouter();
+export default async function Login() {
+  const session = await getServerSession();
 
-  if (status === "loading") {
-    return <LoadingPage />;
-  }
-
-  if (status === "authenticated") {
-    router.push("/dashboard");
+  if (session) {
+    redirect('/dashboard');
   }
 
   return <LoginPage />;

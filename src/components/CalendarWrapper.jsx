@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import { eventStyleGetter, messages } from './calendar/helpers';
@@ -22,11 +22,11 @@ import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 import { useTutorAvailabilityForm } from '@/hooks/forms/useTutorAvailabilityForm';
 import { useStudentEventForm } from '@/hooks/forms/useStudentEventForm';
 
-// Lazy load heavy form/modal components - only load when needed
-const EventForm = lazy(() => import('./forms/EventForm.jsx'));
-const TutorAvailabilityForm = lazy(() => import('./forms/TutorAvailabilityForm.jsx'));
-const StudentEventForm = lazy(() => import('./forms/StudentEventForm.jsx'));
-const EventDetailsModal = lazy(() => import('./modals/EventDetailsModal.jsx'));
+// Form and modal components
+import EventForm from './forms/EventForm.jsx';
+import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
+import StudentEventForm from './forms/StudentEventForm.jsx';
+import EventDetailsModal from './modals/EventDetailsModal.jsx';
 
 moment.updateLocale('en', { week: { dow: 1 } });
 
@@ -38,9 +38,26 @@ const CalendarContent = () => {
   const calendarStartTime = "06:00";
   const calendarEndTime = "22:00";
 
-  // Calendar navigation state
+  // Detect mobile on mount
+  const [isMobile, setIsMobile] = useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Calendar navigation state - default to DAY view on mobile
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.WEEK);
+
+  // Update view when isMobile changes - force DAY view on mobile
+  React.useEffect(() => {
+    if (isMobile) {
+      setCurrentView(Views.DAY);
+    }
+  }, [isMobile]);
 
   // Get context data
   const {
@@ -119,39 +136,74 @@ const CalendarContent = () => {
   return (
     <div className="tw-flex tw-h-full" style={calendarContainerStyle}>
       <div className="tw-flex-1 tw-p-5 tw-overflow-hidden tw-relative" style={calendarPanelStyle}>
-        <DnDCalendar
-          localizer={localizer}
-          events={finalEvents}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: '600px' }}
-          min={minTime}
-          max={maxTime}
-          onSelectSlot={calendarInteractions.handleSelectSlot}
-          onSelectEvent={calendarInteractions.handleSelectEvent}
-          onEventDrop={eventOperations.handleEventDrop}
-          onEventResize={eventOperations.handleEventResize}
-          resizable
-          selectable
-          date={currentDate}
-          onNavigate={setCurrentDate}
-          view={currentView}
-          onView={setCurrentView}
-          views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-          messages={messages}
-          eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
-          components={{
-            timeSlotWrapper: (props) => (
-              <CalendarTimeSlotWrapper
-                {...props}
-                applicableAvailabilities={uiState.showInitials ? applicableAvailabilities : []}
-                selectedTutors={filterState.filters.tutors}
-                currentWeekStart={currentWeekStart}
-                currentWeekEnd={currentWeekEnd}
-              />
-            ),
-          }}
-        />
+        {isMobile ? (
+          <Calendar
+            localizer={localizer}
+            events={finalEvents}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '600px' }}
+            min={minTime}
+            max={maxTime}
+            onSelectSlot={calendarInteractions.handleSelectSlot}
+            onSelectEvent={calendarInteractions.handleSelectEvent}
+            selectable
+            longPressThreshold={250}
+            date={currentDate}
+            onNavigate={setCurrentDate}
+            view={Views.DAY}
+            onView={setCurrentView}
+            views={[Views.DAY]}
+            messages={messages}
+            eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
+            components={{
+              timeSlotWrapper: (props) => (
+                <CalendarTimeSlotWrapper
+                  {...props}
+                  applicableAvailabilities={uiState.showInitials ? applicableAvailabilities : []}
+                  selectedTutors={filterState.filters.tutors}
+                  currentWeekStart={currentWeekStart}
+                  currentWeekEnd={currentWeekEnd}
+                />
+              ),
+            }}
+          />
+        ) : (
+          <DnDCalendar
+            localizer={localizer}
+            events={finalEvents}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '600px' }}
+            min={minTime}
+            max={maxTime}
+            onSelectSlot={calendarInteractions.handleSelectSlot}
+            onSelectEvent={calendarInteractions.handleSelectEvent}
+            onEventDrop={eventOperations.handleEventDrop}
+            onEventResize={eventOperations.handleEventResize}
+            resizable
+            selectable
+            longPressThreshold={500}
+            date={currentDate}
+            onNavigate={setCurrentDate}
+            view={currentView}
+            onView={setCurrentView}
+            views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+            messages={messages}
+            eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
+            components={{
+              timeSlotWrapper: (props) => (
+                <CalendarTimeSlotWrapper
+                  {...props}
+                  applicableAvailabilities={uiState.showInitials ? applicableAvailabilities : []}
+                  selectedTutors={filterState.filters.tutors}
+                  currentWeekStart={currentWeekStart}
+                  currentWeekEnd={currentWeekEnd}
+                />
+              ),
+            }}
+          />
+        )}
       </div>
       
       <CalendarFilterPanel
@@ -163,57 +215,55 @@ const CalendarContent = () => {
         uniqueTutors={uniqueTutors}
       />
 
-      {/* render different forms depending on role - lazy loaded */}
-      <Suspense fallback={<div className="tw-fixed tw-inset-0 tw-bg-black tw-bg-opacity-50 tw-flex tw-items-center tw-justify-center tw-z-50">Loading...</div>}>
-        {forms.showTeacherForm && userRole === 'teacher' && (
-          <EventForm
-            isEditing={forms.isEditing}
-            newEvent={calendarInteractions.newEvent}
-            setNewEvent={calendarInteractions.setNewEvent}
-            eventToEdit={forms.eventToEdit}
-            setShowModal={forms.setShowTeacherForm}
-            eventsData={eventsData}
-          />
-        )}
-        {forms.showStudentForm && userRole === 'student' && (
-          <StudentEventForm
-            isEditing={forms.isEditing}
-            newEvent={calendarInteractions.newEvent}
-            setNewEvent={calendarInteractions.setNewEvent}
-            eventToEdit={forms.eventToEdit}
-            setShowStudentModal={forms.setShowStudentForm}
-            studentEmail={userEmail}
-            eventsData={eventsData}
-            handleInputChange={studentEventForm.handleInputChange(calendarInteractions.newEvent, calendarInteractions.setNewEvent)}
-            handleSubmit={studentEventForm.handleSubmit(calendarInteractions.newEvent, forms.isEditing, forms.eventToEdit, forms.setShowStudentForm)}
-            handleDelete={studentEventForm.handleDelete(forms.eventToEdit, forms.setShowStudentForm)}
-          />
-        )}
-        {forms.showAvailabilityForm && userRole === 'tutor' && (
-          <TutorAvailabilityForm
-            isEditing={forms.isEditing}
-            newAvailability={calendarInteractions.newAvailability}
-            setNewAvailability={calendarInteractions.setNewAvailability}
-            eventToEdit={forms.eventToEdit}
-            setShowModal={forms.setShowAvailabilityForm}
-            eventsData={eventsData}
-            handleInputChange={tutorAvailabilityForm.handleInputChange(calendarInteractions.newAvailability, calendarInteractions.setNewAvailability)}
-            handleSubmit={tutorAvailabilityForm.handleSubmit(calendarInteractions.newAvailability, forms.isEditing, forms.eventToEdit, forms.setShowAvailabilityForm)}
-            handleDelete={tutorAvailabilityForm.handleDelete(forms.eventToEdit, forms.setShowAvailabilityForm)}
-          />
-        )}
-        {forms.showDetailsModal && (
-          <EventDetailsModal
-            event={forms.eventToEdit}
-            handleClose={() => forms.setShowDetailsModal(false)}
-            handleConfirmation={eventOperations.handleConfirmation}
-            userEmail={userEmail}
-            userRole={userRole}
-            events={eventsData.allEvents}
-            setEvents={eventsData.setAllEvents}
-          />
-        )}
-      </Suspense>
+      {/* render different forms depending on role */}
+      {forms.showTeacherForm && userRole === 'teacher' && (
+        <EventForm
+          isEditing={forms.isEditing}
+          newEvent={calendarInteractions.newEvent}
+          setNewEvent={calendarInteractions.setNewEvent}
+          eventToEdit={forms.eventToEdit}
+          setShowModal={forms.setShowTeacherForm}
+          eventsData={eventsData}
+        />
+      )}
+      {forms.showStudentForm && userRole === 'student' && (
+        <StudentEventForm
+          isEditing={forms.isEditing}
+          newEvent={calendarInteractions.newEvent}
+          setNewEvent={calendarInteractions.setNewEvent}
+          eventToEdit={forms.eventToEdit}
+          setShowStudentModal={forms.setShowStudentForm}
+          studentEmail={userEmail}
+          eventsData={eventsData}
+          handleInputChange={studentEventForm.handleInputChange(calendarInteractions.newEvent, calendarInteractions.setNewEvent)}
+          handleSubmit={studentEventForm.handleSubmit(calendarInteractions.newEvent, forms.isEditing, forms.eventToEdit, forms.setShowStudentForm)}
+          handleDelete={studentEventForm.handleDelete(forms.eventToEdit, forms.setShowStudentForm)}
+        />
+      )}
+      {forms.showAvailabilityForm && userRole === 'tutor' && (
+        <TutorAvailabilityForm
+          isEditing={forms.isEditing}
+          newAvailability={calendarInteractions.newAvailability}
+          setNewAvailability={calendarInteractions.setNewAvailability}
+          eventToEdit={forms.eventToEdit}
+          setShowModal={forms.setShowAvailabilityForm}
+          eventsData={eventsData}
+          handleInputChange={tutorAvailabilityForm.handleInputChange(calendarInteractions.newAvailability, calendarInteractions.setNewAvailability)}
+          handleSubmit={tutorAvailabilityForm.handleSubmit(calendarInteractions.newAvailability, forms.isEditing, forms.eventToEdit, forms.setShowAvailabilityForm)}
+          handleDelete={tutorAvailabilityForm.handleDelete(forms.eventToEdit, forms.setShowAvailabilityForm)}
+        />
+      )}
+      {forms.showDetailsModal && (
+        <EventDetailsModal
+          event={forms.eventToEdit}
+          handleClose={() => forms.setShowDetailsModal(false)}
+          handleConfirmation={eventOperations.handleConfirmation}
+          userEmail={userEmail}
+          userRole={userRole}
+          events={eventsData.allEvents}
+          setEvents={eventsData.setAllEvents}
+        />
+      )}
     </div>
   );
 };
