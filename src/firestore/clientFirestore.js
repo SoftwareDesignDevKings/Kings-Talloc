@@ -13,17 +13,23 @@ const firebaseConfig = {
 };
 
 // init firebase, or just getApp
+// optimise to prevent re-init for Next.js hot reload
 let app;
 if (getApps().length > 0) {
 	app = getApp();
 } else {
-  app = initializeApp(firebaseConfig);
+  	app = initializeApp(firebaseConfig);
 }
 
-// client firebase auth (for login/logout)
+/**
+ * CLIENT SIDE - Firebase Auth instance
+ * for login/logout
+ */
 const auth = getAuth(app);
 
-// firestore db
+/**
+ * CLIENT SIDE - Firebase Firestore instance
+ */
 const db = getFirestore(app);
 
 export { app, auth, db };
