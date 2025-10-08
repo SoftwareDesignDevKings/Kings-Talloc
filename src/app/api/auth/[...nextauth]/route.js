@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { adminAuth, adminDb } from '@/firebase/adminFirebase';
+import { adminAuth, adminDb } from '@/firestore/adminFirebase';
 
 /**
  * Server-side: Create or fetch user role from Firestore on sign in
@@ -66,10 +66,11 @@ async function handleJwt({ token, user }) {
 }
 
 /**
- * Add role from JWT to session object
+ * Add role and firebaseToken from JWT to session object
  */
 async function handleSession({ session, token }) {
     session.user.role = token.role;
+    session.user.firebaseToken = token.firebaseToken;
     return session;
 }
 
