@@ -1,7 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     // Helper function to get user role from custom claims
     function getUserRole() {
       return request.auth.token.role;
@@ -27,26 +26,27 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == 'student';
     }
 
-    // Helper to check if user's email is in students array
-    // Note: This is simplified - checks if email is directly in array
-    // In practice, we check in the application layer before writing
-    function isStudentInList(students) {
-      return request.auth.uid in students;
-    }
 
     // Users collection - only teachers can modify roles
-    match /users/{email} {
+    match /users/{documentEmail} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == email;
-      allow update: if isTeacher() || (isAuthenticated() && request.auth.uid == email && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      
+      // email from firebase auth token inside request 
+      const fbAuthEmail = request.auth.token.email;
+
+      // firestore db stores user docs with email as doc ID
+      allow create: if isAuthenticated() && fbAuthEmail == documentEmail;
+
+      // isTeacher || ((isAuthenticated) && (theirUserAcc) && (notModifying the key 'role'))
+      // prevent non-teacher users from modifying their own role
+      allow update: if isTeacher() || (isAuthenticated() && fbAuthEmail == documentEmail && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
       allow delete: if isTeacher();
     }
 
     // Events collection (APPROVED events only - counts for payroll/hours)
     match /events/{eventId} {
       allow read: if isAuthenticated();
-
-      // Only teachers can create/update/delete events
+      // only teachers can create/update/delete events
       allow create, update, delete: if isTeacher();
     }
 
@@ -65,9 +65,9 @@ service cloud.firestore {
       // Only students can create their own requests
       allow create: if isStudent();
 
-      // Teachers can update/delete any request, students can update/delete their own requests
-      allow update, delete: if isTeacher()
-        || (isStudent() && isStudentInList(resource.data.students));
+      // Teachers can update/delete any request, students can only update/delete requests they created
+      // note: Teacher approves -> deleted from studentEventRequests -> created in events (only teachers can edit events)
+      allow update, delete: if isTeacher() || request.auth.uid == resource.data.createdBy;
     }
 
     // Tutor Availabilities collection (tutor availability slots)
@@ -77,8 +77,8 @@ service cloud.firestore {
       // Only tutors can create their own availabilities
       allow create: if isTutor() && request.auth.uid == request.resource.data.tutor;
 
-      // Tutors can update/delete their own availabilities, teachers can manage all
-      allow update, delete: if isTeacher() || (isTutor() && request.auth.uid == resource.data.tutor);
+      // Tutors can only update/delete their own availabilities
+      allow update, delete: if isTutor() && request.auth.uid == resource.data.tutor;
     }
 
     // Classes collection - only teachers can modify
@@ -93,10 +93,5 @@ service cloud.firestore {
       allow write: if isTeacher();
     }
 
-    // Students collection - read access for authenticated users
-    match /students/{studentId} {
-      allow read: if isAuthenticated();
-      allow write: if isTeacher();
-    }
   }
 }

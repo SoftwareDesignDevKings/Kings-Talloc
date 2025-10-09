@@ -36,9 +36,9 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
             .map(doc => doc.data())
             .filter(cls => cls.students.some(student => student.email === userEmail))
             .map(cls => cls.name);
-        
+
         // filter events where the student is directly involved or their class is involved
-        filteredEvents = eventsFromDb.filter(event => 
+        filteredEvents = eventsFromDb.filter(event =>
             event.students.some(student => student.value === userEmail) ||
             event.classes.some(cls => studentClasses.includes(cls.label))
         );
@@ -52,8 +52,14 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
         value: doc.data().email,
         label: doc.data().name || doc.data().email,
     }));
-    
+
     setStudents(students);
+  }, (error) => {
+    console.error("Error fetching events:", error);
+    // Set empty arrays on error to prevent app crash
+    setEvents([]);
+    setAllEvents([]);
+    setStudents([]);
   });
 
   return () => unsubscribe();
@@ -77,6 +83,9 @@ export const fetchAvailabilities = async (setAvailabilities) => {
     }));
 
     setAvailabilities(availabilitiesFromDb);
+  }, (error) => {
+    console.error("Error fetching availabilities:", error);
+    setAvailabilities([]);
   });
 
   // cleanup listener on unmount
@@ -96,10 +105,13 @@ export const fetchStudentRequests = async (setStudentRequests) => {
       id: doc.id,
       start: doc.data().start.toDate(),
       end: doc.data().end.toDate(),
-      isStudentRequest: true, 
+      isStudentRequest: true,
     }));
 
     setStudentRequests(requestsFromDb);
+  }, (error) => {
+    console.error("Error fetching student requests:", error);
+    setStudentRequests([]);
   });
 
   // cleanup listener on unmount

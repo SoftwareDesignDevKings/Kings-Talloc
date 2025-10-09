@@ -31,6 +31,7 @@ const AuthProvider = ({ children }) => {
                 if (status === "authenticated" && session?.user) {
                     setUserRole(session.user.role);
                     await signInWithCustomToken(auth, session.user.firebaseToken);
+                    
                     setIsLoading(false);
                 }
 

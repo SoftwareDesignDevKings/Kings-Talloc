@@ -18,8 +18,10 @@ const customJestConfig = {
     '^@providers/(.*)$': '<rootDir>/providers/$1',
     '^@contexts/(.*)$': '<rootDir>/contexts/$1',
     '^@middleware/(.*)$': '<rootDir>/middleware/$1',
-    '^@firebase/(.*)$': '<rootDir>/firebase/$1',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(@firebase/rules-unit-testing)/)',
+  ],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
