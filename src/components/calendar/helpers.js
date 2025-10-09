@@ -1,4 +1,4 @@
-import moment from 'moment';
+import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 
 // Helper function to calculate the green color intensity based on the number of available tutors
@@ -100,12 +100,17 @@ export const customSlotPropGetter = (date, availabilities, selectedTutors, curre
     : availabilities;
 
   const availableTutors = filteredAvailabilities.filter(
-    availability => moment(date).isBetween(availability.start, availability.end, undefined, '[)')
+    availability => {
+      const availStart = new Date(availability.start);
+      const availEnd = new Date(availability.end);
+      return date >= availStart && date < availEnd;
+    }
   ).length;
 
-  const tutorsWithAvailabilitiesThisWeek = filteredAvailabilities.filter(availability =>
-    moment(availability.start).isBetween(currentWeekStart, currentWeekEnd, null, '[)')
-  ).map(availability => availability.tutor);
+  const tutorsWithAvailabilitiesThisWeek = filteredAvailabilities.filter(availability => {
+    const availStart = new Date(availability.start);
+    return availStart >= currentWeekStart && availStart < currentWeekEnd;
+  }).map(availability => availability.tutor);
 
   const uniqueTutorsThisWeek = [...new Set(tutorsWithAvailabilitiesThisWeek)];
 

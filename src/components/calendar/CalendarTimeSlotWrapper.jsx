@@ -1,5 +1,5 @@
 import React from 'react';
-import moment from 'moment';
+import { addMinutes } from 'date-fns';
 
 const calculateGreenIntensity = (numTutors, maxTutors) => {
   const intensity = Math.min(1, numTutors / maxTutors);
@@ -8,18 +8,19 @@ const calculateGreenIntensity = (numTutors, maxTutors) => {
 };
 
 const CustomTimeSlotWrapper = ({ children, value, applicableAvailabilities, selectedTutors, currentWeekStart, currentWeekEnd }) => {
-  const date = moment(value);
-  const slotStart = date.clone();
-  const slotEnd = date.clone().add(30, 'minutes');
+  const date = new Date(value);
+  const slotStart = date;
+  const slotEnd = addMinutes(date, 30);
 
   const filteredAvailabilities = selectedTutors.length > 0
     ? applicableAvailabilities.filter(availability => selectedTutors.some(tutor => tutor.value === availability.tutor))
     : applicableAvailabilities;
 
   const isFullyAvailable = (availability) => {
-    const availStart = moment(availability.start);
-    const availEnd = moment(availability.end);
-    return availStart.isSameOrBefore(slotStart) && availEnd.isSameOrAfter(slotEnd);
+    const availStart = new Date(availability.start);
+    const availEnd = new Date(availability.end);
+    return (availStart <= slotStart || availStart.getTime() === slotStart.getTime()) &&
+           (availEnd >= slotEnd || availEnd.getTime() === slotEnd.getTime());
   };
 
   const availableTutors = filteredAvailabilities
@@ -28,9 +29,10 @@ const CustomTimeSlotWrapper = ({ children, value, applicableAvailabilities, sele
 
   const uniqueTutors = [...new Set(availableTutors)].sort();
 
-  const tutorsWithAvailabilitiesThisWeek = filteredAvailabilities.filter(availability =>
-    moment(availability.start).isBetween(currentWeekStart, currentWeekEnd, null, '[)')
-  ).map(availability => availability.tutor);
+  const tutorsWithAvailabilitiesThisWeek = filteredAvailabilities.filter(availability => {
+    const availStart = new Date(availability.start);
+    return availStart >= currentWeekStart && availStart < currentWeekEnd;
+  }).map(availability => availability.tutor);
 
   const uniqueTutorsThisWeek = [...new Set(tutorsWithAvailabilitiesThisWeek)];
   const maxTutors = uniqueTutorsThisWeek.length || 1;

@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { adminDb } from '../../../../firebase/adminFirebase';
+import { adminDb } from '../../../../firestore/adminFirebase';
 import { DateTime } from 'luxon';
 
 export async function GET(req, { params }) {

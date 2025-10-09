@@ -5,7 +5,6 @@ import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import moment from 'moment';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 

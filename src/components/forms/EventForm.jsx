@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import moment from 'moment';
+import { isAfter, isBefore, format } from 'date-fns';
 import Select, { components } from 'react-select';
 import { Form, Row, Col, Alert, Badge, Accordion } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
@@ -61,9 +61,9 @@ const EventForm = ({
   };
 
   const validateDates = () => {
-    const start = moment(newEvent.start);
-    const end = moment(newEvent.end);
-    if (end.isSameOrBefore(start)) {
+    const start = new Date(newEvent.start);
+    const end = new Date(newEvent.end);
+    if (!isAfter(end, start)) {
       setError('End date must be after the start date.');
       return false;
     }
@@ -187,7 +187,7 @@ const EventForm = ({
                       type="datetime-local"
                       name="start"
                       id="start"
-                      value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
+                      value={format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")}
                       onChange={handleInputChange}
                       required
                     />
@@ -202,7 +202,7 @@ const EventForm = ({
                       type="datetime-local"
                       name="end"
                       id="end"
-                      value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
+                      value={format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")}
                       onChange={handleInputChange}
                       required
                     />

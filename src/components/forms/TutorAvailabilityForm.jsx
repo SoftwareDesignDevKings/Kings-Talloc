@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import moment from 'moment';
+import { isAfter, add, format } from 'date-fns';
 import Select from 'react-select';
 import { Button, ButtonGroup, Form, Alert, Badge, Card } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
@@ -25,9 +25,9 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
   ];
 
   const validateDates = () => {
-    const start = moment(newAvailability.start);
-    const end = moment(newAvailability.end);
-    if (end.isSameOrBefore(start)) {
+    const start = new Date(newAvailability.start);
+    const end = new Date(newAvailability.end);
+    if (!isAfter(end, start)) {
       setError('End date must be after the start date.');
       return false;
     }
@@ -37,7 +37,7 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
 
   const setHours = (hours) => {
     if (newAvailability.start) {
-      const newEnd = moment(newAvailability.start).add(hours, 'hours');
+      const newEnd = add(new Date(newAvailability.start), { hours });
       setNewAvailability({ ...newAvailability, end: newEnd.toISOString() });
     } else {
       setError("Invalid hours")
@@ -125,7 +125,7 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
               type="datetime-local"
               name="start"
               id="start"
-              value={moment(newAvailability.start).format('YYYY-MM-DDTHH:mm')}
+              value={format(new Date(newAvailability.start), "yyyy-MM-dd'T'HH:mm")}
               onChange={handleInputChange}
               required
             />
@@ -137,7 +137,7 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
               type="datetime-local"
               name="end"
               id="end"
-              value={moment(newAvailability.end).format('YYYY-MM-DDTHH:mm')}
+              value={format(new Date(newAvailability.end), "yyyy-MM-dd'T'HH:mm")}
               onChange={handleInputChange}
               required
             />

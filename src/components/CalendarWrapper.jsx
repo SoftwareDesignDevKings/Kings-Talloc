@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
-import moment from 'moment';
+import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import enUS from 'date-fns/locale/en-US';
 import { eventStyleGetter, messages } from './calendar/helpers';
 import CalendarFilterPanel from './calendar/CalendarFilterPanel.jsx';
 import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper.jsx';
@@ -29,9 +30,17 @@ import StudentEventForm from './forms/StudentEventForm.jsx';
 import EventDetailsModal from './modals/EventDetailsModal.jsx';
 import CustomEvent from './calendar/CustomEvent.jsx';
 
-moment.updateLocale('en', { week: { dow: 1 } });
+const locales = {
+  'en-US': enUS,
+};
 
-const localizer = momentLocalizer(moment);
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: (date) => startOfWeek(date, { weekStartsOn: 1 }),
+  getDay,
+  locales,
+});
 const DnDCalendar = withDragAndDrop(Calendar);
 
 // Calendar content component that uses context
@@ -111,8 +120,8 @@ const CalendarContent = () => {
     return [...filteredEvents, ...eventsData.studentRequests];
   }, [uiState.showEvents, userRole, userEmail, filteredEvents, eventsData.splitAvailabilitiesData, eventsData.studentRequests, filterState.filters.visibility.hideOwnAvailabilities]);
 
-  const minTime = moment(calendarStartTime, "HH:mm").toDate();
-  const maxTime = moment(calendarEndTime, "HH:mm").toDate();
+  const minTime = parse(calendarStartTime, "HH:mm", new Date());
+  const maxTime = parse(calendarEndTime, "HH:mm", new Date());
 
   const uniqueTutors = eventsData.tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
 
@@ -121,8 +130,9 @@ const CalendarContent = () => {
     label: tutor.name || tutor.email
   })) || [];
 
-  const currentWeekStart = moment(currentDate).startOf('week');
-  const currentWeekEnd = moment(currentDate).endOf('week');
+  const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const currentWeekEnd = new Date(currentWeekStart);
+  currentWeekEnd.setDate(currentWeekEnd.getDate() + 7);
 
   const calendarContainerStyle = {
     backgroundColor: '#ffffff',

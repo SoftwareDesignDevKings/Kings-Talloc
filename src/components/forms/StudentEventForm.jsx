@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import moment from 'moment';
+import { isAfter, isBefore, isSameOrBefore, isSameOrAfter, format } from 'date-fns';
 import Select from 'react-select';
 import { Form, Alert, Button, ButtonGroup } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
@@ -73,9 +73,9 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
   };
 
   const validateDates = () => {
-    const start = moment(newEvent.start);
-    const end = moment(newEvent.end);
-    if (end.isSameOrBefore(start)) {
+    const start = new Date(newEvent.start);
+    const end = new Date(newEvent.end);
+    if (!isAfter(end, start)) {
       setError('End date must be after the start date.');
       return false;
     }
@@ -87,7 +87,10 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
     const availableTutors = tutorOptions.filter(tutor => {
       const tutorAvailabilities = availabilities.filter(availability => availability.tutor === tutor.value);
       return tutorAvailabilities.some(availability => {
-        return moment(availability.start).isSameOrBefore(start) && moment(availability.end).isSameOrAfter(end)
+        const availStart = new Date(availability.start);
+        const availEnd = new Date(availability.end);
+        return (availStart <= start || availStart.getTime() === start.getTime()) &&
+               (availEnd >= end || availEnd.getTime() === end.getTime())
           && (availability.workType == "tutoring" || availability.workType == "tutoringOrWork" || availability.workType == undefined); // undefined check for backwards compatibility
       });
     });
@@ -98,15 +101,15 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
     handleInputChange(e);
     const { name, value } = e.target;
     if (name === 'start' || name === 'end') {
-      const start = name === 'start' ? moment(value) : moment(newEvent.start);
-      const end = name === 'end' ? moment(value) : moment(newEvent.end);
+      const start = name === 'start' ? new Date(value) : new Date(newEvent.start);
+      const end = name === 'end' ? new Date(value) : new Date(newEvent.end);
       filterTutorsByAvailability(start, end);
     }
   };
 
   const handleMenuOpen = () => {
-    const start = moment(newEvent.start);
-    const end = moment(newEvent.end);
+    const start = new Date(newEvent.start);
+    const end = new Date(newEvent.end);
     filterTutorsByAvailability(start, end);
   };
 
@@ -146,7 +149,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           type="datetime-local"
           name="start"
           id="start"
-          value={moment(newEvent.start).format('YYYY-MM-DDTHH:mm')}
+          value={format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")}
           onChange={handleDateChange}
           required
           disabled={!isStudentCreated}
@@ -158,7 +161,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           type="datetime-local"
           name="end"
           id="end"
-          value={moment(newEvent.end).format('YYYY-MM-DDTHH:mm')}
+          value={format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")}
           onChange={handleDateChange}
           required
           disabled={!isStudentCreated}

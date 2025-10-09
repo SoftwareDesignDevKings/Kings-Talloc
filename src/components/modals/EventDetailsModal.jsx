@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import moment from 'moment';
+import { format } from 'date-fns';
 import Select from 'react-select';
 import { Form, Button, Row, Col, Badge, Card, Offcanvas } from 'react-bootstrap';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -109,13 +109,13 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                   <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
                     <MdAccessTime /> Start Time
                   </small>
-                  <div className="fw-medium">{moment(event.start).format('MMM D, YYYY h:mm A')}</div>
+                  <div className="fw-medium">{format(new Date(event.start), 'MMM d, yyyy h:mm a')}</div>
                 </Col>
                 <Col md={6}>
                   <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
                     <MdAccessTime /> End Time
                   </small>
-                  <div className="fw-medium">{moment(event.end).format('MMM D, YYYY h:mm A')}</div>
+                  <div className="fw-medium">{format(new Date(event.end), 'MMM d, yyyy h:mm a')}</div>
                 </Col>
               </Row>
             </Card.Body>
