@@ -2,8 +2,9 @@
 
 import LoadingPage from '@/components/LoadingPage.jsx';
 import LoginPage from '@/components/LoginPage.jsx';
+import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { signInWithCustomToken, signOut } from "firebase/auth";
 import { auth } from "@/firestore/clientFirestore";
 import { usePathname } from 'next/navigation';
@@ -12,26 +13,29 @@ import AuthContext from '@/contexts/AuthContext';
 /**
  * Authentication provider to wrap around components that require authentication.
  * Handles both NextAuth session and Firebase authentication sync.
+ * Automatically refreshes Firebase tokens every 50 minutes to prevent expiration.
  * @param {JSX} children
  * @returns
  */
 const AuthProvider = ({ children }) => {
-    const { data: session, status } = useSession();
+    const { data: session, status, update } = useSession();
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState("student");
     const pathname = usePathname();
+    const tokenRefreshInterval = useRef(null);
 
     // Public routes that don't require auth
     const publicRoutes = ['/', '/login'];
     const isPublicRoute = publicRoutes.includes(pathname);
 
+    // Sync Firebase Auth with NextAuth session
     useEffect(() => {
         const syncAuth = async () => {
             try {
                 if (status === "authenticated" && session?.user) {
                     setUserRole(session.user.role);
                     await signInWithCustomToken(auth, session.user.firebaseToken);
-                    
+
                     setIsLoading(false);
                 }
 
@@ -48,6 +52,35 @@ const AuthProvider = ({ children }) => {
         syncAuth();
     }, [status, session]);
 
+    // Auto-refresh Firebase token every 50 minutes
+    useEffect(() => {
+        if (status === "authenticated" && !isPublicRoute) {
+            if (tokenRefreshInterval.current) {
+                clearInterval(tokenRefreshInterval.current);
+            }
+
+            // refresh interval (50 minutes)
+            const FIFTY_MINUTES = 50 * 60 * 1000;
+            tokenRefreshInterval.current = setInterval(async () => {
+                try {
+                    const updatedSession = await update();
+                    if (updatedSession?.user?.firebaseToken) {
+                        await signInWithCustomToken(auth, updatedSession.user.firebaseToken);
+                    }
+                } catch (error) {
+                    console.error('Error refreshing Firebase token:', error);
+                }
+            }, FIFTY_MINUTES);
+
+            // Cleanup interval on unmount
+            return () => {
+                if (tokenRefreshInterval.current) {
+                    clearInterval(tokenRefreshInterval.current);
+                }
+            };
+        }
+    }, [status, isPublicRoute, update]);
+
     // Allow public routes to render without auth
     if (isPublicRoute) {
         return (
@@ -62,17 +95,7 @@ const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{ session, status, userRole, loading: isLoading }}>
-            <Suspense fallback={
-                <div className="tw-flex tw-items-center tw-justify-center tw-h-screen tw-w-screen">
-                    <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
-                        <div className="tw-relative tw-w-16 tw-h-16">
-                            <div className="tw-absolute tw-inset-0 tw-border-4 tw-border-purple-200 tw-rounded-full"></div>
-                            <div className="tw-absolute tw-inset-0 tw-border-4 tw-border-transparent tw-border-t-purple-600 tw-rounded-full tw-animate-spin"></div>
-                        </div>
-                        <div className="tw-text-gray-700 tw-text-base tw-font-medium">Loading...</div>
-                    </div>
-                </div>
-            }>
+            <Suspense fallback={<LoadingSpinner className="tw-h-screen tw-w-screen" />}>
                 {children}
             </Suspense>
         </AuthContext.Provider>

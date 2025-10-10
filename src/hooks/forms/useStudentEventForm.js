@@ -42,18 +42,22 @@ export const useStudentEventForm = (eventsData) => {
         // Update student request (not approved event)
         const requestRef = doc(db, 'studentEventRequests', eventToEdit.id);
         await setDoc(requestRef, eventData);
-        await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+        // Don't add to email queue - student requests don't trigger emails until approved
       } else {
         // Create new student request (not approved event)
         const requestRef = doc(db, 'studentEventRequests', Date.now().toString());
         eventData.id = requestRef.id;
         await setDoc(requestRef, eventData);
-        await addOrUpdateEventInQueue(eventData, 'store');
+        // Don't add to email queue - student requests don't trigger emails until approved
       }
-      setShowModal(false);
     } catch (error) {
       console.error('Failed to submit student request:', error);
+      alert('Failed to save event request. Please try again.');
+      return; // Don't close modal if there's an error
     }
+
+    // Close modal only after successful save
+    setShowModal(false);
   };
 
   const handleDelete = (eventToEdit, setShowModal) => async () => {

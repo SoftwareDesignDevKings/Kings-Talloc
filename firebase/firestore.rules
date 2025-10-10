@@ -26,20 +26,24 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == 'student';
     }
 
+    // Helper function to check if student owns the request (checks students array)
+    function studentOwnsRequest(studentEmail) {
+      // For student event requests, check if email is in students array
+      // Students array format: [{value: "email", label: "name"}] or ["email"]
+      return resource.data.students.size() > 0 &&
+             resource.data.students[0].value == studentEmail;
+    }
 
     // Users collection - only teachers can modify roles
     match /users/{documentEmail} {
       allow read: if isAuthenticated();
-      
-      // email from firebase auth token inside request 
-      const fbAuthEmail = request.auth.token.email;
 
       // firestore db stores user docs with email as doc ID
-      allow create: if isAuthenticated() && fbAuthEmail == documentEmail;
+      allow create: if isAuthenticated() && request.auth.token.email == documentEmail;
 
       // isTeacher || ((isAuthenticated) && (theirUserAcc) && (notModifying the key 'role'))
       // prevent non-teacher users from modifying their own role
-      allow update: if isTeacher() || (isAuthenticated() && fbAuthEmail == documentEmail && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      allow update: if isTeacher() || (isAuthenticated() && request.auth.token.email == documentEmail && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
       allow delete: if isTeacher();
     }
 
@@ -65,9 +69,8 @@ service cloud.firestore {
       // Only students can create their own requests
       allow create: if isStudent();
 
-      // Teachers can update/delete any request, students can only update/delete requests they created
-      // note: Teacher approves -> deleted from studentEventRequests -> created in events (only teachers can edit events)
-      allow update, delete: if isTeacher() || request.auth.uid == resource.data.createdBy;
+      // Teachers can update/delete any request, students can only update/delete their own requests
+      allow update, delete: if isTeacher() || (isStudent() && studentOwnsRequest(request.auth.token.email));
     }
 
     // Tutor Availabilities collection (tutor availability slots)
@@ -89,6 +92,12 @@ service cloud.firestore {
 
     // Subjects collection - only teachers can modify
     match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow write: if isTeacher();
+    }
+
+    // Students collection - read-only for all authenticated users, only teachers can modify
+    match /students/{studentId} {
       allow read: if isAuthenticated();
       allow write: if isTeacher();
     }

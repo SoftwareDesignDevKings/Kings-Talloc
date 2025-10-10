@@ -108,6 +108,7 @@ export const fetchStudentRequests = async (setStudentRequests) => {
       isStudentRequest: true,
     }));
 
+    console.log(`[Firestore Listener] Student requests updated: ${requestsFromDb.length} requests`);
     setStudentRequests(requestsFromDb);
   }, (error) => {
     console.error("Error fetching student requests:", error);

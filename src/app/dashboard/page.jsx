@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState, lazy, Suspense } from "react";
 import Sidebar from "@components/Sidebar.jsx";
 import { useAuthSession } from "@/hooks/auth/useAuthSession";
+import LoadingSpinner from "@/components/LoadingSpinner.jsx";
 
 // Lazy load all heavy components to reduce initial bundle and hydrate /dashboard faster
 const CalendarWrapper = lazy(() => import("@components/CalendarWrapper.jsx"));
@@ -46,17 +47,7 @@ const Dashboard = () =>  {
             </div>
           </div>
           <div className="tw-border-t tw-border-gray-200 tw-pt-4 tw-flex-1 tw-overflow-hidden">
-            <Suspense fallback={
-              <div className="tw-flex tw-items-center tw-justify-center tw-h-full tw-w-full">
-                <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
-                  <div className="tw-relative tw-w-16 tw-h-16">
-                    <div className="tw-absolute tw-inset-0 tw-border-4 tw-border-purple-200 tw-rounded-full"></div>
-                    <div className="tw-absolute tw-inset-0 tw-border-4 tw-border-transparent tw-border-t-purple-600 tw-rounded-full tw-animate-spin"></div>
-                  </div>
-                  <div className="tw-text-gray-700 tw-text-base tw-font-medium">Loading...</div>
-                </div>
-              </div>
-            }>
+            <Suspense fallback={<LoadingSpinner />}>
               {activeSection === "dashboard" && (
                 <div className="tw-h-full tw-overflow-auto">
                   <DashboardOverview

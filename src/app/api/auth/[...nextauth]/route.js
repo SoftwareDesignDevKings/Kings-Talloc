@@ -26,43 +26,53 @@ async function handleSignIn({ user, account, profile }) {
 }
 
 /**
- * Add user role to JWT token
+ * Add user role to JWT token and refresh Firebase token periodically
  */
-async function handleJwt({ token, user }) {
-	if (!user) {
-		return token;
+async function handleJwt({ token, user, trigger }) {
+	// Initial sign in - user object is available
+	if (user) {
+		token.role = user.role;
+		token.email = user.email;
+		token.name = user.name;
+		token.firebaseTokenCreatedAt = Date.now();
 	}
 
-	token.role = user.role;
-	const userUid = user.email.toLowerCase();
+	// Check if we need to refresh the Firebase token (every 50 minutes to be safe)
+	const FIFTY_MINUTES = 50 * 60 * 1000;
+	const shouldRefreshToken = !token.firebaseTokenCreatedAt ||
+		(Date.now() - token.firebaseTokenCreatedAt > FIFTY_MINUTES);
 
-	// ensure that userUid exists on the firebase record, so when they mint token they arent rejected
-	try {
-		// Try to get user first
-		await adminAuth.getUser(userUid);
-	} catch (error) {
-		if (error.code === "auth/user-not-found") {
-			// Create user if not found
-			try {
-				await adminAuth.createUser({
-					uid: userUid,
-					email: user.email,
-					displayName: user.name,
-				});
-			} catch (createError) {
-				console.log("Error creating user:", createError);
+	// Generate new Firebase token if needed (initial login or refresh)
+	if (user || shouldRefreshToken) {
+		const userUid = (user?.email || token.email).toLowerCase();
+		const userRole = user?.role || token.role;
+
+		// Ensure Firebase Auth user exists
+		try {
+			await adminAuth.getUser(userUid);
+		} catch (error) {
+			if (error.code === "auth/user-not-found") {
+				try {
+					await adminAuth.createUser({
+						uid: userUid,
+						email: user?.email || token.email,
+						displayName: user?.name || token.name,
+					});
+				} catch (createError) {
+					console.log("Error creating user:", createError);
+				}
+			} else {
+				console.log("Error getting user:", error);
 			}
-		} else {
-			console.log("Error getting user:", error);
 		}
+
+		// Generate fresh Firebase custom token
+		const firebaseToken = await adminAuth.createCustomToken(userUid, { role: userRole });
+		token.firebaseToken = firebaseToken;
+		token.firebaseTokenCreatedAt = Date.now();
 	}
 
-	const role = user.role
-
-	// one-time login token to Firestore
-	const firebaseToken = await adminAuth.createCustomToken(userUid, { role });
-	token.firebaseToken = firebaseToken;
-    return token;
+	return token;
 }
 
 /**

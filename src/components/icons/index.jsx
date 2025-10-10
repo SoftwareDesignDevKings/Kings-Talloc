@@ -114,6 +114,34 @@ export const FiHome = (props) => (
   </IconWrapper>
 );
 
+export const FiCheckCircle = (props) => (
+  <IconWrapper {...props}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </IconWrapper>
+);
+
+export const FiAlertCircle = (props) => (
+  <IconWrapper {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </IconWrapper>
+);
+
+export const FiTrendingUp = (props) => (
+  <IconWrapper {...props}>
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </IconWrapper>
+);
+
+export const FiActivity = (props) => (
+  <IconWrapper {...props}>
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </IconWrapper>
+);
+
 // Material Design Icons (md)
 export const MdEventNote = (props) => (
   <IconWrapper {...props} fill="currentColor" stroke="none">
