@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { isAfter, add, format } from 'date-fns';
 import Select from 'react-select';
-import { Button, ButtonGroup, Form, Alert, Badge, Card } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
 
@@ -72,18 +71,18 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
   const getWorkTypeBadge = () => {
     const workType = newAvailability.workType;
     const badges = {
-      tutoring: <Badge bg="primary" className="me-1">Tutoring</Badge>,
-      coaching: <Badge bg="info" className="me-1">Coaching</Badge>,
-      tutoringOrWork: <Badge bg="success" className="me-1">Tutoring/Work</Badge>,
-      work: <Badge bg="secondary" className="me-1">Work</Badge>
+      tutoring: <span className="badge bg-primary me-1">Tutoring</span>,
+      coaching: <span className="badge bg-info me-1">Coaching</span>,
+      tutoringOrWork: <span className="badge bg-success me-1">Tutoring/Work</span>,
+      work: <span className="badge bg-secondary me-1">Work</span>
     };
     return badges[workType] || null;
   };
 
   const getLocationBadge = () => {
     const location = newAvailability.locationType;
-    if (location === 'onsite') return <Badge bg="success">🏫 Onsite</Badge>;
-    if (location === 'remote') return <Badge bg="info">💻 Remote</Badge>;
+    if (location === 'onsite') return <span className="badge bg-success">🏫 Onsite</span>;
+    if (location === 'remote') return <span className="badge bg-info">💻 Remote</span>;
     return null;
   };
 
@@ -101,7 +100,7 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
         variant: "danger"
       } : null}
     >
-      {error && <Alert variant="danger" className="mb-3 py-2">{error}</Alert>}
+      {error && <div className="alert alert-danger mb-3 py-2">{error}</div>}
 
       {/* Summary badges */}
       {(newAvailability.workType || newAvailability.locationType) && (
@@ -112,52 +111,54 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
       )}
 
       {/* Time Selection Card */}
-      <Card className="mb-3 border-primary" style={{borderWidth: '2px'}}>
-        <Card.Body className="p-3">
+      <div className="card mb-3 border-primary" style={{borderWidth: '2px'}}>
+        <div className="card-body p-3">
           <div className="d-flex align-items-center mb-2">
             <MdAccessTime className="me-2 text-primary" size={18} />
             <small className="text-muted fw-semibold">Time Period</small>
           </div>
 
-          <Form.Group className="mb-2">
-            <Form.Label htmlFor="start" className="small text-muted mb-1">Start Time</Form.Label>
-            <Form.Control
+          <div className="mb-2">
+            <label htmlFor="start" className="form-label small text-muted mb-1">Start Time</label>
+            <input
               type="datetime-local"
+              className="form-control"
               name="start"
               id="start"
               value={format(new Date(newAvailability.start), "yyyy-MM-dd'T'HH:mm")}
               onChange={handleInputChange}
               required
             />
-          </Form.Group>
+          </div>
 
-          <Form.Group className="mb-2">
-            <Form.Label htmlFor="end" className="small text-muted mb-1">End Time</Form.Label>
-            <Form.Control
+          <div className="mb-2">
+            <label htmlFor="end" className="form-label small text-muted mb-1">End Time</label>
+            <input
               type="datetime-local"
+              className="form-control"
               name="end"
               id="end"
               value={format(new Date(newAvailability.end), "yyyy-MM-dd'T'HH:mm")}
               onChange={handleInputChange}
               required
             />
-          </Form.Group>
+          </div>
 
           <div className="d-flex gap-2 align-items-center">
             <small className="text-muted">Quick:</small>
-            <ButtonGroup size="sm">
-              <Button variant="outline-primary" onClick={() => setHours(6)}>6hrs</Button>
-              <Button variant="outline-secondary" onClick={() => setHours(3)}>3hrs</Button>
-            </ButtonGroup>
+            <div className="btn-group btn-group-sm" role="group">
+              <button type="button" className="btn btn-outline-primary" onClick={() => setHours(6)}>6hrs</button>
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setHours(3)}>3hrs</button>
+            </div>
           </div>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
 
       {/* Work Type & Location */}
       <div className="row g-2">
         <div className="col-6">
-          <Card className="h-100 border-info" style={{borderWidth: '2px'}}>
-            <Card.Body className="p-2">
+          <div className="card h-100 border-info" style={{borderWidth: '2px'}}>
+            <div className="card-body p-2">
               <div className="d-flex align-items-center mb-2">
                 <MdWork className="me-1 text-info" size={16} />
                 <small className="text-muted fw-semibold">Type</small>
@@ -170,12 +171,12 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
                 classNamePrefix="select"
                 placeholder="Select type..."
               />
-            </Card.Body>
-          </Card>
+            </div>
+          </div>
         </div>
         <div className="col-6">
-          <Card className="h-100 border-success" style={{borderWidth: '2px'}}>
-            <Card.Body className="p-2">
+          <div className="card h-100 border-success" style={{borderWidth: '2px'}}>
+            <div className="card-body p-2">
               <div className="d-flex align-items-center mb-2">
                 <MdLocationOn className="me-1 text-success" size={16} />
                 <small className="text-muted fw-semibold">Location</small>
@@ -189,8 +190,8 @@ const TutorAvailabilityForm = ({ isEditing, newAvailability, setNewAvailability,
                 placeholder="Select location..."
                 required
               />
-            </Card.Body>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </BaseModal>

@@ -2,20 +2,21 @@
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import Sidebar from "@components/Sidebar.jsx";
 import { useAuthSession } from "@/hooks/auth/useAuthSession";
 
-// Lazy load all heavy components to reduce initial bundle
+// Lazy load all heavy components to reduce initial bundle and hydrate /dashboard faster
 const CalendarWrapper = lazy(() => import("@components/CalendarWrapper.jsx"));
 const UserRolesManager = lazy(() => import("@components/UserRolesManager.jsx"));
 const ClassList = lazy(() => import("@components/ClassList.jsx"));
 const TutorHoursSummary = lazy(() => import("@components/TutorHoursSummary.jsx"));
 const SubjectList = lazy(() => import("@components/SubjectList.jsx"));
+const DashboardOverview = lazy(() => import("@components/DashboardOverview.jsx"));
 
 const Dashboard = () =>  {
   const { session, userRole } = useAuthSession();
-  const [activeSection, setActiveSection] = useState("calendar");
+  const [activeSection, setActiveSection] = useState("dashboard");
 
   let dashboardTitle = "Teacher Dashboard";
   if (userRole === "student") {
@@ -56,6 +57,14 @@ const Dashboard = () =>  {
                 </div>
               </div>
             }>
+              {activeSection === "dashboard" && (
+                <div className="tw-h-full tw-overflow-auto">
+                  <DashboardOverview
+                    userRole={userRole}
+                    userEmail={session.user.email}
+                  />
+                </div>
+              )}
               {activeSection === "calendar" && (
                 <div className="tw-h-full tw-overflow-auto">
                   <CalendarWrapper

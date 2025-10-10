@@ -1,5 +1,4 @@
 import React from 'react';
-import { Form } from 'react-bootstrap';
 import BaseModal from './BaseModal.jsx';
 
 const AddTutorsModal = ({
@@ -23,17 +22,17 @@ const AddTutorsModal = ({
       onSubmit={handleSubmit}
       submitText="Add Tutors"
     >
-      <Form.Group className="mb-3">
-        <Form.Label>Tutor Emails</Form.Label>
-        <Form.Control
-          as="textarea"
+      <div className="mb-3">
+        <label className="form-label">Tutor Emails</label>
+        <textarea
+          className="form-control"
           rows={4}
           value={tutorsToAdd}
           onChange={(e) => setTutorsToAdd(e.target.value)}
           placeholder="Enter emails separated by commas"
           required
         />
-      </Form.Group>
+      </div>
     </BaseModal>
   );
 };

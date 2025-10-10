@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen } from '@/components/icons';
+import { FiCalendar, FiUsers, FiBook, FiClock, FiUser, FiSettings, FiChevronLeft, FiChevronRight, FiBookOpen, FiHome } from '@/components/icons';
 import Image from 'next/image';
 import { signOut } from 'next-auth/react';
 
@@ -36,6 +36,13 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
         </div>
         <div className="tw-flex-1">
           <ul className="tw-mt-4 tw-space-y-2 tw-list-none tw-pl-0">
+            <li
+              className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
+              onClick={() => setActiveSection('dashboard')}
+            >
+              <FiHome className="tw-text-indigo-600" />
+              {!isCollapsed && <span>Dashboard</span>}
+            </li>
             <li
               className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
               onClick={() => setActiveSection('calendar')}

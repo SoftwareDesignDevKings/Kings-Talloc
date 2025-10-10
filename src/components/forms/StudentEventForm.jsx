@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { isAfter, isBefore, isSameOrBefore, isSameOrAfter, format } from 'date-fns';
 import Select from 'react-select';
-import { Form, Alert, Button, ButtonGroup } from 'react-bootstrap';
 import BaseModal from '../modals/BaseModal.jsx';
 import { db } from '@/firestore/clientFirestore.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -141,12 +140,13 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
         variant: "danger"
       } : null}
     >
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <div className="alert alert-danger">{error}</div>}
 
-      <Form.Group className="mb-3">
-        <Form.Label htmlFor="start">Start Time</Form.Label>
-        <Form.Control
+      <div className="mb-3">
+        <label htmlFor="start" className="form-label">Start Time</label>
+        <input
           type="datetime-local"
+          className="form-control"
           name="start"
           id="start"
           value={format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")}
@@ -154,11 +154,12 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           required
           disabled={!isStudentCreated}
         />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label htmlFor="end">End Time</Form.Label>
-        <Form.Control
+      </div>
+      <div className="mb-3">
+        <label htmlFor="end" className="form-label">End Time</label>
+        <input
           type="datetime-local"
+          className="form-control"
           name="end"
           id="end"
           value={format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")}
@@ -166,9 +167,9 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           required
           disabled={!isStudentCreated}
         />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label htmlFor="subject">Subject</Form.Label>
+      </div>
+      <div className="mb-3">
+        <label htmlFor="subject" className="form-label">Subject</label>
         <Select
           name="subject"
           options={subjectOptions}
@@ -178,25 +179,25 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           placeholder="Select a subject"
           isDisabled={!isStudentCreated}
         />
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label>Preference</Form.Label>
+      </div>
+      <div className="mb-3">
+        <label className="form-label">Preference</label>
         <div className="d-flex flex-wrap gap-2">
           {preferenceOptions.map((preference) => (
-            <Button
+            <button
               key={preference}
-              variant={selectedPreference === preference ? 'primary' : 'outline-primary'}
-              size="sm"
+              type="button"
+              className={`btn btn-sm ${selectedPreference === preference ? 'btn-primary' : 'btn-outline-primary'}`}
               onClick={() => handlePreferenceClick(preference)}
               disabled={!isStudentCreated}
             >
               {preference}
-            </Button>
+            </button>
           ))}
         </div>
-      </Form.Group>
-      <Form.Group className="mb-3">
-        <Form.Label htmlFor="tutor">Assign Tutor</Form.Label>
+      </div>
+      <div className="mb-3">
+        <label htmlFor="tutor" className="form-label">Assign Tutor</label>
         <Select
           name="tutor"
           options={filteredTutors}
@@ -207,10 +208,10 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           isDisabled={!isStudentCreated}
           noOptionsMessage={() => "No tutors available for the selected time range"}
         />
-      </Form.Group>
+      </div>
       {newEvent.minStudents > 0 && (
-        <Form.Group className="mb-3">
-          <Form.Label>Student Responses</Form.Label>
+        <div className="mb-3">
+          <label className="form-label">Student Responses</label>
           {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
             <ul className="list-unstyled">
               {newEvent.studentResponses.map((response, index) => (
@@ -222,7 +223,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
           ) : (
             <p className="text-muted">No students have responded yet.</p>
           )}
-        </Form.Group>
+        </div>
       )}
     </BaseModal>
   );

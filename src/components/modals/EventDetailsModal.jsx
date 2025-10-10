@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import Select from 'react-select';
-import { Form, Button, Row, Col, Badge, Card, Offcanvas } from 'react-bootstrap';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firestore/clientFirestore.js';
 import { MdEventNote, MdPeople, MdSchool, MdAccessTime, MdNoteAlt, MdMenuBook, MdFlag, MdEdit, FaChalkboardTeacher, FaUserGraduate } from '@/components/icons';
@@ -77,21 +76,54 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
     { value: 'notAttended', label: "Student Didn't Attend" },
   ];
 
-  return (
-    <Offcanvas show={true} onHide={handleClose} placement="end" backdrop={true} className="tw-w-[480px] tw-max-w-[90vw]">
-      <Offcanvas.Header closeButton className="bg-light border-bottom">
-        <Offcanvas.Title className="fw-semibold">Event Details</Offcanvas.Title>
-      </Offcanvas.Header>
+  // Handle offcanvas visibility
+  useEffect(() => {
+    const offcanvasEl = document.getElementById('eventDetailsOffcanvas');
+    if (!offcanvasEl) return;
 
-      <Offcanvas.Body className="p-3 d-flex flex-column">
+    // Wait for Bootstrap to be available
+    const initOffcanvas = () => {
+      if (!window.bootstrap?.Offcanvas) {
+        console.log('Bootstrap not loaded yet, retrying...');
+        setTimeout(initOffcanvas, 100);
+        return;
+      }
+
+      console.log('Initializing EventDetailsModal offcanvas');
+      const offcanvas = new window.bootstrap.Offcanvas(offcanvasEl);
+      offcanvas.show();
+
+      const handleHidden = () => handleClose();
+      offcanvasEl.addEventListener('hidden.bs.offcanvas', handleHidden);
+
+      // Cleanup function
+      return () => {
+        offcanvasEl.removeEventListener('hidden.bs.offcanvas', handleHidden);
+        const instance = window.bootstrap.Offcanvas.getInstance(offcanvasEl);
+        if (instance) instance.dispose();
+      };
+    };
+
+    const cleanup = initOffcanvas();
+    return cleanup;
+  }, [handleClose]);
+
+  return (
+    <div className="offcanvas offcanvas-end tw-w-[480px] tw-max-w-[90vw]" tabIndex="-1" id="eventDetailsOffcanvas" data-bs-backdrop="true">
+      <div className="offcanvas-header bg-light border-bottom">
+        <h5 className="offcanvas-title fw-semibold">Event Details</h5>
+        <button type="button" className="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+
+      <div className="offcanvas-body p-3 d-flex flex-column">
           {/* Event Information Card */}
-          <Card className="mb-3 border-0 shadow-sm">
-            <Card.Header className="bg-secondary text-white py-2">
+          <div className="card mb-3 border-0 shadow-sm">
+            <div className="card-header bg-secondary text-white py-2">
               <h6 className="mb-0 d-flex align-items-center gap-2">
                 <MdEventNote className="fs-5" /> Event Information
               </h6>
-            </Card.Header>
-            <Card.Body className="p-3">
+            </div>
+            <div className="card-body p-3">
               <div className="mb-3">
                 <small className="text-muted d-block mb-1">Title</small>
                 <h5 className="mb-0">{event.title}</h5>
@@ -104,31 +136,31 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                 </div>
               )}
 
-              <Row>
-                <Col md={6}>
+              <div className="row">
+                <div className="col-md-6">
                   <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
                     <MdAccessTime /> Start Time
                   </small>
                   <div className="fw-medium">{format(new Date(event.start), 'MMM d, yyyy h:mm a')}</div>
-                </Col>
-                <Col md={6}>
+                </div>
+                <div className="col-md-6">
                   <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
                     <MdAccessTime /> End Time
                   </small>
                   <div className="fw-medium">{format(new Date(event.end), 'MMM d, yyyy h:mm a')}</div>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Participants Card */}
-          <Card className="mb-3 border-0 shadow-sm">
-            <Card.Header className="bg-success text-white py-2">
+          <div className="card mb-3 border-0 shadow-sm">
+            <div className="card-header bg-success text-white py-2">
               <h6 className="mb-0 d-flex align-items-center gap-2">
                 <MdPeople className="fs-5" /> Participants
               </h6>
-            </Card.Header>
-            <Card.Body className="p-3">
+            </div>
+            <div className="card-body p-3">
               {event.staff && event.staff.length > 0 && (
                 <div className="mb-3">
                   <small className="text-muted d-block mb-2 d-flex align-items-center gap-1">
@@ -136,9 +168,9 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                   </small>
                   <div className="d-flex flex-wrap gap-1">
                     {event.staff.map((staff, idx) => (
-                      <Badge key={idx} bg="secondary" className="fw-normal">
+                      <span key={idx} className="badge bg-secondary fw-normal">
                         {staff.label}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -151,9 +183,9 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                   </small>
                   <div className="d-flex flex-wrap gap-1">
                     {event.classes.map((cls, idx) => (
-                      <Badge key={idx} bg="success" className="fw-normal">
+                      <span key={idx} className="badge bg-success fw-normal">
                         {cls.label}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -166,33 +198,33 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                   </small>
                   <div className="d-flex flex-wrap gap-1">
                     {event.students.map((student, idx) => (
-                      <Badge key={idx} bg="primary" className="fw-normal">
+                      <span key={idx} className="badge bg-primary fw-normal">
                         {student.label}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
               )}
-            </Card.Body>
-          </Card>
+            </div>
+          </div>
 
           {/* Student Request Info Card */}
           {(event.createdByStudent || event.isStudentRequest) && (event.subject || event.preference) && (
-            <Card className="mb-3 border-0 shadow-sm">
-              <Card.Header className="bg-secondary text-white py-2">
+            <div className="card mb-3 border-0 shadow-sm">
+              <div className="card-header bg-secondary text-white py-2">
                 <h6 className="mb-0 d-flex align-items-center gap-2">
                   <MdNoteAlt className="fs-5" /> Student Request Details
                 </h6>
-              </Card.Header>
-              <Card.Body className="p-3">
+              </div>
+              <div className="card-body p-3">
                 {event.subject && (
                   <div className="mb-2">
                     <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
                       <MdMenuBook /> Subject
                     </small>
-                    <Badge bg="dark" className="fw-normal">
+                    <span className="badge bg-dark fw-normal">
                       {typeof event.subject === 'object' ? event.subject.label : event.subject}
-                    </Badge>
+                    </span>
                   </div>
                 )}
 
@@ -201,27 +233,27 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                     <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
                       <MdFlag /> Preference
                     </small>
-                    <Badge bg="primary" className="fw-normal">
+                    <span className="badge bg-primary fw-normal">
                       {event.preference}
-                    </Badge>
+                    </span>
                   </div>
                 )}
-              </Card.Body>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Actions Card */}
           {(userRole === 'student' && event.minStudents > 0) || userRole === 'tutor' ? (
-            <Card className="mb-0 border-0 shadow-sm">
-              <Card.Header className="bg-info text-white py-2">
+            <div className="card mb-0 border-0 shadow-sm">
+              <div className="card-header bg-info text-white py-2">
                 <h6 className="mb-0 d-flex align-items-center gap-2">
                   <MdEdit className="fs-5" /> Your Response
                 </h6>
-              </Card.Header>
-              <Card.Body className="p-3">
+              </div>
+              <div className="card-body p-3">
                 {userRole === 'student' && event.minStudents > 0 && (
-                  <Form.Group>
-                    <Form.Label className="small text-muted mb-1">Your Attendance</Form.Label>
+                  <div className="mb-3">
+                    <label className="form-label small text-muted mb-1">Your Attendance</label>
                     <Select
                       name="userResponse"
                       options={[
@@ -233,12 +265,12 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                       className="basic-single-select"
                       classNamePrefix="select"
                     />
-                  </Form.Group>
+                  </div>
                 )}
 
                 {userRole === 'tutor' && (
-                  <Form.Group>
-                    <Form.Label className="small text-muted mb-1">Work Status</Form.Label>
+                  <div className="mb-3">
+                    <label className="form-label small text-muted mb-1">Work Status</label>
                     <Select
                       name="workStatus"
                       options={workStatusOptions}
@@ -246,31 +278,32 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
                       onChange={handleWorkStatusChange}
                       classNamePrefix="select"
                     />
-                  </Form.Group>
+                  </div>
                 )}
-              </Card.Body>
-            </Card>
+              </div>
+            </div>
           ) : null}
 
         {/* Footer */}
         <div className="mt-auto border-top p-3 bg-light">
           <div className="d-flex justify-content-end gap-2">
-            <Button variant="secondary" onClick={handleClose} disabled={isSaving}>
+            <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={isSaving}>
               Cancel
-            </Button>
+            </button>
             {hasChanges && (
-              <Button
-                variant="primary"
+              <button
+                type="button"
+                className="btn btn-primary"
                 onClick={handleSave}
                 disabled={isSaving}
               >
                 {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
+              </button>
             )}
           </div>
         </div>
-      </Offcanvas.Body>
-    </Offcanvas>
+      </div>
+    </div>
   );
 };
 

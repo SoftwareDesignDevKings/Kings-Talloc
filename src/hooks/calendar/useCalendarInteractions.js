@@ -66,16 +66,20 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
   };
 
   const handleSelectEvent = (event) => {
+    console.log('handleSelectEvent called', { userRole, event, eventTutor: event.tutor });
+
     // Tutor clicked on an availability
     if (event.tutor) {
       // Only tutors can edit their own availabilities
       if (userRole === 'tutor' && event.tutor === userEmail) {
+        console.log('Tutor editing own availability');
         setNewAvailability(event);
         forms.setIsEditing(true);
         forms.setEventToEdit(event);
         forms.setShowAvailabilityForm(true);
       } else {
         // Everyone else just views details
+        console.log('Showing details modal for availability');
         forms.setEventToEdit(event);
         forms.setShowDetailsModal(true);
       }
@@ -84,6 +88,7 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
 
     // Teachers can edit all events (approved events)
     if (userRole === 'teacher') {
+      console.log('Teacher editing event');
       setNewEvent(event);
       forms.setIsEditing(true);
       forms.setEventToEdit(event);
@@ -96,6 +101,7 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
       // Check if student owns this request
       const isOwnRequest = event.students?.some(s => s.value === userEmail || s === userEmail);
       if (isOwnRequest) {
+        console.log('Student editing own request');
         setNewEvent(event);
         forms.setIsEditing(true);
         forms.setEventToEdit(event);
@@ -105,6 +111,7 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
     }
 
     // Default: just show details modal
+    console.log('Showing details modal (default)');
     forms.setEventToEdit(event);
     forms.setShowDetailsModal(true);
   };

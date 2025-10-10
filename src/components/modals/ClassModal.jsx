@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { Form } from 'react-bootstrap';
 import Select from 'react-select';
 import BaseModal from './BaseModal.jsx';
 
@@ -32,18 +31,19 @@ const ClassModal = ({
       onSubmit={handleAddClass}
       submitText={isEditing ? 'Save Changes' : 'Add Class'}
     >
-      <Form.Group className="mb-3">
-        <Form.Label>Class Name</Form.Label>
-        <Form.Control
+      <div className="mb-3">
+        <label className="form-label">Class Name</label>
+        <input
           type="text"
+          className="form-control"
           value={className}
           onChange={(e) => setClassName(e.target.value)}
           required
         />
-      </Form.Group>
+      </div>
 
-      <Form.Group className="mb-3">
-        <Form.Label>Subject</Form.Label>
+      <div className="mb-3">
+        <label className="form-label">Subject</label>
         <Select
           options={subjects}
           value={subjects.find(subject => subject.id === selectedSubject?.id)}
@@ -55,7 +55,7 @@ const ClassModal = ({
           placeholder="Select a subject"
           required
         />
-      </Form.Group>
+      </div>
     </BaseModal>
   );
 };

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Form } from 'react-bootstrap';
 import BaseModal from './BaseModal.jsx';
 
 const SubjectModal = ({ showModal, setShowModal, subject, handleSubmit }) => {
@@ -30,15 +29,16 @@ const SubjectModal = ({ showModal, setShowModal, subject, handleSubmit }) => {
       onSubmit={handleFormSubmit}
       submitText={subject ? 'Save Changes' : 'Add Subject'}
     >
-      <Form.Group className="mb-3">
-        <Form.Label>Subject Name</Form.Label>
-        <Form.Control
+      <div className="mb-3">
+        <label className="form-label">Subject Name</label>
+        <input
           type="text"
+          className="form-control"
           value={subjectName}
           onChange={(e) => setSubjectName(e.target.value)}
           required
         />
-      </Form.Group>
+      </div>
     </BaseModal>
   );
 };
