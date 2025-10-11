@@ -274,10 +274,11 @@ const CalendarContent = () => {
           handleDelete={tutorAvailabilityForm.handleDelete(forms.eventToEdit, forms.setShowAvailabilityForm)}
         />
       )}
-      {forms.showDetailsModal && (
+      {forms.showDetailsModal && forms.eventToEdit && (
         <EventDetailsModal
+          key={forms.eventToEdit.id}
           event={forms.eventToEdit}
-          handleClose={() => forms.setShowDetailsModal(false)}
+          onClose={() => forms.setShowDetailsModal(false)}
           handleConfirmation={eventOperations.handleConfirmation}
           userEmail={userEmail}
           userRole={userRole}

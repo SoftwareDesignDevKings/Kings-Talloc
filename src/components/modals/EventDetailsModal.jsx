@@ -1,17 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import Select from 'react-select';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firestore/clientFirestore.js';
 import { MdEventNote, MdPeople, MdSchool, MdAccessTime, MdNoteAlt, MdMenuBook, MdFlag, MdEdit, FaChalkboardTeacher, FaUserGraduate } from '@/components/icons';
 
-const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, setEvents }) => {
+const EventDetailsModal = ({ event, onClose, userEmail, userRole, events, setEvents }) => {
   console.log('EventDetailsModal - event:', event);
   console.log('createdByStudent:', event.createdByStudent);
   console.log('subject:', event.subject);
   console.log('preference:', event.preference);
+
+  const offcanvasRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  // Keep ref updated
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const studentResponse = event.studentResponses?.find(response => response.email === userEmail);
   const [response, setResponse] = useState(studentResponse ? (studentResponse.response ? 'accepted' : 'declined') : '');
@@ -31,7 +39,7 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
 
   const handleSave = async () => {
     if (!hasChanges) {
-      handleClose();
+      onCloseRef.current();
       return;
     }
 
@@ -62,7 +70,7 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
       const updatedEvent = { ...event, ...updateData };
       setEvents(events.map(evt => (evt.id === event.id ? updatedEvent : evt)));
 
-      handleClose();
+      onCloseRef.current();
     } catch (error) {
       console.error('Failed to save changes:', error);
     } finally {
@@ -76,40 +84,33 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
     { value: 'notAttended', label: "Student Didn't Attend" },
   ];
 
-  // Handle offcanvas visibility
+  // Handle offcanvas visibility - only runs once on mount
   useEffect(() => {
-    const offcanvasEl = document.getElementById('eventDetailsOffcanvas');
-    if (!offcanvasEl) return;
+    if (!offcanvasRef.current) return;
 
-    // Wait for Bootstrap to be available
-    const initOffcanvas = () => {
-      if (!window.bootstrap?.Offcanvas) {
-        console.log('Bootstrap not loaded yet, retrying...');
-        setTimeout(initOffcanvas, 100);
-        return;
-      }
+    const element = offcanvasRef.current;
+    const handleHidden = () => onCloseRef.current();
 
-      console.log('Initializing EventDetailsModal offcanvas');
-      const offcanvas = new window.bootstrap.Offcanvas(offcanvasEl);
-      offcanvas.show();
+    // Initialize and show
+    const offcanvas = window.bootstrap?.Offcanvas?.getOrCreateInstance(element, {
+      backdrop: true,
+      keyboard: true,
+      scroll: false
+    });
 
-      const handleHidden = () => handleClose();
-      offcanvasEl.addEventListener('hidden.bs.offcanvas', handleHidden);
+    element.addEventListener('hidden.bs.offcanvas', handleHidden);
+    offcanvas?.show();
 
-      // Cleanup function
-      return () => {
-        offcanvasEl.removeEventListener('hidden.bs.offcanvas', handleHidden);
-        const instance = window.bootstrap.Offcanvas.getInstance(offcanvasEl);
-        if (instance) instance.dispose();
-      };
+    // Cleanup
+    return () => {
+      element.removeEventListener('hidden.bs.offcanvas', handleHidden);
+      offcanvas?.dispose();
     };
-
-    const cleanup = initOffcanvas();
-    return cleanup;
-  }, [handleClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="offcanvas offcanvas-end tw-w-[480px] tw-max-w-[90vw]" tabIndex="-1" id="eventDetailsOffcanvas" data-bs-backdrop="true">
+    <div ref={offcanvasRef} className="offcanvas offcanvas-end tw-w-[480px] tw-max-w-[90vw]" tabIndex="-1" id="eventDetailsOffcanvas" data-bs-backdrop="true">
       <div className="offcanvas-header bg-light border-bottom">
         <h5 className="offcanvas-title fw-semibold">Event Details</h5>
         <button type="button" className="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -287,7 +288,7 @@ const EventDetailsModal = ({ event, handleClose, userEmail, userRole, events, se
         {/* Footer */}
         <div className="mt-auto border-top p-3 bg-light">
           <div className="d-flex justify-content-end gap-2">
-            <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={isSaving}>
+            <button type="button" className="btn btn-secondary" onClick={() => onCloseRef.current()} disabled={isSaving}>
               Cancel
             </button>
             {hasChanges && (

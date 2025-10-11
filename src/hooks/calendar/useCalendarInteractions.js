@@ -127,12 +127,9 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
     // Handle tutor availability duplication
     if (event.tutor && userRole === 'tutor' && event.tutor === userEmail) {
       const availabilityData = {
-        title: event.title || 'Availability',
+        ...event,
         start: nextDayStart,
         end: nextDayEnd,
-        tutor: event.tutor,
-        workType: event.workType || 'tutoringOrWork',
-        locationType: event.locationType || '',
       };
 
       try {
@@ -148,23 +145,11 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
     // Handle regular event duplication (teachers only)
     if (!event.tutor && userRole === 'teacher') {
       const eventData = {
-        title: event.title || '',
+        ...event,
         start: nextDayStart,
         end: nextDayEnd,
-        description: event.description || '',
-        confirmationRequired: event.confirmationRequired || false,
-        staff: event.staff || [],
-        classes: event.classes || [],
-        students: event.students || [],
         tutorResponses: [],
         studentResponses: [],
-        minStudents: event.minStudents || 0,
-        createdByStudent: event.createdByStudent || false,
-        approvalStatus: event.approvalStatus || 'pending',
-        workStatus: 'notCompleted',
-        locationType: event.locationType || '',
-        subject: event.subject || null,
-        preference: event.preference || null,
       };
 
       try {

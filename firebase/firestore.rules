@@ -50,8 +50,10 @@ service cloud.firestore {
     // Events collection (APPROVED events only - counts for payroll/hours)
     match /events/{eventId} {
       allow read: if isAuthenticated();
-      // only teachers can create/update/delete events
-      allow create, update, delete: if isTeacher();
+      // only teachers can create/delete events
+      allow create, delete: if isTeacher();
+      // teachers can update anything, tutors can only update workStatus
+      allow update: if isTeacher() || (isTutor() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
     }
 
     // Email Events Queue collection (temporary queue for email notifications)
