@@ -72,14 +72,11 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
     if (event.tutor) {
       // Only tutors can edit their own availabilities
       if (userRole === 'tutor' && event.tutor === userEmail) {
-        console.log('Tutor editing own availability');
         setNewAvailability(event);
         forms.setIsEditing(true);
         forms.setEventToEdit(event);
         forms.setShowAvailabilityForm(true);
       } else {
-        // Everyone else just views details
-        console.log('Showing details modal for availability');
         forms.setEventToEdit(event);
         forms.setShowDetailsModal(true);
       }

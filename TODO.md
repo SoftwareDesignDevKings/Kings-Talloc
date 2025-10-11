@@ -1,1 +1,1 @@
-1. when deployed, go inside POwer Automate - was using ngrock as POwer Automate cannot connect to local host
+1. Fixed duplicate - 

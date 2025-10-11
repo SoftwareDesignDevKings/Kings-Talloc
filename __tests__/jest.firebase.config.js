@@ -2,5 +2,7 @@
 module.exports = {
   testEnvironment: 'node',
   rootDir: '..',
-  testMatch: ['<rootDir>/__tests__/firebaseRules.*.test.js'],
+  testMatch: ['<rootDir>/__tests__/firebase.*.test.js'],
+  // Suppress expected Firebase permission denied warnings during tests
+  setupFilesAfterEnv: ['<rootDir>/__tests__/firebaseTestSetup.js'],
 };
