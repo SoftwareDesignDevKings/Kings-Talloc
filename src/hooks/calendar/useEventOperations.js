@@ -128,12 +128,26 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 
   const handleDeleteEvent = async (eventToEdit, modals) => {
     if (eventToEdit && eventToEdit.id) {
-      const collectionName = eventToEdit.tutor ? 'tutorAvailabilities' : 'events';
+      const isAvailability = !!eventToEdit.tutor;
+      const isStudentRequest = !!eventToEdit.isStudentRequest;
+
+      let collectionName = 'events';
+      if (isAvailability) {
+        collectionName = 'tutorAvailabilities';
+      } else if (isStudentRequest) {
+        collectionName = 'studentEventRequests';
+      }
+
       try {
         await deleteEventFromFirestore(eventToEdit.id, collectionName);
-        if (collectionName === 'tutorAvailabilities') {
+
+        if (isAvailability) {
           eventsData.setAvailabilities(eventsData.availabilities.filter(availability =>
             availability.id !== eventToEdit.id
+          ));
+        } else if (isStudentRequest) {
+          eventsData.setStudentRequests(eventsData.studentRequests.filter(request =>
+            request.id !== eventToEdit.id
           ));
         } else {
           eventsData.setAllEvents(eventsData.allEvents.filter(event =>

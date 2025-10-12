@@ -77,6 +77,18 @@ export const FiChevronRight = (props) => (
   </IconWrapper>
 );
 
+export const FiChevronDown = (props) => (
+  <IconWrapper {...props}>
+    <polyline points="6 9 12 15 18 9" />
+  </IconWrapper>
+);
+
+export const FiCheck = (props) => (
+  <IconWrapper {...props}>
+    <polyline points="20 6 9 17 4 12" />
+  </IconWrapper>
+);
+
 export const FiBookOpen = (props) => (
   <IconWrapper {...props}>
     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />

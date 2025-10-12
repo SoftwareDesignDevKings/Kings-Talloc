@@ -1,36 +1,43 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { FiCalendar, FiUsers, FiClock, FiCheckCircle, FiAlertCircle, FiTrendingUp, FiBookOpen, FiActivity } from '@/components/icons';
+import { FiCalendar, FiUsers, FiClock, FiCheckCircle, FiAlertCircle, FiTrendingUp, FiBookOpen, FiActivity, FiChevronDown } from '@/components/icons';
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '@/firestore/clientFirestore.js';
 import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 
 const DashboardOverview = ({ userRole, userEmail }) => {
   const [firebaseReady, setFirebaseReady] = useState(false);
-  const [stats, setStats] = useState({
-    upcomingEvents: 0,
-    unapprovedStudentRequests: 0,
-    completedEvents: 0,
-    // Teacher-specific
-    activeTutors: 0,
-    totalTutors: 0,
-    weeklyUtilization: 0,
-    topSubjects: [],
-    // Tutor-specific
-    weeklyHours: { tutoring: 0, coaching: 0 },
-    needsCompletion: 0,
-    needsConfirmation: 0,
-    uniqueStudents: 0,
-    // Student-specific
-    pendingRequests: 0,
-    approvedRequests: 0,
-    rejectedRequests: 0,
-    availableTutors: 0
-  });
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+
+  // Common stats
+  const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const [unapprovedStudentRequests, setUnapprovedStudentRequests] = useState(0);
+  const [completedEvents, setCompletedEvents] = useState(0);
+
+  // Teacher-specific stats
+  const [activeTutors, setActiveTutors] = useState(0);
+  const [totalTutors, setTotalTutors] = useState(0);
+  const [weeklyUtilization, setWeeklyUtilization] = useState(0);
+  const [topSubjects, setTopSubjects] = useState([]);
+
+  // Tutor-specific stats
+  const [weeklyHours, setWeeklyHours] = useState({ tutoring: 0, coaching: 0 });
+  const [needsCompletion, setNeedsCompletion] = useState(0);
+  const [needsConfirmation, setNeedsConfirmation] = useState(0);
+  const [uniqueStudents, setUniqueStudents] = useState(0);
+
+  // Student-specific stats
+  const [pendingRequests, setPendingRequests] = useState(0);
+  const [approvedRequests, setApprovedRequests] = useState(0);
+  const [rejectedRequests, setRejectedRequests] = useState(0);
+  const [availableTutors, setAvailableTutors] = useState(0);
+
+  // Dropdown state for pending approvals
+  const [showApprovalsDropdown, setShowApprovalsDropdown] = useState(false);
+  const [pendingRequestsData, setPendingRequestsData] = useState([]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -78,6 +85,20 @@ const DashboardOverview = ({ userRole, userEmail }) => {
         event.approvalStatus === 'pending'
       ).length;
 
+      const studentEventReqRef = collection(db, 'studentEventRequests');
+      const studentEventSnapshot = await getDocs(studentEventReqRef);
+
+      const unapprovedStudentRequestsArr = studentEventSnapshot.docs
+        .filter(doc => doc.data().approvalStatus === "pending")
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          start: doc.data().start?.toDate ? doc.data().start.toDate() : new Date(doc.data().start),
+          end: doc.data().end?.toDate ? doc.data().end.toDate() : new Date(doc.data().end)
+        }));
+
+      setPendingRequestsData(unapprovedStudentRequestsArr);
+
       const completedEventsCount = events.filter(event =>
         event.workStatus === 'completed' && event.end < now
       ).length;
@@ -93,14 +114,29 @@ const DashboardOverview = ({ userRole, userEmail }) => {
         roleSpecificStats = await calculateStudentStats(events, userEmail);
       }
 
-      setStats({
-        upcomingEvents: upcomingEventsData.length,
-        unapprovedStudentRequests,
-        completedEvents: completedEventsCount,
-        ...roleSpecificStats
-      });
-
+      // Set common stats
+      setUpcomingEventsCount(upcomingEventsData.length);
+      setUnapprovedStudentRequests(unapprovedStudentRequestsArr.length);
+      setCompletedEvents(completedEventsCount);
       setUpcomingEvents(upcomingEventsData);
+
+      // Set role-specific stats
+      if (userRole === 'teacher') {
+        setActiveTutors(roleSpecificStats.activeTutors);
+        setTotalTutors(roleSpecificStats.totalTutors);
+        setWeeklyUtilization(roleSpecificStats.weeklyUtilization);
+        setTopSubjects(roleSpecificStats.topSubjects);
+      } else if (userRole === 'tutor') {
+        setWeeklyHours(roleSpecificStats.weeklyHours);
+        setNeedsCompletion(roleSpecificStats.needsCompletion);
+        setNeedsConfirmation(roleSpecificStats.needsConfirmation);
+        setUniqueStudents(roleSpecificStats.uniqueStudents);
+      } else if (userRole === 'student') {
+        setPendingRequests(roleSpecificStats.pendingRequests);
+        setApprovedRequests(roleSpecificStats.approvedRequests);
+        setRejectedRequests(roleSpecificStats.rejectedRequests);
+        setAvailableTutors(roleSpecificStats.availableTutors);
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -293,6 +329,48 @@ const DashboardOverview = ({ userRole, userEmail }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail, userRole, firebaseReady]);
 
+  const handleApproveRequest = async (requestId) => {
+    try {
+      const requestRef = doc(db, 'studentEventRequests', requestId);
+      await updateDoc(requestRef, {
+        approvalStatus: 'approved',
+        approvedAt: new Date()
+      });
+
+      setPendingRequestsData(prev => prev.filter(req => req.id !== requestId));
+      setUnapprovedStudentRequests(prev => prev - 1);
+    } catch (error) {
+      console.error('Error approving request:', error);
+    }
+  };
+
+  const handleRejectRequest = async (requestId) => {
+    try {
+      const requestRef = doc(db, 'studentEventRequests', requestId);
+      await updateDoc(requestRef, {
+        approvalStatus: 'rejected',
+        rejectedAt: new Date()
+      });
+
+      setPendingRequestsData(prev => prev.filter(req => req.id !== requestId));
+      setUnapprovedStudentRequests(prev => prev - 1);
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+    }
+  };
+
+  const handleDeleteRequest = async (requestId) => {
+    try {
+      const requestRef = doc(db, 'studentEventRequests', requestId);
+      await deleteDoc(requestRef);
+
+      setPendingRequestsData(prev => prev.filter(req => req.id !== requestId));
+      setUnapprovedStudentRequests(prev => prev - 1);
+    } catch (error) {
+      console.error('Error deleting request:', error);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -312,7 +390,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Upcoming Events</h6>
-                    <h3 className="mb-0 fw-bold">{stats.upcomingEvents}</h3>
+                    <h3 className="mb-0 fw-bold">{upcomingEventsCount}</h3>
                   </div>
                 </div>
               </div>
@@ -320,8 +398,11 @@ const DashboardOverview = ({ userRole, userEmail }) => {
           </div>
 
           <div className="col-12 col-md-4 col-lg-3">
-            <div className="card border-0 shadow-sm">
-              <div className="card-body">
+            <div className="card border-0 shadow-sm position-relative">
+              <div
+                className="card-body"
+                onClick={() => setShowApprovalsDropdown(!showApprovalsDropdown)}
+              >
                 <div className="d-flex align-items-center">
                   <div className="flex-shrink-0">
                     <div className="bg-warning bg-opacity-10 rounded p-3">
@@ -330,10 +411,86 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Pending Approvals</h6>
-                    <h3 className="mb-0 fw-bold">{stats.unapprovedStudentRequests}</h3>
+                    <h3 className="mb-0 fw-bold">{unapprovedStudentRequests}</h3>
                   </div>
+                  <FiChevronDown className="text-muted ms-2" />
                 </div>
               </div>
+
+              {showApprovalsDropdown && (
+                <div className="position-absolute top-100 start-0 w-100 mt-2 bg-white border rounded shadow-lg" style={{ zIndex: 1050, maxHeight: '400px', overflowY: 'auto' }}>
+                  {pendingRequestsData.length === 0 ? (
+                    <div className="p-4 text-center text-muted">
+                      <div className="small">No pending approvals</div>
+                    </div>
+                  ) : (
+                    <div className="list-group list-group-flush">
+                      {pendingRequestsData.map((request) => (
+                        <div key={request.id} className="list-group-item">
+                          <div className="d-flex flex-column gap-2">
+                            <div>
+                              <div className="fw-semibold">{request.title || 'Untitled Request'}</div>
+                              <div className="small text-muted mt-1">
+                                {request.students && request.students.length > 0 && (
+                                  <div>
+                                    <strong>Student:</strong> {request.students.map(s => s.label || s.value).join(', ')}
+                                  </div>
+                                )}
+                                {request.staff && request.staff.length > 0 && (
+                                  <div>
+                                    <strong>Tutor:</strong> {request.staff.map(t => t.label || t.value).join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="small text-muted">
+                              <div>
+                                {format(request.start, 'MMM d, yyyy h:mm a')} - {format(request.end, 'h:mm a')}
+                              </div>
+                              {request.subject && (
+                                <div>
+                                  Subject: {typeof request.subject === 'string' ? request.subject : request.subject.label}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="d-flex gap-2">
+                              <button
+                                className="btn btn-sm btn-success"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApproveRequest(request.id);
+                                }}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className="btn btn-sm btn-secondary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRejectRequest(request.id);
+                                }}
+                              >
+                                Reject
+                              </button>
+                              <button
+                                className="btn btn-sm btn-danger"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteRequest(request.id);
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -348,7 +505,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Active Tutors</h6>
-                    <h3 className="mb-0 fw-bold">{stats.activeTutors}/{stats.totalTutors}</h3>
+                    <h3 className="mb-0 fw-bold">{activeTutors}/{totalTutors}</h3>
                   </div>
                 </div>
               </div>
@@ -366,14 +523,14 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Weekly Utilization</h6>
-                    <h3 className="mb-0 fw-bold">{stats.weeklyUtilization}%</h3>
+                    <h3 className="mb-0 fw-bold">{weeklyUtilization}%</h3>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {stats.topSubjects.length > 0 && (
+          {topSubjects.length > 0 && (
             <div className="col-12">
               <div className="card border-0 shadow-sm">
                 <div className="card-body">
@@ -381,7 +538,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                     <FiBookOpen className="me-2" /> Top Subjects This Week
                   </h6>
                   <div className="d-flex gap-3 flex-wrap">
-                    {stats.topSubjects.map((subject, idx) => (
+                    {topSubjects.map((subject, idx) => (
                       <span key={idx} className="badge bg-primary px-3 py-2">
                         {subject.name} ({subject.count})
                       </span>
@@ -407,7 +564,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Upcoming Sessions</h6>
-                    <h3 className="mb-0 fw-bold">{stats.upcomingEvents}</h3>
+                    <h3 className="mb-0 fw-bold">{upcomingEventsCount}</h3>
                   </div>
                 </div>
               </div>
@@ -426,10 +583,10 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Hours This Week</h6>
                     <h3 className="mb-0 fw-bold">
-                      {(stats.weeklyHours.tutoring + stats.weeklyHours.coaching).toFixed(1)}
+                      {(weeklyHours.tutoring + weeklyHours.coaching).toFixed(1)}
                     </h3>
                     <small className="text-muted">
-                      T: {stats.weeklyHours.tutoring} | C: {stats.weeklyHours.coaching}
+                      T: {weeklyHours.tutoring} | C: {weeklyHours.coaching}
                     </small>
                   </div>
                 </div>
@@ -448,7 +605,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Needs Completion</h6>
-                    <h3 className="mb-0 fw-bold">{stats.needsCompletion}</h3>
+                    <h3 className="mb-0 fw-bold">{needsCompletion}</h3>
                   </div>
                 </div>
               </div>
@@ -466,18 +623,18 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Students Helped</h6>
-                    <h3 className="mb-0 fw-bold">{stats.uniqueStudents}</h3>
+                    <h3 className="mb-0 fw-bold">{uniqueStudents}</h3>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {stats.needsConfirmation > 0 && (
+          {needsConfirmation > 0 && (
             <div className="col-12">
               <div className="alert alert-warning mb-0 d-flex align-items-center">
                 <FiAlertCircle className="me-2" size={20} />
-                <span>You have {stats.needsConfirmation} event(s) requiring your confirmation</span>
+                <span>You have {needsConfirmation} event(s) requiring your confirmation</span>
               </div>
             </div>
           )}
@@ -498,7 +655,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Upcoming Sessions</h6>
-                    <h3 className="mb-0 fw-bold">{stats.upcomingEvents}</h3>
+                    <h3 className="mb-0 fw-bold">{upcomingEventsCount}</h3>
                   </div>
                 </div>
               </div>
@@ -516,7 +673,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Pending Requests</h6>
-                    <h3 className="mb-0 fw-bold">{stats.pendingRequests}</h3>
+                    <h3 className="mb-0 fw-bold">{pendingRequests}</h3>
                   </div>
                 </div>
               </div>
@@ -534,7 +691,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Approved Requests</h6>
-                    <h3 className="mb-0 fw-bold">{stats.approvedRequests}</h3>
+                    <h3 className="mb-0 fw-bold">{approvedRequests}</h3>
                   </div>
                 </div>
               </div>
@@ -552,7 +709,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   </div>
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Available Tutors</h6>
-                    <h3 className="mb-0 fw-bold">{stats.availableTutors}</h3>
+                    <h3 className="mb-0 fw-bold">{availableTutors}</h3>
                   </div>
                 </div>
               </div>
@@ -585,12 +742,12 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                 </div>
               ) : (
                 <div className="list-group list-group-flush">
-                  {upcomingEvents.map((event) => (
-                    <div key={event.id} className="list-group-item border-0 px-0 py-3">
+                  {upcomingEvents.map((event, index) => (
+                    <div key={event.id} className={`list-group-item border-0 px-0 ${index === 0 ? 'pt-0 pb-3' : 'py-3'}`}>
                       <div className="d-flex align-items-start">
                         <div className="flex-shrink-0 me-3">
-                          <div className="bg-primary bg-opacity-10 rounded p-2 text-center" style={{ minWidth: '70px' }}>
-                            <div className="small text-primary fw-semibold">
+                          <div className="bg-primary bg-opacity-10 rounded p-3 text-center" style={{ minWidth: '70px' }}>
+                            <div className="fw-semibold text-primary">
                               {format(new Date(event.start), 'MMM d')}
                             </div>
                             <div className="small text-muted">
