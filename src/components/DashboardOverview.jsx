@@ -52,12 +52,8 @@ const DashboardOverview = ({ userRole, userEmail }) => {
       if (userRole === 'teacher') {
         eventsQuery = query(eventsRef, orderBy('start', 'asc'), limit(200));
       } else if (userRole === 'tutor') {
-        eventsQuery = query(
-          eventsRef,
-          where('staff', 'array-contains', { value: userEmail, label: userEmail }),
-          orderBy('start', 'asc'),
-          limit(200)
-        );
+        // Query all events and filter client-side for tutors
+        eventsQuery = query(eventsRef, orderBy('start', 'asc'), limit(200));
       } else {
         eventsQuery = query(
           eventsRef,
@@ -68,12 +64,22 @@ const DashboardOverview = ({ userRole, userEmail }) => {
       }
 
       const querySnapshot = await getDocs(eventsQuery);
-      const events = querySnapshot.docs.map(doc => ({
+      let events = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         start: doc.data().start.toDate ? doc.data().start.toDate() : new Date(doc.data().start),
         end: doc.data().end.toDate ? doc.data().end.toDate() : new Date(doc.data().end)
       }));
+
+      // Filter events for tutors client-side
+      if (userRole === 'tutor') {
+        events = events.filter(event =>
+          event.staff?.some(staff => {
+            const staffEmail = typeof staff === 'string' ? staff : (staff.value || staff.label);
+            return staffEmail === userEmail;
+          })
+        );
+      }
 
       // Calculate common stats
       const upcomingEventsData = events
@@ -239,10 +245,14 @@ const DashboardOverview = ({ userRole, userEmail }) => {
       }
     });
 
-    // Count events needing completion (past events without workStatus)
-    const needsCompletion = events.filter(event =>
-      event.end < now && (!event.workStatus || event.workStatus === 'notCompleted')
-    ).length;
+    // Count events needing completion (events within this week without completed status)
+    let needsCompletionCount = 0;
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
+      if (event.end >= weekStart && event.end <= weekEnd && event.workStatus !== 'completed') {
+        needsCompletionCount++;
+      }
+    }
 
     // Count events needing confirmation
     const needsConfirmation = events.filter(event =>
@@ -261,7 +271,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
         tutoring: Math.round(tutoringHours * 10) / 10,
         coaching: Math.round(coachingHours * 10) / 10
       },
-      needsCompletion,
+      needsCompletion: needsCompletionCount,
       needsConfirmation,
       uniqueStudents: uniqueStudentEmails.size
     };
@@ -606,6 +616,9 @@ const DashboardOverview = ({ userRole, userEmail }) => {
                   <div className="flex-grow-1 ms-3">
                     <h6 className="text-muted mb-1 small">Needs Completion</h6>
                     <h3 className="mb-0 fw-bold">{needsCompletion}</h3>
+                    <small className="text-muted">
+                      {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')} - {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')}
+                    </small>
                   </div>
                 </div>
               </div>
