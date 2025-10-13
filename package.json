@@ -11,11 +11,7 @@
     "test:firebase": "jest --config=__tests__/jest.firebase.config.js",
     "test:all": "npm run test && npm run test:firebase",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "cypress:open": "cypress open",
-    "cypress:run": "cypress run",
-    "e2e": "cypress run",
-    "e2e:open": "cypress open"
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
@@ -39,7 +35,6 @@
     "@testing-library/jest-dom": "^6.9.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "cypress": "^15.3.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
     "jest": "^30.2.0",
