@@ -26,6 +26,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .custom-slot-text {

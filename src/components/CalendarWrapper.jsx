@@ -160,21 +160,18 @@ const CalendarContent = () => {
     <div className="tw-flex tw-h-full" style={calendarContainerStyle}>
       <div className="tw-flex-1 tw-p-5 tw-overflow-hidden tw-relative" style={calendarPanelStyle}>
         {isMobile ? (
-          <DnDCalendar
+          <Calendar
             localizer={localizer}
             events={finalEvents}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: '600px', touchAction: 'pan-y' }}
+            style={{ height: '600px' }}
             min={minTime}
             max={maxTime}
             onSelectSlot={calendarInteractions.handleSelectSlot}
             onSelectEvent={calendarInteractions.handleSelectEvent}
-            onEventDrop={eventOperations.handleEventDrop}
-            onEventResize={eventOperations.handleEventResize}
-            resizable={false}
             selectable
-            longPressThreshold={150}
+            popup
             date={currentDate}
             onNavigate={setCurrentDate}
             view={Views.DAY}
@@ -182,16 +179,10 @@ const CalendarContent = () => {
             views={[Views.DAY]}
             messages={messages}
             eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
+            step={30}
+            timeslots={2}
+            longPressThreshold={10}
             components={{
-              timeSlotWrapper: (props) => (
-                <CalendarTimeSlotWrapper
-                  {...props}
-                  applicableAvailabilities={uiState.showInitials ? applicableAvailabilities : []}
-                  selectedTutors={filterState.filters.tutors}
-                  currentWeekStart={currentWeekStart}
-                  currentWeekEnd={currentWeekEnd}
-                />
-              ),
               event: (props) => (
                 <CustomEvent
                   {...props}
