@@ -11,7 +11,18 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
   // Compose all calendar-related state and logic
   const eventsData = useCalendarEvents(userRole, userEmail);
   const uiState = useCalendarUI();
-  const filterState = useCalendarFilterState();
+  const filterState = useCalendarFilterState(uiState);
+
+  // Override setShowEvents to also update the event type filters
+  const originalSetShowEvents = uiState.setShowEvents;
+  uiState.setShowEvents = (checked) => {
+    originalSetShowEvents(checked);
+    if (checked) {
+      filterState.filterActions.setShowTutoringEvents(true);
+      filterState.filterActions.setShowCoachingEvents(true);
+    }
+  };
+
   const forms = useCalendarForms();
   const handlers = useCalendarInteractions(userRole, userEmail, forms, eventsData);
 
@@ -45,9 +56,19 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
       );
     }
 
-    // Apply work type filter (tutoring/coaching)
-    if (workType && (userRole === 'tutor' || userRole === 'teacher')) {
-      filtered = filtered.filter(event => event.workType === workType);
+    // Apply work type filter for teachers based on checkboxes
+    if (userRole === 'teacher') {
+      if (!visibility.showTutoringEvents && !visibility.showCoachingEvents) {
+        // If both unchecked, show nothing
+        filtered = [];
+      } else if (!visibility.showTutoringEvents) {
+        // Only show coaching
+        filtered = filtered.filter(event => event.workType === 'coaching');
+      } else if (!visibility.showCoachingEvents) {
+        // Only show tutoring
+        filtered = filtered.filter(event => event.workType === 'tutoring');
+      }
+      // If both checked, show all (no filter)
     }
 
     return filtered;
@@ -55,12 +76,17 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
 
   const getFilteredAvailabilities = (splitAvailabilitiesData) => {
     let filtered = splitAvailabilitiesData;
-    const { subject, tutors, visibility } = filterState.filters;
+    const { subject, tutors, visibility, availabilityWorkType } = filterState.filters;
 
     if (userRole === "student") {
       filtered = filtered.filter(availability =>
         (availability.workType === 'tutoring' || availability.workType === 'tutoringOrWork' || availability.workType === undefined)
       );
+    }
+
+    // Apply availability work type filter for teachers
+    if (userRole === 'teacher' && availabilityWorkType) {
+      filtered = filtered.filter(availability => availability.workType === availabilityWorkType);
     }
 
     if ((userRole === 'tutor' || userRole === 'teacher') && visibility.hideTutoringAvailabilites) {
