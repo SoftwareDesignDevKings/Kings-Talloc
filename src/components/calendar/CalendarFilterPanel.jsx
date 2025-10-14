@@ -84,19 +84,25 @@ const CalendarFilterPanel = ({
                 classNamePrefix="select"
                 placeholder="Select tutors"
               />
-              <Select
-                name="workType"
-                options={[
-                  { value: 'tutoring', label: 'Tutoring' },
-                  { value: 'coaching', label: 'Coaching' }
-                ]}
-                value={filterState.filters.workType ? { value: filterState.filters.workType, label: filterState.filters.workType === 'tutoring' ? 'Tutoring' : 'Coaching' } : null}
-                onChange={(option) => filterState.filterActions.setSelectedWorkType(option?.value || null)}
-                className="tw-w-full tw-mb-4"
-                classNamePrefix="select"
-                placeholder="Filter by work type"
-                isClearable
-              />
+              {userRole === 'teacher' && uiState.showInitials && (
+                <Select
+                  name="availabilityWorkType"
+                  options={[
+                    { value: 'tutoring', label: 'Tutoring' },
+                    { value: 'work', label: 'Coaching' },
+                    { value: 'tutoringOrWork', label: 'Tutoring or Coaching' }
+                  ]}
+                  value={filterState.filters.availabilityWorkType ? {
+                    value: filterState.filters.availabilityWorkType,
+                    label: filterState.filters.availabilityWorkType === 'tutoring' ? 'Tutoring' : filterState.filters.availabilityWorkType === 'work' ? 'Coaching' : 'Tutoring or Coaching'
+                  } : null}
+                  onChange={(option) => filterState.filterActions.setSelectedAvailabilityWorkType(option?.value || null)}
+                  className="tw-w-full tw-mb-4"
+                  classNamePrefix="select"
+                  placeholder="Filter availabilities"
+                  isClearable
+                />
+              )}
             </>
           )}
 
@@ -110,6 +116,31 @@ const CalendarFilterPanel = ({
               <span className="tw-ml-2">Show Events</span>
             </label>
           </div>
+
+          {userRole === 'teacher' && (
+            <>
+              <div className="tw-mb-4 tw-ml-6">
+                <label className="tw-flex tw-items-center">
+                  <input
+                    type="checkbox"
+                    checked={filterState.filters.visibility.showTutoringEvents}
+                    onChange={(e) => filterState.filterActions.setShowTutoringEvents(e.target.checked)}
+                  />
+                  <span className="tw-ml-2">Show Tutoring Events</span>
+                </label>
+              </div>
+              <div className="tw-mb-4 tw-ml-6">
+                <label className="tw-flex tw-items-center">
+                  <input
+                    type="checkbox"
+                    checked={filterState.filters.visibility.showCoachingEvents}
+                    onChange={(e) => filterState.filterActions.setShowCoachingEvents(e.target.checked)}
+                  />
+                  <span className="tw-ml-2">Show Coaching Events</span>
+                </label>
+              </div>
+            </>
+          )}
 
           <div className="tw-mb-4">
             <label className="tw-flex tw-items-center">
