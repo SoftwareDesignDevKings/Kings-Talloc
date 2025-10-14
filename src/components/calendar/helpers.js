@@ -32,17 +32,17 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
   // --- Student-created events ---
   if (isStudentEvent) {
     if (event.approvalStatus === 'pending') {
-      // Pending → red
-      backgroundColor = 'red';
-      borderColor = 'darkred';
+      // Pending → light red
+      backgroundColor = 'lightcoral';
+      borderColor = 'red';
     } else if (event.approvalStatus === 'approved') {
       // Approved → orange
       backgroundColor = 'orange';
       borderColor = 'darkorange';
     } else if (event.approvalStatus === 'denied') {
-      // Denied → red
-      backgroundColor = 'lightcoral';
-      borderColor = 'red';
+      // Denied → dark red
+      backgroundColor = 'red';
+      borderColor = 'darkred';
     }
   }
 
@@ -63,8 +63,15 @@ export const eventStyleGetter = (event, userRole, userEmail) => {
 
   // --- Student requests (pending approval) ---
   if (isStudentRequest) {
-    backgroundColor = 'red';
-    borderColor = 'darkred';
+    if (event.approvalStatus === 'denied') {
+      // Denied → dark red
+      backgroundColor = 'red';
+      borderColor = 'darkred';
+    } else {
+      // Pending → light red
+      backgroundColor = 'lightcoral';
+      borderColor = 'red';
+    }
   }
 
   // --- Tutor availabilities ---

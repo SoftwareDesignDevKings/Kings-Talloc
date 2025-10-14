@@ -15,7 +15,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
 // Context and Provider
 import { CalendarProvider } from '@/providers/CalendarProvider';
-import { useCalendarContext } from '@contexts/CalendarContext';
+import { useCalendarContext } from '@contexts/CalendarContext.jsx';
 
 // Specialized hooks
 import { useCalendarInteractions } from '@/hooks/calendar/useCalendarInteractions';
@@ -108,7 +108,7 @@ const CalendarContent = () => {
         avail => avail.tutor === userEmail && !filterState.filters.visibility.hideOwnAvailabilities
       );
 
-      // Tutors don't see student requests 
+      // Tutors don't see student requests
       return [...filteredEvents, ...tutorAvailabilities];
     }
 
@@ -117,9 +117,15 @@ const CalendarContent = () => {
       return [...filteredEvents, ...eventsData.studentRequests];
     }
 
-    // Teachers see everything
-    return [...filteredEvents, ...eventsData.studentRequests];
-  }, [uiState.showEvents, userRole, userEmail, filteredEvents, eventsData.splitAvailabilitiesData, eventsData.studentRequests, filterState.filters.visibility.hideOwnAvailabilities]);
+    // Teachers see everything, but filter out denied student requests if enabled
+    let studentRequestsToShow = eventsData.studentRequests;
+    if (filterState.filters.visibility.hideDeniedStudentEvents) {
+      studentRequestsToShow = studentRequestsToShow.filter(
+        request => request.approvalStatus !== 'denied'
+      );
+    }
+    return [...filteredEvents, ...studentRequestsToShow];
+  }, [uiState.showEvents, userRole, userEmail, filteredEvents, eventsData.splitAvailabilitiesData, eventsData.studentRequests, filterState.filters.visibility.hideOwnAvailabilities, filterState.filters.visibility.hideDeniedStudentEvents]);
 
   const minTime = parse(calendarStartTime, "HH:mm", new Date());
   const maxTime = parse(calendarEndTime, "HH:mm", new Date());

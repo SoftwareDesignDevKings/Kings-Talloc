@@ -28,7 +28,7 @@ async function handleSignIn({ user, account, profile }) {
 /**
  * Add user role to JWT token and refresh Firebase token periodically
  */
-async function handleJwt({ token, user, trigger }) {
+async function handleJwt({ token, user }) {
 	// Initial sign in - user object is available
 	if (user) {
 		token.role = user.role;

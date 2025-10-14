@@ -12,7 +12,12 @@ export const useCalendarInteractions = (userRole, userEmail, forms, eventsData) 
 
   const handleSelectSlot = (slotInfo) => {
     const start = slotInfo.start;
-    const end = slotInfo.end;
+    // Default to 1 hour duration if slot is 30 minutes
+    let end = slotInfo.end;
+    const duration = (end - start) / (1000 * 60); // duration in minutes
+    if (duration === 30) {
+      end = new Date(start.getTime() + 60 * 60 * 1000); // Add 1 hour
+    }
 
     if (userRole === 'student') {
       setNewEvent({

@@ -32,6 +32,7 @@ export const useCalendarUI = () => {
 export const useCalendarFilterState = () => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedTutors, setSelectedTutors] = useState([]);
+  const [selectedWorkType, setSelectedWorkType] = useState(null); // 'tutoring', 'coaching', or null for all
   const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
   const [hideDeniedStudentEvents, setHideDeniedStudentEvents] = useState(false);
   const [hideTutoringAvailabilites, setHideTutoringAvailabilites] = useState(false);
@@ -45,6 +46,7 @@ export const useCalendarFilterState = () => {
   const filters = {
     subject: selectedSubject,
     tutors: selectedTutors,
+    workType: selectedWorkType,
     visibility: {
       hideOwnAvailabilities,
       hideDeniedStudentEvents,
@@ -56,6 +58,7 @@ export const useCalendarFilterState = () => {
   const filterActions = {
     setSelectedSubject,
     setSelectedTutors,
+    setSelectedWorkType,
     handleTutorFilterChange,
     setHideOwnAvailabilities,
     setHideDeniedStudentEvents,

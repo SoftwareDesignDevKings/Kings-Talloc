@@ -292,7 +292,7 @@ const DashboardOverview = ({ userRole, userEmail }) => {
 
       const rejectedRequests = events.filter(event =>
         event.createdByStudent &&
-        event.approvalStatus === 'rejected'
+        event.approvalStatus === 'denied'
       ).length;
 
       // Get available tutors count

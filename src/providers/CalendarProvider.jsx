@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import CalendarContext from '@contexts/CalendarContext';
+import CalendarContext from '@contexts/CalendarContext.jsx';
 import { useCalendarEvents } from '@hooks/calendar/useCalendarEvents';
 import { useCalendarUI, useCalendarFilterState } from '@hooks/calendar/useCalendarState';
 import { useCalendarForms } from '@hooks/calendar/useCalendarForms';
@@ -18,7 +18,7 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
   // Create filtering functions
   const getFilteredEvents = (allEvents, userEmail) => {
     let filtered = [...allEvents];
-    const { visibility, tutors } = filterState.filters;
+    const { visibility, tutors, workType } = filterState.filters;
 
     // Apply role-based filters
     if (userRole === 'tutor') {
@@ -43,6 +43,11 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
       filtered = filtered.filter(event =>
         event.staff.some(staff => selectedTutorValues.includes(staff.value))
       );
+    }
+
+    // Apply work type filter (tutoring/coaching)
+    if (workType && (userRole === 'tutor' || userRole === 'teacher')) {
+      filtered = filtered.filter(event => event.workType === workType);
     }
 
     return filtered;

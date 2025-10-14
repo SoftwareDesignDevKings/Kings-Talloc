@@ -73,16 +73,31 @@ const CalendarFilterPanel = ({
           )}
 
           {(userRole === 'tutor' || userRole === 'teacher') && (
-            <Select
-              isMulti
-              name="tutors"
-              options={uniqueTutors}
-              value={filterState.filters.tutors}
-              onChange={filterState.filterActions.handleTutorFilterChange}
-              className="tw-w-full tw-mb-4"
-              classNamePrefix="select"
-              placeholder="Select tutors"
-            />
+            <>
+              <Select
+                isMulti
+                name="tutors"
+                options={uniqueTutors}
+                value={filterState.filters.tutors}
+                onChange={filterState.filterActions.handleTutorFilterChange}
+                className="tw-w-full tw-mb-4"
+                classNamePrefix="select"
+                placeholder="Select tutors"
+              />
+              <Select
+                name="workType"
+                options={[
+                  { value: 'tutoring', label: 'Tutoring' },
+                  { value: 'coaching', label: 'Coaching' }
+                ]}
+                value={filterState.filters.workType ? { value: filterState.filters.workType, label: filterState.filters.workType === 'tutoring' ? 'Tutoring' : 'Coaching' } : null}
+                onChange={(option) => filterState.filterActions.setSelectedWorkType(option?.value || null)}
+                className="tw-w-full tw-mb-4"
+                classNamePrefix="select"
+                placeholder="Filter by work type"
+                isClearable
+              />
+            </>
           )}
 
           <div className="tw-mb-4">
@@ -133,30 +148,6 @@ const CalendarFilterPanel = ({
             </div>
           )}
 
-          {userRole === 'teacher' && (
-            <div>
-              <div className="tw-mb-4">
-                <label className="tw-flex tw-items-center">
-                  <input
-                    type="checkbox"
-                    checked={filterState.filters.visibility.hideTutoringAvailabilites}
-                    onChange={(e) => filterState.filterActions.setHideTutoringAvailabilites(e.target.checked)}
-                  />
-                  <span className="tw-ml-2">Hide Tutoring Availabilities</span>
-                </label>
-              </div>
-              <div className="tw-mb-4">
-                <label className="tw-flex tw-items-center">
-                  <input
-                    type="checkbox"
-                    checked={filterState.filters.visibility.hideWorkAvailabilities}
-                    onChange={(e) => filterState.filterActions.setHideWorkAvailabilities(e.target.checked)}
-                  />
-                  <span className="tw-ml-2">Hide Work Availabilities</span>
-                </label>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
