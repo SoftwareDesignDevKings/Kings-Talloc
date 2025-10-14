@@ -160,18 +160,21 @@ const CalendarContent = () => {
     <div className="tw-flex tw-h-full" style={calendarContainerStyle}>
       <div className="tw-flex-1 tw-p-5 tw-overflow-hidden tw-relative" style={calendarPanelStyle}>
         {isMobile ? (
-          <Calendar
+          <DnDCalendar
             localizer={localizer}
             events={finalEvents}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: '600px' }}
+            style={{ height: '600px', touchAction: 'pan-y' }}
             min={minTime}
             max={maxTime}
             onSelectSlot={calendarInteractions.handleSelectSlot}
             onSelectEvent={calendarInteractions.handleSelectEvent}
+            onEventDrop={eventOperations.handleEventDrop}
+            onEventResize={eventOperations.handleEventResize}
+            resizable={false}
             selectable
-            longPressThreshold={250}
+            longPressThreshold={150}
             date={currentDate}
             onNavigate={setCurrentDate}
             view={Views.DAY}
@@ -189,6 +192,12 @@ const CalendarContent = () => {
                   currentWeekEnd={currentWeekEnd}
                 />
               ),
+              event: (props) => (
+                <CustomEvent
+                  {...props}
+                  showInitials={uiState.showInitials}
+                />
+              )
             }}
           />
         ) : (

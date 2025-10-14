@@ -34,7 +34,7 @@ const Dashboard = () =>  {
         user={session.user}
       />
 
-      <div className="tw-flex-1 md:tw-p-4 tw-py-2 tw-px-1 tw-flex tw-flex-col tw-overflow-hidden">
+      <div className="tw-flex-1 md:tw-p-4 tw-py-2 tw-px-2 tw-flex tw-flex-col tw-overflow-hidden">
         <div className="tw-bg-white tw-rounded-lg md:tw-shadow-lg md:tw-p-8 tw-p-2 tw-flex tw-flex-col tw-flex-1 tw-overflow-hidden">
           <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
             <div>
