@@ -10,8 +10,9 @@ import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestor
  * @param {Function} setStudents 
  * @returns 
  */
-export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, setStudents) => {
+export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, setStudents, setLoading) => {
   const q = query(collection(db, 'events'));
+  let isFirstLoad = true;
   const unsubscribe = onSnapshot(q, async (querySnapshot) => {
     const eventsFromDb = querySnapshot.docs.map(doc => ({
       ...doc.data(),
@@ -54,12 +55,19 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
     }));
 
     setStudents(students);
+
+    // Mark as loaded after first snapshot
+    if (isFirstLoad && setLoading) {
+      setLoading(false);
+      isFirstLoad = false;
+    }
   }, (error) => {
     console.error("Error fetching events:", error);
     // Set empty arrays on error to prevent app crash
     setEvents([]);
     setAllEvents([]);
     setStudents([]);
+    if (setLoading) setLoading(false);
   });
 
   return () => unsubscribe();

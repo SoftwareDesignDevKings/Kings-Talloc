@@ -29,6 +29,7 @@ import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
 import StudentEventForm from './forms/StudentEventForm.jsx';
 import EventDetailsModal from './modals/EventDetailsModal.jsx';
 import CustomEvent from './calendar/CustomEvent.jsx';
+import LoadingSpinner from './LoadingSpinner.jsx';
 
 const locales = {
   'en-US': enUS,
@@ -144,6 +145,10 @@ const CalendarContent = () => {
     backgroundColor: '#ffffff',
     color: '#000000'
   };
+
+  if (eventsData.loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className="tw-flex tw-h-full" style={calendarContainerStyle}>

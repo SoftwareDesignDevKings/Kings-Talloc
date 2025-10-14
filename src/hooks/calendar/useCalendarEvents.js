@@ -14,10 +14,14 @@ export const useCalendarEvents = (userRole, userEmail) => {
   const [subjects, setSubjects] = useState([]);
   const [tutors, setTutors] = useState([]);
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch data on mount and when user changes
   useEffect(() => {
-    fetchEvents(userRole, userEmail, setAllEvents, setAllEvents, setStudents);
+    if (!userRole || !userEmail) return;
+
+    setLoading(true);
+    fetchEvents(userRole, userEmail, setAllEvents, setAllEvents, setStudents, setLoading);
     fetchAvailabilities(setAvailabilities);
     fetchStudentRequests(setStudentRequests);
     fetchSubjectsWithTutors(setSubjects);
@@ -40,6 +44,7 @@ export const useCalendarEvents = (userRole, userEmail) => {
     splitAvailabilitiesData,
     subjects,
     tutors,
-    students
+    students,
+    loading
   };
 };

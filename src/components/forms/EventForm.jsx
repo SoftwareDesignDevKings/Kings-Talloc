@@ -164,7 +164,6 @@ const EventForm = ({
                     id="title"
                     value={newEvent.title}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
 
