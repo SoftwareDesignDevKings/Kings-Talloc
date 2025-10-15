@@ -29,13 +29,13 @@ jobs:
       - name: Run linter
         run: npm run lint
 
-      # 🧪 Run all Jest/unit tests first
+      # Run Jest/unit tests (non-Firebase)
       - name: Run Jest tests
-        run: npm run test:all
+        run: npm run test
 
-      # 🧪 Run Firebase emulator + security rules tests via your shell script
+      # Run Firebase emulator + security rules tests
       - name: Run Firebase emulator tests
-        run: ./firestore.test.sh
+        run: ./.github/workflows/firestore.test.sh
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
