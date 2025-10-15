@@ -8,6 +8,7 @@
 Kings-Talloc is a Tutor Allocation Web App developed by tutors in the CST Department.
 
 **Live Deployment**: [https://kings-talloc.vercel.app](https://kings-talloc.vercel.app)
+
 **Vercel Project**: Hosted under CST projects at [vercel.com/tkscsts-projects/kings-talloc](https://vercel.com/tkscsts-projects/kings-talloc)
 
 ---
