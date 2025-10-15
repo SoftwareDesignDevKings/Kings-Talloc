@@ -59,6 +59,7 @@ jobs:
       - name: Build application
         run: npm run build
         env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
