@@ -58,6 +58,13 @@ jobs:
 
       - name: Build application
         run: npm run build
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       # Deploy Preview build for Pull Requests
       - name: Deploy to Vercel (Preview)
