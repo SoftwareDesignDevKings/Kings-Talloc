@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --testPathIgnorePatterns=firebaseRules",
+    "test": "jest --testPathIgnorePatterns=firebase",
     "test:firebase": "jest --config=__tests__/jest.firebase.config.js",
     "test:all": "npm run test && npm run test:firebase",
     "test:watch": "jest --watch",
