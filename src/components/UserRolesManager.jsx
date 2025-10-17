@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db } from '@/firestore/clientFirestore';
-import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
@@ -14,6 +14,7 @@ const UserRolesManager = () => {
   const [success, setSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [uploadingTimesheets, setUploadingTimesheets] = useState({});
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -89,6 +90,51 @@ const UserRolesManager = () => {
     setShowModal(true);
   };
 
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleTimesheetUpload = async (userEmail, userName, file) => {
+    if (!file) return;
+
+    setUploadingTimesheets(prev => ({ ...prev, [userEmail]: true }));
+
+    try {
+      // Convert file to base64
+      const base64Data = await fileToBase64(file);
+      const fileSizeKB = (file.size / 1024).toFixed(2);
+
+      // Save timesheet data with base64 encoded file to Firestore
+      // Use email as document ID for easy lookup
+      const timestamp = new Date().toISOString();
+      const timesheetData = {
+        tutorEmail: userEmail,
+        tutorName: userName,
+        fileData: base64Data, // Store base64 encoded file
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        uploadedAt: timestamp,
+        uploadedBy: 'teacher'
+      };
+
+      // Use setDoc with email as document ID instead of addDoc
+      await setDoc(doc(db, 'timesheets', userEmail), timesheetData);
+
+      setSuccess(`Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
+    } catch (error) {
+      console.error('Error uploading timesheet:', error);
+      setError('Error uploading timesheet');
+    } finally {
+      setUploadingTimesheets(prev => ({ ...prev, [userEmail]: false }));
+    }
+  };
+
 
   return (
     <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg tw-h-full">
@@ -139,18 +185,47 @@ const UserRolesManager = () => {
                   </td>
                   <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{user.role}</td>
                   <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                    <button
-                      onClick={() => handleEdit(user)}
-                      className="tw-mr-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user.email)}
-                      className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
-                    >
-                      Delete
-                    </button>
+                    <div className="tw-flex tw-items-center tw-gap-2">
+                      <button
+                        onClick={() => handleEdit(user)}
+                        className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.email)}
+                        className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
+                      >
+                        Delete
+                      </button>
+                      {user.role === 'tutor' && (
+                        <>
+                          <input
+                            type="file"
+                            accept=".docx,.pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleTimesheetUpload(user.email, user.name, file);
+                              }
+                            }}
+                            className="tw-hidden"
+                            id={`timesheet-upload-${user.email}`}
+                            disabled={uploadingTimesheets[user.email]}
+                          />
+                          <label
+                            htmlFor={`timesheet-upload-${user.email}`}
+                            className={`tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-rounded tw-cursor-pointer tw-text-center ${
+                              uploadingTimesheets[user.email]
+                                ? 'tw-bg-gray-400 tw-cursor-not-allowed'
+                                : 'tw-bg-green-600 hover:tw-bg-green-700'
+                            }`}
+                          >
+                            {uploadingTimesheets[user.email] ? 'Uploading...' : 'Upload Timesheet'}
+                          </label>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

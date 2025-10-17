@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
+    "browser-image-compression": "^2.0.2",
     "date-fns": "^3.6.0",
     "docxtemplater": "^3.66.7",
     "firebase": "^10.12.3",

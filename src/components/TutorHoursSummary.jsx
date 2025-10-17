@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/firestore/clientFirestore';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
@@ -112,6 +112,35 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
   useEffect(() => {
     fetchTutorHours();
   }, [startDate, endDate, fetchTutorHours]);
+
+  const fetchUploadedTimesheets = useCallback(async () => {
+    try {
+      const uploads = {};
+
+      // Fetch timesheet for each tutor by their email (document ID)
+      for (const tutor of tutorHours) {
+        const timesheetDoc = await getDoc(doc(db, 'timesheets', tutor.email));
+        if (timesheetDoc.exists()) {
+          const data = timesheetDoc.data();
+          uploads[tutor.email] = {
+            fileData: data.fileData,
+            fileName: data.fileName,
+            fileType: data.fileType
+          };
+        }
+      }
+
+      setUploadedFiles(uploads);
+    } catch (error) {
+      console.error('Error fetching uploaded timesheets:', error);
+    }
+  }, [tutorHours]);
+
+  useEffect(() => {
+    if (tutorHours.length > 0) {
+      fetchUploadedTimesheets();
+    }
+  }, [tutorHours, fetchUploadedTimesheets]);
 
   const csvData = tutorHours.map(tutor => ({
     Email: tutor.email,
@@ -239,54 +268,47 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     return hoursData;
   };
 
-  const downloadTimesheet = async (tutorName, hoursData) => {
-    const response = await fetch('/api/timesheet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tutorName: tutorName,
-        hoursData: hoursData
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate timesheet');
-    }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${tutorName}-timesheet.docx`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  const handleGenerateTimesheet = async (tutorEmail, tutorName) => {
+  const handleGenerateTimesheet = async (tutorEmail, tutorName, role = 'Academic Tutor') => {
     try {
-      const tutor = tutorHours.find(t => t.email === tutorEmail);
-      if (!tutor) return;
-
+      // Fetch events for this tutor
       const events = await fetchTimesheetEvents(tutorEmail);
       const { dayData, excludedEvents } = buildDayData(events);
       const hoursData = processDayData(dayData);
+      setExcludedShifts(Object.keys(excludedEvents).length > 0 ? excludedEvents : null);
 
-      // Set excluded shifts for display
-      if (Object.keys(excludedEvents).length > 0) {
-        setExcludedShifts(excludedEvents);
-        setAlertType('info');
-        setAlertMessage('Some short shifts (<3 hours) exist and need to be manually added. See details below.');
-      } else {
-        setExcludedShifts(null);
+      // Send data to API route
+      const response = await fetch('/api/timesheet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tutorEmail,
+          tutorName,
+          hoursData,
+          role
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate timesheet');
       }
 
-      await downloadTimesheet(tutorName, hoursData);
+      // Download the file
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${tutorName}_${role.toLowerCase()}_timesheet_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setAlertType('success');
+      setAlertMessage(`${role} timesheet generated and downloaded successfully`);
     } catch (error) {
       console.error('Error generating timesheet:', error);
       setAlertType('error');
-      setAlertMessage('Error generating timesheet');
+      setAlertMessage(`Error generating timesheet: ${error.message}`);
     }
   };
 
@@ -361,12 +383,22 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                     <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900 tw-font-semibold">{(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}</td>
                     {userRole === 'teacher' && (
                       <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm">
-                        <button
-                          onClick={() => handleGenerateTimesheet(tutor.email, tutor.name)}
-                          className="tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-bg-blue-600 tw-rounded hover:tw-bg-blue-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-blue-500"
-                        >
-                          Generate Timesheet
-                        </button>
+                        <div className="tw-flex tw-flex-col tw-gap-2">
+                          <button
+                            onClick={() => handleGenerateTimesheet(tutor.email, tutor.name, 'Academic Tutor')}
+                            className="tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-bg-blue-600 tw-rounded hover:tw-bg-blue-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-blue-500"
+                          >
+                            Generate Tutor Timesheet
+                          </button>
+                          {tutor.coachingHours > 0 && (
+                            <button
+                              onClick={() => handleGenerateTimesheet(tutor.email, tutor.name, 'Coach')}
+                              className="tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-bg-green-600 tw-rounded hover:tw-bg-green-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-green-500"
+                            >
+                              Generate Coaching Timesheet
+                            </button>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
