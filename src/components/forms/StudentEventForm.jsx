@@ -54,6 +54,7 @@ const StudentEventForm = ({ isEditing, newEvent, setNewEvent, handleInputChange,
     if (!isEditing) {
       setNewEvent({ ...newEvent, students: [selectedStudent], createdByStudent: true, approvalStatus: 'pending' });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStudent]);
 
   const handleTutorSelectChange = (selectedOption) => {
