@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/firestore/clientFirestore';
-import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
@@ -113,34 +113,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     fetchTutorHours();
   }, [startDate, endDate, fetchTutorHours]);
 
-  const fetchUploadedTimesheets = useCallback(async () => {
-    try {
-      const uploads = {};
-
-      // Fetch timesheet for each tutor by their email (document ID)
-      for (const tutor of tutorHours) {
-        const timesheetDoc = await getDoc(doc(db, 'timesheets', tutor.email));
-        if (timesheetDoc.exists()) {
-          const data = timesheetDoc.data();
-          uploads[tutor.email] = {
-            fileData: data.fileData,
-            fileName: data.fileName,
-            fileType: data.fileType
-          };
-        }
-      }
-
-      setUploadedFiles(uploads);
-    } catch (error) {
-      console.error('Error fetching uploaded timesheets:', error);
-    }
-  }, [tutorHours]);
-
-  useEffect(() => {
-    if (tutorHours.length > 0) {
-      fetchUploadedTimesheets();
-    }
-  }, [tutorHours, fetchUploadedTimesheets]);
 
   const csvData = tutorHours.map(tutor => ({
     Email: tutor.email,

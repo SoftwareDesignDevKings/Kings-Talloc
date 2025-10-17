@@ -49,7 +49,7 @@ const Dashboard = () =>  {
           <div className="tw-border-t tw-border-gray-200 tw-pt-4 tw-flex-1 tw-overflow-hidden">
             <Suspense fallback={<LoadingSpinner />}>
               {activeSection === "dashboard" && (
-                <div className="tw-h-full tw-overflow-auto">
+                <div className="tw-h-full tw-overflow-y-auto tw-overflow-x-hidden">
                   <DashboardOverview
                     userRole={userRole}
                     userEmail={session.user.email}
@@ -57,7 +57,7 @@ const Dashboard = () =>  {
                 </div>
               )}
               {activeSection === "calendar" && (
-                <div className="tw-h-full tw-overflow-auto">
+                <div className="tw-h-full tw-overflow-y-auto tw-overflow-x-hidden">
                   <CalendarWrapper
                     userRole={userRole}
                     userEmail={session.user.email}
