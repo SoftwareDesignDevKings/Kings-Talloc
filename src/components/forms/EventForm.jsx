@@ -8,6 +8,7 @@ import { useEventForm } from '@/hooks/forms/useEventForm';
 import { useEventFormData } from '@/hooks/forms/useEventFormData';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 import { MdEventNote, MdPeople, MdSettings, MdNoteAlt, MdAccessTime, MdSchool, MdMenuBook, MdFlag, FaChalkboardTeacher, FaUserGraduate } from '@/components/icons';
+import useAlert from '@/hooks/useAlert';
 
 const EventForm = ({
   isEditing,
@@ -20,7 +21,7 @@ const EventForm = ({
   const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
   const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
-  const [error, setError] = useState('');
+  const { setAlertMessage, setAlertType } = useAlert();
 
   // Use specialized hooks
   const eventForm = useEventForm(eventsData);
@@ -63,16 +64,32 @@ const EventForm = ({
     const start = new Date(newEvent.start);
     const end = new Date(newEvent.end);
     if (!isAfter(end, start)) {
-      setError('End date must be after the start date.');
+      setAlertType('error');
+      setAlertMessage('End date must be after the start date.');
       return false;
     }
-    setError('');
+    return true;
+  };
+
+  const validateForm = () => {
+    // Validate dates first
+    if (!validateDates()) {
+      return false;
+    }
+
+    // Validate staff is not empty
+    if (!newEvent.staff || newEvent.staff.length === 0) {
+      setAlertType('error');
+      setAlertMessage('At least one tutor must be assigned to the event.');
+      return false;
+    }
+
     return true;
   };
 
   const onSubmit = (e) => {
     e.preventDefault();
-    if (validateDates()) {
+    if (validateForm()) {
       eventForm.handleSubmit(newEvent, isEditing, eventToEdit, setShowModal)(e);
     }
   };
@@ -143,8 +160,6 @@ const EventForm = ({
           variant: "danger"
         } : null}
       >
-        {error && <div className="alert alert-danger">{error}</div>}
-
         <div className="accordion" id="eventFormAccordion">
           {/* Event Details Section */}
           <div className="accordion-item">

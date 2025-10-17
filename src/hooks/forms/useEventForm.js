@@ -1,12 +1,13 @@
-import { useState } from 'react';
 import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
 import { createTeamsMeeting } from '@/utils/msTeams';
+import useAlert from '../useAlert';
 
 /**
  * Hook for handling EventForm (teacher) operations
  * Used by: EventForm
  */
 export const useEventForm = (eventsData) => {
+  const { setAlertMessage, setAlertType } = useAlert();
 
   const handleInputChange = (newEvent, setNewEvent) => (e) => {
     const { name, value, type, checked } = e.target;
@@ -32,6 +33,13 @@ export const useEventForm = (eventsData) => {
 
   const handleSubmit = (newEvent, isEditing, eventToEdit, setShowModal) => async (e) => {
     e.preventDefault();
+
+    // Validate title is provided
+    if (!newEvent.title) {
+      setAlertType('error');
+      setAlertMessage(('Title is required'));
+      return;
+    }
 
     const eventData = {
       title: newEvent.title || '',

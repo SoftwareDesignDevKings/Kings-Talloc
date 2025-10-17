@@ -132,7 +132,7 @@ export const CalendarProvider = ({ children, userRole, userEmail }) => {
     // Data
     eventsData,
 
-    // UI State (no more confusing ui.ui!)
+    // UI State 
     uiState,
 
     // Filter State

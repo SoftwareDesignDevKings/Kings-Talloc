@@ -104,5 +104,11 @@ service cloud.firestore {
       allow write: if isTeacher();
     }
 
+    // Timesheets collection - teachers can read/write, tutors can read their own
+    match /timesheets/{timesheetId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isTeacher();
+    }
+
   }
 }

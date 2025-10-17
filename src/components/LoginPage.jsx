@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { signIn } from 'next-auth/react';
+import Image from 'next/image';
 import { FcGoogle } from '@/components/icons';
 
 export default function LoginPage() {
@@ -9,7 +10,7 @@ export default function LoginPage() {
     <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen tw-bg-gradient-to-r tw-from-indigo-500 tw-via-purple-500 tw-to-pink-500">
       <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-0 tw-bg-white tw-rounded-lg tw-shadow-lg">
         <div className="tw-flex tw-justify-center">
-            <img src="/logo.png" alt="Logo" width={200} height={200} className="rounded" />
+            <Image src="/logo.png" alt="Logo" width={200} height={200} className="rounded" />
         </div>
         <div className="tw-text-center">
           <h2 className="tw-text-3xl tw-font-extrabold tw-text-gray-900">You are not logged in</h2>

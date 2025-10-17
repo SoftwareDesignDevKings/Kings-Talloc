@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
+import useAlert from '@/hooks/useAlert';
 
 const getMonday = (d) => {
   d = new Date(d);
@@ -17,7 +18,36 @@ const getMonday = (d) => {
   return monday;
 };
 
+const calculateBreakTime = (totalHours) => {
+  if (totalHours > 3 && totalHours <= 6) {
+    return 0.5;
+  } else if (totalHours > 6) {
+    return 1;
+  }
+  return 0;
+};
+
+const isEventValid = (event) => {
+  if (event.createdByStudent && event.approvalStatus !== 'approved') {
+    return false;
+  }
+  if (event.workStatus !== 'completed') {
+    return false;
+  }
+  return true;
+};
+
+const isTutorConfirmed = (event, tutorEmail) => {
+  return event.confirmationRequired
+    ? event.tutorResponses.some(response => response.email === tutorEmail && response.response)
+    : true;
+};
+
+/**
+ * Component to display and manage tutor hours summary
+ */
 const TutorHoursSummary = ({ userRole, userEmail }) => {
+  const { setAlertMessage, setAlertType } = useAlert();
   const [startDate, setStartDate] = useState(getMonday(new Date()));
   const [endDate, setEndDate] = useState(() => {
     const monday = getMonday(new Date());
@@ -27,9 +57,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     return sunday;
   });
   const [tutorHours, setTutorHours] = useState([]);
+  const [excludedShifts, setExcludedShifts] = useState(null);
 
-  const fetchTutorHours = async () => {
-
+  const fetchTutorHours = useCallback(async () => {
     const q = query(
       collection(db, 'events'),
       where('start', '>=', startDate),
@@ -43,56 +73,46 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const tutorHoursMap = {};
 
     for (const event of events) {
-      if (event.createdByStudent && event.approvalStatus !== 'approved') {
-        continue;
-      }
-
-      // Only count events with workStatus set to 'completed'
-      if (event.workStatus !== 'completed') {
+      if (!isEventValid(event)) {
         continue;
       }
 
       for (const staff of event.staff) {
-        const isConfirmed = event.confirmationRequired
-          ? event.tutorResponses.some(response => response.email === staff.value && response.response)
-          : true;
+        if (!isTutorConfirmed(event, staff.value)) {
+          continue;
+        }
 
-        if (isConfirmed) {
-          if (!tutorHoursMap[staff.value]) {
-            tutorHoursMap[staff.value] = { name: staff.label, tutoringHours: 0, coachingHours: 0 };
-          }
-          let eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+        if (!tutorHoursMap[staff.value]) {
+          tutorHoursMap[staff.value] = { name: staff.label, tutoringHours: 0, coachingHours: 0 };
+        }
 
-          // Subtract break times
-          if (eventDuration > 3 && eventDuration < 6) {
-            eventDuration -= 0.5; // 3 < eventDuration < 6
-          } else if (eventDuration >= 6) {
-            eventDuration -= 1; // eventDuration >= 6
-          }
+        // Calculate event duration in hours
+        let eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+        const breakTime = calculateBreakTime(eventDuration);
+        eventDuration -= breakTime;
 
-          // Add to appropriate category based on workType
-          if (event.workType === 'coaching') {
-            tutorHoursMap[staff.value].coachingHours += eventDuration;
-          } else {
-            // Default to tutoring if not specified
-            tutorHoursMap[staff.value].tutoringHours += eventDuration;
-          }
+        // Add to appropriate category based on workType
+        if (event.workType === 'coaching') {
+          tutorHoursMap[staff.value].coachingHours += eventDuration;
+        } else {
+          tutorHoursMap[staff.value].tutoringHours += eventDuration;
         }
       }
     }
-
+    
+    // map hours to array & filter by user role
     let tutorHoursArray = Object.entries(tutorHoursMap).map(([email, data]) => ({ email, ...data }));
-
     if (userRole === 'tutor') {
       tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail);
     }
 
     setTutorHours(tutorHoursArray);
-  };
+  }, [startDate, endDate, userRole, userEmail]);
 
   useEffect(() => {
     fetchTutorHours();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, fetchTutorHours]);
+
 
   const csvData = tutorHours.map(tutor => ({
     Email: tutor.email,
@@ -101,6 +121,168 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     'Coaching Hours': tutor.coachingHours.toFixed(2),
     'Total Hours': (tutor.tutoringHours + tutor.coachingHours).toFixed(2)
   }));
+
+  const fetchTimesheetEvents = async (tutorEmail) => {
+    const q = query(
+      collection(db, 'events'),
+      where('start', '>=', startDate),
+      where('end', '<=', endDate),
+      orderBy('start')
+    );
+
+    const querySnapshot = await getDocs(q);
+    const events = querySnapshot.docs.map(doc => doc.data());
+
+    return events.filter(event => {
+      if (!isEventValid(event)) return false;
+
+      const isStaffMember = event.staff.some(staff => staff.value === tutorEmail);
+      if (!isStaffMember) return false;
+
+      return isTutorConfirmed(event, tutorEmail);
+    });
+  };
+
+  const buildDayData = (events, minShiftHours = 3) => {
+    const dayData = {};
+    const excludedEvents = {};
+
+    for (const event of events) {
+      const eventStartDate = new Date(event.start.seconds * 1000);
+      const eventEndDate = new Date(event.end.seconds * 1000);
+      const dayName = eventStartDate.toLocaleDateString('en-US', { weekday: 'long' });
+      const eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+
+      if (!dayData[dayName]) {
+        dayData[dayName] = {
+          date: eventStartDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+          mainShifts: [], // >= minShiftHours
+          shortEvents: [], // < minShiftHours
+          totalDuration: 0
+        };
+      }
+
+      // Categorize events
+      if (eventDuration >= minShiftHours) {
+        dayData[dayName].mainShifts.push({
+          start: eventStartDate,
+          end: eventEndDate,
+          duration: eventDuration
+        });
+      } else {
+        dayData[dayName].shortEvents.push({
+          start: eventStartDate,
+          end: eventEndDate,
+          duration: eventDuration
+        });
+      }
+    }
+
+    // Process each day to determine what to include
+    for (const [dayName, data] of Object.entries(dayData)) {
+      if (data.mainShifts.length > 0) {
+        // Has main shifts (>=minShiftHours) - use earliest main shift start
+        const sortedShifts = data.mainShifts.sort((a, b) => a.start - b.start);
+        data.earliestStart = sortedShifts[0].start;
+
+        const shortEventsTotal = data.shortEvents.reduce((sum, e) => sum + e.duration, 0);
+        const mainShiftsTotal = data.mainShifts.reduce((sum, e) => sum + e.duration, 0);
+
+        // Adjust finish time: latest main shift end + additional short events duration
+        data.latestEnd = new Date(sortedShifts[sortedShifts.length - 1].end.getTime() + (shortEventsTotal * 3600 * 1000));
+        data.totalDuration = mainShiftsTotal + shortEventsTotal;
+      } else {
+        // No main shifts - check if short events add up to >= minShiftHours
+        const shortEventsTotal = data.shortEvents.reduce((sum, e) => sum + e.duration, 0);
+
+        if (shortEventsTotal >= minShiftHours) {
+          // Use start time of first event and add up durations to calculate end time
+          const sortedEvents = data.shortEvents.sort((a, b) => a.start - b.start);
+          data.earliestStart = sortedEvents[0].start;
+          data.latestEnd = new Date(sortedEvents[0].start.getTime() + (shortEventsTotal * 3600 * 1000));
+          data.totalDuration = shortEventsTotal;
+        } else {
+          // Exclude this day - track for manual entry (pop-up)
+          if (!excludedEvents[dayName]) {
+            excludedEvents[dayName] = [];
+          }
+          excludedEvents[dayName] = data.shortEvents;
+          delete dayData[dayName];
+        }
+      }
+    }
+
+    return { dayData, excludedEvents };
+  };
+
+  const processDayData = (dayData) => {
+    const hoursData = {
+      Monday: { date: '', commenced: '', finished: '', break: '', total: 0 },
+      Tuesday: { date: '', commenced: '', finished: '', break: '', total: 0 },
+      Wednesday: { date: '', commenced: '', finished: '', break: '', total: 0 },
+      Thursday: { date: '', commenced: '', finished: '', break: '', total: 0 },
+      Friday: { date: '', commenced: '', finished: '', break: '', total: 0 }
+    };
+
+    for (const [dayName, data] of Object.entries(dayData)) {
+      const totalHours = (data.latestEnd - data.earliestStart) / (1000 * 60 * 60);
+      const breakTime = calculateBreakTime(totalHours);
+
+      hoursData[dayName] = {
+        date: data.date,
+        commenced: data.earliestStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        finished: data.latestEnd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        break: breakTime > 0 ? breakTime.toFixed(1) : '',
+        total: totalHours.toFixed(2)
+      };
+    }
+
+    return hoursData;
+  };
+
+  const handleGenerateTimesheet = async (tutorEmail, tutorName, role = 'Academic Tutor') => {
+    try {
+      // Fetch events for this tutor
+      const events = await fetchTimesheetEvents(tutorEmail);
+      const { dayData, excludedEvents } = buildDayData(events);
+      const hoursData = processDayData(dayData);
+      setExcludedShifts(Object.keys(excludedEvents).length > 0 ? excludedEvents : null);
+
+      // Send data to API route
+      const response = await fetch('/api/timesheet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tutorEmail,
+          tutorName,
+          hoursData,
+          role
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate timesheet');
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${tutorName}_${role.toLowerCase()}_timesheet_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setAlertType('success');
+      setAlertMessage(`${role} timesheet generated and downloaded successfully`);
+    } catch (error) {
+      console.error('Error generating timesheet:', error);
+      setAlertType('error');
+      setAlertMessage(`Error generating timesheet: ${error.message}`);
+    }
+  };
 
   return (
     <div className="tw-p-4 sm:tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
@@ -127,6 +309,26 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
           <p>Any given hours that are between 3 (exclusive) and 6 (inclusive) hours account for a 30-minute break. Any given hours that are greater than 6 (exclusive) account for a 1-hour break.</p>
         </div>
       </div>
+      {excludedShifts && (
+        <div className="tw-mb-4 tw-p-3 sm:tw-p-4 tw-border tw-border-blue-300 tw-bg-blue-50 tw-rounded-md tw-flex tw-items-start tw-space-x-2">
+          <FaInfoCircle className="tw-h-5 tw-w-5 tw-text-blue-500 tw-mt-0.5 tw-flex-shrink-0" />
+          <div className="tw-text-xs sm:tw-text-sm tw-text-blue-900 tw-space-y-2">
+            <p className="tw-font-semibold">Short shifts (&lt;3 hours) excluded - Add manually:</p>
+            {Object.entries(excludedShifts).map(([day, events]) => (
+              <div key={day} className="tw-mt-2">
+                <p className="tw-font-medium">{day}:</p>
+                <ul className="tw-list-disc tw-list-inside tw-ml-2">
+                  {events.map((e, idx) => (
+                    <li key={idx}>
+                      {e.start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - {e.end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} ({e.duration.toFixed(2)} hrs)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {
         <div className="tw-overflow-x-auto tw--mx-4 sm:tw-mx-0">
           <div className="tw-inline-block tw-min-w-full tw-align-middle">
@@ -138,6 +340,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                   <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Tutoring</th>
                   <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Coaching</th>
                   <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Total</th>
+                  {userRole === 'teacher' && (
+                    <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -148,6 +353,26 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                     <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.tutoringHours.toFixed(2)}</td>
                     <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">{tutor.coachingHours.toFixed(2)}</td>
                     <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900 tw-font-semibold">{(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}</td>
+                    {userRole === 'teacher' && (
+                      <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm">
+                        <div className="tw-flex tw-flex-col tw-gap-2">
+                          <button
+                            onClick={() => handleGenerateTimesheet(tutor.email, tutor.name, 'Academic Tutor')}
+                            className="tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-bg-blue-600 tw-rounded hover:tw-bg-blue-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-blue-500"
+                          >
+                            Generate Tutor Timesheet
+                          </button>
+                          {tutor.coachingHours > 0 && (
+                            <button
+                              onClick={() => handleGenerateTimesheet(tutor.email, tutor.name, 'Coach')}
+                              className="tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-bg-green-600 tw-rounded hover:tw-bg-green-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-green-500"
+                            >
+                              Generate Coaching Timesheet
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
