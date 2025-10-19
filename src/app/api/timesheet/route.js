@@ -3,8 +3,9 @@ import Docxtemplater from "docxtemplater";
 import { adminDb } from "@/firestore/adminFirebase";
 
 export async function POST(req) {
+    const FRIDAY = 5
     try {
-        const { tutorEmail, tutorName, hoursData, role } = await req.json();
+        const { tutorEmail, tutorName, hoursData, excludedHoursTotal = 0, role } = await req.json();
 
         // 1. Fetch template from Firestore
         const timesheetDoc = await adminDb.collection('timesheets').doc(tutorEmail).get();
@@ -31,12 +32,12 @@ export async function POST(req) {
 
         // 4. Compute week ending (this Friday)
         const today = new Date();
-        const diff = 5 - today.getDay(); // Friday = 5
+        const diff = FRIDAY - today.getDay();
         const weekEnding = new Date(today);
         weekEnding.setDate(today.getDate() + diff);
 
-        // 5. Calculate total hours
-        const totalHours = Object.values(hoursData).reduce((a, b) => a + (parseFloat(b.total) || 0), 0);
+        // 5. Calculate total hours (includes excluded short shifts)
+        const totalHours = Object.values(hoursData).reduce((a, b) => a + (parseFloat(b.total) || 0), 0) + excludedHoursTotal;
 
         // 6. Prepare template data
         const templateData = {
@@ -70,8 +71,6 @@ export async function POST(req) {
             fridayTotal: hoursData.Friday?.total || '',
             totalHours: totalHours.toFixed(2),
         };
-
-        console.log('Template data:', templateData);
 
         // 7. Render document
         doc.render(templateData);
