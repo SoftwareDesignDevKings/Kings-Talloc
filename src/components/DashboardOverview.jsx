@@ -6,12 +6,12 @@ import StatsCards from '@/components/dashboard/StatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
 
 const DashboardOverview = ({ userRole, userEmail }) => {
-  const { dashboardData } = useDashboardData(userRole, userEmail);
+  const { dashboardData, refetch } = useDashboardData(userRole, userEmail);
 
   return (
     <div className="container-fluid p-0">
       {/* Stats Cards */}
-      <StatsCards userRole={userRole} data={dashboardData} />
+      <StatsCards userRole={userRole} data={dashboardData} onUpdate={refetch} />
 
       {/* Today's Events */}
       <div className="row mb-4">

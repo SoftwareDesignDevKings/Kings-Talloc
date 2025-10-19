@@ -172,20 +172,31 @@ const calculateTutorStats = (events, now, weekStart, weekEnd, userEmail) => {
 
 const calculateStudentStats = async (events, userEmail) => {
   try {
-    // Count requests by approval status
+    // Count requests from studentEventRequests collection
+    const studentEventReqRef = collection(db, 'studentEventRequests');
+    const studentReqQuery = query(
+      studentEventReqRef,
+      where('students', 'array-contains', { value: userEmail, label: userEmail })
+    );
+    const studentReqSnapshot = await getDocs(studentReqQuery);
+
     let pendingRequests = 0;
-    let approvedRequests = 0;
     let rejectedRequests = 0;
 
-    for (const event of events) {
-      if (!event.createdByStudent) continue;
-
-      if (event.approvalStatus === 'pending') {
+    for (const doc of studentReqSnapshot.docs) {
+      const data = doc.data();
+      if (data.approvalStatus === 'pending') {
         pendingRequests++;
-      } else if (event.approvalStatus === 'approved') {
-        approvedRequests++;
-      } else if (event.approvalStatus === 'denied') {
+      } else if (data.approvalStatus === 'rejected' || data.approvalStatus === 'denied') {
         rejectedRequests++;
+      }
+    }
+
+    // Count approved requests from events collection (createdByStudent events that are approved)
+    let approvedRequests = 0;
+    for (const event of events) {
+      if (event.createdByStudent && event.approvalStatus === 'approved') {
+        approvedRequests++;
       }
     }
 
@@ -250,11 +261,9 @@ export const useDashboardData = (userRole, userEmail) => {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
+  const fetchDashboardData = async () => {
     if (!firebaseReady || !userEmail) return;
-
-    const fetchDashboardData = async () => {
-      try {
+    try {
         const eventsRef = collection(db, 'events');
         const now = new Date();
         const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -374,13 +383,26 @@ export const useDashboardData = (userRole, userEmail) => {
           pendingRequestsData: unapprovedStudentRequestsArr,
           ...roleSpecificStats
         });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      }
-    };
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
 
+  useEffect(() => {
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail, userRole, firebaseReady]);
 
-  return { dashboardData };
+  // Refetch when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchDashboardData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { dashboardData, refetch: fetchDashboardData };
 };
