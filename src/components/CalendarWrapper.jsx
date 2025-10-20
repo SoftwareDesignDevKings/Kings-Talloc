@@ -22,6 +22,7 @@ import { useCalendarInteractions } from '@/hooks/calendar/useCalendarInteraction
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 import { useTutorAvailabilityForm } from '@/hooks/forms/useTutorAvailabilityForm';
 import { useStudentEventForm } from '@/hooks/forms/useStudentEventForm';
+import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
 
 // Form and modal components
 import EventForm from './forms/EventForm.jsx';
@@ -85,6 +86,9 @@ const CalendarContent = () => {
   // Use specialized hooks for specific responsibilities
   const calendarInteractions = useCalendarInteractions(userRole, userEmail, forms, eventsData);
   const eventOperations = useEventOperations(eventsData, userRole, userEmail);
+
+  // Monitor email queue and send emails every 5 minutes if there are changes (teacher only)
+  useEmailQueueMonitor(userRole);
   const tutorAvailabilityForm = useTutorAvailabilityForm(eventsData);
   const studentEventForm = useStudentEventForm(eventsData);
 
