@@ -3,7 +3,7 @@
 [![CI Pipeline](https://img.shields.io/badge/CI%20Pipeline-Passing-brightgreen?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/SoftwareDesignDevKings/Kings-Talloc/actions)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.5-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
-[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)]([https://firebase.google.com](https://console.firebase.google.com/u/1/project/kings-talloc-1f638/overview))
 
 Kings-Talloc is a Tutor Allocation Web App developed by tutors in the CST Department.
 
