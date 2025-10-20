@@ -147,6 +147,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const dayData = {};
     const excludedEvents = {};
 
+    // Group events by day and categorize them
     for (const event of events) {
       const eventStartDate = new Date(event.start.seconds * 1000);
       const eventEndDate = new Date(event.end.seconds * 1000);
@@ -156,13 +157,12 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
       if (!dayData[dayName]) {
         dayData[dayName] = {
           date: eventStartDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-          mainShifts: [], // >= minShiftHours
-          shortEvents: [], // < minShiftHours
+          mainShifts: [],
+          shortEvents: [],
           totalDuration: 0
         };
       }
 
-      // Categorize events
       if (eventDuration >= minShiftHours) {
         dayData[dayName].mainShifts.push({
           start: eventStartDate,
@@ -178,34 +178,42 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
       }
     }
 
-    // Process each day to determine what to include
-    for (const [dayName, data] of Object.entries(dayData)) {
+    // Calculate times and totals for each day
+    for (const dayName in dayData) {
+      const data = dayData[dayName];
+
       if (data.mainShifts.length > 0) {
-        // Has main shifts (>=minShiftHours) - use earliest main shift start
-        const sortedShifts = data.mainShifts.sort((a, b) => a.start - b.start);
-        data.earliestStart = sortedShifts[0].start;
+        // Has main shifts - use earliest and latest
+        data.mainShifts.sort((a, b) => a.start - b.start);
+        data.earliestStart = data.mainShifts[0].start;
 
-        const shortEventsTotal = data.shortEvents.reduce((sum, e) => sum + e.duration, 0);
-        const mainShiftsTotal = data.mainShifts.reduce((sum, e) => sum + e.duration, 0);
+        let shortEventsTotal = 0;
+        for (const event of data.shortEvents) {
+          shortEventsTotal += event.duration;
+        }
 
-        // Adjust finish time: latest main shift end + additional short events duration
-        data.latestEnd = new Date(sortedShifts[sortedShifts.length - 1].end.getTime() + (shortEventsTotal * 3600 * 1000));
+        let mainShiftsTotal = 0;
+        for (const shift of data.mainShifts) {
+          mainShiftsTotal += shift.duration;
+        }
+
+        const lastShiftEnd = data.mainShifts[data.mainShifts.length - 1].end;
+        data.latestEnd = new Date(lastShiftEnd.getTime() + (shortEventsTotal * 3600 * 1000));
         data.totalDuration = mainShiftsTotal + shortEventsTotal;
       } else {
-        // No main shifts - check if short events add up to >= minShiftHours
-        const shortEventsTotal = data.shortEvents.reduce((sum, e) => sum + e.duration, 0);
+        // Only short events
+        let shortEventsTotal = 0;
+        for (const event of data.shortEvents) {
+          shortEventsTotal += event.duration;
+        }
 
         if (shortEventsTotal >= minShiftHours) {
-          // Use start time of first event and add up durations to calculate end time
-          const sortedEvents = data.shortEvents.sort((a, b) => a.start - b.start);
-          data.earliestStart = sortedEvents[0].start;
-          data.latestEnd = new Date(sortedEvents[0].start.getTime() + (shortEventsTotal * 3600 * 1000));
+          data.shortEvents.sort((a, b) => a.start - b.start);
+          data.earliestStart = data.shortEvents[0].start;
+          data.latestEnd = new Date(data.shortEvents[0].start.getTime() + (shortEventsTotal * 3600 * 1000));
           data.totalDuration = shortEventsTotal;
         } else {
-          // Exclude this day - track for manual entry (pop-up)
-          if (!excludedEvents[dayName]) {
-            excludedEvents[dayName] = [];
-          }
+          // Exclude this day
           excludedEvents[dayName] = data.shortEvents;
           delete dayData[dayName];
         }
@@ -224,7 +232,8 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
       Friday: { date: '', commenced: '', finished: '', break: '', total: 0 }
     };
 
-    for (const [dayName, data] of Object.entries(dayData)) {
+    for (const dayName in dayData) {
+      const data = dayData[dayName];
       const totalHours = (data.latestEnd - data.earliestStart) / (1000 * 60 * 60);
       const breakTime = calculateBreakTime(totalHours);
 
@@ -248,6 +257,15 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
       const hoursData = processDayData(dayData);
       setExcludedShifts(Object.keys(excludedEvents).length > 0 ? excludedEvents : null);
 
+      // Calculate total hours from excluded events
+      let excludedHoursTotal = 0;
+      for (const dayName in excludedEvents) {
+        const dayEvents = excludedEvents[dayName];
+        for (const event of dayEvents) {
+          excludedHoursTotal += event.duration;
+        }
+      }
+
       // Send data to API route
       const response = await fetch('/api/timesheet', {
         method: 'POST',
@@ -258,6 +276,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
           tutorEmail,
           tutorName,
           hoursData,
+          excludedHoursTotal,
           role
         }),
       });
