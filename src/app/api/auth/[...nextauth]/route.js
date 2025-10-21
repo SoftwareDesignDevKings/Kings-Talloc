@@ -110,6 +110,4 @@ const NextAuthOptions = NextAuth({
         session: handleSession,
     },
 });
-
 export { NextAuthOptions as GET, NextAuthOptions as POST };
-export default NextAuthOptions;

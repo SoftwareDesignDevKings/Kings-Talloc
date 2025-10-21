@@ -39,7 +39,7 @@ service cloud.firestore {
       allow read: if isAuthenticated();
 
       // firestore db stores user docs with email as doc ID
-      allow create: if isAuthenticated() && request.auth.token.email == documentEmail;
+      allow create: if isAuthenticated() && (request.auth.token.email == documentEmail || request.auth.token.email == "computing@kings.edu.au" || request.auth.token.email == "mienna@kings.edu.au");
 
       // isTeacher || ((isAuthenticated) && (theirUserAcc) && (notModifying the key 'role'))
       // prevent non-teacher users from modifying their own role
