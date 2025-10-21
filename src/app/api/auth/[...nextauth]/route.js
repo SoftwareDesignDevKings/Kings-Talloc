@@ -8,11 +8,14 @@ import { adminAuth, adminDb } from '@/firestore/adminFirebase';
 async function handleSignIn({ user, account, profile }) {
     try {
 		const email = user.email.toLowerCase();
-		const emailRegex = /^[^@]+@(student\.)?kings\.edu\.au$/i;
-		const isValidDomain = emailRegex.test(email);
-        if (!isValidDomain) {
-            return false;
-        }
+
+		// temp disable - until ICT fixes Google Workspace issue
+		
+		// const emailRegex = /^[^@]+@(student\.)?kings\.edu\.au$/i;
+		// const isValidDomain = emailRegex.test(email);
+        // if (!isValidDomain) {
+        //     return false;
+        // }
 
         const userRef = adminDb.collection('users').doc(user.email);
         const userDoc = await userRef.get();
