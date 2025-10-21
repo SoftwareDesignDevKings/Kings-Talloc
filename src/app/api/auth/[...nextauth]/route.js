@@ -92,7 +92,7 @@ async function handleSession({ session, token }) {
 }
 
 
-const handler = NextAuth({
+const NextAuthOptions = NextAuth({
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
@@ -111,4 +111,5 @@ const handler = NextAuth({
     },
 });
 
-export { handler as GET, handler as POST };
+export { NextAuthOptions as GET, NextAuthOptions as POST };
+export default NextAuthOptions;
