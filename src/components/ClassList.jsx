@@ -28,8 +28,9 @@ const ClassList = () => {
   const [success, setSuccess] = useState("");
   const [studentsToAdd, setStudentsToAdd] = useState("");
   const [selectedClass, setSelectedClass] = useState(null);
-  const [expandedClass, setExpandedClass] = useState(null);
   const [filteredClasses, setFilteredClasses] = useState([]);
+  const [showViewStudentsModal, setShowViewStudentsModal] = useState(false);
+  const [viewStudentsClass, setViewStudentsClass] = useState(null);
 
   const fetchClasses = async () => {
     const querySnapshot = await getDocs(collection(db, "classes"));
@@ -113,17 +114,28 @@ const ClassList = () => {
 
   const handleAddStudents = async (e) => {
     e.preventDefault();
-    const emails = studentsToAdd.split(",").map((email) => email.trim());
+    const entries = studentsToAdd.split(",").map((entry) => entry.trim());
+
     const newStudents = await Promise.all(
-      emails.map(async (email) => {
+      entries.map(async (entry) => {
+        // Check if entry has name:email format (from CSV) or just email (manual)
+        let email, name;
+        if (entry.includes(':')) {
+          [name, email] = entry.split(':').map(s => s.trim());
+        } else {
+          email = entry;
+          name = "";
+        }
+
         const userRef = doc(db, "users", email);
         const userDoc = await getDoc(userRef);
         if (!userDoc.exists()) {
-          // User doesn't exist - role will be created on first login (server-side)
-          return { email, name: "" };
+          // User doesn't exist - use name from CSV or empty string
+          return { email, name };
         } else {
           const userData = userDoc.data();
-          return { email, name: userData.name || "" };
+          // Prefer name from database, fallback to CSV name, then empty
+          return { email, name: userData.name || name || "" };
         }
       })
     );
@@ -153,8 +165,9 @@ const ClassList = () => {
     setShowStudentModal(true);
   };
 
-  const handleExpandClass = (cls) => {
-    setExpandedClass(expandedClass === cls.id ? null : cls.id);
+  const handleViewStudents = (cls) => {
+    setViewStudentsClass(cls);
+    setShowViewStudentsModal(true);
   };
 
   const confirmRemoveStudent = (student, cls) => {
@@ -166,7 +179,7 @@ const ClassList = () => {
   };
 
   return (
-    <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
+    <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg tw-h-full tw-flex tw-flex-col">
       <h2 className="tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">Manage Classes</h2>
       <div className="tw-flex tw-mb-4">
         <input
@@ -190,9 +203,9 @@ const ClassList = () => {
         </button>
       </div>
 
-      <div className="tw-overflow-x-auto">
+      <div className="tw-overflow-x-auto tw-flex-1" style={{ overflowY: 'auto' }}>
         <table className="tw-min-w-full tw-bg-white">
-          <thead>
+          <thead className="tw-sticky tw-top-0 tw-bg-gray-200 tw-z-10">
             <tr>
               <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
                 Class Name
@@ -213,8 +226,7 @@ const ClassList = () => {
                 subjects={subjects}
                 handleOpenStudentModal={handleOpenStudentModal}
                 confirmDeleteClass={confirmDeleteClass}
-                handleExpandClass={handleExpandClass}
-                expandedClass={expandedClass}
+                handleViewStudents={handleViewStudents}
                 confirmRemoveStudent={confirmRemoveStudent}
                 handleEditClass={handleEditClass}
               />
@@ -242,6 +254,63 @@ const ClassList = () => {
         setStudentsToAdd={setStudentsToAdd}
         handleAddStudents={handleAddStudents}
       />
+
+      {showViewStudentsModal && viewStudentsClass && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Students in {viewStudentsClass.name}</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowViewStudentsModal(false)}
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div className="modal-body" style={{ maxHeight: '60vh' }}>
+                {viewStudentsClass.students && viewStudentsClass.students.length > 0 ? (
+                  <div className="list-group">
+                    {viewStudentsClass.students.map((student, index) => (
+                      <div key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                          <strong>{student.name || 'No name'}</strong>
+                          <br />
+                          <small className="text-muted">{student.email}</small>
+                        </div>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => {
+                            confirmRemoveStudent(student, viewStudentsClass);
+                            setViewStudentsClass(prev => ({
+                              ...prev,
+                              students: prev.students.filter(s => s.email !== student.email)
+                            }));
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted">No students in this class yet.</p>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowViewStudentsModal(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {success && <p className="tw-text-sm tw-text-green-600 tw-mt-4">{success}</p>}
     </div>
   );

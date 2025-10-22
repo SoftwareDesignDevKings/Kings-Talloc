@@ -35,7 +35,7 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
         // map and filter classes to those the student is in
         const studentClasses = classQuerySnapshot.docs
             .map(doc => doc.data())
-            .filter(cls => cls.students.some(student => student.email === userEmail))
+            .filter(cls => cls.students && Array.isArray(cls.students) && cls.students.some(student => student.email === userEmail))
             .map(cls => cls.name);
 
         // filter events where the student is directly involved or their class is involved

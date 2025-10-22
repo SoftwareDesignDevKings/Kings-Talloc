@@ -1,20 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import useAlert from '@/hooks/useAlert';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [role, setRole] = useState('student');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingTimesheets, setUploadingTimesheets] = useState({});
+  const { setAlertMessage, setAlertType } = useAlert();
+  const modalRef = useRef(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -42,6 +44,35 @@ const UserRolesManager = () => {
     setFilteredUsers(results);
   }, [searchTerm, users]);
 
+  useEffect(() => {
+    if (showModal && modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
+      // Initialize Bootstrap modal with accessibility features
+      const modalInstance = new window.bootstrap.Modal(modalRef.current, {
+        backdrop: 'static',
+        keyboard: true,
+        focus: true
+      });
+      modalInstance.show();
+
+      // Handle modal close event
+      const handleModalHidden = () => {
+        setShowModal(false);
+        setEmail('');
+        setName('');
+        setRole('student');
+        setIsEditing(false);
+      };
+
+      modalRef.current.addEventListener('hidden.bs.modal', handleModalHidden);
+
+      return () => {
+        modalInstance.hide();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        modalRef.current?.removeEventListener('hidden.bs.modal', handleModalHidden);
+      };
+    }
+  }, [showModal]);
+
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(String(email).toLowerCase());
@@ -50,41 +81,82 @@ const UserRolesManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateEmail(email)) {
-      setError('Please enter a valid email address.');
-      setSuccess('');
+      setAlertMessage('Please enter a valid email address.');
+      setAlertType('error');
       return;
     }
-    setError('');
 
-    const userRef = doc(db, 'users', email);
-    await setDoc(userRef, { email, role }, { merge: true });
+    try {
+      const userRef = doc(db, 'users', email);
 
-    setSuccess(`Role of ${role} assigned to ${email}`);
-    setEmail('');
-    setRole('student');
-    setShowModal(false);
-    setIsEditing(false);
+      // Check if user already exists (only when adding new user, not editing)
+      if (!isEditing) {
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          setAlertMessage('A user with this email already exists.');
+          setAlertType('error');
+          return;
+        }
+      }
 
-    const querySnapshot = await getDocs(collection(db, 'users'));
-    const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const sortedUsers = usersList.sort((a, b) => {
-      const roleOrder = { teacher: 1, tutor: 2, student: 3 };
-      return (roleOrder[a.role] || 4) - (roleOrder[b.role] || 4);
-    });
-    setUsers(sortedUsers);
-    setFilteredUsers(sortedUsers);
+      await setDoc(userRef, { email, name, role }, { merge: true });
+
+      setAlertMessage(`Role of ${role} assigned to ${email}`);
+      setAlertType('success');
+
+      // Close modal using Bootstrap API
+      if (modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
+        const modalInstance = window.bootstrap.Modal.getInstance(modalRef.current);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      } else {
+        // Fallback if Bootstrap not loaded
+        setShowModal(false);
+        setEmail('');
+        setName('');
+        setRole('student');
+        setIsEditing(false);
+      }
+
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const sortedUsers = usersList.sort((a, b) => {
+        const roleOrder = { teacher: 1, tutor: 2, student: 3 };
+        return (roleOrder[a.role] || 4) - (roleOrder[b.role] || 4);
+      });
+      setUsers(sortedUsers);
+      setFilteredUsers(sortedUsers);
+    } catch (error) {
+      console.error('Error adding/updating user:', error);
+      if (error.code === 'permission-denied') {
+        setAlertMessage('Permission denied. You do not have access to modify user roles.');
+        setAlertType('error');
+      } else {
+        setAlertMessage(`Error: ${error.message || 'Failed to save user role. Please try again.'}`);
+        setAlertType('error');
+      }
+    }
   };
 
   const handleDelete = async (userEmail) => {
-    await deleteDoc(doc(db, 'users', userEmail));
-    const updatedUsers = users.filter(user => user.email !== userEmail);
-    setUsers(updatedUsers);
-    setFilteredUsers(updatedUsers);
-    setSuccess(`User ${userEmail} deleted successfully.`);
+    try {
+      await deleteDoc(doc(db, 'users', userEmail));
+      const updatedUsers = users.filter(user => user.email !== userEmail);
+      setUsers(updatedUsers);
+      setFilteredUsers(updatedUsers);
+      setAlertMessage(`User ${userEmail} deleted successfully.`);
+      setAlertType('success');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setAlertMessage('Error deleting user. Please try again.');
+      setAlertType('error');
+    }
   };
 
   const handleEdit = (user) => {
     setEmail(user.email);
+    setName(user.name);
     setRole(user.role);
     setIsEditing(true);
     setShowModal(true);
@@ -126,10 +198,12 @@ const UserRolesManager = () => {
       // Use setDoc with email as document ID instead of addDoc
       await setDoc(doc(db, 'timesheets', userEmail), timesheetData);
 
-      setSuccess(`Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
+      setAlertMessage(`Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
+      setAlertType('success');
     } catch (error) {
       console.error('Error uploading timesheet:', error);
-      setError('Error uploading timesheet');
+      setAlertMessage('Error uploading timesheet. Please try again.');
+      setAlertType('error');
     } finally {
       setUploadingTimesheets(prev => ({ ...prev, [userEmail]: false }));
     }
@@ -153,6 +227,7 @@ const UserRolesManager = () => {
             setShowModal(true);
             setIsEditing(false);
             setEmail('');
+            setName('');
             setRole('student');
           }}
           className="tw-ml-4 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
@@ -176,13 +251,7 @@ const UserRolesManager = () => {
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="tw-border-b tw-border-gray-200">
                   <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{user.email}</td>
-                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                    {user.name ? (
-                      user.name
-                    ) : (
-                      <span className="tw-text-red-500 tw-italic">User hasn&apos;t logged in yet</span>
-                    )}
-                  </td>
+                  <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{user.name}</td>
                   <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{user.role}</td>
                   <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
                     <div className="tw-flex tw-items-center tw-gap-2">
@@ -234,53 +303,85 @@ const UserRolesManager = () => {
         </div>
       )}
       {showModal && (
-        <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black tw-bg-opacity-50 tw-z-50">
-          <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-w-full tw-max-w-md tw-p-6 tw-z-60">
-            <h2 className="tw-text-2xl tw-font-bold tw-text-center">{isEditing ? 'Edit User Role' : 'Add User Role'}</h2>
-            <form onSubmit={handleSubmit} className="tw-space-y-4 tw-mt-4">
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                  required
-                />
-                {error && <p className="tw-text-sm tw-text-red-600 tw-mt-1">{error}</p>}
-              </div>
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Role</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="tw-block tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                >
-                  <option value="student">Student</option>
-                  <option value="tutor">Tutor</option>
-                  <option value="teacher">Teacher</option>
-                </select>
-              </div>
-              <div className="tw-flex tw-justify-between">
+        <div
+          className="modal fade"
+          ref={modalRef}
+          tabIndex="-1"
+          aria-labelledby="userRoleModalLabel"
+          data-bs-backdrop="static"
+          data-bs-keyboard="true"
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="userRoleModalLabel">
+                  {isEditing ? 'Edit User Role' : 'Add User Role'}
+                </h5>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-700 tw-bg-gray-200 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                >
-                  {isEditing ? 'Save Changes' : 'Add Role'}
-                </button>
+                  className="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
               </div>
-            </form>
+              <form onSubmit={handleSubmit}>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="userEmail" className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      id="userEmail"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      aria-required="true"
+                    />
+                  </div>
+                  <div className='mb-3'>
+                    <label htmlFor="name" className="form-label">Name</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="userName"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        aria-required="true"
+                      />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="userRole" className="form-label">Role</label>
+                    <select
+                      className="form-select"
+                      id="userRole"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      aria-label="Select user role"
+                    >
+                      <option value="student">Student</option>
+                      <option value="tutor">Tutor</option>
+                      <option value="teacher">Teacher</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    {isEditing ? 'Save Changes' : 'Add Role'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
-      {success && <p className="tw-text-sm tw-text-green-600 tw-mt-4">{success}</p>}
     </div>
   );
 };

@@ -3,34 +3,10 @@ import nodemailer from 'nodemailer';
 import { adminDb } from '../../../../firestore/adminFirebase';
 import { DateTime } from 'luxon';
 import { getServerSession } from 'next-auth/next';
-import NextAuth from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
-import { adminAuth } from '@/firestore/adminFirebase';
-
-const authOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET,
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      session.user.role = token.role;
-      return session;
-    },
-  },
-};
+import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function GET(req, { params }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);  
 
   if (!session || !session.user) {
     return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
