@@ -27,7 +27,6 @@ const nextConfig = {
     },
     // Speed up Fast Refresh
     reactStrictMode: false,
-    swcMinify: true,
     compiler: {
         removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
     },
@@ -36,24 +35,8 @@ const nextConfig = {
             transform: 'react-bootstrap/{{member}}',
         },
     },
-    webpack: (config, { dev, isServer, webpack }) => {
-        if (dev) {
-            config.watchOptions = {
-                poll: 1000,
-                aggregateTimeout: 300,
-            }
-        }
-
-        // Optimize moment.js - exclude all locales except en (reduces bundle by ~400KB)
-        config.plugins.push(
-            new webpack.IgnorePlugin({
-                resourceRegExp: /^\.\/locale$/,
-                contextRegExp: /moment$/,
-            })
-        );
-
-        return config
-    },
+    // Empty turbopack config to silence the warning (Turbopack is the default in Next.js 16)
+    turbopack: {},
 };
 
 export default nextConfig;
