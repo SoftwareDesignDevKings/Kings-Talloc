@@ -3,10 +3,10 @@ import nodemailer from 'nodemailer';
 import { adminDb } from '../../../../firestore/adminFirebase';
 import { DateTime } from 'luxon';
 import { getServerSession } from 'next-auth/next';
-import NextAuthOptions from '../../auth/[...nextauth]/route';
+import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function GET(req, { params }) {
-  const session = await getServerSession(NextAuthOptions);  
+  const session = await getServerSession(authOptions);  
 
   if (!session || !session.user) {
     return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
