@@ -1,8 +1,15 @@
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { adminDb } from "@/firestore/adminFirebase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/authOptions";
 
 export async function POST(req) {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+        return new Response("Unauthorised", { status: 401 });
+    }
+    
     const FRIDAY = 5
     try {
         const { tutorEmail, tutorName, hoursData, excludedHoursTotal = 0, role } = await req.json();

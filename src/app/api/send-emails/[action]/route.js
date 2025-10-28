@@ -9,7 +9,7 @@ export async function GET(req, { params }) {
   const session = await getServerSession(authOptions);  
 
   if (!session || !session.user) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    return new Response(JSON.stringify({ message: 'Unauthorised' }), { status: 401 });
   }
 
   console.log('[Email API] User role:', session.user.role);
