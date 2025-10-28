@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { db } from '@/firestore/clientFirestore';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { nextSendQueuedEmails } from '@client/nextApi';
 
 /**
  * Hook to monitor emailEventsQueue and trigger email sending every 5 minutes if there are changes
@@ -39,7 +40,7 @@ export const useEmailQueueMonitor = (userRole) => {
         console.log(`[Email Monitor] Queue size changed (${previousSize} → ${currentSize}), triggering email send...`);
 
         try {
-          const response = await fetch('/api/send-emails/send');
+          const response = await nextSendQueuedEmails();
           const data = await response.json();
           console.log('[Email Monitor]', data.message);
 

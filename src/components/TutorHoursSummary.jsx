@@ -8,6 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
+import { nextGenerateTimesheet } from '@client/nextApi';
 
 const getMonday = (d) => {
   d = new Date(d);
@@ -266,27 +267,14 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         }
       }
 
-      // Send data to API route
-      const response = await fetch('/api/timesheet', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tutorEmail,
-          tutorName,
-          hoursData,
-          excludedHoursTotal,
-          role
-        }),
+      // Send data to API route and get file
+      const blob = await nextGenerateTimesheet({
+        tutorEmail,
+        tutorName,
+        hoursData,
+        excludedHoursTotal,
+        role
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate timesheet');
-      }
-
-      // Download the file
-      const blob = await response.blob();
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `${tutorName}_${role.toLowerCase()}_timesheet_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.docx`;

@@ -10,7 +10,8 @@
       "@contexts/*": ["src/contexts/*"],
       "@middleware/*": ["src/middleware/*"],
       "@firebase/*": ["src/firebase/*"],
-      "@firestore/*": ["src/firestore/*"]
+      "@firestore/*": ["src/firestore/*"],
+      "@client/*": ["src/client/*"]
     }
   }
 }
