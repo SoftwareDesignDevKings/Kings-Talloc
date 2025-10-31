@@ -15,6 +15,7 @@ import {
 import ClassRow from "./ClassRow.jsx";
 import ClassModal from "./modals/ClassModal.jsx";
 import AddStudentsModal from "./modals/AddStudentsModal.jsx";
+import DeleteConfirmationModal from "./DeleteConfirmationModal.jsx";
 
 const ClassList = () => {
   const [classes, setClasses] = useState([]);
@@ -31,6 +32,10 @@ const ClassList = () => {
   const [filteredClasses, setFilteredClasses] = useState([]);
   const [showViewStudentsModal, setShowViewStudentsModal] = useState(false);
   const [viewStudentsClass, setViewStudentsClass] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [classToDelete, setClassToDelete] = useState(null);
+  const [showDeleteStudentModal, setShowDeleteStudentModal] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState(null);
 
   const fetchClasses = async () => {
     const querySnapshot = await getDocs(collection(db, "classes"));
@@ -104,11 +109,13 @@ const ClassList = () => {
     setShowModal(true);
   };
 
-  const handleDeleteClass = async (classToDelete) => {
+  const handleDeleteClass = async () => {
     if (classToDelete) {
       await deleteDoc(doc(db, "classes", classToDelete.id));
       setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
       setSuccess("Class deleted successfully");
+      setShowDeleteModal(false);
+      setClassToDelete(null);
     }
   };
 
@@ -149,15 +156,20 @@ const ClassList = () => {
     fetchClasses();
   };
 
-  const handleRemoveStudent = async (classToUpdate, studentToRemove) => {
-    const updatedStudents = classToUpdate.students.filter(
-      (s) => s.email !== studentToRemove.email
-    );
-    const classRef = doc(db, "classes", classToUpdate.id);
-    await updateDoc(classRef, { students: updatedStudents });
-    setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
-    setSuccess("Student removed successfully");
-    fetchClasses();
+  const handleRemoveStudent = async () => {
+    if (studentToDelete && studentToDelete.classToUpdate) {
+      const updatedStudents = studentToDelete.classToUpdate.students.filter(
+        (s) => s.email !== studentToDelete.student.email
+      );
+      const classRef = doc(db, "classes", studentToDelete.classToUpdate.id);
+      await updateDoc(classRef, { students: updatedStudents });
+      setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
+      setViewStudentsClass((prev) => ({ ...prev, students: updatedStudents }));
+      setSuccess("Student removed successfully");
+      fetchClasses();
+      setShowDeleteStudentModal(false);
+      setStudentToDelete(null);
+    }
   };
 
   const handleOpenStudentModal = (cls) => {
@@ -171,11 +183,13 @@ const ClassList = () => {
   };
 
   const confirmRemoveStudent = (student, cls) => {
-    handleRemoveStudent(cls, student);
+    setStudentToDelete({ student, classToUpdate: cls });
+    setShowDeleteStudentModal(true);
   };
 
   const confirmDeleteClass = (cls) => {
-    handleDeleteClass(cls);
+    setClassToDelete(cls);
+    setShowDeleteModal(true);
   };
 
   return (
@@ -280,13 +294,7 @@ const ClassList = () => {
                         </div>
                         <button
                           className="btn btn-sm btn-danger"
-                          onClick={() => {
-                            confirmRemoveStudent(student, viewStudentsClass);
-                            setViewStudentsClass(prev => ({
-                              ...prev,
-                              students: prev.students.filter(s => s.email !== student.email)
-                            }));
-                          }}
+                          onClick={() => confirmRemoveStudent(student, viewStudentsClass)}
                         >
                           Remove
                         </button>
@@ -312,6 +320,26 @@ const ClassList = () => {
       )}
 
       {success && <p className="tw-text-sm tw-text-green-600 tw-mt-4">{success}</p>}
+
+      <DeleteConfirmationModal
+        show={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setClassToDelete(null);
+        }}
+        onDelete={handleDeleteClass}
+        itemName={classToDelete ? `class "${classToDelete.name}"` : "this class"}
+      />
+
+      <DeleteConfirmationModal
+        show={showDeleteStudentModal}
+        onClose={() => {
+          setShowDeleteStudentModal(false);
+          setStudentToDelete(null);
+        }}
+        onDelete={handleRemoveStudent}
+        itemName={studentToDelete ? `student "${studentToDelete.student.name || studentToDelete.student.email}"` : "this student"}
+      />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc 
 import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';
 import SubjectRow from './SubjectRow.jsx';
+import DeleteConfirmationModal from './DeleteConfirmationModal.jsx';
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState([]);
@@ -18,6 +19,10 @@ const SubjectList = () => {
   const [tutorsToAdd, setTutorsToAdd] = useState('');
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [filteredSubjects, setFilteredSubjects] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [showDeleteTutorModal, setShowDeleteTutorModal] = useState(false);
+  const [tutorToDelete, setTutorToDelete] = useState(null);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -56,10 +61,12 @@ const SubjectList = () => {
     setShowModal(true);
   };
 
-  const handleDeleteSubject = async (subjectToDelete) => {
+  const handleDeleteSubject = async () => {
     if (subjectToDelete) {
       await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
       setSubjects(subjects.filter(subject => subject.id !== subjectToDelete.id));
+      setShowDeleteModal(false);
+      setSubjectToDelete(null);
     }
   };
 
@@ -85,11 +92,15 @@ const SubjectList = () => {
     setTutorsToAdd('');
   };
 
-  const handleRemoveTutor = async (tutor, subject) => {
-    const updatedTutors = subject.tutors.filter(t => t.email !== tutor.email);
-    const subjectRef = doc(db, 'subjects', subject.id);
-    await updateDoc(subjectRef, { tutors: updatedTutors });
-    setSubjects(subjects.map(sub => (sub.id === subject.id ? { ...sub, tutors: updatedTutors } : sub)));
+  const handleRemoveTutor = async () => {
+    if (tutorToDelete && tutorToDelete.subject) {
+      const updatedTutors = tutorToDelete.subject.tutors.filter(t => t.email !== tutorToDelete.tutor.email);
+      const subjectRef = doc(db, 'subjects', tutorToDelete.subject.id);
+      await updateDoc(subjectRef, { tutors: updatedTutors });
+      setSubjects(subjects.map(sub => (sub.id === tutorToDelete.subject.id ? { ...sub, tutors: updatedTutors } : sub)));
+      setShowDeleteTutorModal(false);
+      setTutorToDelete(null);
+    }
   };
 
   const openAddModal = () => {
@@ -103,7 +114,13 @@ const SubjectList = () => {
   };
 
   const openDeleteModal = (subject) => {
-    handleDeleteSubject(subject);
+    setSubjectToDelete(subject);
+    setShowDeleteModal(true);
+  };
+
+  const openDeleteTutorModal = (tutor, subject) => {
+    setTutorToDelete({ tutor, subject });
+    setShowDeleteTutorModal(true);
   };
 
   const openAddTutorModal = (subject) => {
@@ -153,7 +170,7 @@ const SubjectList = () => {
                   confirmDeleteSubject={openDeleteModal}
                   handleExpandSubject={handleExpandSubject}
                   expandedSubject={expandedSubject}
-                  confirmRemoveTutor={handleRemoveTutor}
+                  confirmRemoveTutor={openDeleteTutorModal}
                   handleEditSubject={openEditModal}
                 />
               ))}
@@ -175,6 +192,26 @@ const SubjectList = () => {
         tutorsToAdd={tutorsToAdd}
         setTutorsToAdd={setTutorsToAdd}
         handleAddTutors={handleAddTutors}
+      />
+
+      <DeleteConfirmationModal
+        show={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSubjectToDelete(null);
+        }}
+        onDelete={handleDeleteSubject}
+        itemName={subjectToDelete ? `subject "${subjectToDelete.name}"` : "this subject"}
+      />
+
+      <DeleteConfirmationModal
+        show={showDeleteTutorModal}
+        onClose={() => {
+          setShowDeleteTutorModal(false);
+          setTutorToDelete(null);
+        }}
+        onDelete={handleRemoveTutor}
+        itemName={tutorToDelete ? `tutor "${tutorToDelete.tutor.name || tutorToDelete.tutor.email}"` : "this tutor"}
       />
     </div>
   );

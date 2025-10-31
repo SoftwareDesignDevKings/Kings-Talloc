@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
+import DeleteConfirmationModal from './DeleteConfirmationModal.jsx';
 
 const UserRolesManager = () => {
   const [users, setUsers] = useState([]);
@@ -17,6 +18,8 @@ const UserRolesManager = () => {
   const [uploadingTimesheets, setUploadingTimesheets] = useState({});
   const { setAlertMessage, setAlertType } = useAlert();
   const modalRef = useRef(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -139,18 +142,22 @@ const UserRolesManager = () => {
     }
   };
 
-  const handleDelete = async (userEmail) => {
-    try {
-      await deleteDoc(doc(db, 'users', userEmail));
-      const updatedUsers = users.filter(user => user.email !== userEmail);
-      setUsers(updatedUsers);
-      setFilteredUsers(updatedUsers);
-      setAlertMessage(`User ${userEmail} deleted successfully.`);
-      setAlertType('success');
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      setAlertMessage('Error deleting user. Please try again.');
-      setAlertType('error');
+  const handleDelete = async () => {
+    if (userToDelete) {
+      try {
+        await deleteDoc(doc(db, 'users', userToDelete.email));
+        const updatedUsers = users.filter(user => user.email !== userToDelete.email);
+        setUsers(updatedUsers);
+        setFilteredUsers(updatedUsers);
+        setAlertMessage(`User ${userToDelete.email} deleted successfully.`);
+        setAlertType('success');
+        setShowDeleteModal(false);
+        setUserToDelete(null);
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        setAlertMessage('Error deleting user. Please try again.');
+        setAlertType('error');
+      }
     }
   };
 
@@ -262,7 +269,10 @@ const UserRolesManager = () => {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(user.email)}
+                        onClick={() => {
+                          setUserToDelete(user);
+                          setShowDeleteModal(true);
+                        }}
                         className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
                       >
                         Delete
@@ -382,6 +392,16 @@ const UserRolesManager = () => {
           </div>
         </div>
       )}
+
+      <DeleteConfirmationModal
+        show={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setUserToDelete(null);
+        }}
+        onDelete={handleDelete}
+        itemName={userToDelete ? `user "${userToDelete.name || userToDelete.email}"` : "this user"}
+      />
     </div>
   );
 };
