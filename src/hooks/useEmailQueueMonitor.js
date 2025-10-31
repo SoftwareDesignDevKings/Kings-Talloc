@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { db } from '@/firestore/clientFirestore';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { nextSendQueuedEmails } from '@client/nextApi';
+import { nextSendQueuedEmails } from '@client/nextAPI';
 
 /**
  * Hook to monitor emailEventsQueue and trigger email sending every 5 minutes if there are changes

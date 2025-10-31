@@ -8,7 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
-import { nextGenerateTimesheet } from '@client/nextApi';
+import { nextGenerateTimesheet } from '@client/nextAPI';
 
 const getMonday = (d) => {
   d = new Date(d);
