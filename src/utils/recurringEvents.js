@@ -19,7 +19,7 @@ export const expandRecurringEvents = (events, options = {}) => {
   const expandedEvents = [];
 
   for (const event of events) {
-    
+
     // Non-recurring events pass through as-is
     if (!event.recurring) {
       expandedEvents.push(event);
@@ -27,15 +27,26 @@ export const expandRecurringEvents = (events, options = {}) => {
     }
 
     // Calculate recurring event parameters
-    const { recurring, start, end } = event;
+    const { recurring, start, end, eventExceptions = [], until } = event;
     const eventDuration = end.getTime() - start.getTime();
     const weeksToAdd = recurring === 'weekly' ? 1 : 2;
     const maxLimit = recurring === 'weekly' ? maxOccurrences : Math.floor(maxOccurrences / 2);
+    const untilDate = until ? (until instanceof Date ? until : new Date(until)) : null;
 
     // Generate recurring event instances
     for (let i = 0; i < maxLimit; i++) {
+      // Skip if this occurrence is in the exceptions list
+      if (eventExceptions.includes(i)) {
+        continue;
+      }
+
       const occurrenceStart = addWeeks(start, i * weeksToAdd);
       const occurrenceEnd = new Date(occurrenceStart.getTime() + eventDuration);
+
+      // Stop generating if occurrence is after 'until' date
+      if (untilDate && occurrenceStart > untilDate) {
+        break;
+      }
 
       // Only add if within date range
       if (!isBefore(occurrenceStart, rangeStart) && isBefore(occurrenceStart, rangeEnd)) {

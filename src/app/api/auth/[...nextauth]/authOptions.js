@@ -1,4 +1,6 @@
 import Google from 'next-auth/providers/google';
+import AzureAD from 'next-auth/providers/azure-ad';
+
 import { adminAuth, adminDb } from '@/firestore/adminFirebase';
 // import { redirect } from 'next/navigation';
 
@@ -103,6 +105,11 @@ export const authOptions = {
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         }),
+        AzureAD({
+            clientId: process.env.AZURE_AD_CLIENT_ID,
+            clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+            tenantId: process.env.AZURE_AD_TENANT_ID
+        })
     ],
     secret: process.env.NEXTAUTH_SECRET,
     pages: {

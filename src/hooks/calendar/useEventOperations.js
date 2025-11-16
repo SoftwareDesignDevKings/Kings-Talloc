@@ -1,4 +1,4 @@
-import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore, addOrUpdateEventInQueue, removeEventFromQueue } from '@/firestore/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore, deleteAllRecurringInstances, addEventException, setRecurringUntilDate, addOrUpdateEventInQueue, removeEventFromQueue } from '@/firestore/firebaseOperations';
 
 /**
  * Hook for handling event CRUD operations and drag/drop
@@ -126,10 +126,12 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
     }
   };
 
-  const handleDeleteEvent = async (eventToEdit, modals) => {
+  const handleDeleteEvent = async (eventToEdit, modals, deleteOption = 'this') => {
     if (eventToEdit && eventToEdit.id) {
       const isAvailability = !!eventToEdit.tutor;
       const isStudentRequest = !!eventToEdit.isStudentRequest;
+      const isRecurringInstance = !!eventToEdit.isRecurringInstance;
+      const hasRecurring = !!eventToEdit.recurring;
 
       let collectionName = 'events';
       if (isAvailability) {
@@ -139,21 +141,94 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
       }
 
       try {
-        await deleteEventFromFirestore(eventToEdit.id, collectionName);
+        // Case 1: Deleting original recurring event - delete all instances
+        if (hasRecurring && deleteOption === 'all') {
+          console.log('[handleDeleteEvent] Deleting all instances of recurring event:', eventToEdit.id);
+          console.log('[handleDeleteEvent] Current allEvents count:', eventsData.allEvents.length);
 
-        if (isAvailability) {
-          eventsData.setAvailabilities(eventsData.availabilities.filter(availability =>
-            availability.id !== eventToEdit.id
-          ));
-        } else if (isStudentRequest) {
-          eventsData.setStudentRequests(eventsData.studentRequests.filter(request =>
-            request.id !== eventToEdit.id
-          ));
-        } else {
+          const deletedCount = await deleteAllRecurringInstances(eventToEdit.id, eventsData.allEvents, collectionName);
+          console.log(`[handleDeleteEvent] Deleted ${deletedCount} recurring event instances from Firestore`);
+
+          // Optimistically update state immediately, listener will sync later
+          const newEvents = eventsData.allEvents.filter(event =>
+            event.id !== eventToEdit.id && event.originalEventId !== eventToEdit.id
+          );
+          console.log('[handleDeleteEvent] Updating state, new count:', newEvents.length);
+          eventsData.setAllEvents(newEvents);
+        }
+        // Case 2: Deleting this and all future occurrences - set until date
+        else if (isRecurringInstance && deleteOption === 'thisAndFuture') {
+          const untilDate = new Date(eventToEdit.start);
+          untilDate.setDate(untilDate.getDate() - 1); // Set to day before this occurrence
+
+          await setRecurringUntilDate(eventToEdit.originalEventId, untilDate, collectionName);
+
+          // Delete persisted future instances from Firestore
+          const futureInstances = eventsData.allEvents.filter(event =>
+            event.originalEventId === eventToEdit.originalEventId &&
+            event.occurrenceIndex >= eventToEdit.occurrenceIndex &&
+            event.isRecurringInstance
+          );
+          for (const instance of futureInstances) {
+            try {
+              await deleteEventFromFirestore(instance.id, collectionName);
+            } catch (error) {
+              // Instance might not be persisted yet
+            }
+          }
+
+          // Optimistically update state immediately
+          eventsData.setAllEvents(eventsData.allEvents.filter(event => {
+            // Keep non-recurring events
+            if (event.originalEventId !== eventToEdit.originalEventId && event.id !== eventToEdit.originalEventId) {
+              return true;
+            }
+            // Keep original event (with updated until date)
+            if (event.id === eventToEdit.originalEventId) {
+              return true;
+            }
+            // Remove instances from this occurrence onwards
+            if (event.originalEventId === eventToEdit.originalEventId && event.occurrenceIndex >= eventToEdit.occurrenceIndex) {
+              return false;
+            }
+            return true;
+          }));
+        }
+        // Case 3: Deleting a single recurring instance - add to exceptions
+        else if (isRecurringInstance) {
+          await addEventException(eventToEdit.originalEventId, eventToEdit.occurrenceIndex, collectionName);
+
+          // If the instance was already persisted to Firestore, delete it
+          try {
+            await deleteEventFromFirestore(eventToEdit.id, collectionName);
+          } catch (error) {
+            // Instance might not be persisted yet, ignore error
+          }
+
+          // Optimistically update state immediately
           eventsData.setAllEvents(eventsData.allEvents.filter(event =>
             event.id !== eventToEdit.id
           ));
         }
+        // Case 4: Deleting a normal non-recurring event
+        else {
+          await deleteEventFromFirestore(eventToEdit.id, collectionName);
+
+          if (isAvailability) {
+            eventsData.setAvailabilities(eventsData.availabilities.filter(availability =>
+              availability.id !== eventToEdit.id
+            ));
+          } else if (isStudentRequest) {
+            eventsData.setStudentRequests(eventsData.studentRequests.filter(request =>
+              request.id !== eventToEdit.id
+            ));
+          } else {
+            eventsData.setAllEvents(eventsData.allEvents.filter(event =>
+              event.id !== eventToEdit.id
+            ));
+          }
+        }
+
         await removeEventFromQueue(eventToEdit.id);
       } catch (error) {
         console.error('Failed to delete event:', error);

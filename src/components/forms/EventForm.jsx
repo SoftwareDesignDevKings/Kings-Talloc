@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { isAfter, isBefore, format } from 'date-fns';
 import Select, { components } from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
+import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
 import { useEventForm } from '@/hooks/forms/useEventForm';
 import { useEventFormData } from '@/hooks/forms/useEventFormData';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
@@ -14,6 +15,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
   const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
   const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { setAlertMessage, setAlertType } = useAlert();
 
   // Use specialized hooks
@@ -88,7 +90,23 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
   };
 
   const handleDelete = () => {
-    handleDeleteEvent(eventToEdit, { setShowTeacherModal: setShowModal, setShowStudentModal: () => {}, setShowAvailabilityModal: () => {} });
+    // Check if this is a recurring event
+    const isRecurring = eventToEdit.recurring || eventToEdit.isRecurringInstance;
+    const isOriginal = eventToEdit.recurring && !eventToEdit.isRecurringInstance;
+
+    if (isRecurring) {
+      // Show confirmation modal for recurring events
+      setShowDeleteConfirm(true);
+    } else {
+      // Delete non-recurring event directly
+      handleDeleteEvent(eventToEdit, { setShowTeacherModal: setShowModal, setShowStudentModal: () => {}, setShowAvailabilityModal: () => {} });
+      setShowModal(false);
+    }
+  };
+
+  const handleConfirmDelete = (deleteOption) => {
+    handleDeleteEvent(eventToEdit, { setShowTeacherModal: setShowModal, setShowStudentModal: () => {}, setShowAvailabilityModal: () => {} }, deleteOption);
+    setShowDeleteConfirm(false);
     setShowModal(false);
   };
 
@@ -140,8 +158,9 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
   };
 
   return (
+    <>
     <BaseModal
-        show={true}
+        show={!showDeleteConfirm}
         onHide={() => setShowModal(false)}
         title={isEditing ? 'Edit Event' : 'Add New Event'}
         size="lg"
@@ -432,6 +451,15 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
           )}
         </div>
     </BaseModal>
+
+    <DeleteConfirmationModal
+      show={showDeleteConfirm}
+      onHide={() => setShowDeleteConfirm(false)}
+      onConfirm={handleConfirmDelete}
+      isRecurring={eventToEdit?.recurring || eventToEdit?.isRecurringInstance}
+      isOriginal={eventToEdit?.recurring && !eventToEdit?.isRecurringInstance}
+    />
+    </>
   );
 };
 

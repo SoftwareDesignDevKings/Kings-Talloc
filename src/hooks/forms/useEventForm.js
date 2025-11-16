@@ -80,7 +80,7 @@ export const useEventForm = (eventsData) => {
           // Create in events collection (approved event)
           const docId = await createEventInFirestore(eventData);
           eventData.id = docId;
-          eventsData.setAllEvents([...eventsData.allEvents.filter(e => e.id !== eventToEdit.id), { ...eventData, id: docId }]);
+          // Don't manually update state - let the Firestore listener handle it
 
           await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
 
@@ -99,9 +99,7 @@ export const useEventForm = (eventsData) => {
         } else {
           // Regular event update
           await updateEventInFirestore(eventToEdit.id, eventData);
-          eventsData.setAllEvents(eventsData.allEvents.map(event =>
-            event.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : event
-          ));
+          // Don't manually update state - let the Firestore listener handle it
           await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
 
           // Check if event was just approved and create Teams meeting
@@ -118,7 +116,8 @@ export const useEventForm = (eventsData) => {
       } else {
         const docId = await createEventInFirestore(eventData);
         eventData.id = docId;
-        eventsData.setAllEvents([...eventsData.allEvents, { ...eventData, id: docId }]);
+        // Don't manually update state - let the Firestore listener handle it
+        // This ensures recurring events are properly expanded
         await addOrUpdateEventInQueue(eventData, 'store');
 
         // Create Teams meeting if event is approved on creation
