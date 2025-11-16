@@ -1,5 +1,8 @@
 import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
+import { expandRecurringEvents } from '@/utils/recurringEvents';
+import { persistRecurringInstances } from './firebaseOperations';
+import { addWeeks } from 'date-fns';
 
 /**
  * Fetch events in real-time and update state based on user role for CalendarWrapper
@@ -13,6 +16,8 @@ import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestor
 export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, setStudents, setLoading) => {
   const q = query(collection(db, 'events'));
   let isFirstLoad = true;
+  let persistCheckInterval = null;
+
   const unsubscribe = onSnapshot(q, async (querySnapshot) => {
     const eventsFromDb = querySnapshot.docs.map(doc => ({
       ...doc.data(),
@@ -21,14 +26,43 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
       end: doc.data().end.toDate(),
     }));
 
-    // Store all events in a separate state
-    setAllEvents(eventsFromDb);
+    // Get existing event IDs to avoid duplicates
+    const existingEventIds = eventsFromDb.map(event => event.id);
+
+    // Expand recurring events in memory (1 year range)
+    // This keeps all future instances in state without persisting to Firestore
+    const expandedEvents = expandRecurringEvents(eventsFromDb, {
+      rangeStart: new Date(),
+      rangeEnd: addWeeks(new Date(), 52),
+      maxOccurrences: 52
+    });
+
+    // Function to persist started events
+    const persistStartedEvents = async () => {
+      try {
+        const persistedCount = await persistRecurringInstances(expandedEvents, existingEventIds);
+        if (persistedCount > 0) {
+          console.log(`Persisted ${persistedCount} started recurring event instances to Firestore`);
+        }
+      } catch (error) {
+        console.error('Error persisting recurring instances:', error);
+      }
+    };
+
+    // Set up periodic check on first load (every 1 minute)
+    if (isFirstLoad) {
+      await persistStartedEvents(); // Check immediately on load
+      persistCheckInterval = setInterval(persistStartedEvents, 60 * 1000); // Check every 1 minute
+    }
+
+    // Store all expanded events (including future recurring instances) in state
+    setAllEvents(expandedEvents);
 
     let filteredEvents = [];
     if (userRole === 'teacher') {
-        filteredEvents = eventsFromDb;
+        filteredEvents = expandedEvents;
     } else if (userRole === 'tutor') {
-        filteredEvents = eventsFromDb.filter(event => event.staff.some(staff => staff.value === userEmail));
+        filteredEvents = expandedEvents.filter(event => event.staff.some(staff => staff.value === userEmail));
     } else if (userRole === 'student') {
         const classQuerySnapshot = await getDocs(collection(db, 'classes'));
 
@@ -39,7 +73,7 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
             .map(cls => cls.name);
 
         // filter events where the student is directly involved or their class is involved
-        filteredEvents = eventsFromDb.filter(event =>
+        filteredEvents = expandedEvents.filter(event =>
             event.students.some(student => student.value === userEmail) ||
             event.classes.some(cls => studentClasses.includes(cls.label))
         );
@@ -70,7 +104,12 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
     if (setLoading) setLoading(false);
   });
 
-  return () => unsubscribe();
+  return () => {
+    unsubscribe();
+    if (persistCheckInterval) {
+      clearInterval(persistCheckInterval);
+    }
+  };
 };
 
 /**

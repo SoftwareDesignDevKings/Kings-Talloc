@@ -10,14 +10,7 @@ import { useEventOperations } from '@/hooks/calendar/useEventOperations';
 import { MdEventNote, MdPeople, MdSettings, MdNoteAlt, MdAccessTime, MdSchool, MdMenuBook, MdFlag, FaChalkboardTeacher, FaUserGraduate } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 
-const EventForm = ({
-  isEditing,
-  newEvent,
-  setNewEvent,
-  eventToEdit,
-  setShowModal,
-  eventsData,
-}) => {
+const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData }) => {
   const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
   const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
   const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
@@ -226,6 +219,30 @@ const EventForm = ({
                         required
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="d-flex gap-2 align-items-center mt-3">
+                  <small className="text-muted">Recurring:</small>
+                  <div className="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      onClick={() => {
+                        setNewEvent({ ...newEvent, recurring: newEvent.recurring === 'weekly' ? null : 'weekly' });
+                      }}
+                    >
+                      Repeat Weekly
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                      onClick={() => {
+                        setNewEvent({ ...newEvent, recurring: newEvent.recurring === 'fortnightly' ? null : 'fortnightly' });
+                      }}
+                    >
+                      Repeat Fortnightly
+                    </button>
                   </div>
                 </div>
               </div>

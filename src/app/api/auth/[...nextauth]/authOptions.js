@@ -1,5 +1,6 @@
 import Google from 'next-auth/providers/google';
 import { adminAuth, adminDb } from '@/firestore/adminFirebase';
+// import { redirect } from 'next/navigation';
 
 /**
  * Server-side: Create or fetch user role from Firestore on sign in
@@ -72,6 +73,9 @@ async function handleJwt({ token, user }) {
                 }
             } else {
                 console.log("Error getting user:", error);
+
+                // TODO: redirect login - disabled for testing
+                // redirect("/login")
             }
         }
 

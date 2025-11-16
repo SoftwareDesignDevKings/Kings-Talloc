@@ -60,6 +60,7 @@ export const useEventForm = (eventsData) => {
       locationType: newEvent.locationType || '',
       subject: newEvent.subject || null,
       preference: newEvent.preference || null,
+      recurring: newEvent.recurring || null,
     };
 
     try {

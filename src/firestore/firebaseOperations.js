@@ -1,4 +1,4 @@
-import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/firestore/clientFirestore';
 
 /**
@@ -70,4 +70,52 @@ export const createEventInFirestore = async (eventData, collectionName = 'events
  */
 export const deleteEventFromFirestore = async (eventId, collectionName = 'events') => {
 	await deleteDoc(doc(db, collectionName, eventId));
+};
+
+/**
+ * Persists expanded recurring event instances to Firestore in batch
+ * Only persists events that have already started and haven't been persisted yet
+ * @param {Array} expandedEvents - Array of expanded event instances to persist
+ * @param {Array} existingEventIds - Array of existing event IDs from Firestore to avoid duplicates
+ * @param {string} [collectionName='events'] - The Firestore collection name
+ * @returns {Promise<number>} Number of events persisted
+ */
+export const persistRecurringInstances = async (expandedEvents, existingEventIds = [], collectionName = 'events') => {
+	const now = new Date();
+	const existingIdSet = new Set(existingEventIds);
+
+	// Only persist recurring instances that have already started and don't exist in Firestore
+	const recurringInstances = expandedEvents.filter(event => event.isRecurringInstance && event.start <= now && !existingIdSet.has(event.id));
+
+	if (recurringInstances.length === 0) {
+		return 0;
+	}
+
+	// Firestore batch limit is 500 operations
+	const BATCH_SIZE = 500;
+	let persistedCount = 0;
+
+	for (let i = 0; i < recurringInstances.length; i += BATCH_SIZE) {
+		const batch = writeBatch(db);
+		const batchEvents = recurringInstances.slice(i, i + BATCH_SIZE);
+
+		for (const event of batchEvents) {
+			// Remove metadata fields before persisting
+			const { isRecurringInstance, originalEventId, occurrenceIndex, ...eventData } = event;
+
+			// Use the generated ID as the document ID
+			const eventDocRef = doc(db, collectionName, event.id);
+			batch.set(eventDocRef, {
+				...eventData,
+				isRecurringInstance: true,
+				originalEventId,
+				occurrenceIndex
+			});
+		}
+
+		await batch.commit();
+		persistedCount += batchEvents.length;
+	}
+
+	return persistedCount;
 };
