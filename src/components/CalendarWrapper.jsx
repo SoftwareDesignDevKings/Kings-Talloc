@@ -32,6 +32,8 @@ import EventDetailsModal from './modals/EventDetailsModal.jsx';
 import CustomEvent from './calendar/CustomEvent.jsx';
 import LoadingSpinner from './LoadingSpinner.jsx';
 
+const { memo } = React;
+
 const locales = {
   'en-US': enUS,
 };
@@ -44,6 +46,11 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 const DnDCalendar = withDragAndDrop(Calendar);
+
+// Memoized components for better performance
+const MemoizedCustomEvent = memo(CustomEvent);
+const MemoizedCalendarTimeSlotWrapper = memo(CalendarTimeSlotWrapper);
+const MemoizedCalendarFilterPanel = memo(CalendarFilterPanel);
 
 // Calendar content component that uses context
 const CalendarContent = () => {
@@ -107,29 +114,40 @@ const CalendarContent = () => {
   const finalEvents = useMemo(() => {
     if (!uiState.showEvents) return [];
 
-    if (userRole === 'tutor') {
-      const tutorAvailabilities = eventsData.splitAvailabilitiesData.filter(
-        avail => avail.tutor === userEmail && !filterState.filters.visibility.hideOwnAvailabilities
-      );
+    const baseEvents = filteredEvents;
 
-      // Tutors don't see student requests
-      return [...filteredEvents, ...tutorAvailabilities];
+    if (userRole === 'tutor') {
+      if (filterState.filters.visibility.hideOwnAvailabilities) {
+        return baseEvents;
+      }
+      const tutorAvailabilities = eventsData.splitAvailabilitiesData.filter(
+        avail => avail.tutor === userEmail
+      );
+      return [...baseEvents, ...tutorAvailabilities];
     }
 
     if (userRole === 'student') {
-      // Students see their own requests only
-      return [...filteredEvents, ...eventsData.studentRequests];
+      return [...baseEvents, ...eventsData.studentRequests];
     }
 
-    // Teachers see everything, but filter out denied student requests if enabled
-    let studentRequestsToShow = eventsData.studentRequests;
+    // Teachers
     if (filterState.filters.visibility.hideDeniedStudentEvents) {
-      studentRequestsToShow = studentRequestsToShow.filter(
+      const approvedRequests = eventsData.studentRequests.filter(
         request => request.approvalStatus !== 'denied'
       );
+      return [...baseEvents, ...approvedRequests];
     }
-    return [...filteredEvents, ...studentRequestsToShow];
-  }, [uiState.showEvents, userRole, userEmail, filteredEvents, eventsData.splitAvailabilitiesData, eventsData.studentRequests, filterState.filters.visibility.hideOwnAvailabilities, filterState.filters.visibility.hideDeniedStudentEvents]);
+    return [...baseEvents, ...eventsData.studentRequests];
+  }, [
+    uiState.showEvents,
+    userRole,
+    userEmail,
+    filteredEvents,
+    eventsData.splitAvailabilitiesData,
+    eventsData.studentRequests,
+    filterState.filters.visibility.hideOwnAvailabilities,
+    filterState.filters.visibility.hideDeniedStudentEvents
+  ]);
 
   const minTime = parse(calendarStartTime, "HH:mm", new Date());
   const maxTime = parse(calendarEndTime, "HH:mm", new Date());
@@ -188,7 +206,7 @@ const CalendarContent = () => {
             longPressThreshold={10}
             components={{
               event: (props) => (
-                <CustomEvent
+                <MemoizedCustomEvent
                   {...props}
                   showInitials={uiState.showInitials}
                 />
@@ -220,7 +238,7 @@ const CalendarContent = () => {
             eventPropGetter={(event) => eventStyleGetter(event, userRole, userEmail)}
             components={{
               event: (props) => (
-                <CustomEvent
+                <MemoizedCustomEvent
                   {...props}
                   userRole={userRole}
                   userEmail={userEmail}
@@ -229,7 +247,7 @@ const CalendarContent = () => {
                 />
               ),
               timeSlotWrapper: (props) => (
-                <CalendarTimeSlotWrapper
+                <MemoizedCalendarTimeSlotWrapper
                   {...props}
                   applicableAvailabilities={uiState.showInitials ? applicableAvailabilities : []}
                   selectedTutors={filterState.filters.tutors}
@@ -242,7 +260,7 @@ const CalendarContent = () => {
         )}
       </div>
       
-      <CalendarFilterPanel
+      <MemoizedCalendarFilterPanel
         uiState={uiState}
         userRole={userRole}
         eventsData={eventsData}

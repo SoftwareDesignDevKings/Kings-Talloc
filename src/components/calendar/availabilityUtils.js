@@ -1,45 +1,72 @@
 import { isBefore, isAfter } from 'date-fns';
 
 export const splitAvailabilities = (availabilities, events) => {
+  if (!availabilities.length || !events.length) {
+    return availabilities;
+  }
+
   const splitSlots = [];
 
-  availabilities.forEach((availability) => {
-    let currentStart = new Date(availability.start);
-    let currentEnd = new Date(availability.end);
+  // Pre-filter and sort all events once
+  const validEvents = events.filter(
+    event => !event.createdByStudent || event.approvalStatus !== 'denied'
+  );
 
-    // Sort events by start time to handle them in order
-    const sortedEvents = events
-      .filter(event => event.staff.some(staff => staff.value === availability.tutor) && !(event.createdByStudent && event.approvalStatus === 'denied'))
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  // Group events by tutor for faster lookup
+  const eventsByTutor = new Map();
+  for (const event of validEvents) {
+    for (const staff of event.staff) {
+      const tutorEmail = staff.value;
+      if (!eventsByTutor.has(tutorEmail)) {
+        eventsByTutor.set(tutorEmail, []);
+      }
+      eventsByTutor.get(tutorEmail).push(event);
+    }
+  }
 
-    sortedEvents.forEach((event) => {
+  // Sort events by tutor once
+  for (const [tutor, tutorEvents] of eventsByTutor.entries()) {
+    tutorEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+  }
+
+  for (const availability of availabilities) {
+    const currentStart = new Date(availability.start);
+    const currentEnd = new Date(availability.end);
+    const tutorEvents = eventsByTutor.get(availability.tutor) || [];
+
+    let slotStart = currentStart;
+
+    for (const event of tutorEvents) {
       const eventStart = new Date(event.start);
       const eventEnd = new Date(event.end);
 
-      // Only consider events that overlap with the current availability window
-      if (isBefore(eventStart, currentEnd) && isAfter(eventEnd, currentStart)) {
-        if (isAfter(eventStart, currentStart)) {
-          // Add the available slot before the event starts
-          splitSlots.push({
-            ...availability,
-            start: currentStart,
-            end: eventStart,
-          });
-        }
-        // Move the current start to the end of the current event
-        currentStart = isAfter(eventEnd, currentStart) ? eventEnd : currentStart;
-      }
-    });
+      // Skip events that don't overlap
+      if (eventStart >= currentEnd || eventEnd <= slotStart) continue;
 
-    // Add the remaining availability slot after the last event
-    if (isBefore(currentStart, currentEnd)) {
+      // Add slot before event if there's a gap
+      if (eventStart > slotStart) {
+        splitSlots.push({
+          ...availability,
+          start: slotStart,
+          end: eventStart,
+        });
+      }
+
+      // Move start past this event
+      if (eventEnd > slotStart) {
+        slotStart = eventEnd;
+      }
+    }
+
+    // Add remaining slot
+    if (slotStart < currentEnd) {
       splitSlots.push({
         ...availability,
-        start: currentStart,
+        start: slotStart,
         end: currentEnd,
       });
     }
-  });
+  }
 
   return splitSlots;
 };

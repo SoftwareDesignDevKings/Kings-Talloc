@@ -17,6 +17,35 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
   const q = query(collection(db, 'events'));
   let isFirstLoad = true;
   let persistCheckInterval = null;
+  let studentClasses = []; // Cache student classes
+
+  // Fetch students once on mount
+  const fetchStudentsOnce = async () => {
+    try {
+      const studentSnapshot = await getDocs(collection(db, 'students'));
+      const students = studentSnapshot.docs.map(doc => ({
+        value: doc.data().email,
+        label: doc.data().name || doc.data().email,
+      }));
+      setStudents(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      setStudents([]);
+    }
+  };
+
+  // Fetch student classes once for student role
+  if (userRole === 'student') {
+    try {
+      const classQuerySnapshot = await getDocs(collection(db, 'classes'));
+      studentClasses = classQuerySnapshot.docs
+        .map(doc => doc.data())
+        .filter(cls => cls.students && Array.isArray(cls.students) && cls.students.some(student => student.email === userEmail))
+        .map(cls => cls.name);
+    } catch (error) {
+      console.error("Error fetching student classes:", error);
+    }
+  }
 
   const unsubscribe = onSnapshot(q, async (querySnapshot) => {
     const eventsFromDb = querySnapshot.docs.map(doc => ({
@@ -30,7 +59,6 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
     const existingEventIds = eventsFromDb.map(event => event.id);
 
     // Expand recurring events in memory (1 year range)
-    // This keeps all future instances in state without persisting to Firestore
     const expandedEvents = expandRecurringEvents(eventsFromDb, {
       rangeStart: new Date(),
       rangeEnd: addWeeks(new Date(), 52),
@@ -51,8 +79,9 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
 
     // Set up periodic check on first load (every 1 minute)
     if (isFirstLoad) {
-      await persistStartedEvents(); // Check immediately on load
-      persistCheckInterval = setInterval(persistStartedEvents, 60 * 1000); // Check every 1 minute
+      await Promise.all([persistStartedEvents(), fetchStudentsOnce()]);
+      persistCheckInterval = setInterval(persistStartedEvents, 60 * 1000);
+      isFirstLoad = false;
     }
 
     // Store all expanded events (including future recurring instances) in state
@@ -60,44 +89,26 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
 
     let filteredEvents = [];
     if (userRole === 'teacher') {
-        filteredEvents = expandedEvents;
+      filteredEvents = expandedEvents;
     } else if (userRole === 'tutor') {
-        filteredEvents = expandedEvents.filter(event => event.staff.some(staff => staff.value === userEmail));
+      filteredEvents = expandedEvents.filter(event =>
+        event.staff.some(staff => staff.value === userEmail)
+      );
     } else if (userRole === 'student') {
-        const classQuerySnapshot = await getDocs(collection(db, 'classes'));
-
-        // map and filter classes to those the student is in
-        const studentClasses = classQuerySnapshot.docs
-            .map(doc => doc.data())
-            .filter(cls => cls.students && Array.isArray(cls.students) && cls.students.some(student => student.email === userEmail))
-            .map(cls => cls.name);
-
-        // filter events where the student is directly involved or their class is involved
-        filteredEvents = expandedEvents.filter(event =>
-            event.students.some(student => student.value === userEmail) ||
-            event.classes.some(cls => studentClasses.includes(cls.label))
-        );
+      filteredEvents = expandedEvents.filter(event =>
+        event.students.some(student => student.value === userEmail) ||
+        event.classes.some(cls => studentClasses.includes(cls.label))
+      );
     }
 
     setEvents(filteredEvents);
 
-    // Fetch all students for filtering
-    const studentSnapshot = await getDocs(collection(db, 'students'));
-    const students = studentSnapshot.docs.map(doc => ({
-        value: doc.data().email,
-        label: doc.data().name || doc.data().email,
-    }));
-
-    setStudents(students);
-
     // Mark as loaded after first snapshot
-    if (isFirstLoad && setLoading) {
+    if (setLoading) {
       setLoading(false);
-      isFirstLoad = false;
     }
   }, (error) => {
     console.error("Error fetching events:", error);
-    // Set empty arrays on error to prevent app crash
     setEvents([]);
     setAllEvents([]);
     setStudents([]);
