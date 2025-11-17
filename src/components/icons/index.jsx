@@ -255,3 +255,13 @@ export const FcGoogle = (props) => (
     <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
   </IconWrapper>
 );
+
+// Microsoft Icon (si)
+export const SiMicrosoft = (props) => (
+  <IconWrapper {...props} stroke="none" viewBox="0 0 24 24">
+    <path fill="#f25022" d="M0 0h11.377v11.372H0z" />
+    <path fill="#00a4ef" d="M12.623 0H24v11.372H12.623z" />
+    <path fill="#7fba00" d="M0 12.628h11.377V24H0z" />
+    <path fill="#ffb900" d="M12.623 12.628H24V24H12.623z" />
+  </IconWrapper>
+);
