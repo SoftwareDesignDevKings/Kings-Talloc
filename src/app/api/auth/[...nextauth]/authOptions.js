@@ -40,13 +40,27 @@ async function handleSignIn({ user, account, profile }) {
 /**
  * Add user role to JWT token and refresh Firebase token periodically
  */
-async function handleJwt({ token, user }) {
+async function handleJwt({ token, user, account, profile }) {
     // Initial sign in - user object is available
     if (user) {
         token.role = user.role;
         token.email = user.email;
         token.name = user.name;
         token.firebaseTokenCreatedAt = Date.now();
+
+        // Store profile information if available
+        if (profile) {
+            token.profile = profile;
+        }
+
+        // Store user image/picture (works for Google)
+        if (user.image) {
+            token.picture = user.image;
+        }
+
+        if (account.access_token) {
+            token.microsoftAccessToken = account.access_token;
+        }
     }
 
     // Check if we need to refresh the Firebase token (every 50 minutes to be safe)
@@ -91,11 +105,27 @@ async function handleJwt({ token, user }) {
 }
 
 /**
- * Add role and firebaseToken from JWT to session object
+ * Add role, firebaseToken, profile, and image from JWT to session object
  */
 async function handleSession({ session, token }) {
     session.user.role = token.role;
     session.user.firebaseToken = token.firebaseToken;
+
+    // Add profile information if available
+    if (token.profile) {
+        session.user.profile = token.profile;
+    }
+
+    // Add profile picture if available
+    if (token.picture) {
+        session.user.image = token.picture;
+    }
+
+    // Add Microsoft access token if available
+    if (token.microsoftAccessToken) {
+        session.user.microsoftAccessToken = token.microsoftAccessToken;
+    }
+
     return session;
 }
 

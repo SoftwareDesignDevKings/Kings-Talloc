@@ -1,5 +1,6 @@
 // Inline SVG icons to replace react-icons (83MB package)
 // Default size is 20x20 (smaller than react-icons default of 24x24)
+import Image from "next/image";
 
 const IconWrapper = ({ children, className = "", size = 20, ...props }) => (
   <svg
@@ -264,4 +265,12 @@ export const SiMicrosoft = (props) => (
     <path fill="#7fba00" d="M0 12.628h11.377V24H0z" />
     <path fill="#ffb900" d="M12.623 12.628H24V24H12.623z" />
   </IconWrapper>
+);
+
+export const SiMicrosoftTeams = (props) => (
+  <Image src="teams.svg"
+    width={16}
+    height={16}
+    alt="Microsoft Teams">
+  </Image>
 );

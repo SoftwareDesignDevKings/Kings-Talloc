@@ -1,5 +1,5 @@
 import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
-import { createTeamsMeeting } from '@/utils/msTeams';
+import { createTeamsMeeting, updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
 import useAlert from '../useAlert';
 
 /**
@@ -61,6 +61,7 @@ export const useEventForm = (eventsData) => {
       subject: newEvent.subject || null,
       preference: newEvent.preference || null,
       recurring: newEvent.recurring || null,
+      createTeamsMeeting: newEvent.createTeamsMeeting || false,
     };
 
     try {
@@ -84,33 +85,98 @@ export const useEventForm = (eventsData) => {
 
           await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
 
-          // Create Teams meeting
-          const subject = eventData.title;
-          const description = eventData.description || "";
-          const startTime = new Date(eventData.start).toISOString();
-          const endTime = new Date(eventData.end).toISOString();
-          const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+          // Close modal immediately for better UX
+          setShowModal(false);
 
-          await createTeamsMeeting({ ...eventData, id: docId }, subject, description, startTime, endTime, attendeesEmailArr);
-        } else if (eventToEdit.isStudentRequest) {
-          // Student request being edited but not approved - update in studentEventRequests
-          await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
-        } else {
-          // Regular event update
-          await updateEventInFirestore(eventToEdit.id, eventData);
-          // Don't manually update state - let the Firestore listener handle it
-          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
-
-          // Check if event was just approved and create Teams meeting
-          if (eventData.approvalStatus === "approved" && eventToEdit.approvalStatus !== "approved") {
+          // Create Teams meeting if approved or checkbox is checked (in background)
+          if (eventData.createTeamsMeeting) {
             const subject = eventData.title;
             const description = eventData.description || "";
             const startTime = new Date(eventData.start).toISOString();
             const endTime = new Date(eventData.end).toISOString();
             const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
 
-            await createTeamsMeeting({ ...eventData, id: eventToEdit.id }, subject, description, startTime, endTime, attendeesEmailArr);
+            createTeamsMeeting(subject, description, startTime, endTime, attendeesEmailArr)
+              .then((result) => {
+                // Store Teams event ID in Firestore
+                updateEventInFirestore(docId, {
+                  teamsEventId: result.teamsEventId,
+                  teamsJoinUrl: result.joinUrl
+                });
+                setAlertType('success');
+                setAlertMessage('Teams meeting created successfully');
+              })
+              .catch((error) => {
+                setAlertType('error');
+                setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+              });
+          }
+        } else if (eventToEdit.isStudentRequest) {
+          // Student request being edited but not approved - update in studentEventRequests
+          await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
+          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+          setShowModal(false);
+        } else {
+          // Regular event update
+          await updateEventInFirestore(eventToEdit.id, eventData);
+          // Don't manually update state - let the Firestore listener handle it
+          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+
+          // Close modal immediately for better UX
+          setShowModal(false);
+
+          // Check if checkbox is unchecked and Teams meeting exists - delete it
+          if (!eventData.createTeamsMeeting && eventToEdit.teamsEventId) {
+            deleteTeamsMeeting(eventToEdit.teamsEventId)
+              .then(() => {
+                // Remove Teams event ID from Firestore
+                updateEventInFirestore(eventToEdit.id, {
+                  teamsEventId: null,
+                  teamsJoinUrl: null
+                });
+                setAlertType('success');
+                setAlertMessage('Teams meeting deleted successfully');
+              })
+              .catch((error) => {
+                setAlertType('error');
+                setAlertMessage(`Failed to delete Teams meeting: ${error.message}`);
+              });
+          }
+          // Check if event was just approved or checkbox is checked and create/update Teams meeting (in background)
+          else if ((eventData.approvalStatus === "approved" && eventToEdit.approvalStatus !== "approved") || eventData.createTeamsMeeting) {
+            const subject = eventData.title;
+            const description = eventData.description || "";
+            const startTime = new Date(eventData.start).toISOString();
+            const endTime = new Date(eventData.end).toISOString();
+            const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+
+            // If Teams event already exists, update it; otherwise create new one
+            if (eventToEdit.teamsEventId) {
+              updateTeamsMeeting(eventToEdit.teamsEventId, subject, description, startTime, endTime, attendeesEmailArr)
+                .then(() => {
+                  setAlertType('success');
+                  setAlertMessage('Teams meeting updated successfully');
+                })
+                .catch((error) => {
+                  setAlertType('error');
+                  setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
+                });
+            } else {
+              createTeamsMeeting(subject, description, startTime, endTime, attendeesEmailArr)
+                .then((result) => {
+                  // Store Teams event ID in Firestore
+                  updateEventInFirestore(eventToEdit.id, {
+                    teamsEventId: result.teamsEventId,
+                    teamsJoinUrl: result.joinUrl
+                  });
+                  setAlertType('success');
+                  setAlertMessage('Teams meeting created successfully');
+                })
+                .catch((error) => {
+                  setAlertType('error');
+                  setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+                });
+            }
           }
         }
       } else {
@@ -120,18 +186,33 @@ export const useEventForm = (eventsData) => {
         // This ensures recurring events are properly expanded
         await addOrUpdateEventInQueue(eventData, 'store');
 
-        // Create Teams meeting if event is approved on creation
-        if (eventData.approvalStatus === "approved") {
+        // Close modal immediately for better UX
+        setShowModal(false);
+
+        // Create Teams meeting if event is approved on creation or checkbox is checked (in background)
+        if (eventData.approvalStatus === "approved" || eventData.createTeamsMeeting) {
           const subject = eventData.title;
           const description = eventData.description || "";
           const startTime = new Date(eventData.start).toISOString();
           const endTime = new Date(eventData.end).toISOString();
           const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
 
-          await createTeamsMeeting({ ...eventData, id: docId }, subject, description, startTime, endTime, attendeesEmailArr);
+          createTeamsMeeting(subject, description, startTime, endTime, attendeesEmailArr)
+            .then((result) => {
+              // Store Teams event ID in Firestore
+              updateEventInFirestore(docId, {
+                teamsEventId: result.teamsEventId,
+                teamsJoinUrl: result.joinUrl
+              });
+              setAlertType('success');
+              setAlertMessage('Teams meeting created successfully');
+            })
+            .catch((error) => {
+              setAlertType('error');
+              setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+            });
         }
       }
-      setShowModal(false);
     } catch (error) {
       console.error('Failed to submit event:', error);
     }

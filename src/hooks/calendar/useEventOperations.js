@@ -1,10 +1,13 @@
 import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore, deleteAllRecurringInstances, addEventException, setRecurringUntilDate, addOrUpdateEventInQueue, removeEventFromQueue } from '@/firestore/firebaseOperations';
+import { updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
+import useAlert from '../useAlert';
 
 /**
  * Hook for handling event CRUD operations and drag/drop
  * Used by: CalendarWrapper, EventForm, StudentEventForm
  */
 export const useEventOperations = (eventsData, userRole, userEmail) => {
+  const { setAlertMessage, setAlertType } = useAlert();
 
   const handleEventDrop = async ({ event, start, end }) => {
     const isAvailability = !!event.tutor;
@@ -52,6 +55,26 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
         start: new Date(start),
         end: updatedEnd,
       }, collectionName);
+
+      // Update Teams meeting if it exists
+      if (event.teamsEventId && !isAvailability && !isStudentRequest) {
+        const subject = event.title;
+        const description = event.description || "";
+        const startTime = new Date(start).toISOString();
+        const endTime = new Date(updatedEnd).toISOString();
+        const attendeesEmailArr = [...(event.students || []), ...(event.staff || [])].map(p => p.value || p);
+
+        updateTeamsMeeting(event.teamsEventId, subject, description, startTime, endTime, attendeesEmailArr)
+          .then(() => {
+            setAlertType('success');
+            setAlertMessage('Teams meeting updated successfully');
+          })
+          .catch((error) => {
+            console.error('Failed to update Teams meeting:', error);
+            setAlertType('error');
+            setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
+          });
+      }
     } catch (error) {
       console.error('Failed to update event:', error);
       if (isAvailability) {
@@ -110,8 +133,24 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
         end: new Date(end),
       }, collectionName);
 
-      if (!isAvailability && !isStudentRequest && !event.createdByStudent && event.approvalStatus === "approved") {
-        // TODO: add the updateTeamsMeeting func
+      // Update Teams meeting if it exists
+      if (event.teamsEventId && !isAvailability && !isStudentRequest) {
+        const subject = event.title;
+        const description = event.description || "";
+        const startTime = new Date(start).toISOString();
+        const endTime = new Date(end).toISOString();
+        const attendeesEmailArr = [...(event.students || []), ...(event.staff || [])].map(p => p.value || p);
+
+        updateTeamsMeeting(event.teamsEventId, subject, description, startTime, endTime, attendeesEmailArr)
+          .then(() => {
+            setAlertType('success');
+            setAlertMessage('Teams meeting updated successfully');
+          })
+          .catch((error) => {
+            console.error('Failed to update Teams meeting:', error);
+            setAlertType('error');
+            setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
+          });
       }
 
     } catch (error) {
@@ -213,6 +252,20 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
         // Case 4: Deleting a normal non-recurring event
         else {
           await deleteEventFromFirestore(eventToEdit.id, collectionName);
+
+          // Delete Teams meeting if it exists
+          if (eventToEdit.teamsEventId && !isAvailability && !isStudentRequest) {
+            deleteTeamsMeeting(eventToEdit.teamsEventId)
+              .then(() => {
+                setAlertType('success');
+                setAlertMessage('Teams meeting deleted successfully');
+              })
+              .catch((error) => {
+                console.error('Failed to delete Teams meeting:', error);
+                setAlertType('error');
+                setAlertMessage(`Failed to delete Teams meeting: ${error.message}`);
+              });
+          }
 
           if (isAvailability) {
             eventsData.setAvailabilities(eventsData.availabilities.filter(availability =>

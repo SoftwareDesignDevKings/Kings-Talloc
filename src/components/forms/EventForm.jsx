@@ -8,7 +8,7 @@ import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
 import { useEventForm } from '@/hooks/forms/useEventForm';
 import { useEventFormData } from '@/hooks/forms/useEventFormData';
 import { useEventOperations } from '@/hooks/calendar/useEventOperations';
-import { MdEventNote, MdPeople, MdSettings, MdNoteAlt, MdAccessTime, MdSchool, MdMenuBook, MdFlag, FaChalkboardTeacher, FaUserGraduate } from '@/components/icons';
+import { MdEventNote, MdPeople, MdSettings, MdNoteAlt, MdAccessTime, MdSchool, MdMenuBook, MdFlag, FaChalkboardTeacher, FaUserGraduate, SiMicrosoftTeams } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 
 const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData }) => {
@@ -204,6 +204,18 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                     value={newEvent.description}
                     onChange={handleInputChange}
                   />
+                </div>
+
+                <div className="mb-3">
+                  <button
+                    type="button"
+                    className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
+                    onClick={() => setNewEvent({ ...newEvent, createTeamsMeeting: !newEvent.createTeamsMeeting })}
+                    style={newEvent.createTeamsMeeting ? { backgroundColor: '#5059C9', borderColor: '#5059C9' } : { color: '#5059C9', borderColor: '#5059C9' }}
+                  >
+                    <SiMicrosoftTeams size={30} />
+                    Create Online Teams Meeting
+                  </button>
                 </div>
 
                 <div className="row">
