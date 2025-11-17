@@ -1,70 +1,32 @@
-import { google } from 'googleapis';
-import nodemailer from 'nodemailer';
 import { adminDb } from '../../../../firestore/adminFirebase';
 import { DateTime } from 'luxon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function GET(req, { params }) {
-  const session = await getServerSession(authOptions);  
+  const session = await getServerSession(authOptions);
 
   if (!session || !session.user) {
     return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
   }
 
-  console.log('[Email API] User role:', session.user.role);
-
   if (session.user.role !== 'teacher') {
     return new Response(JSON.stringify({ message: 'Forbidden: Only teachers can send emails', role: session.user.role }), { status: 403 });
   }
 
-  const { action } = params;
+  const { action } = await params;
   if (action !== 'send') {
     return new Response(JSON.stringify({ message: 'Invalid action' }), { status: 400 });
   }
 
-  // Ensure OAuth2 credentials are loaded
-  const clientId = process.env.GMAIL_CLIENT_ID;
-  const clientSecret = process.env.GMAIL_CLIENT_SECRET;
-  const redirectUri = process.env.GMAIL_REDIRECT_URI;
-  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
-  const emailUser = process.env.GMAIL_USER;
-
-  if (!clientId || !clientSecret || !redirectUri || !refreshToken || !emailUser) {s
-    console.error('OAuth2 credentials are not defined');
-    return new Response(JSON.stringify({ message: 'OAuth2 credentials are not defined' }), { status: 500 });
+  // Get Microsoft access token from session
+  const accessToken = session.user.microsoftAccessToken;
+  if (!accessToken) {
+    console.error('Microsoft access token not found in session');
+    return new Response(JSON.stringify({ message: 'Microsoft access token not found' }), { status: 500 });
   }
 
-  // Create OAuth2 client
-  const oAuth2Client = new google.auth.OAuth2(
-    clientId,
-    clientSecret,
-    redirectUri
-  );
-
-  oAuth2Client.setCredentials({ refresh_token: refreshToken });
-
-  let accessToken;
-  try {
-    const accessTokenResponse = await oAuth2Client.getAccessToken();
-    accessToken = accessTokenResponse.token;
-  } catch (error) {
-    console.error('Error getting access token:', error);
-    return new Response(JSON.stringify({ message: 'Failed to get access token' }), { status: 500 });
-  }
-
-  // Create nodemailer transporter with OAuth2
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      type: 'OAuth2',
-      user: emailUser,
-      clientId: clientId,
-      clientSecret: clientSecret,
-      refreshToken: refreshToken,
-      accessToken: accessToken,
-    },
-  });
+  const senderEmail = session.user.email;
 
   const sendEmailNotification = async (events) => {
     const emailPromises = [];
@@ -81,11 +43,7 @@ export async function GET(req, { params }) {
     });
 
     tutorsMap.forEach((events, tutorEmail) => {
-      const mailOptions = {
-        from: emailUser,
-        to: tutorEmail,
-        subject: 'You have new events',
-        html: `
+      const emailBody = `
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -170,10 +128,41 @@ export async function GET(req, { params }) {
             </table>
           </body>
           </html>
-        `,
+        `;
+
+      const emailMessage = {
+        message: {
+          subject: 'New Talloc Assignments',
+          body: {
+            contentType: 'HTML',
+            content: emailBody
+          },
+          toRecipients: [
+            {
+              emailAddress: {
+                address: tutorEmail
+              }
+            }
+          ]
+        },
+        saveToSentItems: 'true'
       };
 
-      emailPromises.push(transporter.sendMail(mailOptions));
+      const sendPromise = fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emailMessage)
+      }).then(async response => {
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(`Failed to send email to ${tutorEmail}: ${error.error?.message || response.statusText}`);
+        }
+      });
+
+      emailPromises.push(sendPromise);
     });
 
     await Promise.all(emailPromises);

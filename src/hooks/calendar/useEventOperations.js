@@ -188,6 +188,20 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
           const deletedCount = await deleteAllRecurringInstances(eventToEdit.id, eventsData.allEvents, collectionName);
           console.log(`[handleDeleteEvent] Deleted ${deletedCount} recurring event instances from Firestore`);
 
+          // Remove from email queue
+          await removeEventFromQueue(eventToEdit.id);
+          // Also remove any persisted instances from email queue
+          const recurringInstances = eventsData.allEvents.filter(event =>
+            event.originalEventId === eventToEdit.id && event.isRecurringInstance
+          );
+          for (const instance of recurringInstances) {
+            try {
+              await removeEventFromQueue(instance.id);
+            } catch (error) {
+              // Instance might not be in queue
+            }
+          }
+
           // Optimistically update state immediately, listener will sync later
           const newEvents = eventsData.allEvents.filter(event =>
             event.id !== eventToEdit.id && event.originalEventId !== eventToEdit.id
@@ -202,7 +216,7 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 
           await setRecurringUntilDate(eventToEdit.originalEventId, untilDate, collectionName);
 
-          // Delete persisted future instances from Firestore
+          // Delete persisted future instances from Firestore and email queue
           const futureInstances = eventsData.allEvents.filter(event =>
             event.originalEventId === eventToEdit.originalEventId &&
             event.occurrenceIndex >= eventToEdit.occurrenceIndex &&
@@ -211,6 +225,7 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
           for (const instance of futureInstances) {
             try {
               await deleteEventFromFirestore(instance.id, collectionName);
+              await removeEventFromQueue(instance.id);
             } catch (error) {
               // Instance might not be persisted yet
             }
@@ -240,6 +255,7 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
           // If the instance was already persisted to Firestore, delete it
           try {
             await deleteEventFromFirestore(eventToEdit.id, collectionName);
+            await removeEventFromQueue(eventToEdit.id);
           } catch (error) {
             // Instance might not be persisted yet, ignore error
           }
