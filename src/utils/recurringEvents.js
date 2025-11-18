@@ -45,8 +45,8 @@ export const expandRecurringEvents = (events, options = {}) => {
 
 		const untilDate = until || null;
 
-		// Generate recurring event instances
-		for (let i = 0; i < maxLimit; i++) {
+		// Generate recurring event instances (start at i=1 since original event is already added)
+		for (let i = 1; i < maxLimit; i++) {
 			// Skip if this occurrence is in the exceptions list
 			if (eventExceptions.includes(i)) {
 				continue;

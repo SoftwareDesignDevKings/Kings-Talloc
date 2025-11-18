@@ -1,301 +1,399 @@
-import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore, addEventException, setRecurringUntilDate, removeEventFromQueue } from '@/firestore/firebaseOperations';
-import { updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
-import useAlert from '../useAlert';
+import {
+	updateEventInFirestore,
+	createEventInFirestore,
+	deleteEventFromFirestore,
+	addEventException,
+	setRecurringUntilDate,
+	removeEventFromQueue,
+} from "@/firestore/firebaseOperations";
+import { updateTeamsMeeting, deleteTeamsMeeting } from "@/utils/msTeams";
+import useAlert from "../useAlert";
 
 /**
  * Hook for handling event CRUD operations and drag/drop
  * Used by: CalendarWrapper, EventForm, StudentEventForm
  */
 export const useEventOperations = (eventsData, userRole, userEmail) => {
-  const { setAlertMessage, setAlertType } = useAlert();
+	const { setAlertMessage, setAlertType } = useAlert();
 
-  const handleEventDrop = async ({ event, start, end }) => {
-    const isAvailability = !!event.tutor;
-    const isStudentRequest = !!event.isStudentRequest;
+	/**
+	 * Determines event type and collection name
+	 */
+	const getEventType = (event) => {
+		const isAvailability = !!event.tutor;
+		const isStudentRequest = !!event.isStudentRequest;
 
-    // Students can only drag their own student requests
-    if (userRole === 'student') {
-      if (!isStudentRequest) return; // Can't drag approved events
-      // Check if student owns this request
-      const isOwnRequest = event.students?.some(s => s.value === userEmail || s === userEmail);
-      if (!isOwnRequest) return;
-    }
+		let collectionName = "events";
+		if (isAvailability) {
+			collectionName = "tutorAvailabilities";
+		} else if (isStudentRequest) {
+			collectionName = "studentEventRequests";
+		}
 
-    // Tutors can only drag their own availabilities
-    if (userRole === 'tutor' && !isAvailability) return;
+		return { isAvailability, isStudentRequest, collectionName };
+	};
 
-    const duration = (event.end - event.start);
-    const updatedEnd = new Date(start.getTime() + duration);
+	/**
+	 * Updates event in appropriate state collection
+	 */
+	const updateEventState = (eventId, updatedEvent, isAvailability, isStudentRequest) => {
+		if (isAvailability) {
+			const updatedAvailabilities = [];
+			for (const avail of eventsData.availabilities) {
+				if (avail.id === eventId) {
+					updatedAvailabilities.push(updatedEvent);
+				} else {
+					updatedAvailabilities.push(avail);
+				}
+			}
+			eventsData.setAvailabilities(updatedAvailabilities);
+		} else if (isStudentRequest) {
+			const updatedRequests = [];
+			for (const req of eventsData.studentRequests) {
+				if (req.id === eventId) {
+					updatedRequests.push(updatedEvent);
+				} else {
+					updatedRequests.push(req);
+				}
+			}
+			eventsData.setStudentRequests(updatedRequests);
+		} else {
+			const updatedEvents = [];
+			for (const evt of eventsData.allEvents) {
+				if (evt.id === eventId) {
+					updatedEvents.push(updatedEvent);
+				} else {
+					updatedEvents.push(evt);
+				}
+			}
+			eventsData.setAllEvents(updatedEvents);
+		}
+	};
 
-    const updatedEvent = { ...event, start, end: updatedEnd };
-    const previousEvents = [...eventsData.allEvents];
-    const previousAvailabilities = [...eventsData.availabilities];
-    const previousStudentRequests = [...eventsData.studentRequests];
+	/**
+	 * Reverts state changes on error
+	 */
+	const revertState = (previousEvents, previousAvailabilities, previousStudentRequests, isAvailability, isStudentRequest) => {
+		if (isAvailability) {
+			eventsData.setAvailabilities(previousAvailabilities);
+		} else if (isStudentRequest) {
+			eventsData.setStudentRequests(previousStudentRequests);
+		} else {
+			eventsData.setAllEvents(previousEvents);
+		}
+	};
 
-    // Determine which collection to update
-    let collectionName = 'events';
-    if (isAvailability) {
-      collectionName = 'tutorAvailabilities';
-      eventsData.setAvailabilities(eventsData.availabilities.map(avail =>
-        avail.id === event.id ? updatedEvent : avail
-      ));
-    } else if (isStudentRequest) {
-      collectionName = 'studentEventRequests';
-      eventsData.setStudentRequests(eventsData.studentRequests.map(req =>
-        req.id === event.id ? updatedEvent : req
-      ));
-    } else {
-      eventsData.setAllEvents(eventsData.allEvents.map(evt =>
-        evt.id === event.id ? updatedEvent : evt
-      ));
-    }
+	/**
+	 * Updates Teams meeting with event details
+	 */
+	const updateTeamsMeetingIfExists = async (event, start, end, isAvailability, isStudentRequest) => {
+		if (!event.teamsEventId || isAvailability || isStudentRequest) {
+			return;
+		}
 
-    try {
-      await updateEventInFirestore(event.id, {
-        start: new Date(start),
-        end: updatedEnd,
-      }, collectionName);
+		const subject = event.title;
+		const description = event.description || "";
+		const startTime = new Date(start).toISOString();
+		const endTime = new Date(end).toISOString();
 
-      // Update Teams meeting if it exists
-      if (event.teamsEventId && !isAvailability && !isStudentRequest) {
-        const subject = event.title;
-        const description = event.description || "";
-        const startTime = new Date(start).toISOString();
-        const endTime = new Date(updatedEnd).toISOString();
-        const attendeesEmailArr = [...(event.students || []), ...(event.staff || [])].map(p => p.value || p);
+		const attendees = [];
+		const students = event.students || [];
+		const staff = event.staff || [];
 
-        updateTeamsMeeting(event.teamsEventId, subject, description, startTime, endTime, attendeesEmailArr)
-          .then(() => {
-            setAlertType('success');
-            setAlertMessage('Teams meeting updated successfully');
-          })
-          .catch((error) => {
-            console.error('Failed to update Teams meeting:', error);
-            setAlertType('error');
-            setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
-          });
-      }
-    } catch (error) {
-      console.error('Failed to update event:', error);
-      if (isAvailability) {
-        eventsData.setAvailabilities(previousAvailabilities);
-      } else if (isStudentRequest) {
-        eventsData.setStudentRequests(previousStudentRequests);
-      } else {
-        eventsData.setAllEvents(previousEvents);
-      }
-    }
-  };
+		for (const participant of [...students, ...staff]) {
+			attendees.push(participant.value || participant);
+		}
 
-  const handleEventResize = async ({ event, start, end }) => {
-    const isAvailability = !!event.tutor;
-    const isStudentRequest = !!event.isStudentRequest;
+		try {
+			await updateTeamsMeeting(event.teamsEventId, subject, description, startTime, endTime, attendees);
+			setAlertType("success");
+			setAlertMessage("Teams meeting updated successfully");
+		} catch (error) {
+			console.error("Failed to update Teams meeting:", error);
+			setAlertType("error");
+			setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
+		}
+	};
 
-    // Students can only resize their own student requests
-    if (userRole === 'student') {
-      if (!isStudentRequest) return; // Can't resize approved events
-      // Check if student owns this request
-      const isOwnRequest = event.students?.some(s => s.value === userEmail || s === userEmail);
-      if (!isOwnRequest) return;
-    }
+	const handleEventDrop = async ({ event, start, end }) => {
+		const { isAvailability, isStudentRequest, collectionName } = getEventType(event);
 
-    // Tutors can only resize their own availabilities
-    if (userRole === 'tutor' && !isAvailability) {
-      return;
-    }
+		// Students can only drag their own student requests
+		if (userRole === "student") {
+			if (!isStudentRequest) return;
 
-    const updatedEvent = { ...event, start, end };
-    const previousEvents = [...eventsData.allEvents];
-    const previousAvailabilities = [...eventsData.availabilities];
-    const previousStudentRequests = [...eventsData.studentRequests];
+			const students = event.students || [];
+			let isOwnRequest = false;
 
-    // Determine which collection to update
-    let collectionName = 'events';
-    if (isAvailability) {
-      collectionName = 'tutorAvailabilities';
-      eventsData.setAvailabilities(eventsData.availabilities.map(avail =>
-        avail.id === event.id ? updatedEvent : avail
-      ));
-    } else if (isStudentRequest) {
-      collectionName = 'studentEventRequests';
-      eventsData.setStudentRequests(eventsData.studentRequests.map(req =>
-        req.id === event.id ? updatedEvent : req
-      ));
-    } else {
-      eventsData.setAllEvents(eventsData.allEvents.map(evt =>
-        evt.id === event.id ? updatedEvent : evt
-      ));
-    }
+			for (const student of students) {
+				const studentEmail = student.value || student;
+				if (studentEmail === userEmail) {
+					isOwnRequest = true;
+					break;
+				}
+			}
 
-    try {
-      await updateEventInFirestore(event.id, {
-        start: new Date(start),
-        end: new Date(end),
-      }, collectionName);
+			if (!isOwnRequest) return;
+		}
 
-      // Update Teams meeting if it exists
-      if (event.teamsEventId && !isAvailability && !isStudentRequest) {
-        const subject = event.title;
-        const description = event.description || "";
-        const startTime = new Date(start).toISOString();
-        const endTime = new Date(end).toISOString();
-        const attendeesEmailArr = [...(event.students || []), ...(event.staff || [])].map(p => p.value || p);
+		// Tutors can only drag their own availabilities
+		if (userRole === "tutor" && !isAvailability) return;
 
-        updateTeamsMeeting(event.teamsEventId, subject, description, startTime, endTime, attendeesEmailArr)
-          .then(() => {
-            setAlertType('success');
-            setAlertMessage('Teams meeting updated successfully');
-          })
-          .catch((error) => {
-            console.error('Failed to update Teams meeting:', error);
-            setAlertType('error');
-            setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
-          });
-      }
+		const duration = event.end - event.start;
+		const updatedEnd = new Date(start.getTime() + duration);
+		const updatedEvent = { ...event, start, end: updatedEnd };
 
-    } catch (error) {
-      console.error('Failed to update event:', error);
-      if (isAvailability) {
-        eventsData.setAvailabilities(previousAvailabilities);
-      } else if (isStudentRequest) {
-        eventsData.setStudentRequests(previousStudentRequests);
-      } else {
-        eventsData.setAllEvents(previousEvents);
-      }
-    }
-  };
+		// Store previous state for rollback
+		const previousEvents = [...eventsData.allEvents];
+		const previousAvailabilities = [...eventsData.availabilities];
+		const previousStudentRequests = [...eventsData.studentRequests];
 
-  const handleDeleteEvent = async (eventToEdit, modals, deleteOption = 'this') => {
-    if (eventToEdit && eventToEdit.id) {
-      const isAvailability = !!eventToEdit.tutor;
-      const isStudentRequest = !!eventToEdit.isStudentRequest;
-      const recurringEventId = eventToEdit.recurringEventId; // If this exists, it's a recurring instance
-      const hasRecurring = !!eventToEdit.recurring; // If this exists, it's the original recurring event
+		// Optimistically update UI
+		updateEventState(event.id, updatedEvent, isAvailability, isStudentRequest);
 
-      let collectionName = 'events';
-      if (isAvailability) {
-        collectionName = 'tutorAvailabilities';
-      } else if (isStudentRequest) {
-        collectionName = 'studentEventRequests';
-      }
+		try {
+			await updateEventInFirestore(
+				event.id,
+				{
+					start: new Date(start),
+					end: updatedEnd,
+				},
+				collectionName
+			);
 
-      try {
-        // Case 1: Deleting original recurring event - delete all instances
-        if (hasRecurring && deleteOption === 'all') {
-          console.log('[handleDeleteEvent] Deleting recurring event:', eventToEdit.id);
+			await updateTeamsMeetingIfExists(event, start, updatedEnd, isAvailability, isStudentRequest);
+		} catch (error) {
+			console.error("Failed to update event:", error);
+			revertState(previousEvents, previousAvailabilities, previousStudentRequests, isAvailability, isStudentRequest);
+		}
+	};
 
-          // Just delete the original event - no instances are persisted
-          await deleteEventFromFirestore(eventToEdit.id, collectionName);
+	const handleEventResize = async ({ event, start, end }) => {
+		const { isAvailability, isStudentRequest, collectionName } = getEventType(event);
 
-          // Remove from email queue
-          await removeEventFromQueue(eventToEdit.id);
+		// Students can only resize their own student requests
+		if (userRole === "student") {
+			if (!isStudentRequest) return;
 
-          // Optimistically update state immediately - remove original and all expanded instances
-          const newEvents = eventsData.allEvents.filter(event =>
-            event.id !== eventToEdit.id && event.recurringEventId !== eventToEdit.id
-          );
-          console.log('[handleDeleteEvent] Updating state, new count:', newEvents.length);
-          eventsData.setAllEvents(newEvents);
-        }
-        // Case 2: Deleting this and all future occurrences - set until date
-        else if (recurringEventId && deleteOption === 'thisAndFuture') {
-          const untilDate = new Date(eventToEdit.start);
-          untilDate.setDate(untilDate.getDate() - 1); // Set to day before this occurrence
+			const students = event.students || [];
+			let isOwnRequest = false;
 
-          await setRecurringUntilDate(recurringEventId, untilDate, collectionName);
+			for (const student of students) {
+				const studentEmail = student.value || student;
+				if (studentEmail === userEmail) {
+					isOwnRequest = true;
+					break;
+				}
+			}
 
-          // Optimistically update state immediately - remove future instances
-          eventsData.setAllEvents(eventsData.allEvents.filter(event => {
-            // Keep non-recurring events
-            if (event.recurringEventId !== recurringEventId && event.id !== recurringEventId) {
-              return true;
-            }
-            // Keep original event (with updated until date)
-            if (event.id === recurringEventId) {
-              return true;
-            }
-            // Remove instances from this occurrence onwards
-            if (event.recurringEventId === recurringEventId && event.occurrenceIndex >= eventToEdit.occurrenceIndex) {
-              return false;
-            }
-            return true;
-          }));
-        }
-        // Case 3: Deleting a single recurring instance - add to exceptions
-        else if (recurringEventId) {
-          await addEventException(recurringEventId, eventToEdit.occurrenceIndex, collectionName);
+			if (!isOwnRequest) return;
+		}
 
-          // Optimistically update state immediately - remove this instance
-          eventsData.setAllEvents(eventsData.allEvents.filter(event =>
-            event.id !== eventToEdit.id
-          ));
-        }
-        // Case 4: Deleting a normal non-recurring event
-        else {
-          await deleteEventFromFirestore(eventToEdit.id, collectionName);
+		// Tutors can only resize their own availabilities
+		if (userRole === "tutor" && !isAvailability) {
+			return;
+		}
 
-          // Delete Teams meeting if it exists
-          if (eventToEdit.teamsEventId && !isAvailability && !isStudentRequest) {
-            deleteTeamsMeeting(eventToEdit.teamsEventId)
-              .then(() => {
-                setAlertType('success');
-                setAlertMessage('Teams meeting deleted successfully');
-              })
-              .catch((error) => {
-                console.error('Failed to delete Teams meeting:', error);
-                setAlertType('error');
-                setAlertMessage(`Failed to delete Teams meeting: ${error.message}`);
-              });
-          }
+		const updatedEvent = { ...event, start, end };
 
-          if (isAvailability) {
-            eventsData.setAvailabilities(eventsData.availabilities.filter(availability =>
-              availability.id !== eventToEdit.id
-            ));
-          } else if (isStudentRequest) {
-            eventsData.setStudentRequests(eventsData.studentRequests.filter(request =>
-              request.id !== eventToEdit.id
-            ));
-          } else {
-            eventsData.setAllEvents(eventsData.allEvents.filter(event =>
-              event.id !== eventToEdit.id
-            ));
-          }
-        }
+		// Store previous state for rollback
+		const previousEvents = [...eventsData.allEvents];
+		const previousAvailabilities = [...eventsData.availabilities];
+		const previousStudentRequests = [...eventsData.studentRequests];
 
-        await removeEventFromQueue(eventToEdit.id);
-      } catch (error) {
-        console.error('Failed to delete event:', error);
-      }
-    }
-    modals.setShowTeacherModal(false);
-    modals.setShowStudentModal(false);
-    modals.setShowAvailabilityModal(false);
-  };
+		// Optimistically update UI
+		updateEventState(event.id, updatedEvent, isAvailability, isStudentRequest);
 
-  const handleConfirmation = async (event, confirmed) => {
-    if (userRole === 'student' && event.minStudents > 0) {
-      const updatedStudentResponses = [
-        ...(event.studentResponses || []).filter(response => response.email !== userEmail),
-        { email: userEmail, response: confirmed },
-      ];
-      const updatedEvent = { ...event, studentResponses: updatedStudentResponses };
+		try {
+			await updateEventInFirestore(
+				event.id,
+				{
+					start: new Date(start),
+					end: new Date(end),
+				},
+				collectionName
+			);
 
-      try {
-        await updateEventInFirestore(event.id, {
-          studentResponses: updatedStudentResponses,
-        });
-        eventsData.setAllEvents(eventsData.allEvents.map(evt => (evt.id === event.id ? updatedEvent : evt)));
-      } catch (error) {
-        console.error('Failed to update student response:', error);
-      }
-    }
-  };
+			await updateTeamsMeetingIfExists(event, start, end, isAvailability, isStudentRequest);
+		} catch (error) {
+			console.error("Failed to update event:", error);
+			revertState(previousEvents, previousAvailabilities, previousStudentRequests, isAvailability, isStudentRequest);
+		}
+	};
 
-  return {
-    handleEventDrop,
-    handleEventResize,
-    handleDeleteEvent,
-    handleConfirmation,
-  };
+	const handleDeleteEvent = async (eventToEdit, modals, deleteOption = "this") => {
+		if (!eventToEdit || !eventToEdit.id) {
+			modals.setShowTeacherModal(false);
+			modals.setShowStudentModal(false);
+			modals.setShowAvailabilityModal(false);
+			return;
+		}
+
+		const { isAvailability, isStudentRequest, collectionName } = getEventType(eventToEdit);
+		const recurringEventId = eventToEdit.recurringEventId;
+		const hasRecurring = !!eventToEdit.recurring;
+
+		try {
+			// Case 1: Deleting original recurring event - delete all instances
+			if (hasRecurring && deleteOption === "all") {
+				console.log("[handleDeleteEvent] Deleting recurring event:", eventToEdit.id);
+
+				await deleteEventFromFirestore(eventToEdit.id, collectionName);
+				await removeEventFromQueue(eventToEdit.id);
+
+				// Remove original and all expanded instances
+				const newEvents = [];
+				for (const event of eventsData.allEvents) {
+					if (event.id !== eventToEdit.id && event.recurringEventId !== eventToEdit.id) {
+						newEvents.push(event);
+					}
+				}
+
+				console.log("[handleDeleteEvent] Updating state, new count:", newEvents.length);
+				eventsData.setAllEvents(newEvents);
+			}
+			// Case 2: Deleting this and all future occurrences - set until date
+			else if (recurringEventId && deleteOption === "thisAndFuture") {
+				const untilDate = new Date(eventToEdit.start);
+				untilDate.setDate(untilDate.getDate() - 1);
+
+				await setRecurringUntilDate(recurringEventId, untilDate, collectionName);
+
+				// Remove future instances
+				const filteredEvents = [];
+				for (const event of eventsData.allEvents) {
+					// Keep non-recurring events
+					if (event.recurringEventId !== recurringEventId && event.id !== recurringEventId) {
+						filteredEvents.push(event);
+						continue;
+					}
+
+					// Keep original event (with updated until date)
+					if (event.id === recurringEventId) {
+						filteredEvents.push(event);
+						continue;
+					}
+
+					// Remove instances from this occurrence onwards
+					if (event.recurringEventId === recurringEventId && event.occurrenceIndex >= eventToEdit.occurrenceIndex) {
+						continue;
+					}
+
+					filteredEvents.push(event);
+				}
+
+				eventsData.setAllEvents(filteredEvents);
+			}
+			// Case 3: Deleting a single recurring instance - add to exceptions
+			else if (recurringEventId) {
+				await addEventException(recurringEventId, eventToEdit.occurrenceIndex, collectionName);
+
+				// Remove this instance
+				const filteredEvents = [];
+				for (const event of eventsData.allEvents) {
+					if (event.id !== eventToEdit.id) {
+						filteredEvents.push(event);
+					}
+				}
+				eventsData.setAllEvents(filteredEvents);
+			}
+			// Case 4: Deleting a normal non-recurring event
+			else {
+				await deleteEventFromFirestore(eventToEdit.id, collectionName);
+
+				// Delete Teams meeting if it exists
+				if (eventToEdit.teamsEventId && !isAvailability && !isStudentRequest) {
+					try {
+						await deleteTeamsMeeting(eventToEdit.teamsEventId);
+						setAlertType("success");
+						setAlertMessage("Teams meeting deleted successfully");
+					} catch (error) {
+						console.error("Failed to delete Teams meeting:", error);
+						setAlertType("error");
+						setAlertMessage(`Failed to delete Teams meeting: ${error.message}`);
+					}
+				}
+
+				if (isAvailability) {
+					const filteredAvailabilities = [];
+					for (const availability of eventsData.availabilities) {
+						if (availability.id !== eventToEdit.id) {
+							filteredAvailabilities.push(availability);
+						}
+					}
+					eventsData.setAvailabilities(filteredAvailabilities);
+				} else if (isStudentRequest) {
+					const filteredRequests = [];
+					for (const request of eventsData.studentRequests) {
+						if (request.id !== eventToEdit.id) {
+							filteredRequests.push(request);
+						}
+					}
+					eventsData.setStudentRequests(filteredRequests);
+				} else {
+					const filteredEvents = [];
+					for (const event of eventsData.allEvents) {
+						if (event.id !== eventToEdit.id) {
+							filteredEvents.push(event);
+						}
+					}
+					eventsData.setAllEvents(filteredEvents);
+				}
+			}
+
+			await removeEventFromQueue(eventToEdit.id);
+		} catch (error) {
+			console.error("Failed to delete event:", error);
+		}
+
+		modals.setShowTeacherModal(false);
+		modals.setShowStudentModal(false);
+		modals.setShowAvailabilityModal(false);
+	};
+
+	const handleConfirmation = async (event, confirmed) => {
+		if (userRole !== "student" || event.minStudents <= 0) {
+			return;
+		}
+
+		const existingResponses = event.studentResponses || [];
+		const updatedStudentResponses = [];
+
+		// Filter out existing response from this user
+		for (const response of existingResponses) {
+			if (response.email !== userEmail) {
+				updatedStudentResponses.push(response);
+			}
+		}
+
+		// Add new response
+		updatedStudentResponses.push({ email: userEmail, response: confirmed });
+
+		const updatedEvent = { ...event, studentResponses: updatedStudentResponses };
+
+		try {
+			await updateEventInFirestore(event.id, {
+				studentResponses: updatedStudentResponses,
+			});
+
+			const updatedEvents = [];
+			for (const evt of eventsData.allEvents) {
+				if (evt.id === event.id) {
+					updatedEvents.push(updatedEvent);
+				} else {
+					updatedEvents.push(evt);
+				}
+			}
+			eventsData.setAllEvents(updatedEvents);
+		} catch (error) {
+			console.error("Failed to update student response:", error);
+		}
+	};
+
+	return {
+		handleEventDrop,
+		handleEventResize,
+		handleDeleteEvent,
+		handleConfirmation,
+	};
 };
