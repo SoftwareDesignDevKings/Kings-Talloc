@@ -124,6 +124,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
   const workTypeOptions = [
     { value: 'tutoring', label: 'Tutoring' },
     { value: 'coaching', label: 'Coaching' },
+    { value: 'work', label: 'Work' },
   ];
 
   const getStatusIcon = (status) => {
