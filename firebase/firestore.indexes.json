@@ -83,20 +83,6 @@
           "order": "ASCENDING"
         }
       ]
-    },
-    {
-      "collectionGroup": "events",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "isRecurringInstance",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "originalEventId",
-          "order": "ASCENDING"
-        }
-      ]
     }
   ],
   "fieldOverrides": []

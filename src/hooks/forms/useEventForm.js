@@ -1,5 +1,6 @@
 import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
 import { createTeamsMeeting, updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
+import { addWeeks } from 'date-fns';
 import useAlert from '../useAlert';
 
 /**
@@ -63,6 +64,13 @@ export const useEventForm = (eventsData) => {
       recurring: newEvent.recurring || null,
       createTeamsMeeting: newEvent.createTeamsMeeting || false,
     };
+
+    // Add 'until' date if this is a recurring event (10 weeks default)
+    if (eventData.recurring && !isEditing) {
+      eventData.until = addWeeks(new Date(newEvent.start), 10);
+    } else if (eventData.recurring && isEditing && newEvent.until) {
+      eventData.until = newEvent.until;
+    }
 
     try {
       if (isEditing) {

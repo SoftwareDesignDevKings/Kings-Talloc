@@ -1,4 +1,4 @@
-import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore, deleteAllRecurringInstances, addEventException, setRecurringUntilDate, addOrUpdateEventInQueue, removeEventFromQueue } from '@/firestore/firebaseOperations';
+import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore, addEventException, setRecurringUntilDate, removeEventFromQueue } from '@/firestore/firebaseOperations';
 import { updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
 import useAlert from '../useAlert';
 
@@ -169,8 +169,8 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
     if (eventToEdit && eventToEdit.id) {
       const isAvailability = !!eventToEdit.tutor;
       const isStudentRequest = !!eventToEdit.isStudentRequest;
-      const isRecurringInstance = !!eventToEdit.isRecurringInstance;
-      const hasRecurring = !!eventToEdit.recurring;
+      const recurringEventId = eventToEdit.recurringEventId; // If this exists, it's a recurring instance
+      const hasRecurring = !!eventToEdit.recurring; // If this exists, it's the original recurring event
 
       let collectionName = 'events';
       if (isAvailability) {
@@ -182,85 +182,50 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
       try {
         // Case 1: Deleting original recurring event - delete all instances
         if (hasRecurring && deleteOption === 'all') {
-          console.log('[handleDeleteEvent] Deleting all instances of recurring event:', eventToEdit.id);
-          console.log('[handleDeleteEvent] Current allEvents count:', eventsData.allEvents.length);
+          console.log('[handleDeleteEvent] Deleting recurring event:', eventToEdit.id);
 
-          const deletedCount = await deleteAllRecurringInstances(eventToEdit.id, eventsData.allEvents, collectionName);
-          console.log(`[handleDeleteEvent] Deleted ${deletedCount} recurring event instances from Firestore`);
+          // Just delete the original event - no instances are persisted
+          await deleteEventFromFirestore(eventToEdit.id, collectionName);
 
           // Remove from email queue
           await removeEventFromQueue(eventToEdit.id);
-          // Also remove any persisted instances from email queue
-          const recurringInstances = eventsData.allEvents.filter(event =>
-            event.originalEventId === eventToEdit.id && event.isRecurringInstance
-          );
-          for (const instance of recurringInstances) {
-            try {
-              await removeEventFromQueue(instance.id);
-            } catch (error) {
-              // Instance might not be in queue
-            }
-          }
 
-          // Optimistically update state immediately, listener will sync later
+          // Optimistically update state immediately - remove original and all expanded instances
           const newEvents = eventsData.allEvents.filter(event =>
-            event.id !== eventToEdit.id && event.originalEventId !== eventToEdit.id
+            event.id !== eventToEdit.id && event.recurringEventId !== eventToEdit.id
           );
           console.log('[handleDeleteEvent] Updating state, new count:', newEvents.length);
           eventsData.setAllEvents(newEvents);
         }
         // Case 2: Deleting this and all future occurrences - set until date
-        else if (isRecurringInstance && deleteOption === 'thisAndFuture') {
+        else if (recurringEventId && deleteOption === 'thisAndFuture') {
           const untilDate = new Date(eventToEdit.start);
           untilDate.setDate(untilDate.getDate() - 1); // Set to day before this occurrence
 
-          await setRecurringUntilDate(eventToEdit.originalEventId, untilDate, collectionName);
+          await setRecurringUntilDate(recurringEventId, untilDate, collectionName);
 
-          // Delete persisted future instances from Firestore and email queue
-          const futureInstances = eventsData.allEvents.filter(event =>
-            event.originalEventId === eventToEdit.originalEventId &&
-            event.occurrenceIndex >= eventToEdit.occurrenceIndex &&
-            event.isRecurringInstance
-          );
-          for (const instance of futureInstances) {
-            try {
-              await deleteEventFromFirestore(instance.id, collectionName);
-              await removeEventFromQueue(instance.id);
-            } catch (error) {
-              // Instance might not be persisted yet
-            }
-          }
-
-          // Optimistically update state immediately
+          // Optimistically update state immediately - remove future instances
           eventsData.setAllEvents(eventsData.allEvents.filter(event => {
             // Keep non-recurring events
-            if (event.originalEventId !== eventToEdit.originalEventId && event.id !== eventToEdit.originalEventId) {
+            if (event.recurringEventId !== recurringEventId && event.id !== recurringEventId) {
               return true;
             }
             // Keep original event (with updated until date)
-            if (event.id === eventToEdit.originalEventId) {
+            if (event.id === recurringEventId) {
               return true;
             }
             // Remove instances from this occurrence onwards
-            if (event.originalEventId === eventToEdit.originalEventId && event.occurrenceIndex >= eventToEdit.occurrenceIndex) {
+            if (event.recurringEventId === recurringEventId && event.occurrenceIndex >= eventToEdit.occurrenceIndex) {
               return false;
             }
             return true;
           }));
         }
         // Case 3: Deleting a single recurring instance - add to exceptions
-        else if (isRecurringInstance) {
-          await addEventException(eventToEdit.originalEventId, eventToEdit.occurrenceIndex, collectionName);
+        else if (recurringEventId) {
+          await addEventException(recurringEventId, eventToEdit.occurrenceIndex, collectionName);
 
-          // If the instance was already persisted to Firestore, delete it
-          try {
-            await deleteEventFromFirestore(eventToEdit.id, collectionName);
-            await removeEventFromQueue(eventToEdit.id);
-          } catch (error) {
-            // Instance might not be persisted yet, ignore error
-          }
-
-          // Optimistically update state immediately
+          // Optimistically update state immediately - remove this instance
           eventsData.setAllEvents(eventsData.allEvents.filter(event =>
             event.id !== eventToEdit.id
           ));

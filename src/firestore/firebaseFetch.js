@@ -1,7 +1,6 @@
 import { db } from '@/firestore/clientFirestore';
 import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { expandRecurringEvents } from '@/utils/recurringEvents';
-import { persistRecurringInstances } from './firebaseOperations';
 import { addWeeks } from 'date-fns';
 
 /**
@@ -16,7 +15,6 @@ import { addWeeks } from 'date-fns';
 export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, setStudents, setLoading) => {
   const q = query(collection(db, 'events'));
   let isFirstLoad = true;
-  let persistCheckInterval = null;
   let studentClasses = []; // Cache student classes
 
   // Fetch students once on mount
@@ -53,10 +51,8 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
       id: doc.id,
       start: doc.data().start.toDate(),
       end: doc.data().end.toDate(),
+      ...(doc.data().until && { until: doc.data().until.toDate() }),
     }));
-
-    // Get existing event IDs to avoid duplicates
-    const existingEventIds = eventsFromDb.map(event => event.id);
 
     // Expand recurring events in memory (1 year range)
     const expandedEvents = expandRecurringEvents(eventsFromDb, {
@@ -65,22 +61,9 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
       maxOccurrences: 52
     });
 
-    // Function to persist started events
-    const persistStartedEvents = async () => {
-      try {
-        const persistedCount = await persistRecurringInstances(expandedEvents, existingEventIds);
-        if (persistedCount > 0) {
-          console.log(`Persisted ${persistedCount} started recurring event instances to Firestore`);
-        }
-      } catch (error) {
-        console.error('Error persisting recurring instances:', error);
-      }
-    };
-
-    // Set up periodic check on first load (every 1 minute)
+    // Fetch students on first load
     if (isFirstLoad) {
-      await Promise.all([persistStartedEvents(), fetchStudentsOnce()]);
-      persistCheckInterval = setInterval(persistStartedEvents, 60 * 1000);
+      await fetchStudentsOnce();
       isFirstLoad = false;
     }
 
@@ -117,9 +100,6 @@ export const fetchEvents = async (userRole, userEmail, setEvents, setAllEvents, 
 
   return () => {
     unsubscribe();
-    if (persistCheckInterval) {
-      clearInterval(persistCheckInterval);
-    }
   };
 };
 

@@ -1,4 +1,4 @@
-import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, writeBatch, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firestore/clientFirestore';
 
 /**
@@ -73,71 +73,14 @@ export const deleteEventFromFirestore = async (eventId, collectionName = 'events
 };
 
 /**
- * Deletes all recurring instances of an event from Firestore
- * @param {string} originalEventId - The ID of the original recurring event
- * @param {Array} allEvents - Array of all events to find recurring instances
- * @param {string} [collectionName='events'] - The Firestore collection name
- * @returns {Promise<number>} Number of events deleted
- */
-export const deleteAllRecurringInstances = async (originalEventId, allEvents, collectionName = 'events') => {
-	console.log('[deleteAllRecurringInstances] Deleting original event:', originalEventId);
-
-	// First, delete the original event (this is the most important one)
-	try {
-		await deleteEventFromFirestore(originalEventId, collectionName);
-		console.log('[deleteAllRecurringInstances] Original event deleted successfully');
-	} catch (error) {
-		console.error('[deleteAllRecurringInstances] Failed to delete original event:', error);
-		throw error;
-	}
-
-	let deletedCount = 1;
-
-	// Find all persisted instances of this recurring event (instances that have been saved to Firestore)
-	const persistedInstances = allEvents.filter(event =>
-		event.originalEventId === originalEventId && event.isRecurringInstance
-	);
-
-	console.log('[deleteAllRecurringInstances] Found', persistedInstances.length, 'persisted instances to delete');
-
-	if (persistedInstances.length === 0) {
-		return deletedCount;
-	}
-
-	// Delete persisted instances in batches
-	const BATCH_SIZE = 500;
-
-	for (let i = 0; i < persistedInstances.length; i += BATCH_SIZE) {
-		const batch = writeBatch(db);
-		const batchEvents = persistedInstances.slice(i, i + BATCH_SIZE);
-
-		for (const event of batchEvents) {
-			const eventDocRef = doc(db, collectionName, event.id);
-			batch.delete(eventDocRef);
-		}
-
-		try {
-			await batch.commit();
-			deletedCount += batchEvents.length;
-			console.log('[deleteAllRecurringInstances] Deleted batch of', batchEvents.length, 'instances');
-		} catch (error) {
-			console.error('[deleteAllRecurringInstances] Failed to delete batch:', error);
-		}
-	}
-
-	console.log('[deleteAllRecurringInstances] Total deleted:', deletedCount);
-	return deletedCount;
-};
-
-/**
  * Adds an exception to a recurring event (marks a specific occurrence as deleted)
- * @param {string} originalEventId - The ID of the original recurring event
+ * @param {string} recurringEventId - The ID of the recurring event
  * @param {number} occurrenceIndex - The index of the occurrence to delete
  * @param {string} [collectionName='events'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const addEventException = async (originalEventId, occurrenceIndex, collectionName = 'events') => {
-	const eventDocRef = doc(db, collectionName, originalEventId);
+export const addEventException = async (recurringEventId, occurrenceIndex, collectionName = 'events') => {
+	const eventDocRef = doc(db, collectionName, recurringEventId);
 
 	// Get current exceptions array or initialize empty
 	const eventDoc = await getDoc(eventDocRef);
@@ -153,62 +96,14 @@ export const addEventException = async (originalEventId, occurrenceIndex, collec
 
 /**
  * Sets the 'until' date for a recurring event to stop future occurrences
- * @param {string} originalEventId - The ID of the original recurring event
+ * @param {string} recurringEventId - The ID of the recurring event
  * @param {Date} untilDate - The date until which the event should recur
  * @param {string} [collectionName='events'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const setRecurringUntilDate = async (originalEventId, untilDate, collectionName = 'events') => {
-	const eventDocRef = doc(db, collectionName, originalEventId);
+export const setRecurringUntilDate = async (recurringEventId, untilDate, collectionName = 'events') => {
+	const eventDocRef = doc(db, collectionName, recurringEventId);
 	await updateDoc(eventDocRef, {
 		until: untilDate
 	});
-};
-
-/**
- * Persists expanded recurring event instances to Firestore in batch
- * Only persists events that have already started and haven't been persisted yet
- * @param {Array} expandedEvents - Array of expanded event instances to persist
- * @param {Array} existingEventIds - Array of existing event IDs from Firestore to avoid duplicates
- * @param {string} [collectionName='events'] - The Firestore collection name
- * @returns {Promise<number>} Number of events persisted
- */
-export const persistRecurringInstances = async (expandedEvents, existingEventIds = [], collectionName = 'events') => {
-	const now = new Date();
-	const existingIdSet = new Set(existingEventIds);
-
-	// Only persist recurring instances that have already started and don't exist in Firestore
-	const recurringInstances = expandedEvents.filter(event => event.isRecurringInstance && event.start <= now && !existingIdSet.has(event.id));
-
-	if (recurringInstances.length === 0) {
-		return 0;
-	}
-
-	// Firestore batch limit is 500 operations
-	const BATCH_SIZE = 500;
-	let persistedCount = 0;
-
-	for (let i = 0; i < recurringInstances.length; i += BATCH_SIZE) {
-		const batch = writeBatch(db);
-		const batchEvents = recurringInstances.slice(i, i + BATCH_SIZE);
-
-		for (const event of batchEvents) {
-			// Remove metadata fields before persisting
-			const { isRecurringInstance, originalEventId, occurrenceIndex, ...eventData } = event;
-
-			// Use the generated ID as the document ID
-			const eventDocRef = doc(db, collectionName, event.id);
-			batch.set(eventDocRef, {
-				...eventData,
-				isRecurringInstance: true,
-				originalEventId,
-				occurrenceIndex
-			});
-		}
-
-		await batch.commit();
-		persistedCount += batchEvents.length;
-	}
-
-	return persistedCount;
 };

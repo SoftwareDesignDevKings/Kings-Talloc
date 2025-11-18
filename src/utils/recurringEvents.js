@@ -1,4 +1,4 @@
-import { addWeeks, isBefore } from 'date-fns';
+import { addWeeks, isBefore } from "date-fns";
 
 /**
  * Expands recurring events into individual event instances in memory
@@ -10,58 +10,70 @@ import { addWeeks, isBefore } from 'date-fns';
  * @returns {Array} Expanded array of events with recurring events duplicated
  */
 export const expandRecurringEvents = (events, options = {}) => {
-  const {
-    rangeStart = new Date(),
-    rangeEnd = addWeeks(new Date(), 52),
-    maxOccurrences = 52
-  } = options;
+	const {
+		rangeStart = new Date(),
+		rangeEnd = addWeeks(new Date(), 52),
+		maxOccurrences = 52,
+	} = options;
 
-  const expandedEvents = [];
+	const expandedEvents = [];
 
-  for (const event of events) {
+	for (const event of events) {
+		// Non-recurring events pass through as-is
+		if (!event.recurring) {
+			expandedEvents.push(event);
+			continue;
+		}
 
-    // Non-recurring events pass through as-is
-    if (!event.recurring) {
-      expandedEvents.push(event);
-      continue;
-    }
+		// Add the original recurring event
+		expandedEvents.push(event);
 
-    // Calculate recurring event parameters
-    const { recurring, start, end, eventExceptions = [], until } = event;
-    const eventDuration = end.getTime() - start.getTime();
-    const weeksToAdd = recurring === 'weekly' ? 1 : 2;
-    const maxLimit = recurring === 'weekly' ? maxOccurrences : Math.floor(maxOccurrences / 2);
-    const untilDate = until ? (until instanceof Date ? until : new Date(until)) : null;
+		// Calculate recurring event parameters
+		const { recurring, start, end, eventExceptions = [], until } = event;
+		const eventDuration = end.getTime() - start.getTime();
 
-    // Generate recurring event instances
-    for (let i = 0; i < maxLimit; i++) {
-      // Skip if this occurrence is in the exceptions list
-      if (eventExceptions.includes(i)) {
-        continue;
-      }
+		let weeksToAdd;
+		let maxLimit;
 
-      const occurrenceStart = addWeeks(start, i * weeksToAdd);
-      const occurrenceEnd = new Date(occurrenceStart.getTime() + eventDuration);
+		if (recurring === "weekly") {
+			weeksToAdd = 1;
+			maxLimit = maxOccurrences;
+		} else {
+			weeksToAdd = 2;
+			maxLimit = Math.floor(maxOccurrences / 2);
+		}
 
-      // Stop generating if occurrence is after 'until' date
-      if (untilDate && occurrenceStart > untilDate) {
-        break;
-      }
+		const untilDate = until || null;
 
-      // Only add if within date range
-      if (!isBefore(occurrenceStart, rangeStart) && isBefore(occurrenceStart, rangeEnd)) {
-        expandedEvents.push({
-          ...event,
-          id: `${event.id}_occurrence_${i}`,
-          start: new Date(occurrenceStart),
-          end: occurrenceEnd,
-          isRecurringInstance: true,
-          originalEventId: event.id,
-          occurrenceIndex: i
-        });
-      }
-    }
-  }
+		// Generate recurring event instances
+		for (let i = 0; i < maxLimit; i++) {
+			// Skip if this occurrence is in the exceptions list
+			if (eventExceptions.includes(i)) {
+				continue;
+			}
 
-  return expandedEvents;
+			const occurrenceStart = addWeeks(start, i * weeksToAdd);
+			const occurrenceEnd = new Date(occurrenceStart.getTime() + eventDuration);
+
+			// Stop generating if occurrence is after 'until' date
+			if (untilDate && occurrenceStart > untilDate) {
+				break;
+			}
+
+			// Only add if within date range
+			if (!isBefore(occurrenceStart, rangeStart) && isBefore(occurrenceStart, rangeEnd)) {
+				expandedEvents.push({
+					...event,
+					recurringEventId: event.id,
+					id: `${event.id}_occurrence_${i}`,
+					start: new Date(occurrenceStart),
+					end: occurrenceEnd,
+					isRecurringInstance: true,
+					occurrenceIndex: i,
+				});
+			}
+		}
+	}
+
+	return expandedEvents;
 };
