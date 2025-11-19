@@ -29,6 +29,7 @@ import EventForm from './forms/EventForm.jsx';
 import TutorAvailabilityForm from './forms/TutorAvailabilityForm.jsx';
 import StudentEventForm from './forms/StudentEventForm.jsx';
 import EventDetailsModal from './modals/EventDetailsModal.jsx';
+import RecurringUpdateModal from './modals/RecurringUpdateModal.jsx';
 import CustomEvent from './calendar/CustomEvent.jsx';
 import LoadingSpinner from './LoadingSpinner.jsx';
 
@@ -98,6 +99,45 @@ const CalendarContent = () => {
   useEmailQueueMonitor(userRole);
   const tutorAvailabilityForm = useTutorAvailabilityForm(eventsData);
   const studentEventForm = useStudentEventForm(eventsData);
+
+  // Recurring update modal state
+  const [showRecurringUpdateModal, setShowRecurringUpdateModal] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+
+  // Wrapper for handleEventDrop to show modal for recurring events
+  const handleEventDropWrapper = (dropInfo) => {
+    const { event } = dropInfo;
+    if (event.isRecurringInstance) {
+      setPendingUpdate({ type: 'drop', data: dropInfo });
+      setShowRecurringUpdateModal(true);
+    } else {
+      eventOperations.handleEventDrop(dropInfo);
+    }
+  };
+
+  // Wrapper for handleEventResize to show modal for recurring events
+  const handleEventResizeWrapper = (resizeInfo) => {
+    const { event } = resizeInfo;
+    if (event.isRecurringInstance) {
+      setPendingUpdate({ type: 'resize', data: resizeInfo });
+      setShowRecurringUpdateModal(true);
+    } else {
+      eventOperations.handleEventResize(resizeInfo);
+    }
+  };
+
+  // Handle recurring update confirmation
+  const handleRecurringUpdateConfirm = (updateOption) => {
+    if (pendingUpdate) {
+      if (pendingUpdate.type === 'drop') {
+        eventOperations.handleEventDrop(pendingUpdate.data, updateOption);
+      } else if (pendingUpdate.type === 'resize') {
+        eventOperations.handleEventResize(pendingUpdate.data, updateOption);
+      }
+    }
+    setShowRecurringUpdateModal(false);
+    setPendingUpdate(null);
+  };
 
   // Get filtered data using context functions with useMemo
   const filteredEvents = useMemo(() =>
@@ -224,8 +264,8 @@ const CalendarContent = () => {
             max={maxTime}
             onSelectSlot={calendarInteractions.handleSelectSlot}
             onSelectEvent={calendarInteractions.handleSelectEvent}
-            onEventDrop={eventOperations.handleEventDrop}
-            onEventResize={eventOperations.handleEventResize}
+            onEventDrop={handleEventDropWrapper}
+            onEventResize={handleEventResizeWrapper}
             resizable
             selectable
             longPressThreshold={500}
@@ -319,6 +359,16 @@ const CalendarContent = () => {
           setEvents={eventsData.setAllEvents}
         />
       )}
+
+      {/* Recurring Update Modal */}
+      <RecurringUpdateModal
+        show={showRecurringUpdateModal}
+        onHide={() => {
+          setShowRecurringUpdateModal(false);
+          setPendingUpdate(null);
+        }}
+        onConfirm={handleRecurringUpdateConfirm}
+      />
     </div>
   );
 };

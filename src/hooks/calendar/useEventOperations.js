@@ -115,7 +115,7 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 		}
 	};
 
-	const handleEventDrop = async ({ event, start, end }) => {
+	const handleEventDrop = async ({ event, start, end }, updateOption = 'this') => {
 		const { isAvailability, isStudentRequest, collectionName } = getEventType(event);
 
 		// Students can only drag their own student requests
@@ -148,18 +148,53 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 		const previousAvailabilities = [...eventsData.availabilities];
 		const previousStudentRequests = [...eventsData.studentRequests];
 
-		// Optimistically update UI
+		//  update UI
 		updateEventState(event.id, updatedEvent, isAvailability, isStudentRequest);
 
 		try {
-			await updateEventInFirestore(
-				event.id,
-				{
-					start: new Date(start),
-					end: updatedEnd,
-				},
-				collectionName
-			);
+			// Handle recurring instance
+			if (event.isRecurringInstance && event.recurringEventId) {
+				if (updateOption === 'this') {
+					// Add exception to original recurring event
+					await addEventException(event.recurringEventId, event.occurrenceIndex, collectionName);
+
+					// Create new standalone event with modified time
+					const { id, recurringEventId, isRecurringInstance, occurrenceIndex, recurring, eventExceptions, until, ...eventWithoutRecurringFields } = event;
+					const newEvent = {
+						...eventWithoutRecurringFields,
+						start: new Date(start),
+						end: updatedEnd,
+					};
+
+					await createEventInFirestore(newEvent, collectionName);
+				} else if (updateOption === 'thisAndFuture') {
+					// Set until date to day before this occurrence
+					const untilDate = new Date(event.start);
+					untilDate.setDate(untilDate.getDate() - 1);
+					await setRecurringUntilDate(event.recurringEventId, untilDate, collectionName);
+
+					// Create new recurring event starting from this occurrence (keep recurring field)
+					const { id, recurringEventId, isRecurringInstance, occurrenceIndex, eventExceptions, ...eventWithoutInstanceFields } = event;
+					const newEvent = {
+						...eventWithoutInstanceFields,
+						start: new Date(start),
+						end: updatedEnd,
+					};
+
+					await createEventInFirestore(newEvent, collectionName);
+				}
+			}
+			// Handle regular event - just update it
+			else {
+				await updateEventInFirestore(
+					event.id,
+					{
+						start: new Date(start),
+						end: updatedEnd,
+					},
+					collectionName
+				);
+			}
 
 			await updateTeamsMeetingIfExists(event, start, updatedEnd, isAvailability, isStudentRequest);
 		} catch (error) {
@@ -168,7 +203,7 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 		}
 	};
 
-	const handleEventResize = async ({ event, start, end }) => {
+	const handleEventResize = async ({ event, start, end }, updateOption = 'this') => {
 		const { isAvailability, isStudentRequest, collectionName } = getEventType(event);
 
 		// Students can only resize their own student requests
@@ -205,14 +240,49 @@ export const useEventOperations = (eventsData, userRole, userEmail) => {
 		updateEventState(event.id, updatedEvent, isAvailability, isStudentRequest);
 
 		try {
-			await updateEventInFirestore(
-				event.id,
-				{
-					start: new Date(start),
-					end: new Date(end),
-				},
-				collectionName
-			);
+			// Handle recurring instance
+			if (event.isRecurringInstance && event.recurringEventId) {
+				if (updateOption === 'this') {
+					// Add exception to original recurring event
+					await addEventException(event.recurringEventId, event.occurrenceIndex, collectionName);
+
+					// Create new standalone event with modified time
+					const { id, recurringEventId, isRecurringInstance, occurrenceIndex, recurring, eventExceptions, until, ...eventWithoutRecurringFields } = event;
+					const newEvent = {
+						...eventWithoutRecurringFields,
+						start: new Date(start),
+						end: new Date(end),
+					};
+
+					await createEventInFirestore(newEvent, collectionName);
+				} else if (updateOption === 'thisAndFuture') {
+					// Set until date to day before this occurrence
+					const untilDate = new Date(event.start);
+					untilDate.setDate(untilDate.getDate() - 1);
+					await setRecurringUntilDate(event.recurringEventId, untilDate, collectionName);
+
+					// Create new recurring event starting from this occurrence (keep recurring field)
+					const { id, recurringEventId, isRecurringInstance, occurrenceIndex, eventExceptions, ...eventWithoutInstanceFields } = event;
+					const newEvent = {
+						...eventWithoutInstanceFields,
+						start: new Date(start),
+						end: new Date(end),
+					};
+
+					await createEventInFirestore(newEvent, collectionName);
+				}
+			}
+			// Handle regular event - just update it
+			else {
+				await updateEventInFirestore(
+					event.id,
+					{
+						start: new Date(start),
+						end: new Date(end),
+					},
+					collectionName
+				);
+			}
 
 			await updateTeamsMeetingIfExists(event, start, end, isAvailability, isStudentRequest);
 		} catch (error) {
