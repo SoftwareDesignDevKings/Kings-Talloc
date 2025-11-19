@@ -1,39 +1,47 @@
-import { adminDb } from '../../../../firestore/adminFirebase';
+import { adminDb } from '../../../../firestore/firestoreAdmin';
 import { DateTime } from 'luxon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function GET(req, { params }) {
-  const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
-  }
+    if (!session || !session.user) {
+        return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    }
 
-  if (session.user.role !== 'teacher') {
-    return new Response(JSON.stringify({ message: 'Forbidden: Only teachers can send emails', role: session.user.role }), { status: 403 });
-  }
+    if (session.user.role !== 'teacher') {
+        return new Response(
+            JSON.stringify({
+                message: 'Forbidden: Only teachers can send emails',
+                role: session.user.role,
+            }),
+            { status: 403 },
+        );
+    }
 
-  const { action } = await params;
-  if (action !== 'send') {
-    return new Response(JSON.stringify({ message: 'Invalid action' }), { status: 400 });
-  }
+    const { action } = await params;
+    if (action !== 'send') {
+        return new Response(JSON.stringify({ message: 'Invalid action' }), { status: 400 });
+    }
 
-  // Get Microsoft access token from session
-  const accessToken = session.user.microsoftAccessToken;
-  if (!accessToken) {
-    console.error('Microsoft access token not found in session');
-    return new Response(JSON.stringify({ message: 'Microsoft access token not found' }), { status: 500 });
-  }
+    // Get Microsoft access token from session
+    const accessToken = session.user.microsoftAccessToken;
+    if (!accessToken) {
+        console.error('Microsoft access token not found in session');
+        return new Response(JSON.stringify({ message: 'Microsoft access token not found' }), {
+            status: 500,
+        });
+    }
 
-  const senderEmail = session.user.email;
+    const senderEmail = session.user.email;
 
-  const generateEventRow = (event, index, totalEvents) => {
-    const formattedDate = DateTime.fromJSDate(event.start.toDate(), { zone: 'utc' })
-      .setZone('Australia/Sydney')
-      .toLocaleString(DateTime.DATETIME_MED);
+    const generateEventRow = (event, index, totalEvents) => {
+        const formattedDate = DateTime.fromJSDate(event.start.toDate(), { zone: 'utc' })
+            .setZone('Australia/Sydney')
+            .toLocaleString(DateTime.DATETIME_MED);
 
-    return `<tr>
+        return `<tr>
       <td style="padding-bottom: ${index < totalEvents - 1 ? '12px' : '0'};">
         <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #dee2e6; border-left: 4px solid #0d6efd; border-radius: 4px;">
           <tr>
@@ -53,12 +61,14 @@ export async function GET(req, { params }) {
         </table>
       </td>
     </tr>`;
-  };
+    };
 
-  const generateEmailHTML = (events) => {
-    const eventRows = events.map((event, index) => generateEventRow(event, index, events.length)).join('');
+    const generateEmailHTML = (events) => {
+        const eventRows = events
+            .map((event, index) => generateEventRow(event, index, events.length))
+            .join('');
 
-    return `<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -108,73 +118,81 @@ export async function GET(req, { params }) {
   </table>
 </body>
 </html>`;
-  };
+    };
 
-  const sendEmailNotification = async (events) => {
-    // Build tutor map
-    const tutorsMap = new Map();
-    for (const event of events) {
-      for (const tutor of event.staff) {
-        if (!tutorsMap.has(tutor.value)) {
-          tutorsMap.set(tutor.value, []);
+    const sendEmailNotification = async (events) => {
+        // Build tutor map
+        const tutorsMap = new Map();
+        for (const event of events) {
+            for (const tutor of event.staff) {
+                if (!tutorsMap.has(tutor.value)) {
+                    tutorsMap.set(tutor.value, []);
+                }
+                tutorsMap.get(tutor.value).push(event);
+            }
         }
-        tutorsMap.get(tutor.value).push(event);
-      }
-    }
 
-    // Send all emails in parallel
-    const emailPromises = Array.from(tutorsMap.entries()).map(([tutorEmail, tutorEvents]) => {
-      const emailBody = generateEmailHTML(tutorEvents);
+        // Send all emails in parallel
+        const emailPromises = Array.from(tutorsMap.entries()).map(([tutorEmail, tutorEvents]) => {
+            const emailBody = generateEmailHTML(tutorEvents);
 
-      return fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: {
-            subject: 'New Talloc Assignments',
-            body: {
-              contentType: 'HTML',
-              content: emailBody
-            },
-            toRecipients: [{
-              emailAddress: { address: tutorEmail }
-            }]
-          },
-          saveToSentItems: 'true'
-        })
-      }).then(async response => {
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(`Failed to send email to ${tutorEmail}: ${error.error?.message || response.statusText}`);
+            return fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: {
+                        subject: 'New Talloc Assignments',
+                        body: {
+                            contentType: 'HTML',
+                            content: emailBody,
+                        },
+                        toRecipients: [
+                            {
+                                emailAddress: { address: tutorEmail },
+                            },
+                        ],
+                    },
+                    saveToSentItems: 'true',
+                }),
+            }).then(async (response) => {
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(
+                        `Failed to send email to ${tutorEmail}: ${error.error?.message || response.statusText}`,
+                    );
+                }
+            });
+        });
+
+        await Promise.all(emailPromises);
+    };
+
+    try {
+        const querySnapshot = await adminDb.collection('emailEventsQueue').get();
+        const emailEventsQueue = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+        if (emailEventsQueue.length > 0) {
+            await sendEmailNotification(emailEventsQueue);
+
+            // Delete processed events from the email queue
+            const deletePromises = emailEventsQueue.map((event) => {
+                return adminDb.collection('emailEventsQueue').doc(event.id).delete();
+            });
+            await Promise.all(deletePromises);
+
+            return new Response(JSON.stringify({ message: 'Emails sent successfully' }), {
+                status: 200,
+            });
+        } else {
+            return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
         }
-      });
-    });
-
-    await Promise.all(emailPromises);
-  };
-
-  try {
-    const querySnapshot = await adminDb.collection('emailEventsQueue').get();
-    const emailEventsQueue = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    if (emailEventsQueue.length > 0) {
-      await sendEmailNotification(emailEventsQueue);
-
-      // Delete processed events from the email queue
-      const deletePromises = emailEventsQueue.map(event => {
-        return adminDb.collection('emailEventsQueue').doc(event.id).delete();
-      });
-      await Promise.all(deletePromises);
-
-      return new Response(JSON.stringify({ message: 'Emails sent successfully' }), { status: 200 });
-    } else {
-      return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
+    } catch (error) {
+        console.error('Error sending emails:', error);
+        return new Response(JSON.stringify({ message: 'Failed to send emails', error }), {
+            status: 500,
+        });
     }
-  } catch (error) {
-    console.error('Error sending emails:', error);
-    return new Response(JSON.stringify({ message: 'Failed to send emails', error }), { status: 500 });
-  }
 }

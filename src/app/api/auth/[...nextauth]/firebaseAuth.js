@@ -1,69 +1,70 @@
-import { adminAuth, adminDb } from "@/firestore/adminFirebase";
+import { adminAuth, adminDb } from '@/firestore/firestoreAdmin';
 
 /**
  * Server-side: Create or fetch user role from Firestore on sign in
  */
-export async function handleFirebaseSignIn({ user }) {
-	try {
-		const userRef = adminDb.collection("users").doc(user.email);
-		const userDoc = await userRef.get();
+export async function authFirebaseSignIn({ user }) {
+    try {
+        const userRef = adminDb.collection('users').doc(user.email);
+        const userDoc = await userRef.get();
 
-		if (!userDoc.exists) {
-			// Create new user with default "student" role
-			await userRef.set({
-				email: user.email,
-				name: user.name,
-				role: "student",
-			});
-			user.role = "student";
-		} else {
-			// Fetch existing role from Firestore
-			user.role = userDoc.data().role;
-		}
+        if (!userDoc.exists) {
+            // Create new user with default "student" role
+            await userRef.set({
+                email: user.email,
+                name: user.name,
+                role: 'student',
+            });
+            user.role = 'student';
+        } else {
+            // Fetch existing role from Firestore
+            user.role = userDoc.data().role;
+        }
 
-		return true;
-	} catch (error) {
-		console.error("Error in Firebase sign in:", error);
-		return false;
-	}
+        return true;
+    } catch (error) {
+        console.error('Error in Firebase sign in:', error);
+        return false;
+    }
 }
 
 /**
  * Generate and refresh Firebase custom token
  */
-export async function handleFirebaseToken(token, user) {
-	const FIFTY_MINUTES = 50 * 60 * 1000;
-	const shouldRefreshToken = !token.firebaseTokenCreatedAt || Date.now() - token.firebaseTokenCreatedAt > FIFTY_MINUTES;
+export async function authFirebaseGenerateToken(token, user) {
+    const FIFTY_MINUTES = 50 * 60 * 1000;
+    const shouldRefreshToken =
+        !token.firebaseTokenCreatedAt || Date.now() - token.firebaseTokenCreatedAt > FIFTY_MINUTES;
 
-	// generate new Firebase token if needed (initial login or refresh)
-	if (user || shouldRefreshToken) {
-		const userUid = (user?.email || token.email).toLowerCase();
-		const userRole = user?.role || token.role;
+    // generate new Firebase token if needed (initial login or refresh)
+    if (user || shouldRefreshToken) {
+        const userUid = (user?.email || token.email).toLowerCase();
+        const userRole = user?.role || token.role;
 
-		// ensure Firebase Auth user exists
-		try {
-			await adminAuth.getUser(userUid);
-		} catch (error) {
-			if (error.code === "auth/user-not-found") {
-				try {
-					await adminAuth.createUser({
-						uid: userUid,
-						email: user?.email || token.email,
-						displayName: user?.name || token.name,
-					});
-				} catch (createError) {
-					console.error("Error creating Firebase user:", createError);
-				}
-			} else {
-				console.error("Error getting Firebase user:", error);
-			}
-		}
+        // ensure Firebase Auth user exists
+        try {
+            await adminAuth.getUser(userUid);
+        } catch (error) {
+            if (error.code === 'auth/user-not-found') {
+                try {
+                    await adminAuth.createUser({
+                        uid: userUid,
+                        email: user?.email || token.email,
+                        displayName: user?.name || token.name,
+                    });
+                } catch (createError) {
+                    console.error('Error creating Firebase user:', createError);
+                }
+            } else {
+                console.error('Error getting Firebase user:', error);
+            }
+        }
 
-		// generate fresh Firebase custom token
-		const firebaseToken = await adminAuth.createCustomToken(userUid, {role: userRole});
-		token.firebaseToken = firebaseToken;
-		token.firebaseTokenCreatedAt = Date.now();
-	}
+        // generate fresh Firebase custom token
+        const firebaseToken = await adminAuth.createCustomToken(userUid, { role: userRole });
+        token.firebaseToken = firebaseToken;
+        token.firebaseTokenCreatedAt = Date.now();
+    }
 
-	return token;
+    return token;
 }

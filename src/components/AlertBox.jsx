@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { useEffect } from "react"
+import { useEffect } from 'react';
 
 /**
  * Notification alert box component for displaying messages
@@ -8,42 +8,42 @@ import { useEffect } from "react"
  * @param {String} message - The message to display in the alert box
  * @param {Function} setMessage - Function to update the message state
  * @param {String} type - The type of alert: 'error', 'info', 'success'
- * @param {Function} setType - Function to update the type state 
- * @returns 
+ * @param {Function} setType - Function to update the type state
+ * @returns
  */
 const AlertBox = ({ message, setMessage, type, setType }) => {
-    type = type.toLowerCase()
+    type = type.toLowerCase();
 
     // clear state for message after 3 seconds if it's a success message
     useEffect(() => {
-        if (type === "success" && message !== "") {
-            const timer = setTimeout(() => setMessage(""), 3000);
+        if (type === 'success' && message !== '') {
+            const timer = setTimeout(() => setMessage(''), 3000);
             return () => clearTimeout(timer);
         }
     }, [message, type, setMessage]);
 
     // Handle closing the alert
     const handleAlertClose = () => {
-        setMessage("")
-        setType("")
-    }
+        setMessage('');
+        setType('');
+    };
 
-    if (message === "") {
+    if (message === '') {
         return null;
     }
 
-    let colour = ""
-    let iconClass = ""
+    let colour = '';
+    let iconClass = '';
     // Set the color and icon class based on the type
-    if (type === "error") {
-        colour = "bg-danger"
-        iconClass = "bi-exclamation-triangle-fill"
-    } else if (type === "info") {
-        colour = "bg-primary"
-        iconClass = "bi-info-circle-fill"
-    } else if (type === "success") {
-        colour = "bg-success"
-        iconClass = "bi-check-circle-fill"
+    if (type === 'error') {
+        colour = 'bg-danger';
+        iconClass = 'bi-exclamation-triangle-fill';
+    } else if (type === 'info') {
+        colour = 'bg-primary';
+        iconClass = 'bi-info-circle-fill';
+    } else if (type === 'success') {
+        colour = 'bg-success';
+        iconClass = 'bi-check-circle-fill';
     } else {
         return null;
     }
@@ -65,6 +65,6 @@ const AlertBox = ({ message, setMessage, type, setType }) => {
             </div>
         </div>
     );
-}
+};
 
-export default AlertBox
+export default AlertBox;

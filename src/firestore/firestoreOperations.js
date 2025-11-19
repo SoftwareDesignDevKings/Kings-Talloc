@@ -1,5 +1,5 @@
 import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/firestore/clientFirestore';
+import { db } from '@/firestore/firestoreClient';
 
 /**
  * Adds or updates an event in the email events queue
@@ -9,17 +9,17 @@ import { db } from '@/firestore/clientFirestore';
  * @throws {Error} If operation fails
  */
 export const addOrUpdateEventInQueue = async (event, action) => {
-	try {
-		const eventDoc = doc(db, 'emailEventsQueue', event.id);
-		await setDoc(eventDoc, {
-			...event,
-			timestamp: new Date(),
-		});
-		return { message: `Event ${action}d successfully in email queue` };
-	} catch (error) {
-		console.error(`Error during ${action} event in email queue:`, error);
-		throw new Error(`Failed to ${action} event in email queue`);
-	}
+    try {
+        const eventDoc = doc(db, 'emailEventsQueue', event.id);
+        await setDoc(eventDoc, {
+            ...event,
+            timestamp: new Date(),
+        });
+        return { message: `Event ${action}d successfully in email queue` };
+    } catch (error) {
+        console.error(`Error during ${action} event in email queue:`, error);
+        throw new Error(`Failed to ${action} event in email queue`);
+    }
 };
 
 /**
@@ -29,14 +29,14 @@ export const addOrUpdateEventInQueue = async (event, action) => {
  * @throws {Error} If removal fails
  */
 export const removeEventFromQueue = async (id) => {
-	try {
-		const eventDoc = doc(db, 'emailEventsQueue', id);
-		await deleteDoc(eventDoc);
-		return { message: 'Event removed successfully from email queue' };
-	} catch (error) {
-		console.error('Error removing event from email queue:', error);
-		throw new Error('Failed to remove event from email queue');
-	}
+    try {
+        const eventDoc = doc(db, 'emailEventsQueue', id);
+        await deleteDoc(eventDoc);
+        return { message: 'Event removed successfully from email queue' };
+    } catch (error) {
+        console.error('Error removing event from email queue:', error);
+        throw new Error('Failed to remove event from email queue');
+    }
 };
 
 /**
@@ -47,8 +47,8 @@ export const removeEventFromQueue = async (id) => {
  * @returns {Promise<void>}
  */
 export const updateEventInFirestore = async (eventId, eventData, collectionName = 'events') => {
-	const eventDoc = doc(db, collectionName, eventId);
-	await updateDoc(eventDoc, eventData);
+    const eventDoc = doc(db, collectionName, eventId);
+    await updateDoc(eventDoc, eventData);
 };
 
 /**
@@ -58,8 +58,8 @@ export const updateEventInFirestore = async (eventId, eventData, collectionName 
  * @returns {Promise<string>} The ID of the created document
  */
 export const createEventInFirestore = async (eventData, collectionName = 'events') => {
-	const docRef = await addDoc(collection(db, collectionName), eventData);
-	return docRef.id;
+    const docRef = await addDoc(collection(db, collectionName), eventData);
+    return docRef.id;
 };
 
 /**
@@ -69,7 +69,7 @@ export const createEventInFirestore = async (eventData, collectionName = 'events
  * @returns {Promise<void>}
  */
 export const deleteEventFromFirestore = async (eventId, collectionName = 'events') => {
-	await deleteDoc(doc(db, collectionName, eventId));
+    await deleteDoc(doc(db, collectionName, eventId));
 };
 
 /**
@@ -79,19 +79,23 @@ export const deleteEventFromFirestore = async (eventId, collectionName = 'events
  * @param {string} [collectionName='events'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const addEventException = async (recurringEventId, occurrenceIndex, collectionName = 'events') => {
-	const eventDocRef = doc(db, collectionName, recurringEventId);
+export const addEventException = async (
+    recurringEventId,
+    occurrenceIndex,
+    collectionName = 'events',
+) => {
+    const eventDocRef = doc(db, collectionName, recurringEventId);
 
-	// Get current exceptions array or initialize empty
-	const eventDoc = await getDoc(eventDocRef);
-	const currentExceptions = eventDoc.exists() ? (eventDoc.data().eventExceptions || []) : [];
+    // Get current exceptions array or initialize empty
+    const eventDoc = await getDoc(eventDocRef);
+    const currentExceptions = eventDoc.exists() ? eventDoc.data().eventExceptions || [] : [];
 
-	// Add new exception if not already present
-	if (!currentExceptions.includes(occurrenceIndex)) {
-		await updateDoc(eventDocRef, {
-			eventExceptions: [...currentExceptions, occurrenceIndex]
-		});
-	}
+    // Add new exception if not already present
+    if (!currentExceptions.includes(occurrenceIndex)) {
+        await updateDoc(eventDocRef, {
+            eventExceptions: [...currentExceptions, occurrenceIndex],
+        });
+    }
 };
 
 /**
@@ -101,9 +105,13 @@ export const addEventException = async (recurringEventId, occurrenceIndex, colle
  * @param {string} [collectionName='events'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const setRecurringUntilDate = async (recurringEventId, untilDate, collectionName = 'events') => {
-	const eventDocRef = doc(db, collectionName, recurringEventId);
-	await updateDoc(eventDocRef, {
-		until: untilDate
-	});
+export const setRecurringUntilDate = async (
+    recurringEventId,
+    untilDate,
+    collectionName = 'events',
+) => {
+    const eventDocRef = doc(db, collectionName, recurringEventId);
+    await updateDoc(eventDocRef, {
+        until: untilDate,
+    });
 };

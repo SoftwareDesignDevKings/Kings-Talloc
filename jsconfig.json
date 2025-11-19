@@ -1,16 +1,16 @@
 {
-  "compilerOptions": {
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
-    "paths": {
-      "@/*": ["src/*"],
-      "@components/*": ["src/components/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@providers/*": ["src/providers/*"],
-      "@contexts/*": ["src/contexts/*"],
-      "@middleware/*": ["src/middleware/*"],
-      "@firebase/*": ["src/firebase/*"],
-      "@firestore/*": ["src/firestore/*"]
+    "compilerOptions": {
+        "baseUrl": ".",
+        "ignoreDeprecations": "6.0",
+        "paths": {
+            "@/*": ["src/*"],
+            "@components/*": ["src/components/*"],
+            "@hooks/*": ["src/hooks/*"],
+            "@providers/*": ["src/providers/*"],
+            "@contexts/*": ["src/contexts/*"],
+            "@middleware/*": ["src/middleware/*"],
+            "@firestore/*": ["src/firestore/*"],
+            "@utils/*": ["src/utils/*"]
+        }
     }
-  }
 }
