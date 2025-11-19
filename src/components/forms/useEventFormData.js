@@ -4,7 +4,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 
 /**
  * Hook to fetch and manage event form data (staff, classes, students)
- * Extracted from EventForm to reduce component size and improve compilation speed
+ * This is a real hook because it has side effects (data fetching)
  */
 export const useEventFormData = (newEvent) => {
   const [staffOptions, setStaffOptions] = useState([]);

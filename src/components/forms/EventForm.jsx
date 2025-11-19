@@ -5,9 +5,11 @@ import { isAfter, isBefore, format } from 'date-fns';
 import Select, { components } from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
-import { useEventForm } from '@/hooks/forms/useEventForm';
-import { useEventFormData } from '@/hooks/forms/useEventFormData';
-import { useEventOperations } from '@/hooks/calendar/useEventOperations';
+import { useEventFormData } from './useEventFormData';
+import { handleEventDelete } from '@/utils/eventOperations';
+import { updateEventInFirestore, createEventInFirestore, addOrUpdateEventInQueue, deleteEventFromFirestore } from '@/firestore/firebaseOperations';
+import { createTeamsMeeting, updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
+import { addWeeks } from 'date-fns';
 import { MdEventNote, MdPeople, MdSettings, MdNoteAlt, MdAccessTime, MdSchool, MdMenuBook, MdFlag, FaChalkboardTeacher, FaUserGraduate, SiMicrosoftTeams } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 
@@ -18,18 +20,27 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { setAlertMessage, setAlertType } = useAlert();
 
-  // Use specialized hooks
-  const eventForm = useEventForm(eventsData);
-  const { handleDeleteEvent } = useEventOperations(eventsData);
-
   // Fetch form data using custom hook
   const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
 
-  // Get handlers from the hook
-  const handleInputChange = eventForm.handleInputChange(newEvent, setNewEvent);
-  const handleStaffChange = eventForm.handleStaffChange(newEvent, setNewEvent);
-  const handleClassChange = eventForm.handleClassChange(newEvent, setNewEvent);
-  const handleStudentChange = eventForm.handleStudentChange(newEvent, setNewEvent);
+  // Inline handlers
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? checked : value;
+    setNewEvent({ ...newEvent, [name]: val });
+  };
+
+  const handleStaffChange = (selectedStaff) => {
+    setNewEvent({ ...newEvent, staff: selectedStaff });
+  };
+
+  const handleClassChange = (selectedClasses) => {
+    setNewEvent({ ...newEvent, classes: selectedClasses });
+  };
+
+  const handleStudentChange = (selectedStudents) => {
+    setNewEvent({ ...newEvent, students: selectedStudents });
+  };
 
   const handleStaffSelectChange = (selectedOptions) => {
     setSelectedStaff(selectedOptions);
@@ -82,30 +93,139 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
     return true;
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      eventForm.handleSubmit(newEvent, isEditing, eventToEdit, setShowModal)(e);
+    if (!validateForm()) return;
+
+    // Validate title
+    if (!newEvent.title) {
+      setAlertType('error');
+      setAlertMessage('Title is required');
+      return;
+    }
+
+    const eventData = {
+      title: newEvent.title || '',
+      start: new Date(newEvent.start),
+      end: new Date(newEvent.end),
+      description: newEvent.description || '',
+      confirmationRequired: newEvent.confirmationRequired || false,
+      staff: newEvent.staff || [],
+      classes: newEvent.classes || [],
+      students: newEvent.students || [],
+      tutorResponses: newEvent.tutorResponses || [],
+      studentResponses: newEvent.studentResponses || [],
+      minStudents: newEvent.minStudents || 0,
+      createdByStudent: newEvent.createdByStudent || false,
+      approvalStatus: newEvent.approvalStatus || 'pending',
+      workStatus: newEvent.workStatus || 'notCompleted',
+      workType: newEvent.workType || 'tutoring',
+      locationType: newEvent.locationType || '',
+      subject: newEvent.subject || null,
+      preference: newEvent.preference || null,
+      recurring: newEvent.recurring || null,
+      createTeamsMeeting: newEvent.createTeamsMeeting || false,
+    };
+
+    // Add 'until' date if recurring
+    if (eventData.recurring && !isEditing) {
+      eventData.until = addWeeks(new Date(newEvent.start), 10);
+    } else if (eventData.recurring && isEditing && newEvent.until) {
+      eventData.until = newEvent.until;
+    }
+
+    try {
+      if (isEditing) {
+        if (eventToEdit.isStudentRequest && eventData.approvalStatus === "approved") {
+          await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
+          const docId = await createEventInFirestore(eventData);
+          await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
+          setShowModal(false);
+
+          if (eventData.createTeamsMeeting) {
+            const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+            createTeamsMeeting(eventData.title, eventData.description || "", new Date(eventData.start).toISOString(), new Date(eventData.end).toISOString(), attendeesEmailArr)
+              .then((result) => {
+                updateEventInFirestore(docId, { teamsEventId: result.teamsEventId, teamsJoinUrl: result.joinUrl });
+                setAlertType('success');
+                setAlertMessage('Teams meeting created successfully');
+              })
+              .catch((error) => {
+                setAlertType('error');
+                setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+              });
+          }
+        } else if (eventToEdit.isStudentRequest) {
+          await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
+          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+          setShowModal(false);
+        } else {
+          await updateEventInFirestore(eventToEdit.id, eventData);
+          await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+          setShowModal(false);
+
+          if (!eventData.createTeamsMeeting && eventToEdit.teamsEventId) {
+            deleteTeamsMeeting(eventToEdit.teamsEventId)
+              .then(() => {
+                updateEventInFirestore(eventToEdit.id, { teamsEventId: null, teamsJoinUrl: null });
+                setAlertType('success');
+                setAlertMessage('Teams meeting deleted successfully');
+              });
+          } else if ((eventData.approvalStatus === "approved" && eventToEdit.approvalStatus !== "approved") || eventData.createTeamsMeeting) {
+            const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+
+            if (eventToEdit.teamsEventId) {
+              updateTeamsMeeting(eventToEdit.teamsEventId, eventData.title, eventData.description || "", new Date(eventData.start).toISOString(), new Date(eventData.end).toISOString(), attendeesEmailArr)
+                .then(() => {
+                  setAlertType('success');
+                  setAlertMessage('Teams meeting updated successfully');
+                });
+            } else {
+              createTeamsMeeting(eventData.title, eventData.description || "", new Date(eventData.start).toISOString(), new Date(eventData.end).toISOString(), attendeesEmailArr)
+                .then((result) => {
+                  updateEventInFirestore(eventToEdit.id, { teamsEventId: result.teamsEventId, teamsJoinUrl: result.joinUrl });
+                  setAlertType('success');
+                  setAlertMessage('Teams meeting created successfully');
+                });
+            }
+          }
+        }
+      } else {
+        const docId = await createEventInFirestore(eventData);
+        await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
+        setShowModal(false);
+
+        if (eventData.approvalStatus === "approved" || eventData.createTeamsMeeting) {
+          const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(p => p.value);
+          createTeamsMeeting(eventData.title, eventData.description || "", new Date(eventData.start).toISOString(), new Date(eventData.end).toISOString(), attendeesEmailArr)
+            .then((result) => {
+              updateEventInFirestore(docId, { teamsEventId: result.teamsEventId, teamsJoinUrl: result.joinUrl });
+              setAlertType('success');
+              setAlertMessage('Teams meeting created successfully');
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to submit event:', error);
     }
   };
 
-  const handleDelete = () => {
+  const handleDeleteClick = () => {
     // Check if this is a recurring event
     const isRecurring = eventToEdit.recurring || eventToEdit.isRecurringInstance;
-    const isOriginal = eventToEdit.recurring && !eventToEdit.isRecurringInstance;
 
     if (isRecurring) {
       // Show confirmation modal for recurring events
       setShowDeleteConfirm(true);
     } else {
       // Delete non-recurring event directly
-      handleDeleteEvent(eventToEdit, { setShowTeacherModal: setShowModal, setShowStudentModal: () => {}, setShowAvailabilityModal: () => {} });
+      handleEventDelete(eventToEdit, "this", { ...eventsData, setAlertType, setAlertMessage });
       setShowModal(false);
     }
   };
 
   const handleConfirmDelete = (deleteOption) => {
-    handleDeleteEvent(eventToEdit, { setShowTeacherModal: setShowModal, setShowStudentModal: () => {}, setShowAvailabilityModal: () => {} }, deleteOption);
+    handleEventDelete(eventToEdit, deleteOption, { ...eventsData, setAlertType, setAlertMessage });
     setShowDeleteConfirm(false);
     setShowModal(false);
   };
@@ -169,7 +289,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
         submitText={isEditing ? 'Save Changes' : 'Add Event'}
         deleteButton={isEditing ? {
           text: "Delete",
-          onClick: handleDelete,
+          onClick: handleDeleteClick,
           variant: "danger"
         } : null}
       >

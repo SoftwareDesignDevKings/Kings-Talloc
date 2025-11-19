@@ -13,16 +13,9 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
-// Context and Provider
-import { CalendarProvider } from '@/providers/CalendarProvider';
-import { useCalendarContext } from '@contexts/CalendarContext.jsx';
-
-// Specialized hooks
-import { useCalendarInteractions } from '@/hooks/calendar/useCalendarInteractions';
-import { useEventOperations } from '@/hooks/calendar/useEventOperations';
-import { useTutorAvailabilityForm } from '@/hooks/forms/useTutorAvailabilityForm';
-import { useStudentEventForm } from '@/hooks/forms/useStudentEventForm';
-import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
+// Providers
+import { CalendarDataProvider, useCalendarData } from '@/providers/CalendarDataProvider';
+import { CalendarUIProvider, useCalendarUI } from '@/providers/CalendarUIProvider';
 
 // Form and modal components
 import EventForm from './forms/EventForm.jsx';
@@ -32,6 +25,11 @@ import EventDetailsModal from './modals/EventDetailsModal.jsx';
 import RecurringUpdateModal from './modals/RecurringUpdateModal.jsx';
 import CustomEvent from './calendar/CustomEvent.jsx';
 import LoadingSpinner from './LoadingSpinner.jsx';
+
+// Utils
+import { getDefaultEventData } from '@/utils/calendarHelpers';
+import { handleEventDrop, handleEventResize, handleEventDelete, handleConfirmation, handleEventDuplicate } from '@/utils/eventOperations';
+import useAlert from '@/hooks/useAlert';
 
 const { memo } = React;
 
@@ -53,10 +51,40 @@ const MemoizedCustomEvent = memo(CustomEvent);
 const MemoizedCalendarTimeSlotWrapper = memo(CalendarTimeSlotWrapper);
 const MemoizedCalendarFilterPanel = memo(CalendarFilterPanel);
 
-// Calendar content component that uses context
+// Calendar content component
 const CalendarContent = () => {
   const calendarStartTime = "06:00";
   const calendarEndTime = "22:00";
+
+  // Get data and UI from contexts
+  const dataContext = useCalendarData();
+  const uiContext = useCalendarUI();
+  const { setAlertMessage, setAlertType } = useAlert();
+
+  const {
+    allEvents,
+    setAllEvents,
+    availabilities,
+    setAvailabilities,
+    studentRequests,
+    setStudentRequests,
+    splitAvailabilitiesData,
+    subjects,
+    tutors,
+    students,
+    loading,
+    userRole,
+    userEmail
+  } = dataContext;
+
+  const {
+    showEvents,
+    showInitials,
+    isFilterPanelOpen,
+    filters,
+    filteredEvents,
+    filteredAvailabilities
+  } = uiContext;
 
   // Detect mobile on mount
   const [isMobile, setIsMobile] = useState(false);
@@ -68,133 +96,249 @@ const CalendarContent = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Calendar navigation state - default to DAY view on mobile
+  // Calendar navigation state
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState(Views.WEEK);
 
-  // Update view when isMobile changes - force DAY view on mobile
+  // Update view when isMobile changes
   React.useEffect(() => {
     if (isMobile) {
       setCurrentView(Views.DAY);
     }
   }, [isMobile]);
 
-  // Get context data
-  const {
-    eventsData,
-    uiState,
-    filterState,
-    forms,
-    getFilteredEvents,
-    getFilteredAvailabilities,
-    userRole,
-    userEmail
-  } = useCalendarContext();
+  // ==================== FORM STATE (LOCAL TO THIS COMPONENT) ====================
+  const [showTeacherForm, setShowTeacherForm] = useState(false);
+  const [showStudentForm, setShowStudentForm] = useState(false);
+  const [showAvailabilityForm, setShowAvailabilityForm] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState(null);
+  const [newEvent, setNewEvent] = useState({});
+  const [newAvailability, setNewAvailability] = useState({});
 
-  // Use specialized hooks for specific responsibilities
-  const calendarInteractions = useCalendarInteractions(userRole, userEmail, forms, eventsData);
-  const eventOperations = useEventOperations(eventsData, userRole, userEmail);
-
-  // Monitor email queue and send emails every 5 minutes if there are changes (teacher only)
-  useEmailQueueMonitor(userRole);
-  const tutorAvailabilityForm = useTutorAvailabilityForm(eventsData);
-  const studentEventForm = useStudentEventForm(eventsData);
-
-  // Recurring update modal state
+  // Recurring modal state
   const [showRecurringUpdateModal, setShowRecurringUpdateModal] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(null);
 
-  // Wrapper for handleEventDrop to show modal for recurring events
-  const handleEventDropWrapper = (dropInfo) => {
+  // ==================== FORM HELPERS ====================
+  const closeAllForms = () => {
+    setShowTeacherForm(false);
+    setShowStudentForm(false);
+    setShowAvailabilityForm(false);
+    setShowDetailsModal(false);
+    setIsEditing(false);
+    setEventToEdit(null);
+  };
+
+  // ==================== SLOT/EVENT SELECTION ====================
+  const handleSelectSlot = (slotInfo) => {
+    const defaultData = getDefaultEventData(slotInfo, userRole, userEmail);
+
+    if (userRole === 'student') {
+      setNewEvent(defaultData);
+      setIsEditing(false);
+      setShowStudentForm(true);
+    } else if (userRole === 'tutor') {
+      setNewAvailability(defaultData);
+      setIsEditing(false);
+      setShowAvailabilityForm(true);
+    } else {
+      setNewEvent(defaultData);
+      setIsEditing(false);
+      setShowTeacherForm(true);
+    }
+  };
+
+  const handleSelectEvent = (event) => {
+    // Tutor clicked on an availability
+    if (event.tutor) {
+      if (userRole === 'tutor' && event.tutor === userEmail) {
+        setNewAvailability(event);
+        setIsEditing(true);
+        setEventToEdit(event);
+        setShowAvailabilityForm(true);
+      } else {
+        setEventToEdit(event);
+        setShowDetailsModal(true);
+      }
+      return;
+    }
+
+    // Teachers can edit all events
+    if (userRole === 'teacher') {
+      setNewEvent(event);
+      setIsEditing(true);
+      setEventToEdit(event);
+      setShowTeacherForm(true);
+      return;
+    }
+
+    // Students can only edit their own pending requests
+    if (userRole === 'student' && event.isStudentRequest) {
+      const isOwnRequest = event.students?.some(s => s.value === userEmail || s === userEmail);
+      if (isOwnRequest) {
+        setNewEvent(event);
+        setIsEditing(true);
+        setEventToEdit(event);
+        setShowStudentForm(true);
+        return;
+      }
+    }
+
+    // Default: show details modal
+    setEventToEdit(event);
+    setShowDetailsModal(true);
+  };
+
+  // ==================== EVENT OPERATIONS ====================
+  const handleDropWrapper = (dropInfo) => {
     const { event } = dropInfo;
     if (event.isRecurringInstance) {
       setPendingUpdate({ type: 'drop', data: dropInfo });
       setShowRecurringUpdateModal(true);
     } else {
-      eventOperations.handleEventDrop(dropInfo);
+      handleEventDrop(dropInfo, 'this', {
+        userRole,
+        userEmail,
+        allEvents,
+        availabilities,
+        studentRequests,
+        setAllEvents,
+        setAvailabilities,
+        setStudentRequests,
+        setAlertType,
+        setAlertMessage
+      });
     }
   };
 
-  // Wrapper for handleEventResize to show modal for recurring events
-  const handleEventResizeWrapper = (resizeInfo) => {
+  const handleResizeWrapper = (resizeInfo) => {
     const { event } = resizeInfo;
     if (event.isRecurringInstance) {
       setPendingUpdate({ type: 'resize', data: resizeInfo });
       setShowRecurringUpdateModal(true);
     } else {
-      eventOperations.handleEventResize(resizeInfo);
+      handleEventResize(resizeInfo, 'this', {
+        userRole,
+        userEmail,
+        allEvents,
+        availabilities,
+        studentRequests,
+        setAllEvents,
+        setAvailabilities,
+        setStudentRequests,
+        setAlertType,
+        setAlertMessage
+      });
     }
   };
 
-  // Handle recurring update confirmation
   const handleRecurringUpdateConfirm = (updateOption) => {
     if (pendingUpdate) {
       if (pendingUpdate.type === 'drop') {
-        eventOperations.handleEventDrop(pendingUpdate.data, updateOption);
+        handleEventDrop(pendingUpdate.data, updateOption, {
+          userRole,
+          userEmail,
+          allEvents,
+          availabilities,
+          studentRequests,
+          setAllEvents,
+          setAvailabilities,
+          setStudentRequests,
+          setAlertType,
+          setAlertMessage
+        });
       } else if (pendingUpdate.type === 'resize') {
-        eventOperations.handleEventResize(pendingUpdate.data, updateOption);
+        handleEventResize(pendingUpdate.data, updateOption, {
+          userRole,
+          userEmail,
+          allEvents,
+          availabilities,
+          studentRequests,
+          setAllEvents,
+          setAvailabilities,
+          setStudentRequests,
+          setAlertType,
+          setAlertMessage
+        });
       }
     }
     setShowRecurringUpdateModal(false);
     setPendingUpdate(null);
   };
 
-  // Get filtered data using context functions with useMemo
-  const filteredEvents = useMemo(() =>
-    getFilteredEvents(eventsData.allEvents, userEmail),
-    [getFilteredEvents, eventsData.allEvents, userEmail]
-  );
+  const handleDeleteWrapper = async (deleteOption = "this") => {
+    await handleEventDelete(eventToEdit, deleteOption, {
+      setAllEvents,
+      setAvailabilities,
+      setStudentRequests,
+      setAlertType,
+      setAlertMessage
+    });
+    closeAllForms();
+  };
 
-  const applicableAvailabilities = useMemo(() =>
-    getFilteredAvailabilities(eventsData.splitAvailabilitiesData),
-    [getFilteredAvailabilities, eventsData.splitAvailabilitiesData]
-  );
+  const handleConfirmationWrapper = (event, confirmed) => {
+    handleConfirmation(event, confirmed, userEmail, { setAllEvents });
+  };
 
-  // Combine filtered events, student requests, and availabilities based on user role and visibility
+  const handleDuplicateWrapper = (event) => {
+    handleEventDuplicate(event, {
+      userRole,
+      userEmail,
+      availabilities,
+      allEvents,
+      setAvailabilities,
+      setAllEvents
+    });
+  };
+
+  // ==================== COMPUTED VALUES ====================
   const finalEvents = useMemo(() => {
-    if (!uiState.showEvents) return [];
+    if (!showEvents) return [];
 
     const baseEvents = filteredEvents;
 
     if (userRole === 'tutor') {
-      if (filterState.filters.visibility.hideOwnAvailabilities) {
+      if (filters.visibility.hideOwnAvailabilities) {
         return baseEvents;
       }
-      const tutorAvailabilities = eventsData.splitAvailabilitiesData.filter(
+      const tutorAvailabilities = splitAvailabilitiesData.filter(
         avail => avail.tutor === userEmail
       );
       return [...baseEvents, ...tutorAvailabilities];
     }
 
     if (userRole === 'student') {
-      return [...baseEvents, ...eventsData.studentRequests];
+      return [...baseEvents, ...studentRequests];
     }
 
     // Teachers
-    if (filterState.filters.visibility.hideDeniedStudentEvents) {
-      const approvedRequests = eventsData.studentRequests.filter(
+    if (filters.visibility.hideDeniedStudentEvents) {
+      const approvedRequests = studentRequests.filter(
         request => request.approvalStatus !== 'denied'
       );
       return [...baseEvents, ...approvedRequests];
     }
-    return [...baseEvents, ...eventsData.studentRequests];
+    return [...baseEvents, ...studentRequests];
   }, [
-    uiState.showEvents,
+    showEvents,
     userRole,
     userEmail,
     filteredEvents,
-    eventsData.splitAvailabilitiesData,
-    eventsData.studentRequests,
-    filterState.filters.visibility.hideOwnAvailabilities,
-    filterState.filters.visibility.hideDeniedStudentEvents
+    splitAvailabilitiesData,
+    studentRequests,
+    filters.visibility.hideOwnAvailabilities,
+    filters.visibility.hideDeniedStudentEvents
   ]);
 
   const minTime = parse(calendarStartTime, "HH:mm", new Date());
   const maxTime = parse(calendarEndTime, "HH:mm", new Date());
 
-  const uniqueTutors = eventsData.tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
+  const uniqueTutors = tutors.map(tutor => ({ value: tutor.email, label: tutor.name || tutor.email }));
 
-  const filteredTutors = filterState.filters.subject?.tutors?.map(tutor => ({
+  const filteredTutors = filters.subject?.tutors?.map(tutor => ({
     value: tutor.email,
     label: tutor.name || tutor.email
   })) || [];
@@ -214,7 +358,7 @@ const CalendarContent = () => {
     color: '#000000'
   };
 
-  if (eventsData.loading) {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
@@ -230,8 +374,8 @@ const CalendarContent = () => {
             style={{ height: '600px' }}
             min={minTime}
             max={maxTime}
-            onSelectSlot={calendarInteractions.handleSelectSlot}
-            onSelectEvent={calendarInteractions.handleSelectEvent}
+            onSelectSlot={handleSelectSlot}
+            onSelectEvent={handleSelectEvent}
             selectable
             popup
             date={currentDate}
@@ -248,7 +392,7 @@ const CalendarContent = () => {
               event: (props) => (
                 <MemoizedCustomEvent
                   {...props}
-                  showInitials={uiState.showInitials}
+                  showInitials={showInitials}
                 />
               )
             }}
@@ -262,10 +406,10 @@ const CalendarContent = () => {
             style={{ height: '600px' }}
             min={minTime}
             max={maxTime}
-            onSelectSlot={calendarInteractions.handleSelectSlot}
-            onSelectEvent={calendarInteractions.handleSelectEvent}
-            onEventDrop={handleEventDropWrapper}
-            onEventResize={handleEventResizeWrapper}
+            onSelectSlot={handleSelectSlot}
+            onSelectEvent={handleSelectEvent}
+            onEventDrop={handleDropWrapper}
+            onEventResize={handleResizeWrapper}
             resizable
             selectable
             longPressThreshold={500}
@@ -283,14 +427,14 @@ const CalendarContent = () => {
                   userRole={userRole}
                   userEmail={userEmail}
                   currentView={currentView}
-                  onDuplicate={calendarInteractions.handleDuplicateEvent}
+                  onDuplicate={handleDuplicateWrapper}
                 />
               ),
               timeSlotWrapper: (props) => (
                 <MemoizedCalendarTimeSlotWrapper
                   {...props}
-                  applicableAvailabilities={uiState.showInitials ? applicableAvailabilities : []}
-                  selectedTutors={filterState.filters.tutors}
+                  applicableAvailabilities={showInitials ? filteredAvailabilities : []}
+                  selectedTutors={filters.tutors}
                   currentWeekStart={currentWeekStart}
                   currentWeekEnd={currentWeekEnd}
                 />
@@ -299,64 +443,70 @@ const CalendarContent = () => {
           />
         )}
       </div>
-      
+
       <MemoizedCalendarFilterPanel
-        uiState={uiState}
+        uiState={{ showEvents, showInitials, isFilterPanelOpen, setShowEvents: uiContext.setShowEvents, setShowInitials: uiContext.setShowInitials, setIsFilterPanelOpen: uiContext.setIsFilterPanelOpen }}
         userRole={userRole}
-        eventsData={eventsData}
-        filterState={filterState}
+        eventsData={{ allEvents, availabilities, splitAvailabilitiesData, subjects, tutors, students }}
+        filterState={{ filters, filterActions: {
+          setSelectedSubject: uiContext.setSelectedSubject,
+          setSelectedTutors: uiContext.setSelectedTutors,
+          setSelectedWorkType: uiContext.setSelectedWorkType,
+          setSelectedAvailabilityWorkType: uiContext.setSelectedAvailabilityWorkType,
+          handleTutorFilterChange: uiContext.setSelectedTutors,
+          setHideOwnAvailabilities: uiContext.setHideOwnAvailabilities,
+          setHideDeniedStudentEvents: uiContext.setHideDeniedStudentEvents,
+          setHideTutoringAvailabilites: uiContext.setHideTutoringAvailabilites,
+          setHideWorkAvailabilities: uiContext.setHideWorkAvailabilities,
+          setShowTutoringEvents: uiContext.setShowTutoringEvents,
+          setShowCoachingEvents: uiContext.setShowCoachingEvents
+        }}}
         filteredTutors={filteredTutors}
         uniqueTutors={uniqueTutors}
       />
 
-      {/* render different forms depending on role */}
-      {forms.showTeacherForm && userRole === 'teacher' && (
+      {/* Forms */}
+      {showTeacherForm && userRole === 'teacher' && (
         <EventForm
-          isEditing={forms.isEditing}
-          newEvent={calendarInteractions.newEvent}
-          setNewEvent={calendarInteractions.setNewEvent}
-          eventToEdit={forms.eventToEdit}
-          setShowModal={forms.setShowTeacherForm}
-          eventsData={eventsData}
+          isEditing={isEditing}
+          newEvent={newEvent}
+          setNewEvent={setNewEvent}
+          eventToEdit={eventToEdit}
+          setShowModal={setShowTeacherForm}
+          eventsData={{ allEvents, setAllEvents, availabilities, setAvailabilities, studentRequests, setStudentRequests, subjects, tutors, students }}
         />
       )}
-      {forms.showStudentForm && userRole === 'student' && (
+      {showStudentForm && userRole === 'student' && (
         <StudentEventForm
-          isEditing={forms.isEditing}
-          newEvent={calendarInteractions.newEvent}
-          setNewEvent={calendarInteractions.setNewEvent}
-          eventToEdit={forms.eventToEdit}
-          setShowStudentModal={forms.setShowStudentForm}
+          isEditing={isEditing}
+          newEvent={newEvent}
+          setNewEvent={setNewEvent}
+          eventToEdit={eventToEdit}
+          setShowStudentModal={setShowStudentForm}
           studentEmail={userEmail}
-          eventsData={eventsData}
-          handleInputChange={studentEventForm.handleInputChange(calendarInteractions.newEvent, calendarInteractions.setNewEvent)}
-          handleSubmit={studentEventForm.handleSubmit(calendarInteractions.newEvent, forms.isEditing, forms.eventToEdit, forms.setShowStudentForm)}
-          handleDelete={studentEventForm.handleDelete(forms.eventToEdit, forms.setShowStudentForm)}
+          eventsData={{ allEvents, setAllEvents, availabilities, setAvailabilities, studentRequests, setStudentRequests, subjects, tutors, students }}
         />
       )}
-      {forms.showAvailabilityForm && userRole === 'tutor' && (
+      {showAvailabilityForm && userRole === 'tutor' && (
         <TutorAvailabilityForm
-          isEditing={forms.isEditing}
-          newAvailability={calendarInteractions.newAvailability}
-          setNewAvailability={calendarInteractions.setNewAvailability}
-          eventToEdit={forms.eventToEdit}
-          setShowModal={forms.setShowAvailabilityForm}
-          eventsData={eventsData}
-          handleInputChange={tutorAvailabilityForm.handleInputChange(calendarInteractions.newAvailability, calendarInteractions.setNewAvailability)}
-          handleSubmit={tutorAvailabilityForm.handleSubmit(calendarInteractions.newAvailability, forms.isEditing, forms.eventToEdit, forms.setShowAvailabilityForm)}
-          handleDelete={tutorAvailabilityForm.handleDelete(forms.eventToEdit, forms.setShowAvailabilityForm)}
+          isEditing={isEditing}
+          newAvailability={newAvailability}
+          setNewAvailability={setNewAvailability}
+          eventToEdit={eventToEdit}
+          setShowModal={setShowAvailabilityForm}
+          eventsData={{ allEvents, setAllEvents, availabilities, setAvailabilities, studentRequests, setStudentRequests, subjects, tutors, students }}
         />
       )}
-      {forms.showDetailsModal && forms.eventToEdit && (
+      {showDetailsModal && eventToEdit && (
         <EventDetailsModal
-          key={forms.eventToEdit.id}
-          event={forms.eventToEdit}
-          onClose={() => forms.setShowDetailsModal(false)}
-          handleConfirmation={eventOperations.handleConfirmation}
+          key={eventToEdit.id}
+          event={eventToEdit}
+          onClose={() => setShowDetailsModal(false)}
+          handleConfirmation={handleConfirmationWrapper}
           userEmail={userEmail}
           userRole={userRole}
-          events={eventsData.allEvents}
-          setEvents={eventsData.setAllEvents}
+          events={allEvents}
+          setEvents={setAllEvents}
         />
       )}
 
@@ -374,14 +524,15 @@ const CalendarContent = () => {
 };
 
 /**
- * React Big Calendar Wrapper based on role and email
- * @returns 
+ * CalendarWrapper with nested providers
  */
 const CalendarWrapper = ({ userRole, userEmail }) => {
   return (
-    <CalendarProvider userRole={userRole} userEmail={userEmail}>
-      <CalendarContent />
-    </CalendarProvider>
+    <CalendarDataProvider userRole={userRole} userEmail={userEmail}>
+      <CalendarUIProvider>
+        <CalendarContent />
+      </CalendarUIProvider>
+    </CalendarDataProvider>
   );
 };
 
