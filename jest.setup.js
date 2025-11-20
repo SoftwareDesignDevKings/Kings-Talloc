@@ -57,7 +57,7 @@ if (isBrowserEnv) {
     }));
 
     // Mock Firebase
-    jest.mock('./src/firestore/clientFirestore', () => ({
+    jest.mock('./src/firestore/firestoreClient', () => ({
         db: {},
     }));
 
