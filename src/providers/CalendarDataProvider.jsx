@@ -95,5 +95,9 @@ export const CalendarDataProvider = ({ children, userRole, userEmail }) => {
         ],
     );
 
-    return <CalendarDataContext.Provider value={value}>{children}</CalendarDataContext.Provider>;
+    return (
+		<CalendarDataContext.Provider value={value}>
+			{children}
+		</CalendarDataContext.Provider>
+	);
 };

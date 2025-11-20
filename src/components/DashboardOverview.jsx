@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useDashboardData } from '@/hooks/dashboard/useDashboardData';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import StatsCards from '@/components/dashboard/StatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
 

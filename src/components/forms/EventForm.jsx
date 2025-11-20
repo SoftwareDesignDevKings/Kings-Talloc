@@ -1,19 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isAfter, isBefore, format } from 'date-fns';
+import { isAfter, format } from 'date-fns';
 import Select, { components } from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
 import { useEventFormData } from './useEventFormData';
-import { calendarEventHandleDelete } from '@/utils/calendarEvent';
+import {
+    calendarEventHandleDelete,
+    calendarEventCreateTeamsMeeting,
+    calendarEventHandleTeamsMeetingUpdate,
+    calendarEventGetType,
+} from '@/utils/calendarEvent';
+import {
+    getTeamsMeetingOccurrenceId,
+    updateTeamsMeetingOccurrence,
+} from '@/utils/msTeams';
 import {
     updateEventInFirestore,
     createEventInFirestore,
     addOrUpdateEventInQueue,
     deleteEventFromFirestore,
+    addEventException,
 } from '@/firestore/firestoreOperations';
-import { createTeamsMeeting, updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
 import { addWeeks } from 'date-fns';
 import {
     MdEventNote,
@@ -159,109 +168,84 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                     await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
                     setShowModal(false);
 
-                    if (eventData.createTeamsMeeting) {
-                        const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(
-                            (p) => p.value,
-                        );
-                        createTeamsMeeting(
-                            eventData.title,
-                            eventData.description || '',
-                            new Date(eventData.start).toISOString(),
-                            new Date(eventData.end).toISOString(),
-                            attendeesEmailArr,
-                        )
-                            .then((result) => {
-                                updateEventInFirestore(docId, {
-                                    teamsEventId: result.teamsEventId,
-                                    teamsJoinUrl: result.joinUrl,
-                                });
-                                setAlertType('success');
-                                setAlertMessage('Teams meeting created successfully');
-                            })
-                            .catch((error) => {
-                                setAlertType('error');
-                                setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
-                            });
-                    }
+                    // Handle Teams meeting creation
+                    await calendarEventCreateTeamsMeeting(docId, eventData, {
+                        setAlertType,
+                        setAlertMessage,
+                    });
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
                     await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
                     setShowModal(false);
+                } else if (eventToEdit.isRecurringInstance) {
+                    // Detach from series and create a new standalone event
+                    const { collectionName } = calendarEventGetType(eventToEdit);
+                    await addEventException(
+                        eventToEdit.recurringEventId,
+                        eventToEdit.occurrenceIndex,
+                        collectionName,
+                    );
+                    const {
+                        id,
+                        recurringEventId,
+                        isRecurringInstance,
+                        occurrenceIndex,
+                        recurring,
+                        eventExceptions,
+                        until,
+                        ...standaloneEventData
+                    } = { ...eventToEdit, ...eventData };
+
+                    const newDocId = await createEventInFirestore(standaloneEventData, collectionName);
+                    await addOrUpdateEventInQueue({ ...standaloneEventData, id: newDocId }, 'store');
+                    setShowModal(false);
+
+                    if (standaloneEventData.teamsEventId) {
+                        try {
+                            const attendeesEmailArr = [...(standaloneEventData.students || []), ...(standaloneEventData.staff || [])].map(
+                                (p) => p.value || p,
+                            );
+                            const occurrenceId = await getTeamsMeetingOccurrenceId(
+                                standaloneEventData.teamsEventId,
+                                eventToEdit.start,
+                            );
+                            await updateTeamsMeetingOccurrence(
+                                occurrenceId,
+                                standaloneEventData.title,
+                                standaloneEventData.description,
+                                new Date(standaloneEventData.start).toISOString(),
+                                new Date(standaloneEventData.end).toISOString(),
+                                attendeesEmailArr,
+                            );
+                            setAlertType('success');
+                            setAlertMessage('Event updated and Teams occurrence updated');
+                        } catch (error) {
+                            console.error('Failed to update Teams meeting occurrence:', error);
+                            setAlertType('error');
+                            setAlertMessage(`Event updated but Teams meeting failed: ${error.message}`);
+                        }
+                    }
                 } else {
                     await updateEventInFirestore(eventToEdit.id, eventData);
                     await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
                     setShowModal(false);
 
-                    if (!eventData.createTeamsMeeting && eventToEdit.teamsEventId) {
-                        deleteTeamsMeeting(eventToEdit.teamsEventId).then(() => {
-                            updateEventInFirestore(eventToEdit.id, {
-                                teamsEventId: null,
-                                teamsJoinUrl: null,
-                            });
-                            setAlertType('success');
-                            setAlertMessage('Teams meeting deleted successfully');
-                        });
-                    } else if (
-                        (eventData.approvalStatus === 'approved' &&
-                            eventToEdit.approvalStatus !== 'approved') ||
-                        eventData.createTeamsMeeting
-                    ) {
-                        const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(
-                            (p) => p.value,
-                        );
-
-                        if (eventToEdit.teamsEventId) {
-                            updateTeamsMeeting(
-                                eventToEdit.teamsEventId,
-                                eventData.title,
-                                eventData.description || '',
-                                new Date(eventData.start).toISOString(),
-                                new Date(eventData.end).toISOString(),
-                                attendeesEmailArr,
-                            ).then(() => {
-                                setAlertType('success');
-                                setAlertMessage('Teams meeting updated successfully');
-                            });
-                        } else {
-                            createTeamsMeeting(
-                                eventData.title,
-                                eventData.description || '',
-                                new Date(eventData.start).toISOString(),
-                                new Date(eventData.end).toISOString(),
-                                attendeesEmailArr,
-                            ).then((result) => {
-                                updateEventInFirestore(eventToEdit.id, {
-                                    teamsEventId: result.teamsEventId,
-                                    teamsJoinUrl: result.joinUrl,
-                                });
-                                setAlertType('success');
-                                setAlertMessage('Teams meeting created successfully');
-                            });
-                        }
-                    }
+                    // Handle Teams meeting update/delete
+                    await calendarEventHandleTeamsMeetingUpdate(eventToEdit, eventData, {
+                        setAlertType,
+                        setAlertMessage,
+                    });
                 }
             } else {
                 const docId = await createEventInFirestore(eventData);
                 await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
                 setShowModal(false);
 
+                // Handle Teams meeting creation for new events
                 if (eventData.approvalStatus === 'approved' || eventData.createTeamsMeeting) {
-                    const attendeesEmailArr = [...eventData.students, ...eventData.staff].map(
-                        (p) => p.value,
-                    );
-                    createTeamsMeeting(
-                        eventData.title,
-                        eventData.description || '',
-                        new Date(eventData.start).toISOString(),
-                        new Date(eventData.end).toISOString(),
-                        attendeesEmailArr,
-                    ).then((result) => {
-                        updateEventInFirestore(docId, {
-                            teamsEventId: result.teamsEventId,
-                            teamsJoinUrl: result.joinUrl,
-                        });
-                        setAlertType('success');
-                        setAlertMessage('Teams meeting created successfully');
+                    await calendarEventCreateTeamsMeeting(docId, eventData, {
+                        setAlertType,
+                        setAlertMessage,
                     });
                 }
             }
@@ -439,7 +423,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         }
                                     >
                                         <SiMicrosoftTeams size={30} />
-                                        Create Online Teams Meeting
+                                        Online Teams Meeting
                                     </button>
                                 </div>
 

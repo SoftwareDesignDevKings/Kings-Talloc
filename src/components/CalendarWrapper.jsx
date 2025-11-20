@@ -173,7 +173,11 @@ const CalendarContent = () => {
 
         // Teachers can edit all events
         if (userRole === 'teacher') {
-            setNewEvent(event);
+            const eventWithTeamsFlag = {
+                ...event,
+                createTeamsMeeting: !!event.teamsEventId,
+            };
+            setNewEvent(eventWithTeamsFlag);
             setIsEditing(true);
             setEventToEdit(event);
             setShowTeacherForm(true);
@@ -186,7 +190,11 @@ const CalendarContent = () => {
                 (s) => s.value === userEmail || s === userEmail,
             );
             if (isOwnRequest) {
-                setNewEvent(event);
+                const eventWithTeamsFlag = {
+                ...event,
+                createTeamsMeeting: !!event.teamsEventId,
+            };
+            setNewEvent(eventWithTeamsFlag);
                 setIsEditing(true);
                 setEventToEdit(event);
                 setShowStudentForm(true);

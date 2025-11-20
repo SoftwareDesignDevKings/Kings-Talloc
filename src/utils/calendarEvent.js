@@ -12,7 +12,15 @@ import {
     removeEventFromQueue,
     addOrUpdateEventInQueue,
 } from '@/firestore/firestoreOperations';
-import { createTeamsMeeting, updateTeamsMeeting, deleteTeamsMeeting } from '@/utils/msTeams';
+import {
+    createTeamsMeeting,
+    updateTeamsMeeting,
+    deleteTeamsMeeting,
+    getTeamsMeetingOccurrenceId,
+    updateTeamsMeetingOccurrence,
+    deleteTeamsMeetingOccurrence,
+    updateTeamsMeetingRecurrenceEndDate,
+} from '@/utils/msTeams';
 
 /**
  * Determines event type and Firestore collection name
@@ -243,6 +251,143 @@ export const calendarEventUpdateTeamsMeeting = async (
 };
 
 /**
+ * Create Teams meeting for a new event
+ */
+export const calendarEventCreateTeamsMeeting = async (
+    eventId,
+    eventData,
+    { setAlertType, setAlertMessage },
+) => {
+    if (!eventData.createTeamsMeeting) return;
+
+    const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
+        (p) => p.value || p,
+    );
+
+    // Build recurrence options if event is recurring
+    const recurrenceOptions = eventData.recurring
+        ? {
+              recurring: eventData.recurring,
+              until: eventData.until,
+          }
+        : null;
+
+    try {
+        const result = await createTeamsMeeting(
+            eventData.title,
+            eventData.description || '',
+            new Date(eventData.start).toISOString(),
+            new Date(eventData.end).toISOString(),
+            attendeesEmailArr,
+            recurrenceOptions,
+        );
+
+        await updateEventInFirestore(eventId, {
+            teamsEventId: result.teamsEventId,
+            teamsJoinUrl: result.joinUrl,
+        });
+
+        setAlertType('success');
+        setAlertMessage(
+            eventData.recurring
+                ? 'Recurring event and Teams meeting series created successfully'
+                : 'Teams meeting created successfully',
+        );
+    } catch (error) {
+        console.error('Failed to create Teams meeting:', error);
+        setAlertType('error');
+        setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+    }
+};
+
+/**
+ * Handle Teams meeting when updating an existing event
+ */
+export const calendarEventHandleTeamsMeetingUpdate = async (
+    eventToEdit,
+    eventData,
+    { setAlertType, setAlertMessage },
+) => {
+    const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
+        (p) => p.value || p,
+    );
+
+    // Case 1: User unchecked "Create Teams Meeting" - delete existing meeting
+    if (!eventData.createTeamsMeeting && eventToEdit.teamsEventId) {
+        try {
+            await deleteTeamsMeeting(eventToEdit.teamsEventId);
+            await updateEventInFirestore(eventToEdit.id, {
+                teamsEventId: null,
+                teamsJoinUrl: null,
+            });
+            setAlertType('success');
+            setAlertMessage('Teams meeting deleted successfully');
+        } catch (error) {
+            console.error('Failed to delete Teams meeting:', error);
+            setAlertType('error');
+            setAlertMessage(`Failed to delete Teams meeting: ${error.message}`);
+        }
+        return;
+    }
+
+    // Case 2: Event needs Teams meeting (approval or createTeamsMeeting flag)
+    if (
+        (eventData.approvalStatus === 'approved' && eventToEdit.approvalStatus !== 'approved') ||
+        eventData.createTeamsMeeting
+    ) {
+        if (eventToEdit.teamsEventId) {
+            // Update existing Teams meeting
+            try {
+                // Build recurrence options if event is recurring
+                const recurrenceOptions = eventData.recurring
+                    ? {
+                          recurring: eventData.recurring,
+                          until: eventData.until,
+                      }
+                    : null;
+
+                await updateTeamsMeeting(
+                    eventToEdit.teamsEventId,
+                    eventData.title,
+                    eventData.description || '',
+                    new Date(eventData.start).toISOString(),
+                    new Date(eventData.end).toISOString(),
+                    attendeesEmailArr,
+                    recurrenceOptions,
+                );
+                setAlertType('success');
+                setAlertMessage('Teams meeting updated successfully');
+            } catch (error) {
+                console.error('Failed to update Teams meeting:', error);
+                setAlertType('error');
+                setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
+            }
+        } else {
+            // Create new Teams meeting
+            try {
+                const result = await createTeamsMeeting(
+                    eventData.title,
+                    eventData.description || '',
+                    new Date(eventData.start).toISOString(),
+                    new Date(eventData.end).toISOString(),
+                    attendeesEmailArr,
+                );
+                await updateEventInFirestore(eventToEdit.id, {
+                    teamsEventId: result.teamsEventId,
+                    teamsJoinUrl: result.joinUrl,
+                });
+                setAlertType('success');
+                setAlertMessage('Teams meeting created successfully');
+            } catch (error) {
+                console.error('Failed to create Teams meeting:', error);
+                setAlertType('error');
+                setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+            }
+        }
+    }
+};
+
+/**
  * Handle event drop (drag and drop)
  */
 export const calendarEventHandleDrop = async (
@@ -302,6 +447,8 @@ export const calendarEventHandleDrop = async (
                     recurring,
                     eventExceptions,
                     until,
+                    teamsEventId,
+                    teamsJoinUrl,
                     ...eventWithoutRecurringFields
                 } = event;
                 const newEvent = {
@@ -309,7 +456,40 @@ export const calendarEventHandleDrop = async (
                     start: new Date(start),
                     end: updatedEnd,
                 };
-                await createEventInFirestore(newEvent, collectionName);
+                const newDocId = await createEventInFirestore(newEvent, collectionName);
+
+                // Update the Teams occurrence for this instance
+                if (teamsEventId && !isAvailability && !isStudentRequest) {
+                    try {
+                        const attendees = [
+                            ...(event.students || []),
+                            ...(event.staff || []),
+                        ].map((p) => p.value || p);
+
+                        // Get the occurrence ID for this specific instance
+                        const occurrenceId = await getTeamsMeetingOccurrenceId(
+                            teamsEventId,
+                            event.start,
+                        );
+
+                        // Update this specific occurrence
+                        await updateTeamsMeetingOccurrence(
+                            occurrenceId,
+                            event.title,
+                            event.description || '',
+                            new Date(start).toISOString(),
+                            updatedEnd.toISOString(),
+                            attendees,
+                        );
+
+                        setAlertType('success');
+                        setAlertMessage('Event moved and Teams occurrence updated');
+                    } catch (error) {
+                        console.error('Failed to update Teams meeting for instance:', error);
+                        setAlertType('error');
+                        setAlertMessage(`Event moved but Teams meeting failed: ${error.message}`);
+                    }
+                }
             } else if (updateOption === 'thisAndFuture') {
                 const untilDate = new Date(event.start);
                 untilDate.setDate(untilDate.getDate() - 1);
@@ -320,6 +500,8 @@ export const calendarEventHandleDrop = async (
                     isRecurringInstance,
                     occurrenceIndex,
                     eventExceptions,
+                    teamsEventId,
+                    teamsJoinUrl,
                     ...eventWithoutInstanceFields
                 } = event;
                 const newEvent = {
@@ -327,7 +509,49 @@ export const calendarEventHandleDrop = async (
                     start: new Date(start),
                     end: updatedEnd,
                 };
-                await createEventInFirestore(newEvent, collectionName);
+                const newDocId = await createEventInFirestore(newEvent, collectionName);
+
+                // Update Teams: end the old series and create a new one
+                if (teamsEventId && !isAvailability && !isStudentRequest) {
+                    try {
+                        const attendees = [
+                            ...(event.students || []),
+                            ...(event.staff || []),
+                        ].map((p) => p.value || p);
+
+                        // End the original series one day before this occurrence
+                        await updateTeamsMeetingRecurrenceEndDate(teamsEventId, untilDate);
+
+                        // Create a new Teams meeting series for the new recurring event
+                        const recurrenceOptions = {
+                            recurring: event.recurring,
+                            until: event.until,
+                        };
+
+                        const result = await createTeamsMeeting(
+                            event.title,
+                            event.description || '',
+                            new Date(start).toISOString(),
+                            updatedEnd.toISOString(),
+                            attendees,
+                            recurrenceOptions,
+                        );
+
+                        // Store the NEW teamsEventId with the new recurring event
+                        await updateEventInFirestore(newDocId, {
+                            teamsEventId: result.teamsEventId,
+                            teamsJoinUrl: result.joinUrl,
+                        });
+                        setAlertType('success');
+                        setAlertMessage('Future events moved and new Teams series created');
+                    } catch (error) {
+                        console.error('Failed to update Teams meeting for future events:', error);
+                        setAlertType('error');
+                        setAlertMessage(
+                            `Events moved but Teams meeting failed: ${error.message}`,
+                        );
+                    }
+                }
             }
         } else {
             await updateEventInFirestore(
@@ -338,16 +562,16 @@ export const calendarEventHandleDrop = async (
                 },
                 collectionName,
             );
-        }
 
-        await calendarEventUpdateTeamsMeeting(
-            event,
-            start,
-            updatedEnd,
-            isAvailability,
-            isStudentRequest,
-            { setAlertType, setAlertMessage },
-        );
+            await calendarEventUpdateTeamsMeeting(
+                event,
+                start,
+                updatedEnd,
+                isAvailability,
+                isStudentRequest,
+                { setAlertType, setAlertMessage },
+            );
+        }
     } catch (error) {
         console.error('Failed to update event:', error);
         calendarEventRevertState(
@@ -419,6 +643,8 @@ export const calendarEventHandleResize = async (
                     recurring,
                     eventExceptions,
                     until,
+                    teamsEventId,
+                    teamsJoinUrl,
                     ...eventWithoutRecurringFields
                 } = event;
                 const newEvent = {
@@ -426,7 +652,40 @@ export const calendarEventHandleResize = async (
                     start: new Date(start),
                     end: new Date(end),
                 };
-                await createEventInFirestore(newEvent, collectionName);
+                const newDocId = await createEventInFirestore(newEvent, collectionName);
+
+                // Update the Teams occurrence for this instance
+                if (teamsEventId && !isAvailability && !isStudentRequest) {
+                    try {
+                        const attendees = [
+                            ...(event.students || []),
+                            ...(event.staff || []),
+                        ].map((p) => p.value || p);
+
+                        // Get the occurrence ID for this specific instance
+                        const occurrenceId = await getTeamsMeetingOccurrenceId(
+                            teamsEventId,
+                            event.start,
+                        );
+
+                        // Update this specific occurrence
+                        await updateTeamsMeetingOccurrence(
+                            occurrenceId,
+                            event.title,
+                            event.description || '',
+                            new Date(start).toISOString(),
+                            new Date(end).toISOString(),
+                            attendees,
+                        );
+
+                        setAlertType('success');
+                        setAlertMessage('Event resized and Teams occurrence updated');
+                    } catch (error) {
+                        console.error('Failed to update Teams meeting for instance:', error);
+                        setAlertType('error');
+                        setAlertMessage(`Event resized but Teams meeting failed: ${error.message}`);
+                    }
+                }
             } else if (updateOption === 'thisAndFuture') {
                 const untilDate = new Date(event.start);
                 untilDate.setDate(untilDate.getDate() - 1);
@@ -437,6 +696,8 @@ export const calendarEventHandleResize = async (
                     isRecurringInstance,
                     occurrenceIndex,
                     eventExceptions,
+                    teamsEventId,
+                    teamsJoinUrl,
                     ...eventWithoutInstanceFields
                 } = event;
                 const newEvent = {
@@ -444,7 +705,49 @@ export const calendarEventHandleResize = async (
                     start: new Date(start),
                     end: new Date(end),
                 };
-                await createEventInFirestore(newEvent, collectionName);
+                const newDocId = await createEventInFirestore(newEvent, collectionName);
+
+                // Update Teams: end the old series and create a new one
+                if (teamsEventId && !isAvailability && !isStudentRequest) {
+                    try {
+                        const attendees = [
+                            ...(event.students || []),
+                            ...(event.staff || []),
+                        ].map((p) => p.value || p);
+
+                        // End the original series one day before this occurrence
+                        await updateTeamsMeetingRecurrenceEndDate(teamsEventId, untilDate);
+
+                        // Create a new Teams meeting series for the new recurring event
+                        const recurrenceOptions = {
+                            recurring: event.recurring,
+                            until: event.until,
+                        };
+
+                        const result = await createTeamsMeeting(
+                            event.title,
+                            event.description || '',
+                            new Date(start).toISOString(),
+                            new Date(end).toISOString(),
+                            attendees,
+                            recurrenceOptions,
+                        );
+
+                        // Store the NEW teamsEventId with the new recurring event
+                        await updateEventInFirestore(newDocId, {
+                            teamsEventId: result.teamsEventId,
+                            teamsJoinUrl: result.joinUrl,
+                        });
+                        setAlertType('success');
+                        setAlertMessage('Future events resized and new Teams series created');
+                    } catch (error) {
+                        console.error('Failed to update Teams meeting for future events:', error);
+                        setAlertType('error');
+                        setAlertMessage(
+                            `Events resized but Teams meeting failed: ${error.message}`,
+                        );
+                    }
+                }
             }
         } else {
             await updateEventInFirestore(
@@ -455,12 +758,19 @@ export const calendarEventHandleResize = async (
                 },
                 collectionName,
             );
-        }
 
-        await calendarEventUpdateTeamsMeeting(event, start, end, isAvailability, isStudentRequest, {
-            setAlertType,
-            setAlertMessage,
-        });
+            await calendarEventUpdateTeamsMeeting(
+                event,
+                start,
+                end,
+                isAvailability,
+                isStudentRequest,
+                {
+                    setAlertType,
+                    setAlertMessage,
+                },
+            );
+        }
     } catch (error) {
         console.error('Failed to update event:', error);
         calendarEventRevertState(
@@ -494,6 +804,19 @@ export const calendarEventHandleDelete = async (
             await deleteEventFromFirestore(eventToDelete.id, collectionName);
             await removeEventFromQueue(eventToDelete.id);
 
+            // Delete Teams meeting if the original recurring event had one
+            if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
+                try {
+                    await deleteTeamsMeeting(eventToDelete.teamsEventId);
+                    setAlertType('success');
+                    setAlertMessage('Recurring event and Teams meeting deleted successfully');
+                } catch (error) {
+                    console.error('Failed to delete Teams meeting:', error);
+                    setAlertType('error');
+                    setAlertMessage(`Event deleted but Teams meeting failed: ${error.message}`);
+                }
+            }
+
             setAllEvents((prev) =>
                 prev.filter(
                     (event) =>
@@ -505,6 +828,27 @@ export const calendarEventHandleDelete = async (
             const untilDate = new Date(eventToDelete.start);
             untilDate.setDate(untilDate.getDate() - 1);
             await setRecurringUntilDate(recurringEventId, untilDate, collectionName);
+
+            // Update the end date of the Teams meeting series
+            if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
+                try {
+                    await updateTeamsMeetingRecurrenceEndDate(
+                        eventToDelete.teamsEventId,
+                        untilDate,
+                    );
+                    setAlertType('success');
+                    setAlertMessage('Future occurrences and Teams meeting series updated');
+                } catch (error) {
+                    console.error('Failed to update Teams meeting recurrence:', error);
+                    setAlertType('error');
+                    setAlertMessage(
+                        `Future occurrences deleted but updating Teams meeting failed: ${error.message}`,
+                    );
+                }
+            } else {
+                setAlertType('success');
+                setAlertMessage('Future occurrences deleted successfully');
+            }
 
             setAllEvents((prev) =>
                 prev.filter((event) => {
@@ -523,11 +867,37 @@ export const calendarEventHandleDelete = async (
                 }),
             );
         } else if (recurringEventId) {
+            // Delete just this instance
             await addEventException(
                 recurringEventId,
                 eventToDelete.occurrenceIndex,
                 collectionName,
             );
+
+            // Delete the specific Teams meeting occurrence
+            if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
+                try {
+                    // Get the occurrence ID for this specific instance
+                    const occurrenceId = await getTeamsMeetingOccurrenceId(
+                        eventToDelete.teamsEventId,
+                        eventToDelete.start,
+                    );
+                    // Delete this specific occurrence
+                    await deleteTeamsMeetingOccurrence(occurrenceId);
+                    setAlertType('success');
+                    setAlertMessage('Event instance and Teams occurrence deleted successfully');
+                } catch (error) {
+                    console.error('Failed to delete Teams meeting occurrence:', error);
+                    setAlertType('error');
+                    setAlertMessage(
+                        `Event instance deleted but Teams occurrence deletion failed: ${error.message}`,
+                    );
+                }
+            } else {
+                setAlertType('success');
+                setAlertMessage('Event instance deleted successfully');
+            }
+
             setAllEvents((prev) => prev.filter((event) => event.id !== eventToDelete.id));
         } else {
             await deleteEventFromFirestore(eventToDelete.id, collectionName);
@@ -536,11 +906,11 @@ export const calendarEventHandleDelete = async (
                 try {
                     await deleteTeamsMeeting(eventToDelete.teamsEventId);
                     setAlertType('success');
-                    setAlertMessage('Teams meeting deleted successfully');
+                    setAlertMessage('Event and Teams meeting deleted successfully');
                 } catch (error) {
                     console.error('Failed to delete Teams meeting:', error);
                     setAlertType('error');
-                    setAlertMessage(`Failed to delete Teams meeting: ${error.message}`);
+                    setAlertMessage(`Event deleted but Teams meeting failed: ${error.message}`);
                 }
             }
 
