@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isAfter, add, format } from 'date-fns';
+import { isAfter, add, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
@@ -137,7 +137,11 @@ const TutorAvailabilityForm = ({
                             className="form-control"
                             name="start"
                             id="start"
-                            value={format(new Date(newAvailability.start), "yyyy-MM-dd'T'HH:mm")}
+                            value={
+                                newAvailability.start && isValid(new Date(newAvailability.start))
+                                    ? format(new Date(newAvailability.start), "yyyy-MM-dd'T'HH:mm")
+                                    : ''
+                            }
                             onChange={handleInputChange}
                             required
                         />
@@ -152,7 +156,11 @@ const TutorAvailabilityForm = ({
                             className="form-control"
                             name="end"
                             id="end"
-                            value={format(new Date(newAvailability.end), "yyyy-MM-dd'T'HH:mm")}
+                            value={
+                                newAvailability.end && isValid(new Date(newAvailability.end))
+                                    ? format(new Date(newAvailability.end), "yyyy-MM-dd'T'HH:mm")
+                                    : ''
+                            }
                             onChange={handleInputChange}
                             required
                         />
