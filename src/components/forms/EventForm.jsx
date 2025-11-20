@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isAfter, format } from 'date-fns';
+import { isAfter, format, isValid } from 'date-fns';
 import Select, { components } from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
@@ -425,6 +425,21 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         <SiMicrosoftTeams size={30} />
                                         Online Teams Meeting
                                     </button>
+
+                                    {/* New: Display Teams Join URL if available */}
+                                    {newEvent.teamsJoinUrl && (
+                                        <div className="mt-2">
+                                            <a
+                                                href={newEvent.teamsJoinUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="d-flex align-items-center gap-1 text-decoration-none"
+                                            >
+                                                <SiMicrosoftTeams size={20} />
+                                                Join Teams Meeting
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="row">
@@ -441,10 +456,14 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 className="form-control"
                                                 name="start"
                                                 id="start"
-                                                value={format(
-                                                    new Date(newEvent.start),
-                                                    "yyyy-MM-dd'T'HH:mm",
-                                                )}
+                                                value={
+                                                    newEvent.start && isValid(new Date(newEvent.start))
+                                                        ? format(
+                                                              new Date(newEvent.start),
+                                                              "yyyy-MM-dd'T'HH:mm",
+                                                          )
+                                                        : ''
+                                                }
                                                 onChange={handleInputChange}
                                                 required
                                             />
@@ -463,10 +482,14 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 className="form-control"
                                                 name="end"
                                                 id="end"
-                                                value={format(
-                                                    new Date(newEvent.end),
-                                                    "yyyy-MM-dd'T'HH:mm",
-                                                )}
+                                                value={
+                                                    newEvent.end && isValid(new Date(newEvent.end))
+                                                        ? format(
+                                                              new Date(newEvent.end),
+                                                              "yyyy-MM-dd'T'HH:mm",
+                                                          )
+                                                        : ''
+                                                }
                                                 onChange={handleInputChange}
                                                 required
                                             />

@@ -1,5 +1,32 @@
 import { getSession } from 'next-auth/react';
 
+export const setTeamsMeetingAutoRecord = async (onlineMeetingId, accessToken) => {
+    try {
+        const URL = `https://graph.microsoft.com/v1.0/me/onlineMeetings/${onlineMeetingId}`;
+        const response = await fetch(URL, {
+            method: 'PATCH',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                recordAutomatically: true,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(
+                `Failed to set auto-record for Teams meeting: ${error.error?.message || response.statusText}`,
+            );
+        }
+        return true;
+    } catch (error) {
+        console.error('Error setting auto-record for Teams meeting:', error);
+        throw new Error(error.message || 'Failed to set auto-record for Teams meeting');
+    }
+};
+
 /**
  * Creates a MS Teams meeting via Microsoft Graph API (client-side)
  * @param {string} subject - Event title
@@ -35,11 +62,11 @@ export const createTeamsMeeting = async (
             },
             start: {
                 dateTime: startTime,
-                timeZone: 'UTC',
+                timeZone: 'Australia/Sydney',
             },
             end: {
                 dateTime: endTime,
-                timeZone: 'UTC',
+                timeZone: 'Australia/Sydney',
             },
             attendees: attendeesEmailArr.map((email) => ({
                 emailAddress: {
@@ -101,6 +128,14 @@ export const createTeamsMeeting = async (
         }
 
         const meeting = await response.json();
+
+        // Call the new helper function to set auto-recording in the background
+        if (meeting.onlineMeeting?.id) {
+            setTeamsMeetingAutoRecord(meeting.onlineMeeting.id, accessToken)
+                .catch(autoRecordError => {
+                    console.warn(`Could not set auto-recording for Teams meeting ${meeting.id}:`, autoRecordError.message);
+                });
+        }
         // Return the event ID for storage in Firestore
         return {
             teamsEventId: meeting.id,
@@ -137,11 +172,11 @@ export const updateTeamsMeeting = async (
             },
             start: {
                 dateTime: startTime,
-                timeZone: 'UTC',
+                timeZone: 'Australia/Sydney',
             },
             end: {
                 dateTime: endTime,
-                timeZone: 'UTC',
+                timeZone: 'Australia/Sydney',
             },
             attendees: attendeesEmailArr.map((email) => ({
                 emailAddress: {
@@ -390,11 +425,11 @@ export const updateTeamsMeetingOccurrence = async (
                 },
                 start: {
                     dateTime: startTime,
-                    timeZone: 'UTC',
+                    timeZone: 'Australia/Sydney',
                 },
                 end: {
                     dateTime: endTime,
-                    timeZone: 'UTC',
+                    timeZone: 'Australia/Sydney',
                 },
                 attendees: attendeesEmailArr.map((email) => ({
                     emailAddress: {
