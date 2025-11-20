@@ -1,9 +1,9 @@
-import PizZip from "pizzip";
-import Docxtemplater from "docxtemplater";
-import { adminDb } from "@/firestore/adminFirebase";
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
+import { adminDb } from '@/firestore/firestoreAdmin';
 
 export async function POST(req) {
-    const FRIDAY = 5
+    const FRIDAY = 5;
     try {
         const { tutorEmail, tutorName, hoursData, excludedHoursTotal = 0, role } = await req.json();
 
@@ -11,10 +11,13 @@ export async function POST(req) {
         const timesheetDoc = await adminDb.collection('timesheets').doc(tutorEmail).get();
 
         if (!timesheetDoc.exists) {
-            return new Response(JSON.stringify({ error: 'No timesheet template found for this tutor' }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return new Response(
+                JSON.stringify({ error: 'No timesheet template found for this tutor' }),
+                {
+                    status: 404,
+                    headers: { 'Content-Type': 'application/json' },
+                },
+            );
         }
 
         const timesheetData = timesheetDoc.data();
@@ -27,7 +30,7 @@ export async function POST(req) {
         const zip = new PizZip(buffer);
         const doc = new Docxtemplater(zip, {
             paragraphLoop: true,
-            linebreaks: true
+            linebreaks: true,
         });
 
         // 4. Compute week ending (this Friday)
@@ -37,7 +40,9 @@ export async function POST(req) {
         weekEnding.setDate(today.getDate() + diff);
 
         // 5. Calculate total hours (includes excluded short shifts)
-        const totalHours = Object.values(hoursData).reduce((a, b) => a + (parseFloat(b.total) || 0), 0) + excludedHoursTotal;
+        const totalHours =
+            Object.values(hoursData).reduce((a, b) => a + (parseFloat(b.total) || 0), 0) +
+            excludedHoursTotal;
 
         // 6. Prepare template data
         const templateData = {
@@ -76,20 +81,21 @@ export async function POST(req) {
         doc.render(templateData);
 
         // 8. Generate and return document
-        const outputBuffer = doc.getZip().generate({ type: "nodebuffer" });
+        const outputBuffer = doc.getZip().generate({ type: 'nodebuffer' });
 
         return new Response(outputBuffer, {
             status: 200,
             headers: {
-                'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'Content-Disposition': `attachment; filename="${tutorName}-timesheet.docx"`
-            }
+                'Content-Type':
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Disposition': `attachment; filename="${tutorName}-timesheet.docx"`,
+            },
         });
     } catch (error) {
         console.error('Error generating timesheet:', error);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
         });
     }
 }

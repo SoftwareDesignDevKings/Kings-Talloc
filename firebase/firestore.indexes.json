@@ -1,0 +1,89 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "events",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "end",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "events",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "students",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "events",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "staff",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "role",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "email",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tutorAvailabilities",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tutor",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "studentEventRequests",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "approvalStatus",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        }
+    ],
+    "fieldOverrides": []
+}

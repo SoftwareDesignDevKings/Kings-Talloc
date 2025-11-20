@@ -5,8 +5,8 @@ import LoginPage from '@/components/LoginPage.jsx';
 import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, Suspense, useRef } from 'react';
-import { signInWithCustomToken, signOut } from "firebase/auth";
-import { auth } from "@/firestore/clientFirestore";
+import { signInWithCustomToken, signOut } from 'firebase/auth';
+import { auth } from '@/firestore/firestoreClient';
 import { usePathname } from 'next/navigation';
 import AuthContext from '@/contexts/AuthContext';
 
@@ -20,7 +20,7 @@ import AuthContext from '@/contexts/AuthContext';
 const AuthProvider = ({ children }) => {
     const { data: session, status, update } = useSession();
     const [isLoading, setIsLoading] = useState(true);
-    const [userRole, setUserRole] = useState("student");
+    const [userRole, setUserRole] = useState('student');
     const pathname = usePathname();
     const tokenRefreshInterval = useRef(null);
 
@@ -32,19 +32,19 @@ const AuthProvider = ({ children }) => {
     useEffect(() => {
         const syncAuth = async () => {
             try {
-                if (status === "authenticated" && session?.user) {
+                if (status === 'authenticated' && session?.user) {
                     setUserRole(session.user.role);
                     await signInWithCustomToken(auth, session.user.firebaseToken);
 
                     setIsLoading(false);
                 }
 
-                if (status === "unauthenticated") {
+                if (status === 'unauthenticated') {
                     await signOut(auth).catch(() => {});
                     setIsLoading(false);
                 }
             } catch (err) {
-                console.log("Error in syncing auth: ", err);
+                console.log('Error in syncing auth: ', err);
                 setIsLoading(false);
             }
         };
@@ -54,7 +54,7 @@ const AuthProvider = ({ children }) => {
 
     // Auto-refresh Firebase token every 50 minutes
     useEffect(() => {
-        if (status === "authenticated" && !isPublicRoute) {
+        if (status === 'authenticated' && !isPublicRoute) {
             if (tokenRefreshInterval.current) {
                 clearInterval(tokenRefreshInterval.current);
             }
@@ -91,7 +91,7 @@ const AuthProvider = ({ children }) => {
     }
 
     if (isLoading) return <LoadingPage />;
-    if (status === "unauthenticated") return <LoginPage />;
+    if (status === 'unauthenticated') return <LoginPage />;
 
     return (
         <AuthContext.Provider value={{ session, status, userRole, loading: isLoading }}>
@@ -100,6 +100,6 @@ const AuthProvider = ({ children }) => {
             </Suspense>
         </AuthContext.Provider>
     );
-}
+};
 
 export default AuthProvider;

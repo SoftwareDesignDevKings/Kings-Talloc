@@ -4,11 +4,11 @@ import { redirect } from 'next/navigation';
 import LoginPage from '@components/LoginPage.jsx';
 
 export default async function Login() {
-  const session = await getServerSession();
+    const session = await getServerSession();
 
-  if (session) {
-    redirect('/dashboard');
-  }
+    if (session) {
+        redirect('/dashboard');
+    }
 
-  return <LoginPage />;
+    return <LoginPage />;
 }

@@ -1,6 +1,5 @@
-import { useContext } from "react";
-import AlertContext from "@/contexts/AlertContext";
-
+import { useContext } from 'react';
+import AlertContext from '@/contexts/AlertContext';
 
 /**
  * wrapper hook for useContext(AlertContext)

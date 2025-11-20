@@ -15,9 +15,7 @@ const AppSessionProvider = ({ children }) => {
     return (
         <SessionProvider>
             <AuthProvider>
-                <AlertProvider>
-                    {children}
-                </AlertProvider>
+                <AlertProvider>{children}</AlertProvider>
             </AuthProvider>
         </SessionProvider>
     );

@@ -23,12 +23,19 @@ const nextConfig = {
     },
     // Improve hot reload performance
     experimental: {
-        optimizePackageImports: ['react-bootstrap', 'react-big-calendar', 'firebase/firestore', 'firebase/auth', 'react-select'],
+        optimizePackageImports: [
+            'react-bootstrap',
+            'react-big-calendar',
+            'firebase/firestore',
+            'firebase/auth',
+            'react-select',
+        ],
     },
     // Speed up Fast Refresh
     reactStrictMode: false,
     compiler: {
-        removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+        removeConsole:
+            process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
     },
     modularizeImports: {
         'react-bootstrap': {

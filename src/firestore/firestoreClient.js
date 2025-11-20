@@ -1,6 +1,6 @@
 // firebase.js
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from "firebase/auth";
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -17,9 +17,9 @@ const firebaseConfig = {
 // optimise to prevent re-init for Next.js hot reload
 let app;
 if (getApps().length > 0) {
-	app = getApp();
+    app = getApp();
 } else {
-  	app = initializeApp(firebaseConfig);
+    app = initializeApp(firebaseConfig);
 }
 
 /**

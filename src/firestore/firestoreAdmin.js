@@ -1,12 +1,14 @@
-import admin from "firebase-admin";
+import admin from 'firebase-admin';
 
 // initialise Firebase Admin SDK
 if (!admin.apps.length) {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        console.log("FIREBASE_SERVICE_ACCOUNT_KEY is not set. Skipping Firebase Admin initialization.");
+        console.log(
+            'FIREBASE_SERVICE_ACCOUNT_KEY is not set. Skipping Firebase Admin initialization.',
+        );
     } else {
         const serviceAccount = JSON.parse(
-            Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, "base64").toString("utf8")
+            Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf8'),
         );
 
         admin.initializeApp({
