@@ -5,17 +5,27 @@ import { isAfter, add, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
+import {
+    updateEventInFirestore,
+    createEventInFirestore,
+    deleteEventFromFirestore,
+} from '@/firestore/firestoreOperations';
 
 const TutorAvailabilityForm = ({
     isEditing,
     newAvailability,
     setNewAvailability,
-    handleInputChange,
-    handleSubmit,
-    handleDelete,
+    eventToEdit,
     setShowModal,
+    eventsData,
 }) => {
     const [error, setError] = useState('');
+
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        const val = type === 'checkbox' ? checked : value;
+        setNewAvailability({ ...newAvailability, [name]: val });
+    };
 
     const locationOptions = [
         { value: 'onsite', label: 'Onsite' },
@@ -48,22 +58,66 @@ const TutorAvailabilityForm = ({
             setError('Invalid hours');
         }
     };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const availabilityData = {
+            title: newAvailability.title,
+            start: new Date(newAvailability.start),
+            end: new Date(newAvailability.end),
+            tutor: newAvailability.tutor,
+            workType: newAvailability.workType,
+            locationType: newAvailability.locationType,
+        };
+
+        try {
+            if (isEditing) {
+                await updateEventInFirestore(eventToEdit.id, availabilityData, 'tutorAvailabilities');
+                eventsData.setAvailabilities(
+                    eventsData.availabilities.map((availability) =>
+                        availability.id === eventToEdit.id
+                            ? { ...availabilityData, id: eventToEdit.id }
+                            : availability,
+                    ),
+                );
+            } else {
+                const docId = await createEventInFirestore(
+                    availabilityData,
+                    'tutorAvailabilities',
+                );
+                eventsData.setAvailabilities([
+                    ...eventsData.availabilities,
+                    { ...availabilityData, id: docId },
+                ]);
+            }
+            setShowModal(false);
+        } catch (error) {
+            console.error('Failed to submit availability:', error);
+            setError('Failed to submit availability');
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            await deleteEventFromFirestore(eventToEdit.id, 'tutorAvailabilities');
+            eventsData.setAvailabilities(
+                eventsData.availabilities.filter(
+                    (availability) => availability.id !== eventToEdit.id,
+                ),
+            );
+            setShowModal(false);
+        } catch (error) {
+            console.error('Failed to delete availability:', error);
+            setError('Failed to delete availability');
+        }
+    };
+
     const onSubmit = async (e) => {
         e.preventDefault();
         if (validateDates()) {
-            handleSubmit(e);
+            await handleSubmit(e);
         }
-
-        // await fetch("/api/send-event", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //     subject: "Math Tutoring - Year 10",
-        //     start: "2025-09-17T14:00:00",
-        //     end: "2025-09-17T15:00:00",
-        //     attendees: ["mmei@kings.edu.au", "vpatel@kings.edu.au", "eqsu@kings.edu.au"],
-        //   }),
-        // });
     };
 
     const handleLocationChange = (selectedOption) => {
