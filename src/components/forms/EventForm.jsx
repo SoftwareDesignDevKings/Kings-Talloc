@@ -166,7 +166,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                     });
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', eventToEdit);
                     setShowModal(false);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
@@ -218,7 +218,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                     }
                 } else {
                     await updateEventInFirestore(eventToEdit.id, eventData);
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', eventToEdit);
                     setShowModal(false);
 
                     // Handle Teams meeting update/delete

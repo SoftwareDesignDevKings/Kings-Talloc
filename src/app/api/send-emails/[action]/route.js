@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
-export async function GET(req, { params }) {
+export async function GET(_req, { params }) {
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
@@ -33,8 +33,6 @@ export async function GET(req, { params }) {
             status: 500,
         });
     }
-
-    const senderEmail = session.user.email;
 
     const generateEventRow = (event, index, totalEvents) => {
         const formattedDate = DateTime.fromJSDate(event.start.toDate(), { zone: 'utc' })
@@ -87,14 +85,14 @@ export async function GET(req, { params }) {
           </tr>
           <tr>
             <td style="padding: 32px 24px;">
-              <h2 style="margin: 0 0 8px 0; color: #212529; font-size: 20px; font-weight: 600;">New Events Assigned</h2>
+              <h2 style="margin: 0 0 8px 0; color: #212529; font-size: 20px; font-weight: 600;">Event Notifications</h2>
               <p style="margin: 0 0 24px 0; color: #6c757d; font-size: 14px; line-height: 1.5;">
-                You have been added to the following events. Please review the details below:
+                You have been added to the following events or your times have been adjusted. Please review the details below.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
                 ${eventRows}
               </table>
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #cff4fc; border: 1px solid #9eeaf9; border-radius: 4px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #cff4fc; border: 1px solid #9eeaf9; border-radius: 4px; margin-bottom: 16px;">
                 <tr>
                   <td style="padding: 12px 16px;">
                     <p style="margin: 0; color: #055160; font-size: 13px;">
@@ -103,6 +101,9 @@ export async function GET(req, { params }) {
                   </td>
                 </tr>
               </table>
+              <p style="margin: 0; color: #6c757d; font-size: 13px; line-height: 1.5;">
+                Any questions please email <a href="mailto:computing@kings.edu.au" style="color: #0d6efd; text-decoration: none;">computing@kings.edu.au</a>
+              </p>
             </td>
           </tr>
           <tr>
@@ -133,7 +134,7 @@ export async function GET(req, { params }) {
         }
 
         // Send all emails in parallel
-        const emailPromises = Array.from(tutorsMap.entries()).map(([tutorEmail, tutorEvents]) => {
+        const emailPromises = Array.from(tutorsMap.entries()).map(async ([tutorEmail, tutorEvents]) => {
             const emailBody = generateEmailHTML(tutorEvents);
 
             return fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
@@ -144,7 +145,7 @@ export async function GET(req, { params }) {
                 },
                 body: JSON.stringify({
                     message: {
-                        subject: 'New Talloc Assignments',
+                        subject: 'Talloc Event Notification',
                         body: {
                             contentType: 'HTML',
                             content: emailBody,
