@@ -164,13 +164,13 @@ const TutorAvailabilityForm = ({
                     : null
             }
         >
-            {error && <div className="alert alert-danger mb-3 py-2">{error}</div>}
+            {error && <div className="alert alert-danger mb-3 py-2" role="alert" aria-live="polite">{error}</div>}
 
             {/* Time Selection Card */}
             <div className="card mb-3" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
                 <div className="card-body p-3">
                     <div className="d-flex align-items-center mb-2">
-                        <MdAccessTime className="me-2 text-secondary" size={18} />
+                        <MdAccessTime className="me-2 text-secondary" size={18} aria-hidden="true" />
                         <small className="text-muted fw-semibold">Time Period</small>
                     </div>
 
@@ -190,6 +190,8 @@ const TutorAvailabilityForm = ({
                             }
                             onChange={handleInputChange}
                             required
+                            aria-label="Availability start time"
+                            aria-required="true"
                         />
                     </div>
 
@@ -209,16 +211,19 @@ const TutorAvailabilityForm = ({
                             }
                             onChange={handleInputChange}
                             required
+                            aria-label="Availability end time"
+                            aria-required="true"
                         />
                     </div>
 
                     <div className="d-flex gap-2 align-items-center mt-3">
-                        <small className="text-muted">Quick:</small>
-                        <div className="btn-group btn-group-sm" role="group">
+                        <small className="text-muted" id="quick-duration-label">Quick:</small>
+                        <div className="btn-group btn-group-sm" role="group" aria-labelledby="quick-duration-label">
                             <button
                                 type="button"
                                 className="btn btn-outline-primary"
                                 onClick={() => setHours(6)}
+                                aria-label="Set duration to 6 hours"
                             >
                                 6hrs
                             </button>
@@ -226,6 +231,7 @@ const TutorAvailabilityForm = ({
                                 type="button"
                                 className="btn btn-outline-secondary"
                                 onClick={() => setHours(3)}
+                                aria-label="Set duration to 3 hours"
                             >
                                 3hrs
                             </button>
@@ -240,7 +246,7 @@ const TutorAvailabilityForm = ({
                     <div className="card h-100" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
                         <div className="card-body p-2">
                             <div className="d-flex align-items-center mb-2">
-                                <MdWork className="me-1 text-secondary" size={16} />
+                                <MdWork className="me-1 text-secondary" size={16} aria-hidden="true" />
                                 <small className="text-muted fw-semibold">Type</small>
                             </div>
                             <Select
@@ -252,6 +258,8 @@ const TutorAvailabilityForm = ({
                                 onChange={handleWorkTypeChange}
                                 classNamePrefix="select"
                                 placeholder="Select type..."
+                                aria-label="Work type"
+                                inputId="workType"
                             />
                         </div>
                     </div>
@@ -260,7 +268,7 @@ const TutorAvailabilityForm = ({
                     <div className="card h-100" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
                         <div className="card-body p-2">
                             <div className="d-flex align-items-center mb-2">
-                                <MdLocationOn className="me-1 text-secondary" size={16} />
+                                <MdLocationOn className="me-1 text-secondary" size={16} aria-hidden="true" />
                                 <small className="text-muted fw-semibold">Location</small>
                             </div>
                             <Select
@@ -273,6 +281,8 @@ const TutorAvailabilityForm = ({
                                 classNamePrefix="select"
                                 placeholder="Select location..."
                                 required
+                                aria-label="Location type"
+                                inputId="locationType"
                             />
                         </div>
                     </div>

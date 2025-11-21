@@ -360,8 +360,9 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                 data-bs-toggle="collapse"
                                 data-bs-target="#eventDetails"
                                 aria-expanded="true"
+                                aria-controls="eventDetails"
                             >
-                                <MdEventNote className="me-2" /> Event Details
+                                <MdEventNote className="me-2" aria-hidden="true" /> Event Details
                             </button>
                         </h2>
                         <div
@@ -385,6 +386,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         value={newEvent.title}
                                         onChange={handleInputChange}
                                         disabled={readOnly}
+                                        aria-label="Event title"
+                                        aria-required="true"
                                     />
                                 </div>
 
@@ -403,6 +406,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         value={newEvent.description}
                                         onChange={handleInputChange}
                                         disabled={readOnly}
+                                        aria-label="Event description"
                                     />
                                 </div>
 
@@ -425,8 +429,10 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                       }
                                                     : { color: '#5059C9', borderColor: '#5059C9' }
                                             }
+                                            aria-pressed={newEvent.createTeamsMeeting}
+                                            aria-label={`${newEvent.createTeamsMeeting ? 'Remove' : 'Add'} online Teams meeting`}
                                         >
-                                            <SiMicrosoftTeams size={30} />
+                                            <SiMicrosoftTeams size={30} aria-hidden="true" />
                                             Online Teams Meeting
                                         </button>
                                     )}
@@ -472,6 +478,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 onChange={handleInputChange}
                                                 required
                                                 disabled={readOnly}
+                                                aria-label="Event start time"
+                                                aria-required="true"
                                             />
                                         </div>
                                     </div>
@@ -499,6 +507,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 onChange={handleInputChange}
                                                 required
                                                 disabled={readOnly}
+                                                aria-label="Event end time"
+                                                aria-required="true"
                                             />
                                         </div>
                                     </div>
@@ -506,8 +516,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
 
                                 {!readOnly && (
                                     <div className="d-flex gap-2 align-items-center mt-3">
-                                        <small className="text-muted">Recurring:</small>
-                                        <div className="btn-group btn-group-sm" role="group">
+                                        <small className="text-muted" id="recurring-label">Recurring:</small>
+                                        <div className="btn-group btn-group-sm" role="group" aria-labelledby="recurring-label">
                                             <button
                                                 type="button"
                                                 className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -520,6 +530,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                                 : 'weekly',
                                                     });
                                                 }}
+                                                aria-pressed={newEvent.recurring === 'weekly'}
+                                                aria-label="Repeat weekly"
                                             >
                                                 Repeat Weekly
                                             </button>
@@ -535,6 +547,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                                 : 'fortnightly',
                                                     });
                                                 }}
+                                                aria-pressed={newEvent.recurring === 'fortnightly'}
+                                                aria-label="Repeat fortnightly"
                                             >
                                                 Repeat Fortnightly
                                             </button>
@@ -554,8 +568,9 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                 data-bs-toggle="collapse"
                                 data-bs-target="#participants"
                                 aria-expanded="false"
+                                aria-controls="participants"
                             >
-                                <MdPeople className="me-2" /> Participants
+                                <MdPeople className="me-2" aria-hidden="true" /> Participants
                             </button>
                         </h2>
                         <div
@@ -583,6 +598,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                             SingleValue: customSingleValue,
                                         }}
                                         isDisabled={readOnly}
+                                        aria-label="Assign tutors to event"
+                                        inputId="staff"
                                     />
                                 </div>
 
@@ -601,6 +618,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         onChange={handleClassSelectChange}
                                         classNamePrefix="select"
                                         isDisabled={readOnly}
+                                        aria-label="Assign classes to event"
+                                        inputId="classes"
                                     />
                                 </div>
 
@@ -619,6 +638,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         onChange={handleStudentSelectChange}
                                         classNamePrefix="select"
                                         isDisabled={readOnly}
+                                        aria-label="Assign students to event"
+                                        inputId="students"
                                     />
                                 </div>
                             </div>
@@ -634,8 +655,9 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                 data-bs-toggle="collapse"
                                 data-bs-target="#settings"
                                 aria-expanded="false"
+                                aria-controls="settings"
                             >
-                                <MdSettings className="me-2" /> Settings & Status
+                                <MdSettings className="me-2" aria-hidden="true" /> Settings & Status
                             </button>
                         </h2>
                         <div
@@ -659,6 +681,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         value={newEvent.minStudents || 0}
                                         onChange={handleMinStudentsChange}
                                         disabled={readOnly}
+                                        aria-label="Minimum number of students required"
+                                        min="0"
                                     />
                                 </div>
 
@@ -714,6 +738,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 option.value === (newEvent.workType || 'tutoring'),
                                         )}
                                         isDisabled={readOnly}
+                                        aria-label="Event work type"
+                                        inputId="workType"
                                     />
                                 </div>
 
@@ -740,6 +766,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 (newEvent.workStatus || 'notCompleted'),
                                         )}
                                         isDisabled={readOnly}
+                                        aria-label="Event work status"
+                                        inputId="workStatus"
                                     />
                                 </div>
                             </div>
@@ -756,8 +784,9 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                     data-bs-toggle="collapse"
                                     data-bs-target="#studentRequest"
                                     aria-expanded="false"
+                                    aria-controls="studentRequest"
                                 >
-                                    <MdNoteAlt className="me-2" /> Student Request
+                                    <MdNoteAlt className="me-2" aria-hidden="true" /> Student Request
                                 </button>
                             </h2>
                             <div
@@ -808,6 +837,8 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                       : null
                                             }
                                             isDisabled={readOnly}
+                                            aria-label="Student request approval status"
+                                            inputId="approvalStatus"
                                         />
                                     </div>
                                 </div>
