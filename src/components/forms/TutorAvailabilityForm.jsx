@@ -166,19 +166,11 @@ const TutorAvailabilityForm = ({
         >
             {error && <div className="alert alert-danger mb-3 py-2">{error}</div>}
 
-            {/* Summary badges */}
-            {(newAvailability.workType || newAvailability.locationType) && (
-                <div className="mb-3 pb-2 border-bottom">
-                    {getWorkTypeBadge()}
-                    {getLocationBadge()}
-                </div>
-            )}
-
             {/* Time Selection Card */}
-            <div className="card mb-3 border-primary" style={{ borderWidth: '2px' }}>
+            <div className="card mb-3" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
                 <div className="card-body p-3">
                     <div className="d-flex align-items-center mb-2">
-                        <MdAccessTime className="me-2 text-primary" size={18} />
+                        <MdAccessTime className="me-2 text-secondary" size={18} />
                         <small className="text-muted fw-semibold">Time Period</small>
                     </div>
 
@@ -220,7 +212,7 @@ const TutorAvailabilityForm = ({
                         />
                     </div>
 
-                    <div className="d-flex gap-2 align-items-center">
+                    <div className="d-flex gap-2 align-items-center mt-3">
                         <small className="text-muted">Quick:</small>
                         <div className="btn-group btn-group-sm" role="group">
                             <button
@@ -245,10 +237,10 @@ const TutorAvailabilityForm = ({
             {/* Work Type & Location */}
             <div className="row g-2">
                 <div className="col-6">
-                    <div className="card h-100 border-info" style={{ borderWidth: '2px' }}>
+                    <div className="card h-100" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
                         <div className="card-body p-2">
                             <div className="d-flex align-items-center mb-2">
-                                <MdWork className="me-1 text-info" size={16} />
+                                <MdWork className="me-1 text-secondary" size={16} />
                                 <small className="text-muted fw-semibold">Type</small>
                             </div>
                             <Select
@@ -265,10 +257,10 @@ const TutorAvailabilityForm = ({
                     </div>
                 </div>
                 <div className="col-6">
-                    <div className="card h-100 border-success" style={{ borderWidth: '2px' }}>
+                    <div className="card h-100" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
                         <div className="card-body p-2">
                             <div className="d-flex align-items-center mb-2">
-                                <MdLocationOn className="me-1 text-success" size={16} />
+                                <MdLocationOn className="me-1 text-secondary" size={16} />
                                 <small className="text-muted fw-semibold">Location</small>
                             </div>
                             <Select

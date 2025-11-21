@@ -111,35 +111,25 @@ const BaseModal = ({
                                         {customFooter ? (
                                             customFooter
                                         ) : (
-                                            <>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-secondary"
-                                                    onClick={onHide}
-                                                    disabled={loading}
-                                                >
-                                                    {cancelText}
-                                                </button>
-                                                <div className="d-flex gap-2">
-                                                    {deleteButton && (
-                                                        <button
-                                                            type="button"
-                                                            className={`btn btn-${deleteButton.variant || 'danger'}`}
-                                                            onClick={deleteButton.onClick}
-                                                            disabled={disabled || loading}
-                                                        >
-                                                            {deleteButton.text || 'Delete'}
-                                                        </button>
-                                                    )}
+                                            <div className="d-flex gap-2">
+                                                {deleteButton && (
                                                     <button
-                                                        type="submit"
-                                                        className="btn btn-primary"
+                                                        type="button"
+                                                        className={`btn btn-${deleteButton.variant || 'danger'}`}
+                                                        onClick={deleteButton.onClick}
                                                         disabled={disabled || loading}
                                                     >
-                                                        {getSubmitButtonText()}
+                                                        {deleteButton.text || 'Delete'}
                                                     </button>
-                                                </div>
-                                            </>
+                                                )}
+                                                <button
+                                                    type="submit"
+                                                    className="btn btn-primary"
+                                                    disabled={disabled || loading}
+                                                >
+                                                    {getSubmitButtonText()}
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -148,20 +138,9 @@ const BaseModal = ({
                             <>
                                 <div className="modal-body">{children}</div>
 
-                                {showFooter && (
+                                {showFooter && customFooter && (
                                     <div className="modal-footer">
-                                        {customFooter ? (
-                                            customFooter
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                className="btn btn-secondary"
-                                                onClick={onHide}
-                                                disabled={loading}
-                                            >
-                                                {cancelText}
-                                            </button>
-                                        )}
+                                        {customFooter}
                                     </div>
                                 )}
                             </>
