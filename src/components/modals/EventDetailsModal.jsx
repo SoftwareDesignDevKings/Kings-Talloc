@@ -3,7 +3,7 @@
 import React from 'react';
 import EventForm from '../forms/EventForm.jsx';
 
-const EventDetailsModal = ({ event, onClose, events, setEvents }) => {
+const EventDetailsModal = ({ event, onClose, events, setEvents, userRole }) => {
     return (
         <EventForm
             isEditing={true}
@@ -12,7 +12,8 @@ const EventDetailsModal = ({ event, onClose, events, setEvents }) => {
             eventToEdit={event}
             setShowModal={onClose}
             eventsData={{ events, setEvents }}
-            readOnly={true}
+            readOnly={userRole === 'student'}
+            userRole={userRole}
         />
     );
 };

@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isAfter, format, isValid } from 'date-fns';
-import Select, { components } from 'react-select';
+import { isAfter } from 'date-fns';
+import { components } from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
+import EventDetailsSection from './EventFormSections/EventDetailsSection.jsx';
+import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
+import SettingsSection from './EventFormSections/SettingsSection.jsx';
+import StudentRequestSection from './EventFormSections/StudentRequestSection.jsx';
 import { useEventFormData } from './useEventFormData';
 import {
     calendarEventHandleDelete,
@@ -24,22 +28,9 @@ import {
     addEventException,
 } from '@/firestore/firestoreOperations';
 import { addWeeks } from 'date-fns';
-import {
-    MdEventNote,
-    MdPeople,
-    MdSettings,
-    MdNoteAlt,
-    MdAccessTime,
-    MdSchool,
-    MdMenuBook,
-    MdFlag,
-    FaChalkboardTeacher,
-    FaUserGraduate,
-    SiMicrosoftTeams,
-} from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 
-const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData, readOnly = false }) => {
+const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData, readOnly = false, userRole }) => {
     const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
@@ -330,17 +321,21 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
         );
     };
 
+    // Determine if tutor can only edit work status
+    const isTutorReadOnly = userRole === 'tutor' && isEditing;
+    const canEditWorkStatus = userRole === 'tutor' || !readOnly;
+
     return (
         <>
             <BaseModal
                 show={!showDeleteConfirm}
                 onHide={() => setShowModal(false)}
-                title={readOnly ? 'Event Details' : (isEditing ? 'Edit Event' : 'Add New Event')}
+                title={readOnly ? 'Event Details' : (isTutorReadOnly ? 'Event Details' : (isEditing ? 'Edit Event' : 'Add New Event'))}
                 size="lg"
                 onSubmit={readOnly ? undefined : onSubmit}
-                submitText={isEditing ? 'Save Changes' : 'Add Event'}
+                submitText={isTutorReadOnly ? 'Update Status' : (isEditing ? 'Save Changes' : 'Add Event')}
                 deleteButton={
-                    isEditing && !readOnly
+                    isEditing && !readOnly && !isTutorReadOnly
                         ? {
                               text: 'Delete',
                               onClick: handleDeleteClick,
@@ -351,500 +346,46 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                 showFooter={!readOnly}
             >
                 <div className="accordion" id="eventFormAccordion">
-                    {/* Event Details Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button
-                                className="accordion-button"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#eventDetails"
-                                aria-expanded="true"
-                                aria-controls="eventDetails"
-                            >
-                                <MdEventNote className="me-2" aria-hidden="true" /> Event Details
-                            </button>
-                        </h2>
-                        <div
-                            id="eventDetails"
-                            className="accordion-collapse collapse show"
-                            data-bs-parent="#eventFormAccordion"
-                        >
-                            <div className="accordion-body">
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="title"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Title
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        name="title"
-                                        id="title"
-                                        value={newEvent.title}
-                                        onChange={handleInputChange}
-                                        disabled={readOnly}
-                                        aria-label="Event title"
-                                        aria-required="true"
-                                    />
-                                </div>
+                    <EventDetailsSection
+                        newEvent={newEvent}
+                        setNewEvent={setNewEvent}
+                        handleInputChange={handleInputChange}
+                        readOnly={readOnly || isTutorReadOnly}
+                        userRole={userRole}
+                    />
 
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="description"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Description
-                                    </label>
-                                    <textarea
-                                        className="form-control"
-                                        rows={2}
-                                        name="description"
-                                        id="description"
-                                        value={newEvent.description}
-                                        onChange={handleInputChange}
-                                        disabled={readOnly}
-                                        aria-label="Event description"
-                                    />
-                                </div>
+                    <ParticipantsSection
+                        selectedStaff={selectedStaff}
+                        handleStaffSelectChange={handleStaffSelectChange}
+                        staffOptions={staffOptions}
+                        customOption={customOption}
+                        customSingleValue={customSingleValue}
+                        selectedClasses={selectedClasses}
+                        handleClassSelectChange={handleClassSelectChange}
+                        classOptions={classOptions}
+                        selectedStudents={selectedStudents}
+                        handleStudentSelectChange={handleStudentSelectChange}
+                        studentOptions={studentOptions}
+                        readOnly={readOnly || isTutorReadOnly}
+                    />
 
-                                <div className="mb-3">
-                                    {!readOnly && (
-                                        <button
-                                            type="button"
-                                            className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() =>
-                                                setNewEvent({
-                                                    ...newEvent,
-                                                    createTeamsMeeting: !newEvent.createTeamsMeeting,
-                                                })
-                                            }
-                                            style={
-                                                newEvent.createTeamsMeeting
-                                                    ? {
-                                                          backgroundColor: '#5059C9',
-                                                          borderColor: '#5059C9',
-                                                      }
-                                                    : { color: '#5059C9', borderColor: '#5059C9' }
-                                            }
-                                            aria-pressed={newEvent.createTeamsMeeting}
-                                            aria-label={`${newEvent.createTeamsMeeting ? 'Remove' : 'Add'} online Teams meeting`}
-                                        >
-                                            <SiMicrosoftTeams size={30} aria-hidden="true" />
-                                            Online Teams Meeting
-                                        </button>
-                                    )}
+                    <SettingsSection
+                        newEvent={newEvent}
+                        setNewEvent={setNewEvent}
+                        handleMinStudentsChange={handleMinStudentsChange}
+                        workTypeOptions={workTypeOptions}
+                        workStatusOptions={workStatusOptions}
+                        readOnly={readOnly}
+                        canEditWorkStatus={canEditWorkStatus}
+                        isTutorReadOnly={isTutorReadOnly}
+                    />
 
-                                    {/* New: Display Teams Join URL if available */}
-                                    {newEvent.teamsJoinUrl && (
-                                        <div className={readOnly ? '' : 'mt-2'}>
-                                            <a
-                                                href={newEvent.teamsJoinUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="d-flex align-items-center gap-1 text-decoration-none"
-                                            >
-                                                <SiMicrosoftTeams size={20} />
-                                                Join Teams Meeting
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <div className="mb-3">
-                                            <label
-                                                htmlFor="start"
-                                                className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                            >
-                                                <MdAccessTime /> Start Time
-                                            </label>
-                                            <input
-                                                type="datetime-local"
-                                                className="form-control"
-                                                name="start"
-                                                id="start"
-                                                value={
-                                                    newEvent.start && isValid(new Date(newEvent.start))
-                                                        ? format(
-                                                              new Date(newEvent.start),
-                                                              "yyyy-MM-dd'T'HH:mm",
-                                                          )
-                                                        : ''
-                                                }
-                                                onChange={handleInputChange}
-                                                required
-                                                disabled={readOnly}
-                                                aria-label="Event start time"
-                                                aria-required="true"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="mb-0">
-                                            <label
-                                                htmlFor="end"
-                                                className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                            >
-                                                <MdAccessTime /> End Time
-                                            </label>
-                                            <input
-                                                type="datetime-local"
-                                                className="form-control"
-                                                name="end"
-                                                id="end"
-                                                value={
-                                                    newEvent.end && isValid(new Date(newEvent.end))
-                                                        ? format(
-                                                              new Date(newEvent.end),
-                                                              "yyyy-MM-dd'T'HH:mm",
-                                                          )
-                                                        : ''
-                                                }
-                                                onChange={handleInputChange}
-                                                required
-                                                disabled={readOnly}
-                                                aria-label="Event end time"
-                                                aria-required="true"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {!readOnly && (
-                                    <div className="d-flex gap-2 align-items-center mt-3">
-                                        <small className="text-muted" id="recurring-label">Recurring:</small>
-                                        <div className="btn-group btn-group-sm" role="group" aria-labelledby="recurring-label">
-                                            <button
-                                                type="button"
-                                                className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                                onClick={() => {
-                                                    setNewEvent({
-                                                        ...newEvent,
-                                                        recurring:
-                                                            newEvent.recurring === 'weekly'
-                                                                ? null
-                                                                : 'weekly',
-                                                    });
-                                                }}
-                                                aria-pressed={newEvent.recurring === 'weekly'}
-                                                aria-label="Repeat weekly"
-                                            >
-                                                Repeat Weekly
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                                onClick={() => {
-                                                    setNewEvent({
-                                                        ...newEvent,
-                                                        recurring:
-                                                            newEvent.recurring === 'fortnightly'
-                                                                ? null
-                                                                : 'fortnightly',
-                                                    });
-                                                }}
-                                                aria-pressed={newEvent.recurring === 'fortnightly'}
-                                                aria-label="Repeat fortnightly"
-                                            >
-                                                Repeat Fortnightly
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Participants Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button
-                                className="accordion-button collapsed"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#participants"
-                                aria-expanded="false"
-                                aria-controls="participants"
-                            >
-                                <MdPeople className="me-2" aria-hidden="true" /> Participants
-                            </button>
-                        </h2>
-                        <div
-                            id="participants"
-                            className="accordion-collapse collapse"
-                            data-bs-parent="#eventFormAccordion"
-                        >
-                            <div className="accordion-body">
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="staff"
-                                        className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                    >
-                                        <FaChalkboardTeacher /> Assign Tutor
-                                    </label>
-                                    <Select
-                                        isMulti
-                                        name="tutor"
-                                        options={staffOptions}
-                                        value={selectedStaff}
-                                        onChange={handleStaffSelectChange}
-                                        classNamePrefix="select"
-                                        components={{
-                                            Option: customOption,
-                                            SingleValue: customSingleValue,
-                                        }}
-                                        isDisabled={readOnly}
-                                        aria-label="Assign tutors to event"
-                                        inputId="staff"
-                                    />
-                                </div>
-
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="classes"
-                                        className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                    >
-                                        <MdSchool /> Assign Classes
-                                    </label>
-                                    <Select
-                                        isMulti
-                                        name="classes"
-                                        options={classOptions}
-                                        value={selectedClasses}
-                                        onChange={handleClassSelectChange}
-                                        classNamePrefix="select"
-                                        isDisabled={readOnly}
-                                        aria-label="Assign classes to event"
-                                        inputId="classes"
-                                    />
-                                </div>
-
-                                <div className="mb-0">
-                                    <label
-                                        htmlFor="students"
-                                        className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                    >
-                                        <FaUserGraduate /> Assign Students
-                                    </label>
-                                    <Select
-                                        isMulti
-                                        name="students"
-                                        options={studentOptions}
-                                        value={selectedStudents}
-                                        onChange={handleStudentSelectChange}
-                                        classNamePrefix="select"
-                                        isDisabled={readOnly}
-                                        aria-label="Assign students to event"
-                                        inputId="students"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Settings & Status Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button
-                                className="accordion-button collapsed"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#settings"
-                                aria-expanded="false"
-                                aria-controls="settings"
-                            >
-                                <MdSettings className="me-2" aria-hidden="true" /> Settings & Status
-                            </button>
-                        </h2>
-                        <div
-                            id="settings"
-                            className="accordion-collapse collapse"
-                            data-bs-parent="#eventFormAccordion"
-                        >
-                            <div className="accordion-body">
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="minStudents"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Minimum Students Required
-                                    </label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        name="minStudents"
-                                        id="minStudents"
-                                        value={newEvent.minStudents || 0}
-                                        onChange={handleMinStudentsChange}
-                                        disabled={readOnly}
-                                        aria-label="Minimum number of students required"
-                                        min="0"
-                                    />
-                                </div>
-
-                                {newEvent.minStudents > 0 && (
-                                    <div className="mb-3">
-                                        <small className="text-muted d-block mb-2">
-                                            Student Responses
-                                        </small>
-                                        {newEvent.studentResponses &&
-                                        newEvent.studentResponses.length > 0 ? (
-                                            <div className="d-flex flex-wrap gap-1">
-                                                {newEvent.studentResponses.map(
-                                                    (response, index) => (
-                                                        <span
-                                                            key={index}
-                                                            className={`badge bg-${response.response ? 'success' : 'danger'} fw-normal`}
-                                                        >
-                                                            {response.email}:{' '}
-                                                            {response.response
-                                                                ? 'Accepted'
-                                                                : 'Declined'}
-                                                        </span>
-                                                    ),
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <p className="text-muted mb-0 small fst-italic">
-                                                No responses yet
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="workType"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Work Type
-                                    </label>
-                                    <Select
-                                        name="workType"
-                                        options={workTypeOptions}
-                                        onChange={(selectedOption) =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                workType: selectedOption.value,
-                                            })
-                                        }
-                                        classNamePrefix="select"
-                                        value={workTypeOptions.find(
-                                            (option) =>
-                                                option.value === (newEvent.workType || 'tutoring'),
-                                        )}
-                                        isDisabled={readOnly}
-                                        aria-label="Event work type"
-                                        inputId="workType"
-                                    />
-                                </div>
-
-                                <div className="mb-0">
-                                    <label
-                                        htmlFor="workStatus"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Work Status
-                                    </label>
-                                    <Select
-                                        name="workStatus"
-                                        options={workStatusOptions}
-                                        onChange={(selectedOption) =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                workStatus: selectedOption.value,
-                                            })
-                                        }
-                                        classNamePrefix="select"
-                                        value={workStatusOptions.find(
-                                            (option) =>
-                                                option.value ===
-                                                (newEvent.workStatus || 'notCompleted'),
-                                        )}
-                                        isDisabled={readOnly}
-                                        aria-label="Event work status"
-                                        inputId="workStatus"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Student Request Section */}
-                    {newEvent.createdByStudent && (
-                        <div className="accordion-item">
-                            <h2 className="accordion-header">
-                                <button
-                                    className="accordion-button collapsed"
-                                    type="button"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#studentRequest"
-                                    aria-expanded="false"
-                                    aria-controls="studentRequest"
-                                >
-                                    <MdNoteAlt className="me-2" aria-hidden="true" /> Student Request
-                                </button>
-                            </h2>
-                            <div
-                                id="studentRequest"
-                                className="accordion-collapse collapse"
-                                data-bs-parent="#eventFormAccordion"
-                            >
-                                <div className="accordion-body">
-                                    {newEvent.subject && (
-                                        <div className="mb-2">
-                                            <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
-                                                <MdMenuBook /> Subject
-                                            </small>
-                                            <span className="badge bg-secondary fw-normal">
-                                                {newEvent.subject.label || newEvent.subject}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {newEvent.preference && (
-                                        <div className="mb-3">
-                                            <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
-                                                <MdFlag /> Preference
-                                            </small>
-                                            <span className="badge bg-primary fw-normal">
-                                                {newEvent.preference}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    <div className="mb-0">
-                                        <label
-                                            htmlFor="approvalStatus"
-                                            className="form-label small text-muted mb-1"
-                                        >
-                                            Approval Status
-                                        </label>
-                                        <Select
-                                            name="approvalStatus"
-                                            options={approvalOptions}
-                                            onChange={handleApprovalChange}
-                                            classNamePrefix="select"
-                                            defaultValue={
-                                                newEvent.approvalStatus === 'approved'
-                                                    ? { value: 'approved', label: 'Approve' }
-                                                    : newEvent.approvalStatus === 'denied'
-                                                      ? { value: 'denied', label: 'Deny' }
-                                                      : null
-                                            }
-                                            isDisabled={readOnly}
-                                            aria-label="Student request approval status"
-                                            inputId="approvalStatus"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <StudentRequestSection
+                        newEvent={newEvent}
+                        handleApprovalChange={handleApprovalChange}
+                        approvalOptions={approvalOptions}
+                        readOnly={readOnly || isTutorReadOnly}
+                    />
                 </div>
             </BaseModal>
 
