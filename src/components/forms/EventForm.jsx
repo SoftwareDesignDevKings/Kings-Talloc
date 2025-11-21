@@ -39,7 +39,7 @@ import {
 } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 
-const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData }) => {
+const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData, readOnly = false }) => {
     const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
@@ -335,12 +335,12 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
             <BaseModal
                 show={!showDeleteConfirm}
                 onHide={() => setShowModal(false)}
-                title={isEditing ? 'Edit Event' : 'Add New Event'}
+                title={readOnly ? 'Event Details' : (isEditing ? 'Edit Event' : 'Add New Event')}
                 size="lg"
-                onSubmit={onSubmit}
+                onSubmit={readOnly ? undefined : onSubmit}
                 submitText={isEditing ? 'Save Changes' : 'Add Event'}
                 deleteButton={
-                    isEditing
+                    isEditing && !readOnly
                         ? {
                               text: 'Delete',
                               onClick: handleDeleteClick,
@@ -348,6 +348,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                           }
                         : null
                 }
+                showFooter={!readOnly}
             >
                 <div className="accordion" id="eventFormAccordion">
                     {/* Event Details Section */}
@@ -383,6 +384,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         id="title"
                                         value={newEvent.title}
                                         onChange={handleInputChange}
+                                        disabled={readOnly}
                                     />
                                 </div>
 
@@ -400,35 +402,38 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         id="description"
                                         value={newEvent.description}
                                         onChange={handleInputChange}
+                                        disabled={readOnly}
                                     />
                                 </div>
 
                                 <div className="mb-3">
-                                    <button
-                                        type="button"
-                                        className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
-                                        onClick={() =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                createTeamsMeeting: !newEvent.createTeamsMeeting,
-                                            })
-                                        }
-                                        style={
-                                            newEvent.createTeamsMeeting
-                                                ? {
-                                                      backgroundColor: '#5059C9',
-                                                      borderColor: '#5059C9',
-                                                  }
-                                                : { color: '#5059C9', borderColor: '#5059C9' }
-                                        }
-                                    >
-                                        <SiMicrosoftTeams size={30} />
-                                        Online Teams Meeting
-                                    </button>
+                                    {!readOnly && (
+                                        <button
+                                            type="button"
+                                            className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() =>
+                                                setNewEvent({
+                                                    ...newEvent,
+                                                    createTeamsMeeting: !newEvent.createTeamsMeeting,
+                                                })
+                                            }
+                                            style={
+                                                newEvent.createTeamsMeeting
+                                                    ? {
+                                                          backgroundColor: '#5059C9',
+                                                          borderColor: '#5059C9',
+                                                      }
+                                                    : { color: '#5059C9', borderColor: '#5059C9' }
+                                            }
+                                        >
+                                            <SiMicrosoftTeams size={30} />
+                                            Online Teams Meeting
+                                        </button>
+                                    )}
 
                                     {/* New: Display Teams Join URL if available */}
                                     {newEvent.teamsJoinUrl && (
-                                        <div className="mt-2">
+                                        <div className={readOnly ? '' : 'mt-2'}>
                                             <a
                                                 href={newEvent.teamsJoinUrl}
                                                 target="_blank"
@@ -466,6 +471,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 }
                                                 onChange={handleInputChange}
                                                 required
+                                                disabled={readOnly}
                                             />
                                         </div>
                                     </div>
@@ -492,46 +498,49 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 }
                                                 onChange={handleInputChange}
                                                 required
+                                                disabled={readOnly}
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="d-flex gap-2 align-items-center mt-3">
-                                    <small className="text-muted">Recurring:</small>
-                                    <div className="btn-group btn-group-sm" role="group">
-                                        <button
-                                            type="button"
-                                            className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => {
-                                                setNewEvent({
-                                                    ...newEvent,
-                                                    recurring:
-                                                        newEvent.recurring === 'weekly'
-                                                            ? null
-                                                            : 'weekly',
-                                                });
-                                            }}
-                                        >
-                                            Repeat Weekly
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                            onClick={() => {
-                                                setNewEvent({
-                                                    ...newEvent,
-                                                    recurring:
-                                                        newEvent.recurring === 'fortnightly'
-                                                            ? null
-                                                            : 'fortnightly',
-                                                });
-                                            }}
-                                        >
-                                            Repeat Fortnightly
-                                        </button>
+                                {!readOnly && (
+                                    <div className="d-flex gap-2 align-items-center mt-3">
+                                        <small className="text-muted">Recurring:</small>
+                                        <div className="btn-group btn-group-sm" role="group">
+                                            <button
+                                                type="button"
+                                                className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => {
+                                                    setNewEvent({
+                                                        ...newEvent,
+                                                        recurring:
+                                                            newEvent.recurring === 'weekly'
+                                                                ? null
+                                                                : 'weekly',
+                                                    });
+                                                }}
+                                            >
+                                                Repeat Weekly
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                                                onClick={() => {
+                                                    setNewEvent({
+                                                        ...newEvent,
+                                                        recurring:
+                                                            newEvent.recurring === 'fortnightly'
+                                                                ? null
+                                                                : 'fortnightly',
+                                                    });
+                                                }}
+                                            >
+                                                Repeat Fortnightly
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -573,6 +582,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                             Option: customOption,
                                             SingleValue: customSingleValue,
                                         }}
+                                        isDisabled={readOnly}
                                     />
                                 </div>
 
@@ -590,6 +600,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         value={selectedClasses}
                                         onChange={handleClassSelectChange}
                                         classNamePrefix="select"
+                                        isDisabled={readOnly}
                                     />
                                 </div>
 
@@ -607,6 +618,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         value={selectedStudents}
                                         onChange={handleStudentSelectChange}
                                         classNamePrefix="select"
+                                        isDisabled={readOnly}
                                     />
                                 </div>
                             </div>
@@ -646,6 +658,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                         id="minStudents"
                                         value={newEvent.minStudents || 0}
                                         onChange={handleMinStudentsChange}
+                                        disabled={readOnly}
                                     />
                                 </div>
 
@@ -700,6 +713,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                             (option) =>
                                                 option.value === (newEvent.workType || 'tutoring'),
                                         )}
+                                        isDisabled={readOnly}
                                     />
                                 </div>
 
@@ -725,6 +739,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                 option.value ===
                                                 (newEvent.workStatus || 'notCompleted'),
                                         )}
+                                        isDisabled={readOnly}
                                     />
                                 </div>
                             </div>
@@ -792,6 +807,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                                                       ? { value: 'denied', label: 'Deny' }
                                                       : null
                                             }
+                                            isDisabled={readOnly}
                                         />
                                     </div>
                                 </div>
