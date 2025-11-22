@@ -160,12 +160,11 @@ export const calendarEventFilter = (allEvents, { userRole, userEmail, filters })
     }
 
     if (userRole === 'teacher') {
-        if (!visibility?.showTutoringEvents && !visibility?.showCoachingEvents) {
-            filtered = [];
-        } else if (!visibility?.showTutoringEvents) {
-            filtered = filtered.filter((event) => event.workType === 'coaching');
-        } else if (!visibility?.showCoachingEvents) {
-            filtered = filtered.filter((event) => event.workType === 'tutoring');
+        if (!visibility?.showTutoringEvents) {
+            filtered = filtered.filter((event) => event.workType !== 'tutoring');
+        }
+        if (!visibility?.showCoachingEvents) {
+            filtered = filtered.filter((event) => event.workType !== 'coaching');
         }
     }
 
