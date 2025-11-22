@@ -38,21 +38,19 @@ export const setTeamsMeetingAutoRecord = async (onlineMeetingId, accessToken) =>
  * @param {string} recurrenceOptions.recurring - 'weekly' or 'fortnightly'
  * @param {Date} recurrenceOptions.until - End date for recurrence
  */
-export const createTeamsMeeting = async (
-    subject,
-    description,
-    startTime,
-    endTime,
-    attendeesEmailArr,
-    recurrenceOptions = null,
-) => {
+export const createTeamsMeeting = async (subject, description, startTime, endTime, attendeesEmailArr, recurrenceOptions = null,) => {
+
     try {
         const session = await getSession();
+
         const accessToken = session?.user?.microsoftAccessToken;
 
         if (!accessToken) {
+            console.error('[msTeams] No access token found in session');
             throw new Error('Microsoft access token not found');
         }
+
+        console.log('[msTeams] Access token found, building event body...');
 
         const eventBody = {
             subject: subject,
@@ -78,12 +76,12 @@ export const createTeamsMeeting = async (
             onlineMeetingProvider: 'teamsForBusiness',
         };
 
-        // Add recurrence if specified
+
         if (recurrenceOptions && recurrenceOptions.recurring) {
             const startDate = new Date(startTime);
             const endDate = recurrenceOptions.until || new Date(startDate);
             if (!recurrenceOptions.until) {
-                endDate.setMonth(endDate.getMonth() + 3); // Default 3 months
+                endDate.setMonth(endDate.getMonth() + 3);
             }
 
             eventBody.recurrence = {
@@ -128,12 +126,11 @@ export const createTeamsMeeting = async (
         }
 
         const meeting = await response.json();
-
         // Call the new helper function to set auto-recording in the background
         if (meeting.onlineMeeting?.id) {
             setTeamsMeetingAutoRecord(meeting.onlineMeeting.id, accessToken)
                 .catch(autoRecordError => {
-                    console.warn(`Could not set auto-recording for Teams meeting ${meeting.id}:`, autoRecordError.message);
+                    console.warn(`[msTeams] Could not set auto-recording for Teams meeting ${meeting.id}:`, autoRecordError.message);
                 });
         }
         // Return the event ID for storage in Firestore
@@ -142,20 +139,12 @@ export const createTeamsMeeting = async (
             joinUrl: meeting.onlineMeeting?.joinUrl,
         };
     } catch (error) {
-        console.error('Error creating Teams meeting:', error);
+        console.error('[msTeams] Error creating Teams meeting:', error);
         throw new Error(error.message || 'Failed to create Teams meeting');
     }
 };
 
-export const updateTeamsMeeting = async (
-    eventId,
-    subject,
-    description,
-    startTime,
-    endTime,
-    attendeesEmailArr,
-    recurrenceOptions = null,
-) => {
+export const updateTeamsMeeting = async (eventId, subject, description, startTime, endTime, attendeesEmailArr, recurrenceOptions = null,) => {
     try {
         const session = await getSession();
         const accessToken = session?.user?.microsoftAccessToken;

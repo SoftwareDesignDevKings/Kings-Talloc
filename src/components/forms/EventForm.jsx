@@ -154,16 +154,26 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
         try {
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
+                    // Automatically create Teams meeting for approved student requests
+                    eventData.createTeamsMeeting = true;
+
+                    console.log('Approving student request and creating event with data:', eventData);
+
                     await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
                     const docId = await createEventInFirestore(eventData);
+                    console.log('Created event with ID:', docId);
+
                     await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
-                    setShowModal(false);
 
                     // Handle Teams meeting creation
+                    console.log('Attempting to create Teams meeting...');
                     await calendarEventCreateTeamsMeeting(docId, eventData, {
                         setAlertType,
                         setAlertMessage,
                     });
+                    console.log('Teams meeting creation call completed');
+
+                    setShowModal(false);
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
                     await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', eventToEdit);

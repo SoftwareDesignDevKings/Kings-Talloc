@@ -253,12 +253,11 @@ export const calendarEventUpdateTeamsMeeting = async (
 /**
  * Create Teams meeting for a new event
  */
-export const calendarEventCreateTeamsMeeting = async (
-    eventId,
-    eventData,
-    { setAlertType, setAlertMessage },
-) => {
-    if (!eventData.createTeamsMeeting) return;
+export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { setAlertType, setAlertMessage }) => {
+
+    if (!eventData.createTeamsMeeting) {
+        return;
+    }
 
     const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
         (p) => p.value || p,
@@ -303,11 +302,7 @@ export const calendarEventCreateTeamsMeeting = async (
 /**
  * Handle Teams meeting when updating an existing event
  */
-export const calendarEventHandleTeamsMeetingUpdate = async (
-    eventToEdit,
-    eventData,
-    { setAlertType, setAlertMessage },
-) => {
+export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventData, { setAlertType, setAlertMessage }) => {
     const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
         (p) => p.value || p,
     );

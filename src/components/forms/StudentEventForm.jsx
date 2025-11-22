@@ -7,16 +7,20 @@ import BaseModal from '../modals/BaseModal.jsx';
 import { db } from '@/firestore/firestoreClient.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { firestoreFetchAvailabilities } from '../../firestore/firestoreFetch';
+import {
+    updateEventInFirestore,
+    createEventInFirestore,
+    deleteEventFromFirestore,
+} from '@/firestore/firestoreOperations';
 
 const StudentEventForm = ({
     isEditing,
     newEvent,
     setNewEvent,
-    handleInputChange,
-    handleSubmit,
-    handleDelete,
+    eventToEdit,
     setShowStudentModal,
     studentEmail,
+    eventsData,
 }) => {
     const [tutorOptions, setTutorOptions] = useState([]);
     const [subjectOptions, setSubjectOptions] = useState([]);
@@ -123,6 +127,11 @@ const StudentEventForm = ({
         setFilteredTutors(availableTutors);
     };
 
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewEvent({ ...newEvent, [name]: value });
+    };
+
     const handleDateChange = (e) => {
         handleInputChange(e);
         const { name, value } = e.target;
@@ -130,6 +139,57 @@ const StudentEventForm = ({
             const start = name === 'start' ? new Date(value) : new Date(newEvent.start);
             const end = name === 'end' ? new Date(value) : new Date(newEvent.end);
             filterTutorsByAvailability(start, end);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const eventData = {
+            title: 'Tutoring',
+            start: new Date(newEvent.start),
+            end: new Date(newEvent.end),
+            students: newEvent.students || [],
+            staff: newEvent.staff || [],
+            subject: newEvent.subject,
+            preference: newEvent.preference,
+            createdByStudent: true,
+            approvalStatus: newEvent.approvalStatus || 'pending',
+            isStudentRequest: true,
+        };
+
+        try {
+            if (isEditing) {
+                await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
+                eventsData.setStudentRequests(
+                    eventsData.studentRequests.map((req) =>
+                        req.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : req
+                    )
+                );
+            } else {
+                const docId = await createEventInFirestore(eventData, 'studentEventRequests');
+                eventsData.setStudentRequests([
+                    ...eventsData.studentRequests,
+                    { ...eventData, id: docId },
+                ]);
+            }
+            setShowStudentModal(false);
+        } catch (error) {
+            console.error('Failed to submit student event request:', error);
+            setError('Failed to submit event request');
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
+            eventsData.setStudentRequests(
+                eventsData.studentRequests.filter((req) => req.id !== eventToEdit.id)
+            );
+            setShowStudentModal(false);
+        } catch (error) {
+            console.error('Failed to delete student event request:', error);
+            setError('Failed to delete event request');
         }
     };
 
@@ -142,9 +202,6 @@ const StudentEventForm = ({
     const onSubmit = (e) => {
         e.preventDefault();
         if (validateDates()) {
-            // Set title to just "Tutoring"
-            newEvent.title = 'Tutoring';
-
             handleSubmit(e);
         }
     };
