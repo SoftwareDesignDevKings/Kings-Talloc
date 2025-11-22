@@ -108,35 +108,38 @@ Kings-Talloc streamlines tutor allocation and scheduling for the CST Department.
 
 ## MS Teams Integration
 
-> [!WARNING]
-> Integration with Microsoft Teams is currently under development and uses Power Automate as a temporary solution.
+> [!NOTE]
+> Microsoft Teams is now fully integrated via Microsoft Graph API on Kings-Talloc. 
 
-**Current Workflow:**
+**Features:**
 
-```
-Teacher Approval → Email → PA Email Trigger → Parse Email Data → Create Teams Meeting
-```
+- Automatic Teams meeting creation when events are approved
+- Recurring meeting series support
+- Meeting updates sync with event changes (time, attendees, etc.)
+- Meeting deletion when events are cancelled
 
-> [!IMPORTANT]
-> Update email recipient to `computing@kings.edu.au` in the Power Automate workflow (currently set to `mmei@kings.edu.au`)
+**Deployment:**
 
-**Future Alternative:**
-
-- Obtain app registration from ICT for direct Microsoft Graph API integration
+- Currently deployed on Vercel at [kings-talloc.vercel.app](https://kings-talloc.vercel.app)
+- Final step: Configure Kings domain to wrap Vercel deployment
 
 ---
 
-## Known Issues
+## Future Fixes
 
-> [!CAUTION]
-> The following technical issues have been identified and may be a problem in the future:
+> [!NOTE]
+> The following improvements are planned for future development:
 
 **1. React Big Calendar Performance**
 
-- The calendar component is wrapped in a large wrapper, causing slow initial load times.
+- The calendar component is wrapped in a large wrapper, causing slow initial load times
+- Consider lazy loading or virtualisation for better performance
 
-**2. Excessive Hook Usage**
+**2. Context Provider Optimisation**
 
-- Numerous React hooks used throughout the application as a workaround for prop drilling
+- Multiple nested providers may cause unnecessary re-renders
+- Consider consolidating or memoising provider values
 
----
+**3. Domain Configuration**
+
+- Configure Kings domain to wrap Vercel deployment for production URL
