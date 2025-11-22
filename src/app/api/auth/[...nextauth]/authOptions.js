@@ -2,6 +2,7 @@ import Google from 'next-auth/providers/google';
 import AzureAD from 'next-auth/providers/azure-ad';
 import { authFirebaseSignIn, authFirebaseGenerateToken } from './firebaseAuth';
 import { authMsStoreTokens, authMsRefreshToken } from './msAuth';
+import crypto from "crypto"
 
 /**
  * Server-side: Create or fetch user role from Firestore on sign in
@@ -19,6 +20,7 @@ async function handleJwt({ token, user, account, profile }) {
         token.role = user.role;
         token.email = user.email;
         token.name = user.name;
+        token.calendarFeedToken = user.calendarFeedToken;
 
         // Store profile information if available
         if (profile) {
@@ -49,6 +51,7 @@ async function handleJwt({ token, user, account, profile }) {
 async function handleSession({ session, token }) {
     session.user.role = token.role;
     session.user.firebaseToken = token.firebaseToken;
+    session.user.calendarFeedToken = token.calendarFeedToken;
 
     // Add profile information if available
     if (token.profile) {

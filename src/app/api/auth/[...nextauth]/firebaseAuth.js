@@ -1,5 +1,5 @@
 import { adminAuth, adminDb } from '@/firestore/firestoreAdmin';
-
+import crypto from "crypto"
 /**
  * Server-side: Create or fetch user role from Firestore on sign in
  */
@@ -14,11 +14,23 @@ export async function authFirebaseSignIn({ user }) {
                 email: user.email,
                 name: user.name,
                 role: 'student',
+                calendarFeedToken,
             });
+
             user.role = 'student';
+            user.calendarFeedToken = crypto.randomBytes(32).toString("hex");;
         } else {
             // Fetch existing role from Firestore
-            user.role = userDoc.data().role;
+            const userData = userDoc.data();
+            user.role = userData.role;
+
+            if (!userData.calendarFeedToken) {
+                const calendarFeedToken = crypto.randomBytes(32).toString("hex");
+                await userRef.update({ calendarFeedToken });
+                user.calendarFeedToken = calendarFeedToken;
+            } else {
+                user.calendarFeedToken = userData.calendarFeedToken;
+            }
         }
 
         return true;
