@@ -50,8 +50,8 @@ export async function authFirebaseGenerateToken(token, user) {
 
     // generate new Firebase token if needed (initial login or refresh)
     if (user || shouldRefreshToken) {
-        const userUid = (user?.email || token.email).toLowerCase();
-        const userRole = user?.role || token.role;
+        const userUid = token.email.toLowerCase();
+        const userRole = token.role;
 
         // ensure Firebase Auth user exists
         try {
@@ -61,8 +61,8 @@ export async function authFirebaseGenerateToken(token, user) {
                 try {
                     await adminAuth.createUser({
                         uid: userUid,
-                        email: user?.email || token.email,
-                        displayName: user?.name || token.name,
+                        email: token.email,
+                        displayName: token.name,
                     });
                 } catch (createError) {
                     console.error('Error creating Firebase user:', createError);
@@ -73,7 +73,11 @@ export async function authFirebaseGenerateToken(token, user) {
         }
 
         // generate fresh Firebase custom token
-        const firebaseToken = await adminAuth.createCustomToken(userUid, { role: userRole });
+        const firebaseToken = await adminAuth.createCustomToken(userUid, {
+            role: userRole,
+            email: token.email,
+        });        
+        
         token.firebaseToken = firebaseToken;
         token.firebaseTokenCreatedAt = Date.now();
     }

@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,6 +21,16 @@ if (getApps().length > 0) {
     app = getApp();
 } else {
     app = initializeApp(firebaseConfig);
+}
+
+// app check for recaptcha in browser
+if (typeof window !== "undefined") {
+    initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(
+            process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+        ),
+        isTokenAutoRefreshEnabled: true,
+    });
 }
 
 /**
