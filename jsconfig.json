@@ -10,6 +10,7 @@
             "@contexts/*": ["src/contexts/*"],
             "@middleware/*": ["src/middleware/*"],
             "@firestore/*": ["src/firestore/*"],
+            "@layouts/*": ["src/layouts/*"],
             "@utils/*": ["src/utils/*"]
         }
     }

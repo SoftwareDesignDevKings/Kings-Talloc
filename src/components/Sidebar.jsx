@@ -15,10 +15,12 @@ import {
 } from '@/components/icons';
 import Image from 'next/image';
 import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
-const Sidebar = ({ setRedirectEndpoint, userRole, user }) => {
+const Sidebar = ({ userRole, user }) => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -57,14 +59,14 @@ const Sidebar = ({ setRedirectEndpoint, userRole, user }) => {
                     <ul className="tw-mt-4 tw-space-y-2 tw-list-none tw-pl-0">
                         <li
                             className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                            onClick={() => setRedirectEndpoint('newDashboard')}
+                            onClick={() => router.push('newDashboard')}
                         >
                             <FiHome className="tw-text-indigo-600" />
                             {!isCollapsed && <span>Dashboard</span>}
                         </li>
                         <li
                             className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                            onClick={() => setRedirectEndpoint('calendar')}
+                            onClick={() => router.push('calendar')}
                         >
                             <FiCalendar className="tw-text-indigo-600" />
                             {!isCollapsed && <span>Calendar</span>}
@@ -73,14 +75,14 @@ const Sidebar = ({ setRedirectEndpoint, userRole, user }) => {
                             <>
                                 <li
                                     className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                    onClick={() => setRedirectEndpoint('userRoles')}
+                                    onClick={() => router.push('userRoles')}
                                 >
                                     <FiUsers className="tw-text-indigo-600" />
                                     {!isCollapsed && <span>User Roles</span>}
                                 </li>
                                 <li
                                     className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                    onClick={() => setRedirectEndpoint('classes')}
+                                    onClick={() => router.push('classes')}
                                 >
                                     <FiBook className="tw-text-indigo-600" />
                                     {!isCollapsed && <span>Manage Classes</span>}
@@ -90,7 +92,7 @@ const Sidebar = ({ setRedirectEndpoint, userRole, user }) => {
                         {userRole === 'teacher' && (
                             <li
                                 className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                onClick={() => setRedirectEndpoint('subjects')}
+                                onClick={() => router.push('subjects')}
                             >
                                 <FiBookOpen className="tw-text-indigo-600" />
                                 {!isCollapsed && <span>Manage Subjects</span>}
@@ -99,7 +101,7 @@ const Sidebar = ({ setRedirectEndpoint, userRole, user }) => {
                         {userRole !== 'student' && (
                             <li
                                 className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                onClick={() => setRedirectEndpoint('tutorHours')}
+                                onClick={() => router.push('tutorHours')}
                             >
                                 <FiClock className="tw-text-indigo-600" />
                                 {!isCollapsed && <span>Tutor Hours</span>}
