@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/firestore/firestoreAdmin";
 
-function formatICSDate(date: Date): string {
+function formatICSDate(date) {
     return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
-function escapeICSText(text: string): string {
+function escapeICSText(text) {
     if (!text) return "";
     return text
         .replace(/\\/g, "\\\\")
@@ -14,7 +14,7 @@ function escapeICSText(text: string): string {
         .replace(/\n/g, "\\n");
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const uid = searchParams.get("uid");
     const token = searchParams.get("token");
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch events where user is a participant (staff or student)
     const eventsSnapshot = await adminDb.collection("events").get();
-    const events: any[] = [];
+    const events = [];
 
     eventsSnapshot.forEach((doc) => {
         const data = doc.data();
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
         const students = data.students || [];
 
         const isParticipant =
-            staff.some((s: any) => (s.value || s) === uid) ||
-            students.some((s: any) => (s.value || s) === uid);
+            staff.some((s) => (s.value || s) === uid) ||
+            students.some((s) => (s.value || s) === uid);
 
         if (isParticipant) {
             events.push(event);
