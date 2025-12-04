@@ -2,12 +2,12 @@
 
 [![CI Pipeline](https://img.shields.io/badge/CI%20Pipeline-Passing-brightgreen?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/SoftwareDesignDevKings/Kings-Talloc/actions)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
-[![Next.js](https://img.shields.io/badge/Next.js-14.2.5-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
-[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](<[https://firebase.google.com](https://console.firebase.google.com/u/1/project/kings-talloc-1f638/overview)>)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.7-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://console.firebase.google.com/u/1/project/kings-talloc-1f638/overview)
 
 Kings-Talloc is a Tutor Allocation Web App developed by tutors in the CST Department.
 
-**Live Deployment**: [https://kings-talloc.vercel.app](https://kings-talloc.vercel.app)
+**Live Deployment**: [https://talloc.kings.edu.au](https://talloc.kings.edu.au)
 
 **Vercel Project**: Hosted under CST projects at [vercel.com/tkscsts-projects/kings-talloc](https://vercel.com/tkscsts-projects/kings-talloc)
 
@@ -56,16 +56,16 @@ Built with Next.js and Firebase Firestore, the system provides real-time updates
 ---
 
 ## Features
-
 Kings-Talloc is built with React Big Calendar. 
 Old version was styled using tailwind CSS and now integrated with Bootstrap for responsiveness and accessibility features. 
 
-
 ### NextAuth
-
 - Student, Tutor, and Teacher roles assigned after MS OAuth login. 
 - Manual assignment of roles from 'Teacher' as ICT scope does not give role identity. 
-- Entra Tennant restricted to `@kings.edu.au | @student.kings.edu.au` domains only
+    - Entra Tennant restricted to `@kings.edu.au | @student.kings.edu.au` domains only
+
+- Integrated with Firebase Auth to ensure only users of the app can access the firestore database.
+- Production ReCapture integrated to ensure origin of all requests. 
 
 ### Scheduling & Calendar
 Built with React Big Calendar
@@ -75,14 +75,12 @@ Built with React Big Calendar
 - Real-time event updates via Firestore listeners
 
 ### Event Management
-
 - Create, edit, and delete tutoring/coaching sessions
 - Track event completion status and hours
 - Student confirmation system for group sessions
 - Filter events by tutor, subject, and availability type
 
 ### Dashboard & Analytics
-
 - Role-specific overview cards showing upcoming events, pending approvals, and completion stats
 - Weekly hours tracking for tutors (tutoring vs coaching)
 - Active tutor utilisation and subject distribution for teachers
@@ -112,8 +110,7 @@ Built with React Big Calendar
 ---
 
 ## MS Teams Integration
-
-> [!NOTE]
+> [!IMPORTANT]
 > Microsoft Teams is now fully integrated via Microsoft Graph API on Kings-Talloc. 
 
 **Features:**
