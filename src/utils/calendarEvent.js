@@ -134,7 +134,7 @@ export const calendarEventGetDefaults = (slotInfo, userRole, userEmail) => {
  */
 export const calendarEventFilter = (allEvents, { userRole, userEmail, filters }) => {
     let filtered = [...allEvents];
-    const { visibility, tutors, workType } = filters;
+    const { visibility, tutors } = filters;
 
     if (userRole === 'tutor') {
         filtered = filtered.filter((event) =>
@@ -160,12 +160,11 @@ export const calendarEventFilter = (allEvents, { userRole, userEmail, filters })
     }
 
     if (userRole === 'teacher') {
-        if (!visibility?.showTutoringEvents && !visibility?.showCoachingEvents) {
-            filtered = [];
-        } else if (!visibility?.showTutoringEvents) {
-            filtered = filtered.filter((event) => event.workType === 'coaching');
-        } else if (!visibility?.showCoachingEvents) {
-            filtered = filtered.filter((event) => event.workType === 'tutoring');
+        if (!visibility?.showTutoringEvents) {
+            filtered = filtered.filter((event) => event.workType !== 'tutoring');
+        }
+        if (!visibility?.showCoachingEvents) {
+            filtered = filtered.filter((event) => event.workType !== 'coaching');
         }
     }
 
@@ -253,12 +252,11 @@ export const calendarEventUpdateTeamsMeeting = async (
 /**
  * Create Teams meeting for a new event
  */
-export const calendarEventCreateTeamsMeeting = async (
-    eventId,
-    eventData,
-    { setAlertType, setAlertMessage },
-) => {
-    if (!eventData.createTeamsMeeting) return;
+export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { setAlertType, setAlertMessage }) => {
+
+    if (!eventData.createTeamsMeeting) {
+        return;
+    }
 
     const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
         (p) => p.value || p,
@@ -303,11 +301,7 @@ export const calendarEventCreateTeamsMeeting = async (
 /**
  * Handle Teams meeting when updating an existing event
  */
-export const calendarEventHandleTeamsMeetingUpdate = async (
-    eventToEdit,
-    eventData,
-    { setAlertType, setAlertMessage },
-) => {
+export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventData, { setAlertType, setAlertMessage }) => {
     const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
         (p) => p.value || p,
     );

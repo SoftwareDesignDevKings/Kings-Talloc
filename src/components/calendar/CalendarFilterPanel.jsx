@@ -106,8 +106,9 @@ const CalendarFilterPanel = ({
                                 <Select
                                     name="availabilityWorkType"
                                     options={[
+                                        { value: 'work', label: 'Work' },
                                         { value: 'tutoring', label: 'Tutoring' },
-                                        { value: 'work', label: 'Coaching' },
+                                        { value: 'coaching', label: 'Coaching' },
                                         { value: 'tutoringOrWork', label: 'Tutoring or Coaching' },
                                     ]}
                                     value={
@@ -115,13 +116,13 @@ const CalendarFilterPanel = ({
                                             ? {
                                                   value: filterState.filters.availabilityWorkType,
                                                   label:
-                                                      filterState.filters.availabilityWorkType ===
-                                                      'tutoring'
+                                                      filterState.filters.availabilityWorkType === 'tutoring'
                                                           ? 'Tutoring'
-                                                          : filterState.filters
-                                                                  .availabilityWorkType === 'work'
+                                                          : filterState.filters.availabilityWorkType === 'coaching'
                                                             ? 'Coaching'
-                                                            : 'Tutoring or Coaching',
+                                                            : filterState.filters.availabilityWorkType === 'work'
+                                                              ? 'Work'
+                                                              : 'Tutoring or Coaching',
                                               }
                                             : null
                                     }

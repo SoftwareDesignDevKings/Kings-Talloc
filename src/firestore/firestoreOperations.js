@@ -3,19 +3,57 @@ import { db } from '@/firestore/firestoreClient';
 
 /**
  * Adds or updates an event in the email events queue
+ * Only sends notifications when event times change
  * @param {Object} event - The event object containing event details and id
- * @param {string} action - The action being performed (e.g., 'add', 'update')
+ * @param {string} action - The action being performed (e.g., 'store', 'update')
+ * @param {Object} originalEvent - The original event data (for updates)
  * @returns {Promise<{message: string}>} Success message
  * @throws {Error} If operation fails
  */
-export const addOrUpdateEventInQueue = async (event, action) => {
+export const addOrUpdateEventInQueue = async (event, action, originalEvent = null) => {
     try {
-        const eventDoc = doc(db, 'emailEventsQueue', event.id);
-        await setDoc(eventDoc, {
-            ...event,
-            timestamp: new Date(),
-        });
-        return { message: `Event ${action}d successfully in email queue` };
+        // For new events, always send notification
+        if (action === 'store') {
+            const eventDoc = doc(db, 'emailEventsQueue', event.id);
+            await setDoc(eventDoc, {
+                ...event,
+                timestamp: new Date(),
+            });
+            return { message: `Event ${action}d successfully in email queue` };
+        }
+
+        // For updates, only send notification if times changed
+        if (action === 'update' && originalEvent) {
+            const originalStart = originalEvent.start instanceof Date
+                ? originalEvent.start
+                : new Date(originalEvent.start);
+            const originalEnd = originalEvent.end instanceof Date
+                ? originalEvent.end
+                : new Date(originalEvent.end);
+            const newStart = event.start instanceof Date
+                ? event.start
+                : new Date(event.start);
+            const newEnd = event.end instanceof Date
+                ? event.end
+                : new Date(event.end);
+
+            const timesChanged =
+                originalStart.getTime() !== newStart.getTime() ||
+                originalEnd.getTime() !== newEnd.getTime();
+
+            if (timesChanged) {
+                const eventDoc = doc(db, 'emailEventsQueue', event.id);
+                await setDoc(eventDoc, {
+                    ...event,
+                    timestamp: new Date(),
+                });
+                return { message: `Event ${action}d successfully in email queue (times changed)` };
+            } else {
+                return { message: `Event ${action}d but no notification sent (times unchanged)` };
+            }
+        }
+
+        return { message: `Event ${action}d but no notification sent` };
     } catch (error) {
         console.error(`Error during ${action} event in email queue:`, error);
         throw new Error(`Failed to ${action} event in email queue`);

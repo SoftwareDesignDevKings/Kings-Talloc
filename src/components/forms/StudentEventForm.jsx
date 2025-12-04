@@ -7,16 +7,20 @@ import BaseModal from '../modals/BaseModal.jsx';
 import { db } from '@/firestore/firestoreClient.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { firestoreFetchAvailabilities } from '../../firestore/firestoreFetch';
+import {
+    updateEventInFirestore,
+    createEventInFirestore,
+    deleteEventFromFirestore,
+} from '@/firestore/firestoreOperations';
 
 const StudentEventForm = ({
     isEditing,
     newEvent,
     setNewEvent,
-    handleInputChange,
-    handleSubmit,
-    handleDelete,
+    eventToEdit,
     setShowStudentModal,
     studentEmail,
+    eventsData,
 }) => {
     const [tutorOptions, setTutorOptions] = useState([]);
     const [subjectOptions, setSubjectOptions] = useState([]);
@@ -123,6 +127,11 @@ const StudentEventForm = ({
         setFilteredTutors(availableTutors);
     };
 
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewEvent({ ...newEvent, [name]: value });
+    };
+
     const handleDateChange = (e) => {
         handleInputChange(e);
         const { name, value } = e.target;
@@ -130,6 +139,57 @@ const StudentEventForm = ({
             const start = name === 'start' ? new Date(value) : new Date(newEvent.start);
             const end = name === 'end' ? new Date(value) : new Date(newEvent.end);
             filterTutorsByAvailability(start, end);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const eventData = {
+            title: 'Tutoring',
+            start: new Date(newEvent.start),
+            end: new Date(newEvent.end),
+            students: newEvent.students || [],
+            staff: newEvent.staff || [],
+            subject: newEvent.subject,
+            preference: newEvent.preference,
+            createdByStudent: true,
+            approvalStatus: newEvent.approvalStatus || 'pending',
+            isStudentRequest: true,
+        };
+
+        try {
+            if (isEditing) {
+                await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
+                eventsData.setStudentRequests(
+                    eventsData.studentRequests.map((req) =>
+                        req.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : req
+                    )
+                );
+            } else {
+                const docId = await createEventInFirestore(eventData, 'studentEventRequests');
+                eventsData.setStudentRequests([
+                    ...eventsData.studentRequests,
+                    { ...eventData, id: docId },
+                ]);
+            }
+            setShowStudentModal(false);
+        } catch (error) {
+            console.error('Failed to submit student event request:', error);
+            setError('Failed to submit event request');
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
+            eventsData.setStudentRequests(
+                eventsData.studentRequests.filter((req) => req.id !== eventToEdit.id)
+            );
+            setShowStudentModal(false);
+        } catch (error) {
+            console.error('Failed to delete student event request:', error);
+            setError('Failed to delete event request');
         }
     };
 
@@ -142,9 +202,6 @@ const StudentEventForm = ({
     const onSubmit = (e) => {
         e.preventDefault();
         if (validateDates()) {
-            // Set title to just "Tutoring"
-            newEvent.title = 'Tutoring';
-
             handleSubmit(e);
         }
     };
@@ -174,7 +231,7 @@ const StudentEventForm = ({
                     : null
             }
         >
-            {error && <div className="alert alert-danger">{error}</div>}
+            {error && <div className="alert alert-danger" role="alert" aria-live="polite">{error}</div>}
 
             <div className="mb-3">
                 <label htmlFor="start" className="form-label">
@@ -189,6 +246,8 @@ const StudentEventForm = ({
                     onChange={handleDateChange}
                     required
                     disabled={!isStudentCreated}
+                    aria-label="Event start time"
+                    aria-required="true"
                 />
             </div>
             <div className="mb-3">
@@ -204,6 +263,8 @@ const StudentEventForm = ({
                     onChange={handleDateChange}
                     required
                     disabled={!isStudentCreated}
+                    aria-label="Event end time"
+                    aria-required="true"
                 />
             </div>
             <div className="mb-3">
@@ -218,11 +279,13 @@ const StudentEventForm = ({
                     classNamePrefix="select"
                     placeholder="Select a subject"
                     isDisabled={!isStudentCreated}
+                    aria-label="Select subject"
+                    inputId="subject"
                 />
             </div>
             <div className="mb-3">
-                <label className="form-label">Preference</label>
-                <div className="d-flex flex-wrap gap-2">
+                <label className="form-label" id="preference-label">Preference</label>
+                <div className="d-flex flex-wrap gap-2" role="group" aria-labelledby="preference-label">
                     {preferenceOptions.map((preference) => (
                         <button
                             key={preference}
@@ -230,6 +293,8 @@ const StudentEventForm = ({
                             className={`btn btn-sm ${selectedPreference === preference ? 'btn-primary' : 'btn-outline-primary'}`}
                             onClick={() => handlePreferenceClick(preference)}
                             disabled={!isStudentCreated}
+                            aria-pressed={selectedPreference === preference}
+                            aria-label={`Select ${preference} as preference`}
                         >
                             {preference}
                         </button>
@@ -249,13 +314,15 @@ const StudentEventForm = ({
                     classNamePrefix="select"
                     isDisabled={!isStudentCreated}
                     noOptionsMessage={() => 'No tutors available for the selected time range'}
+                    aria-label="Assign tutor to event"
+                    inputId="tutor"
                 />
             </div>
             {newEvent.minStudents > 0 && (
                 <div className="mb-3">
                     <label className="form-label">Student Responses</label>
                     {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                        <ul className="list-unstyled">
+                        <ul className="list-unstyled" aria-label="List of student responses">
                             {newEvent.studentResponses.map((response, index) => (
                                 <li key={index} className="mb-1">
                                     {response.email}: {response.response ? 'Accepted' : 'Declined'}
@@ -263,7 +330,7 @@ const StudentEventForm = ({
                             ))}
                         </ul>
                     ) : (
-                        <p className="text-muted">No students have responded yet.</p>
+                        <p className="text-muted" role="status">No students have responded yet.</p>
                     )}
                 </div>
             )}

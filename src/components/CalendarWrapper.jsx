@@ -9,10 +9,6 @@ import CalendarFilterPanel from './calendar/CalendarFilterPanel.jsx';
 import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper.jsx';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
-// Load calendar CSS only when calendar is rendered
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-
 // Providers
 import { CalendarDataProvider, useCalendarData } from '@/providers/CalendarDataProvider';
 import { CalendarUIProvider, useCalendarUI } from '@/providers/CalendarUIProvider';

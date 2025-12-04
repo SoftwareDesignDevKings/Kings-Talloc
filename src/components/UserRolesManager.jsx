@@ -272,7 +272,7 @@ const UserRolesManager = () => {
                                         {user.name}
                                     </td>
                                     <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                                        {user.role}
+                                        {user.role.toUpperCase()}
                                     </td>
                                     <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
                                         <div className="tw-flex tw-items-center tw-gap-2">

@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isAfter, format, isValid } from 'date-fns';
-import Select, { components } from 'react-select';
+import { isAfter } from 'date-fns';
+import { components } from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
+import EventDetailsSection from './EventFormSections/EventDetailsSection.jsx';
+import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
+import SettingsSection from './EventFormSections/SettingsSection.jsx';
+import StudentRequestSection from './EventFormSections/StudentRequestSection.jsx';
 import { useEventFormData } from './useEventFormData';
 import {
     calendarEventHandleDelete,
@@ -24,22 +28,9 @@ import {
     addEventException,
 } from '@/firestore/firestoreOperations';
 import { addWeeks } from 'date-fns';
-import {
-    MdEventNote,
-    MdPeople,
-    MdSettings,
-    MdNoteAlt,
-    MdAccessTime,
-    MdSchool,
-    MdMenuBook,
-    MdFlag,
-    FaChalkboardTeacher,
-    FaUserGraduate,
-    SiMicrosoftTeams,
-} from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 
-const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData }) => {
+const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData, readOnly = false, userRole }) => {
     const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
@@ -163,19 +154,29 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
         try {
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
+                    // Automatically create Teams meeting for approved student requests
+                    eventData.createTeamsMeeting = true;
+
+                    console.log('Approving student request and creating event with data:', eventData);
+
                     await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
                     const docId = await createEventInFirestore(eventData);
+                    console.log('Created event with ID:', docId);
+
                     await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
-                    setShowModal(false);
 
                     // Handle Teams meeting creation
+                    console.log('Attempting to create Teams meeting...');
                     await calendarEventCreateTeamsMeeting(docId, eventData, {
                         setAlertType,
                         setAlertMessage,
                     });
+                    console.log('Teams meeting creation call completed');
+
+                    setShowModal(false);
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', eventToEdit);
                     setShowModal(false);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
@@ -227,7 +228,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                     }
                 } else {
                     await updateEventInFirestore(eventToEdit.id, eventData);
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update');
+                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', eventToEdit);
                     setShowModal(false);
 
                     // Handle Teams meeting update/delete
@@ -330,17 +331,21 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
         );
     };
 
+    // Determine if tutor can only edit work status
+    const isTutorReadOnly = userRole === 'tutor' && isEditing;
+    const canEditWorkStatus = userRole === 'tutor' || !readOnly;
+
     return (
         <>
             <BaseModal
                 show={!showDeleteConfirm}
                 onHide={() => setShowModal(false)}
-                title={isEditing ? 'Edit Event' : 'Add New Event'}
+                title={readOnly ? 'Event Details' : (isTutorReadOnly ? 'Event Details' : (isEditing ? 'Edit Event' : 'Add New Event'))}
                 size="lg"
-                onSubmit={onSubmit}
-                submitText={isEditing ? 'Save Changes' : 'Add Event'}
+                onSubmit={readOnly ? undefined : onSubmit}
+                submitText={isTutorReadOnly ? 'Update Status' : (isEditing ? 'Save Changes' : 'Add Event')}
                 deleteButton={
-                    isEditing
+                    isEditing && !readOnly && !isTutorReadOnly
                         ? {
                               text: 'Delete',
                               onClick: handleDeleteClick,
@@ -348,456 +353,49 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                           }
                         : null
                 }
+                showFooter={!readOnly}
             >
                 <div className="accordion" id="eventFormAccordion">
-                    {/* Event Details Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button
-                                className="accordion-button"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#eventDetails"
-                                aria-expanded="true"
-                            >
-                                <MdEventNote className="me-2" /> Event Details
-                            </button>
-                        </h2>
-                        <div
-                            id="eventDetails"
-                            className="accordion-collapse collapse show"
-                            data-bs-parent="#eventFormAccordion"
-                        >
-                            <div className="accordion-body">
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="title"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Title
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        name="title"
-                                        id="title"
-                                        value={newEvent.title}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
+                    <EventDetailsSection
+                        newEvent={newEvent}
+                        setNewEvent={setNewEvent}
+                        handleInputChange={handleInputChange}
+                        readOnly={readOnly || isTutorReadOnly}
+                        userRole={userRole}
+                    />
 
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="description"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Description
-                                    </label>
-                                    <textarea
-                                        className="form-control"
-                                        rows={2}
-                                        name="description"
-                                        id="description"
-                                        value={newEvent.description}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
+                    <ParticipantsSection
+                        selectedStaff={selectedStaff}
+                        handleStaffSelectChange={handleStaffSelectChange}
+                        staffOptions={staffOptions}
+                        customOption={customOption}
+                        customSingleValue={customSingleValue}
+                        selectedClasses={selectedClasses}
+                        handleClassSelectChange={handleClassSelectChange}
+                        classOptions={classOptions}
+                        selectedStudents={selectedStudents}
+                        handleStudentSelectChange={handleStudentSelectChange}
+                        studentOptions={studentOptions}
+                        readOnly={readOnly || isTutorReadOnly}
+                    />
 
-                                <div className="mb-3">
-                                    <button
-                                        type="button"
-                                        className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
-                                        onClick={() =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                createTeamsMeeting: !newEvent.createTeamsMeeting,
-                                            })
-                                        }
-                                        style={
-                                            newEvent.createTeamsMeeting
-                                                ? {
-                                                      backgroundColor: '#5059C9',
-                                                      borderColor: '#5059C9',
-                                                  }
-                                                : { color: '#5059C9', borderColor: '#5059C9' }
-                                        }
-                                    >
-                                        <SiMicrosoftTeams size={30} />
-                                        Online Teams Meeting
-                                    </button>
+                    <SettingsSection
+                        newEvent={newEvent}
+                        setNewEvent={setNewEvent}
+                        handleMinStudentsChange={handleMinStudentsChange}
+                        workTypeOptions={workTypeOptions}
+                        workStatusOptions={workStatusOptions}
+                        readOnly={readOnly}
+                        canEditWorkStatus={canEditWorkStatus}
+                        isTutorReadOnly={isTutorReadOnly}
+                    />
 
-                                    {/* New: Display Teams Join URL if available */}
-                                    {newEvent.teamsJoinUrl && (
-                                        <div className="mt-2">
-                                            <a
-                                                href={newEvent.teamsJoinUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="d-flex align-items-center gap-1 text-decoration-none"
-                                            >
-                                                <SiMicrosoftTeams size={20} />
-                                                Join Teams Meeting
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <div className="mb-3">
-                                            <label
-                                                htmlFor="start"
-                                                className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                            >
-                                                <MdAccessTime /> Start Time
-                                            </label>
-                                            <input
-                                                type="datetime-local"
-                                                className="form-control"
-                                                name="start"
-                                                id="start"
-                                                value={
-                                                    newEvent.start && isValid(new Date(newEvent.start))
-                                                        ? format(
-                                                              new Date(newEvent.start),
-                                                              "yyyy-MM-dd'T'HH:mm",
-                                                          )
-                                                        : ''
-                                                }
-                                                onChange={handleInputChange}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <div className="mb-0">
-                                            <label
-                                                htmlFor="end"
-                                                className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                            >
-                                                <MdAccessTime /> End Time
-                                            </label>
-                                            <input
-                                                type="datetime-local"
-                                                className="form-control"
-                                                name="end"
-                                                id="end"
-                                                value={
-                                                    newEvent.end && isValid(new Date(newEvent.end))
-                                                        ? format(
-                                                              new Date(newEvent.end),
-                                                              "yyyy-MM-dd'T'HH:mm",
-                                                          )
-                                                        : ''
-                                                }
-                                                onChange={handleInputChange}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="d-flex gap-2 align-items-center mt-3">
-                                    <small className="text-muted">Recurring:</small>
-                                    <div className="btn-group btn-group-sm" role="group">
-                                        <button
-                                            type="button"
-                                            className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => {
-                                                setNewEvent({
-                                                    ...newEvent,
-                                                    recurring:
-                                                        newEvent.recurring === 'weekly'
-                                                            ? null
-                                                            : 'weekly',
-                                                });
-                                            }}
-                                        >
-                                            Repeat Weekly
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                            onClick={() => {
-                                                setNewEvent({
-                                                    ...newEvent,
-                                                    recurring:
-                                                        newEvent.recurring === 'fortnightly'
-                                                            ? null
-                                                            : 'fortnightly',
-                                                });
-                                            }}
-                                        >
-                                            Repeat Fortnightly
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Participants Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button
-                                className="accordion-button collapsed"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#participants"
-                                aria-expanded="false"
-                            >
-                                <MdPeople className="me-2" /> Participants
-                            </button>
-                        </h2>
-                        <div
-                            id="participants"
-                            className="accordion-collapse collapse"
-                            data-bs-parent="#eventFormAccordion"
-                        >
-                            <div className="accordion-body">
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="staff"
-                                        className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                    >
-                                        <FaChalkboardTeacher /> Assign Tutor
-                                    </label>
-                                    <Select
-                                        isMulti
-                                        name="tutor"
-                                        options={staffOptions}
-                                        value={selectedStaff}
-                                        onChange={handleStaffSelectChange}
-                                        classNamePrefix="select"
-                                        components={{
-                                            Option: customOption,
-                                            SingleValue: customSingleValue,
-                                        }}
-                                    />
-                                </div>
-
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="classes"
-                                        className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                    >
-                                        <MdSchool /> Assign Classes
-                                    </label>
-                                    <Select
-                                        isMulti
-                                        name="classes"
-                                        options={classOptions}
-                                        value={selectedClasses}
-                                        onChange={handleClassSelectChange}
-                                        classNamePrefix="select"
-                                    />
-                                </div>
-
-                                <div className="mb-0">
-                                    <label
-                                        htmlFor="students"
-                                        className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                    >
-                                        <FaUserGraduate /> Assign Students
-                                    </label>
-                                    <Select
-                                        isMulti
-                                        name="students"
-                                        options={studentOptions}
-                                        value={selectedStudents}
-                                        onChange={handleStudentSelectChange}
-                                        classNamePrefix="select"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Settings & Status Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button
-                                className="accordion-button collapsed"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#settings"
-                                aria-expanded="false"
-                            >
-                                <MdSettings className="me-2" /> Settings & Status
-                            </button>
-                        </h2>
-                        <div
-                            id="settings"
-                            className="accordion-collapse collapse"
-                            data-bs-parent="#eventFormAccordion"
-                        >
-                            <div className="accordion-body">
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="minStudents"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Minimum Students Required
-                                    </label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        name="minStudents"
-                                        id="minStudents"
-                                        value={newEvent.minStudents || 0}
-                                        onChange={handleMinStudentsChange}
-                                    />
-                                </div>
-
-                                {newEvent.minStudents > 0 && (
-                                    <div className="mb-3">
-                                        <small className="text-muted d-block mb-2">
-                                            Student Responses
-                                        </small>
-                                        {newEvent.studentResponses &&
-                                        newEvent.studentResponses.length > 0 ? (
-                                            <div className="d-flex flex-wrap gap-1">
-                                                {newEvent.studentResponses.map(
-                                                    (response, index) => (
-                                                        <span
-                                                            key={index}
-                                                            className={`badge bg-${response.response ? 'success' : 'danger'} fw-normal`}
-                                                        >
-                                                            {response.email}:{' '}
-                                                            {response.response
-                                                                ? 'Accepted'
-                                                                : 'Declined'}
-                                                        </span>
-                                                    ),
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <p className="text-muted mb-0 small fst-italic">
-                                                No responses yet
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="workType"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Work Type
-                                    </label>
-                                    <Select
-                                        name="workType"
-                                        options={workTypeOptions}
-                                        onChange={(selectedOption) =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                workType: selectedOption.value,
-                                            })
-                                        }
-                                        classNamePrefix="select"
-                                        value={workTypeOptions.find(
-                                            (option) =>
-                                                option.value === (newEvent.workType || 'tutoring'),
-                                        )}
-                                    />
-                                </div>
-
-                                <div className="mb-0">
-                                    <label
-                                        htmlFor="workStatus"
-                                        className="form-label small text-muted mb-1"
-                                    >
-                                        Work Status
-                                    </label>
-                                    <Select
-                                        name="workStatus"
-                                        options={workStatusOptions}
-                                        onChange={(selectedOption) =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                workStatus: selectedOption.value,
-                                            })
-                                        }
-                                        classNamePrefix="select"
-                                        value={workStatusOptions.find(
-                                            (option) =>
-                                                option.value ===
-                                                (newEvent.workStatus || 'notCompleted'),
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Student Request Section */}
-                    {newEvent.createdByStudent && (
-                        <div className="accordion-item">
-                            <h2 className="accordion-header">
-                                <button
-                                    className="accordion-button collapsed"
-                                    type="button"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#studentRequest"
-                                    aria-expanded="false"
-                                >
-                                    <MdNoteAlt className="me-2" /> Student Request
-                                </button>
-                            </h2>
-                            <div
-                                id="studentRequest"
-                                className="accordion-collapse collapse"
-                                data-bs-parent="#eventFormAccordion"
-                            >
-                                <div className="accordion-body">
-                                    {newEvent.subject && (
-                                        <div className="mb-2">
-                                            <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
-                                                <MdMenuBook /> Subject
-                                            </small>
-                                            <span className="badge bg-secondary fw-normal">
-                                                {newEvent.subject.label || newEvent.subject}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {newEvent.preference && (
-                                        <div className="mb-3">
-                                            <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
-                                                <MdFlag /> Preference
-                                            </small>
-                                            <span className="badge bg-primary fw-normal">
-                                                {newEvent.preference}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    <div className="mb-0">
-                                        <label
-                                            htmlFor="approvalStatus"
-                                            className="form-label small text-muted mb-1"
-                                        >
-                                            Approval Status
-                                        </label>
-                                        <Select
-                                            name="approvalStatus"
-                                            options={approvalOptions}
-                                            onChange={handleApprovalChange}
-                                            classNamePrefix="select"
-                                            defaultValue={
-                                                newEvent.approvalStatus === 'approved'
-                                                    ? { value: 'approved', label: 'Approve' }
-                                                    : newEvent.approvalStatus === 'denied'
-                                                      ? { value: 'denied', label: 'Deny' }
-                                                      : null
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <StudentRequestSection
+                        newEvent={newEvent}
+                        handleApprovalChange={handleApprovalChange}
+                        approvalOptions={approvalOptions}
+                        readOnly={readOnly || isTutorReadOnly}
+                    />
                 </div>
             </BaseModal>
 

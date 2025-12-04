@@ -11,8 +11,15 @@ import {
     FiChevronDown,
 } from '@/components/icons';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
-import { doc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient.js';
+import {
+    createEventInFirestore,
+    deleteEventFromFirestore,
+    addOrUpdateEventInQueue,
+} from '@/firestore/firestoreOperations';
+import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
+import useAlert from '@/hooks/useAlert';
 
 const StatCard = ({ icon: Icon, iconBgColor, title, value, subtitle }) => (
     <div className="col-12 col-md-4 col-lg-3">
@@ -37,36 +44,81 @@ const StatCard = ({ icon: Icon, iconBgColor, title, value, subtitle }) => (
 
 const TeacherStats = ({ data, onUpdate }) => {
     const [showApprovalsDropdown, setShowApprovalsDropdown] = useState(false);
+    const { setAlertMessage, setAlertType } = useAlert();
 
     const handleApproveRequest = async (requestId) => {
         try {
+            console.log('[StatsCards] Starting approval for request:', requestId);
+
             // Find the request data
             const request = data.pendingRequestsData.find((req) => req.id === requestId);
-            if (!request) return;
+            if (!request) {
+                console.error('[StatsCards] Request not found');
+                setAlertType('error');
+                setAlertMessage('Request not found');
+                return;
+            }
 
-            // Create the event in the events collection
-            await addDoc(collection(db, 'events'), {
+            console.log('[StatsCards] Found request:', {
+                id: request.id,
                 title: request.title,
                 start: request.start,
                 end: request.end,
                 students: request.students,
                 staff: request.staff,
+            });
+
+            // Create event data for the main events collection
+            const eventData = {
+                title: request.title || 'Tutoring',
+                start: request.start,
+                end: request.end,
+                description: request.description || '',
+                students: request.students || [],
+                staff: request.staff || [],
                 subject: request.subject,
-                description: request.descripnotion || '',
+                preference: request.preference,
                 createdByStudent: true,
                 approvalStatus: 'approved',
                 approvedAt: new Date(),
                 workStatus: 'notCompleted',
-                workType: request.workType || 'tutoring',
+                workType: 'tutoring',
+                createTeamsMeeting: true, // Automatically create Teams meeting
+            };
+
+            console.log('[StatsCards] Created eventData with createTeamsMeeting: true');
+
+            // Delete from studentEventRequests and create in events collection
+            console.log('[StatsCards] Deleting from studentEventRequests...');
+            await deleteEventFromFirestore(requestId, 'studentEventRequests');
+
+            console.log('[StatsCards] Creating new event in events collection...');
+            const docId = await createEventInFirestore(eventData);
+            console.log('[StatsCards] Created event with ID:', docId);
+
+            // Queue email notification
+            console.log('[StatsCards] Queueing email notification...');
+            await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
+
+            // Create Teams meeting in background (don't wait)
+            console.log('[StatsCards] Starting Teams meeting creation in background...');
+            calendarEventCreateTeamsMeeting(docId, eventData, {
+                setAlertType,
+                setAlertMessage,
+            }).catch((error) => {
+                console.error('[StatsCards] Teams meeting creation failed:', error);
+                setAlertType('error');
+                setAlertMessage(`Event approved but Teams meeting failed: ${error.message}`);
             });
 
-            // Delete from studentEventRequests
-            const requestRef = doc(db, 'studentEventRequests', requestId);
-            await deleteDoc(requestRef);
+            setAlertType('success');
+            setAlertMessage('Request approved successfully. Teams meeting is being created...');
 
             if (onUpdate) onUpdate();
         } catch (error) {
-            console.error('Error approving request:', error);
+            console.error('[StatsCards] Error approving request:', error);
+            setAlertType('error');
+            setAlertMessage(`Failed to approve request: ${error.message}`);
         }
     };
 

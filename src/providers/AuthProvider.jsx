@@ -9,6 +9,7 @@ import { signInWithCustomToken, signOut } from 'firebase/auth';
 import { auth } from '@/firestore/firestoreClient';
 import { usePathname } from 'next/navigation';
 import AuthContext from '@/contexts/AuthContext';
+import { getAuth } from 'firebase/auth';
 
 /**
  * Authentication provider to wrap around components that require authentication.
@@ -32,10 +33,17 @@ const AuthProvider = ({ children }) => {
     useEffect(() => {
         const syncAuth = async () => {
             try {
-                if (status === 'authenticated' && session?.user) {
+                if (status === 'authenticated' && session.user) {
                     setUserRole(session.user.role);
+
+                    // signin AND force token refresh so custom claims are updated
                     await signInWithCustomToken(auth, session.user.firebaseToken);
 
+                    // firebaseToken has claims (role, email) set in authOptions.js, but never fully refreshed on client side 
+                    // force refresh to ensure claims are applied in every firebase request
+                    await auth.currentUser.getIdToken(true);
+                    // getAuth().currentUser.getIdToken(true).then(t => console.log(t))
+                    
                     setIsLoading(false);
                 }
 
@@ -66,6 +74,8 @@ const AuthProvider = ({ children }) => {
                     const updatedSession = await update();
                     if (updatedSession?.user?.firebaseToken) {
                         await signInWithCustomToken(auth, updatedSession.user.firebaseToken);
+                        await auth.currentUser.getIdToken(true);
+
                     }
                 } catch (error) {
                     console.error('Error refreshing Firebase token:', error);

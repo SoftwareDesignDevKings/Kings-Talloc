@@ -107,6 +107,9 @@ export const CalendarUIProvider = ({ children }) => {
         if (checked) {
             setShowTutoringEventsRaw(true);
             setShowCoachingEventsRaw(true);
+        } else {
+            setShowTutoringEventsRaw(false);
+            setShowCoachingEventsRaw(false);
         }
     }, []);
 
