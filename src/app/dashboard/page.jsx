@@ -1,6 +1,6 @@
 'use client';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
+// import 'bootstrap/dist/css/bootstrap.min.css';
 
 import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from '@components/Sidebar.jsx';
@@ -31,10 +31,10 @@ const Dashboard = () => {
             <Sidebar setActiveSection={setActiveSection} userRole={userRole} user={session.user} />
 
             <div className="tw-flex-1 md:tw-p-4 tw-py-2 tw-px-2 tw-flex tw-flex-col tw-overflow-hidden">
-                <div className="tw-bg-white tw-rounded-lg md:tw-shadow-lg md:tw-p-8 tw-p-2 tw-flex tw-flex-col tw-flex-1 tw-overflow-hidden">
+                <div className="tw-bg-white tw-rounded-lg md:tw-shadow-lg md:tw-p-8 tw-py-2 tw-px-4 tw-flex tw-flex-col tw-flex-1 tw-overflow-hidden">
                     <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
                         <div>
-                            <h1 className="tw-text-3xl tw-font-extrabold tw-text-gray-900">
+                            <h1 className="tw-text-3xl tw-font-extrabold tw-text-gray-900 md:tw-mt-0 tw-mt-4">
                                 {dashboardTitle}
                             </h1>
                             <p className="tw-mt-2 tw-text-sm tw-text-gray-600">
