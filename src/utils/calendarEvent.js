@@ -134,7 +134,7 @@ export const calendarEventGetDefaults = (slotInfo, userRole, userEmail) => {
  */
 export const calendarEventFilter = (allEvents, { userRole, userEmail, filters }) => {
     let filtered = [...allEvents];
-    const { visibility, tutors, workType } = filters;
+    const { visibility, tutors } = filters;
 
     if (userRole === 'tutor') {
         filtered = filtered.filter((event) =>

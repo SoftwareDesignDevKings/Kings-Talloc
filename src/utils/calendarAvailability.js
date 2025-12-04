@@ -1,9 +1,4 @@
-/**
- * Calendar availability functions
- * All functions prefixed with 'calendarAvailability'
- */
-
-import { isBefore, isAfter } from 'date-fns';
+// import { isBefore, isAfter } from 'date-fns';
 
 /**
  * Filter availabilities based on role and filters
@@ -12,15 +7,13 @@ export const calendarAvailabilityFilter = (splitAvailabilitiesData, { userRole, 
     let filtered = splitAvailabilitiesData;
     const { subject, tutors, visibility, availabilityWorkType } = filters;
 
+    // student view - only filter events by tutoring / tutoring || work 
     if (userRole === 'student') {
-        filtered = filtered.filter(
-            (availability) =>
-                availability.workType === 'tutoring' ||
-                availability.workType === 'tutoringOrWork' ||
-                availability.workType === undefined,
+        filtered = filtered.filter((availability) => availability.workType === 'tutoring' || 
+                                                     availability.workType === 'tutoringOrWork'
         );
     }
-
+    
     if (userRole === 'teacher' && availabilityWorkType) {
         filtered = filtered.filter(
             (availability) => availability.workType === availabilityWorkType,
@@ -45,16 +38,14 @@ export const calendarAvailabilityFilter = (splitAvailabilitiesData, { userRole, 
 
     if (subject) {
         if (tutors?.length > 0) {
-            return filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
+            filtered = filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
         } else {
-            return filtered.filter((avail) =>
+            filtered = filtered.filter((avail) =>
                 subject.tutors.some((tutor) => tutor.email === avail.tutor),
             );
         }
-    }
-
-    if (tutors?.length > 0) {
-        return filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
+    } else if (tutors?.length > 0) {
+        filtered = filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
     }
 
     return filtered;
