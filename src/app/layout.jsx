@@ -20,7 +20,9 @@ export default function RootLayout({ children }) {
                 />
             </head>
             <body className={inter.className} suppressHydrationWarning>
-                <AppSessionProvider>{children}</AppSessionProvider>
+                <AppSessionProvider>
+                    {children}
+                </AppSessionProvider>
                 <Script
                     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
                     strategy="afterInteractive"

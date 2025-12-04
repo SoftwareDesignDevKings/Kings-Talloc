@@ -16,7 +16,7 @@ import {
 import Image from 'next/image';
 import { signOut } from 'next-auth/react';
 
-const Sidebar = ({ setActiveSection, userRole, user }) => {
+const Sidebar = ({ setRedirectEndpoint, userRole, user }) => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -57,14 +57,14 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
                     <ul className="tw-mt-4 tw-space-y-2 tw-list-none tw-pl-0">
                         <li
                             className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                            onClick={() => setActiveSection('dashboard')}
+                            onClick={() => setRedirectEndpoint('newDashboard')}
                         >
                             <FiHome className="tw-text-indigo-600" />
                             {!isCollapsed && <span>Dashboard</span>}
                         </li>
                         <li
                             className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                            onClick={() => setActiveSection('calendar')}
+                            onClick={() => setRedirectEndpoint('calendar')}
                         >
                             <FiCalendar className="tw-text-indigo-600" />
                             {!isCollapsed && <span>Calendar</span>}
@@ -73,14 +73,14 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
                             <>
                                 <li
                                     className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                    onClick={() => setActiveSection('userRoles')}
+                                    onClick={() => setRedirectEndpoint('userRoles')}
                                 >
                                     <FiUsers className="tw-text-indigo-600" />
                                     {!isCollapsed && <span>User Roles</span>}
                                 </li>
                                 <li
                                     className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                    onClick={() => setActiveSection('classes')}
+                                    onClick={() => setRedirectEndpoint('classes')}
                                 >
                                     <FiBook className="tw-text-indigo-600" />
                                     {!isCollapsed && <span>Manage Classes</span>}
@@ -90,7 +90,7 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
                         {userRole === 'teacher' && (
                             <li
                                 className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                onClick={() => setActiveSection('subjects')}
+                                onClick={() => setRedirectEndpoint('subjects')}
                             >
                                 <FiBookOpen className="tw-text-indigo-600" />
                                 {!isCollapsed && <span>Manage Subjects</span>}
@@ -99,7 +99,7 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
                         {userRole !== 'student' && (
                             <li
                                 className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                onClick={() => setActiveSection('tutorHours')}
+                                onClick={() => setRedirectEndpoint('tutorHours')}
                             >
                                 <FiClock className="tw-text-indigo-600" />
                                 {!isCollapsed && <span>Tutor Hours</span>}

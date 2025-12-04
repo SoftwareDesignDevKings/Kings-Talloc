@@ -390,7 +390,7 @@ const CalendarContent = () => {
                         events={finalEvents}
                         startAccessor="start"
                         endAccessor="end"
-                        style={{ height: '600px' }}
+                        style={{ height: '100%' }}
                         min={minTime}
                         max={maxTime}
                         onSelectSlot={handleSelectSlot}
@@ -421,7 +421,7 @@ const CalendarContent = () => {
                         events={finalEvents}
                         startAccessor="start"
                         endAccessor="end"
-                        style={{ height: '600px' }}
+                        style={{ height: '100%' }}
                         min={minTime}
                         max={maxTime}
                         onSelectSlot={handleSelectSlot}
