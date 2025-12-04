@@ -27,13 +27,6 @@ export default function LoginPage() {
                     </p>
                 </div>
                 <div className="tw-space-y-3" style={{ marginTop: '1rem' }}>
-                    <button
-                        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                        className="tw-relative tw-flex tw-justify-center tw-items-center tw-w-full tw-px-4 tw-py-2 tw-text-base tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md tw-group hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                    >
-                        <FcGoogle className="tw-w-4 tw-h-4 tw-mr-2" />
-                        Sign in with Google SSO
-                    </button>
 
                     <button
                         onClick={() => signIn('azure-ad', { callbackUrl: '/dashboard' })}
