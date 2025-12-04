@@ -36,35 +36,40 @@ The app will be available at `http://localhost:3000`
 ### Testing
 
 ```bash
-# Run all tests
+# run all tests
 npm run test:all
 
-# Run Jest tests only
+# run Jest tests only
 npm run test
 
-# Run Firebase emulator tests only
+# run Firebase emulator tests only
 npm run test:firebase
 ```
-
 ---
 
 ## Overview
 
-Kings-Talloc streamlines tutor allocation and scheduling for the CST Department. Students request tutoring sessions, tutors manage availability, and teachers oversee allocations through an interactive calendar interface. Built with Next.js and Firebase Firestore, the system provides real-time updates with role-based access restricted to `@kings.edu.au`.
+Kings-Talloc streamlines tutor allocation and scheduling for the CST Department. Students request tutoring sessions, tutors manage availability, and teachers oversee allocations through a calendar interface. 
+
+Built with Next.js and Firebase Firestore, the system provides real-time updates with role-based access restricted to `@kings.edu.au`.
 
 ---
 
 ## Features
 
-### Role-Based Access
+Kings-Talloc is built with React Big Calendar. 
+Old version was styled using tailwind CSS and now integrated with Bootstrap for responsiveness and accessibility features. 
 
-- Student, Tutor, and Teacher roles with Google OAuth authentication
-- Manual assignment of roles from 'Teacher' as Google OAuth does not give a role tag to identify.
-- Restricted to `@kings.edu.au | @student.kings.edu.au` domains only
+
+### NextAuth
+
+- Student, Tutor, and Teacher roles assigned after MS OAuth login. 
+- Manual assignment of roles from 'Teacher' as ICT scope does not give role identity. 
+- Entra Tennant restricted to `@kings.edu.au | @student.kings.edu.au` domains only
 
 ### Scheduling & Calendar
-
-- Interactive calendar with drag-and-drop event management
+Built with React Big Calendar
+- Drag-and-drop event management
 - Tutor availability tracking (tutoring, coaching, work)
 - Student session requests with teacher approval workflow
 - Real-time event updates via Firestore listeners
@@ -96,7 +101,7 @@ Kings-Talloc streamlines tutor allocation and scheduling for the CST Department.
 
 > [!NOTE]
 > The project uses **GitHub Actions** for continuous integration. All tests must pass before code can be merged.
-> Tests are primarily for Firebase auth with 1 unit test configured.
+> Tests are primarily for Firebase auth with 1 unit test configured for future integration. 
 
 **Pipeline Steps:**
 
@@ -120,26 +125,26 @@ Kings-Talloc streamlines tutor allocation and scheduling for the CST Department.
 
 **Deployment:**
 
-- Currently deployed on Vercel at [kings-talloc.vercel.app](https://kings-talloc.vercel.app)
-- Final step: Configure Kings domain to wrap Vercel deployment
+- ICT has CNAME pointed [talloc.kings.edu.au](https://talloc.kings.edu.au) to deployed version on Vercel at [kings-talloc.vercel.app](https://kings-talloc.vercel.app)
+- All code pushed to `main` is automatically deployed on Vercel. 
 
 ---
 
 ## Future Fixes
-
 > [!NOTE]
 > The following improvements are planned for future development:
 
 **1. React Big Calendar Performance**
-
-- The calendar component is wrapped in a large wrapper, causing slow initial load times
+- Initial design was `/dashboard` was designed around SPA (initial slow load time, fast interactivity after Next.js hydrates the app). 
+- Potential areas of improvement: **migrating to Next's app router**. 
+    - Components for `CalendarWrapper` and `TutorHoursSummary` could be split into seperate page.jsx. 
+    - Incremental site generation of the `/calendar` page.  
 - Consider lazy loading or virtualisation for better performance
 
 **2. Context Provider Optimisation**
-
 - Multiple nested providers may cause unnecessary re-renders
 - Consider consolidating or memoising provider values
 
-**3. Domain Configuration**
-
-- Configure Kings domain to wrap Vercel deployment for production URL
+**3. Styling**
+- Bootstrap was integrated to quickly develop a responsive UI for the redesign of the old app. 
+- Migration completely away from tailwind to bootstrap will speed up load times as there will be no CSS styles conflicting with bootstrap. 
