@@ -1,6 +1,6 @@
 'use client';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
+// import 'bootstrap/dist/css/bootstrap.min.css';
 
 import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from '@components/Sidebar.jsx';
