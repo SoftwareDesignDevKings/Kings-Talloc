@@ -31,6 +31,15 @@
     font-size: 0.875rem;
 }
 
+.divider-offset {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+.content-scroll-area {
+    min-height: 0;
+}
+
 /* Calendar scroll container */
 .calendar-scroll-container {
     height: 100%;
