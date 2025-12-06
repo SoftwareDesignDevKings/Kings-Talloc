@@ -13,7 +13,14 @@
 body {
     color: #000000;
     background-color: #ffffff;
-    min-height: 100vh;
+    height: 100vh;
+}
+
+/* Calendar scroll container */
+.calendar-scroll-container {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* React Big Calendar fixes */

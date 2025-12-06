@@ -374,7 +374,7 @@ const CalendarContent = () => {
 
     return (
         <div className="d-flex h-100 w-100">
-            <div className="flex-grow-1 p-3 overflow-hidden">
+            <div className="flex-grow-1 p-3 calendar-scroll-container">
                 {isMobile ? (
                     <Calendar
                         localizer={localizer}
