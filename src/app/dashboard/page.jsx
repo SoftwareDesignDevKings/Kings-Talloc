@@ -7,6 +7,8 @@ import Sidebar from '@components/Sidebar.jsx';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 
+import styles from './dashboard.module.css';
+
 // Lazy load all heavy components to reduce initial bundle and hydrate /dashboard faster
 const CalendarWrapper = lazy(() => import('@components/CalendarWrapper.jsx'));
 const UserRolesManager = lazy(() => import('@components/UserRolesManager.jsx'));
@@ -53,7 +55,7 @@ const Dashboard = () => {
                                 </div>
                             )}
                             {activeSection === 'calendar' && (
-                                <div className="tw-h-full tw-overflow-y-auto tw-overflow-x-hidden">
+                                <div className={styles.calendarContainer}>
                                     <CalendarWrapper
                                         userRole={userRole}
                                         userEmail={session.user.email}
