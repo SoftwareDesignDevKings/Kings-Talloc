@@ -10,10 +10,25 @@
     --calendar-text: #000000;
 }
 
-body {
-    color: #000000;
-    background-color: #ffffff;
-    height: 100vh;
+.app-gradient-bg {
+    background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
+}
+
+.dashboard-title {
+    font-size: 1.875rem;
+    font-weight: 800;
+    color: #111827;
+    margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+    .dashboard-title {
+        margin-top: 0;
+    }
+}
+
+.signed-in-text {
+    font-size: 0.875rem;
 }
 
 /* Calendar scroll container */

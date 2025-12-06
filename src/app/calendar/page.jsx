@@ -6,10 +6,13 @@ import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 const CalendarWrapper = lazy(() => import('@/components/CalendarWrapper.jsx'));
 
 const CalendarPage = () => {
+    // return (
+    //     <Suspense fallback={<LoadingSpinner />}>
+    //         <CalendarWrapper />
+    //     </Suspense>
+    // );
     return (
-        <Suspense fallback={<LoadingSpinner />}>
-            <CalendarWrapper />
-        </Suspense>
+        <CalendarWrapper />
     );
 };
 
