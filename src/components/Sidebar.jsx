@@ -102,7 +102,7 @@ const Sidebar = ({ userRole, user }) => {
                         {userRole !== 'student' && (
                             <li
                                 className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                onClick={() => router.push('tutorHours')}
+                                onClick={() => router.push('tutorhours')}
                             >
                                 <FiClock className={styles.navIcon} />
                                 {!isCollapsed && <span>Tutor Hours</span>}

@@ -2,15 +2,13 @@
 
 import LoadingPage from '@/components/LoadingPage.jsx';
 import LoginPage from '@/components/LoginPage.jsx';
-import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, Suspense, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { signInWithCustomToken, signOut } from 'firebase/auth';
 import { auth } from '@/firestore/firestoreClient';
 import { usePathname } from 'next/navigation';
 import AuthContext from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { getAuth } from 'firebase/auth';
 
 /**
  * Authentication provider to wrap around components that require authentication.
@@ -108,12 +106,7 @@ const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={{ session, status, userRole, loading: isLoading }}>
             <div className="d-flex vh-100">
                 <Sidebar user={session.user} userRole={userRole} />
-
-                <div className="flex-grow-1 h-100 overflow-hidden">
-                    <Suspense fallback={<LoadingSpinner className="tw-h-screen tw-w-screen" />}>
-                        {children}
-                    </Suspense>
-                </div>
+                {children}
             </div>
         </AuthContext.Provider>
     );
