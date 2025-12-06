@@ -60,7 +60,7 @@ const Sidebar = ({ userRole, user }) => {
                     <ul className={styles.navList}>
                         <li
                             className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                            onClick={() => router.push('newDashboard')}
+                            onClick={() => router.push('dashboard')}
                         >
                             <FiHome className={styles.navIcon} />
                             {!isCollapsed && <span>Dashboard</span>}
