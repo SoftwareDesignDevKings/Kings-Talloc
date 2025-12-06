@@ -9,6 +9,7 @@ import { signInWithCustomToken, signOut } from 'firebase/auth';
 import { auth } from '@/firestore/firestoreClient';
 import { usePathname } from 'next/navigation';
 import AuthContext from '@/contexts/AuthContext';
+import Sidebar from '@/components/Sidebar';
 import { getAuth } from 'firebase/auth';
 
 /**
@@ -105,9 +106,15 @@ const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{ session, status, userRole, loading: isLoading }}>
-            <Suspense fallback={<LoadingSpinner className="tw-h-screen tw-w-screen" />}>
-                {children}
-            </Suspense>
+            <div className="d-flex vh-100">
+                <Sidebar user={session.user} userRole={userRole} />
+
+                <div className="flex-grow-1 h-100 overflow-hidden">
+                    <Suspense fallback={<LoadingSpinner className="tw-h-screen tw-w-screen" />}>
+                        {children}
+                    </Suspense>
+                </div>
+            </div>
         </AuthContext.Provider>
     );
 };

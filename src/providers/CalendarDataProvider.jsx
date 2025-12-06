@@ -10,6 +10,7 @@ import {
 } from '@/firestore/firestoreFetch';
 import { calendarAvailabilitySplit } from '@/utils/calendarAvailability';
 import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
+import { useAuthSession } from '@/hooks/useAuthSession';
 
 const CalendarDataContext = createContext(null);
 
@@ -28,7 +29,9 @@ export const useCalendarData = () => {
  * This context rarely changes - only when events/availabilities are added/updated/deleted.
  * Keeps data separate from UI state to minimize re-renders.
  */
-export const CalendarDataProvider = ({ children, userRole, userEmail }) => {
+export const CalendarDataProvider = ({ children }) => {
+    const { session, userRole } = useAuthSession();
+    const userEmail = session?.user?.email;
     const [allEvents, setAllEvents] = useState([]);
     const [availabilities, setAvailabilities] = useState([]);
     const [studentRequests, setStudentRequests] = useState([]);

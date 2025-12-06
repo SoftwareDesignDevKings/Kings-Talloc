@@ -63,6 +63,8 @@ const CalendarContent = () => {
     const uiContext = useCalendarUI();
     const { setAlertMessage, setAlertType } = useAlert();
 
+    console.log('CalendarContent rendering, loading:', dataContext.loading);
+
     const {
         allEvents,
         setAllEvents,
@@ -363,27 +365,16 @@ const CalendarContent = () => {
     const currentWeekEnd = new Date(currentWeekStart);
     currentWeekEnd.setDate(currentWeekEnd.getDate() + 7);
 
-    const calendarContainerStyle = {
-        backgroundColor: '#ffffff',
-        color: '#000000',
-    };
-
-    const calendarPanelStyle = {
-        paddingRight: '3rem',
-        backgroundColor: '#ffffff',
-        color: '#000000',
-    };
-
     if (loading) {
+        console.log('CalendarContent: still loading...');
         return <LoadingSpinner />;
     }
 
+    console.log('CalendarContent: rendering calendar with finalEvents:', finalEvents.length);
+
     return (
-        <div className="tw-flex tw-h-full" style={calendarContainerStyle}>
-            <div
-                className="tw-flex-1 tw-p-5 tw-overflow-hidden tw-relative"
-                style={calendarPanelStyle}
-            >
+        <div className="d-flex h-100 w-100">
+            <div className="flex-grow-1 p-3 overflow-hidden">
                 {isMobile ? (
                     <Calendar
                         localizer={localizer}
@@ -595,13 +586,15 @@ const CalendarContent = () => {
 /**
  * CalendarWrapper with nested providers
  */
-const CalendarWrapper = ({ userRole, userEmail }) => {
+const CalendarWrapper = () => {
     return (
-        <CalendarDataProvider userRole={userRole} userEmail={userEmail}>
-            <CalendarUIProvider>
-                <CalendarContent />
-            </CalendarUIProvider>
-        </CalendarDataProvider>
+        <div className="h-100 w-100">
+            <CalendarDataProvider>
+                <CalendarUIProvider>
+                    <CalendarContent />
+                </CalendarUIProvider>
+            </CalendarDataProvider>
+        </div>
     );
 };
 
