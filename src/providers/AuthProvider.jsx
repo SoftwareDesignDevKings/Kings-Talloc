@@ -104,9 +104,35 @@ const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{ session, status, userRole, loading: isLoading }}>
-            <div className="d-flex vh-100">
+            {/* Main container: sidebar + gradient background */}
+            <div className="d-flex vh-100 app-gradient-bg">
                 <Sidebar user={session.user} userRole={userRole} />
-                {children}
+
+                {/* Main content area with outer padding */}
+                <div className="flex-grow-1 p-1 p-md-3 d-flex flex-column overflow-hidden">
+                    {/* White card container */}
+                    <div className="bg-white rounded-3 shadow-lg p-2 p-md-4 d-flex flex-column flex-grow-1 overflow-hidden">
+                        {/* Header section: responsive alignment */}
+                        <div className="text-center text-md-start ps-md-2">
+                            <div className="d-flex flex-column flex-md-row justify-content-center justify-content-md-start align-items-center align-items-md-start gap-3">
+                                <h1 className="dashboard-title">
+                                    {userRole === 'student' ? 'Student Dashboard' :
+                                     userRole === 'teacher' ? 'Teacher Dashboard' :
+                                     'Tutor Dashboard'}
+                                </h1>
+                                <p className="mb-0 text-muted">Signed in as {session.user.email}</p>
+                            </div>
+                        </div>
+
+                        {/* Divider */}
+                        <hr className="my-4 mx-md-0"/>
+
+                        {/* Content area with scroll */}
+                        <div className="flex-grow-1 overflow-hidden" style={{minHeight: 0}}>
+                            {children}
+                        </div>
+                    </div>
+                </div>
             </div>
         </AuthContext.Provider>
     );

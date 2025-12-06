@@ -7,8 +7,6 @@ import Sidebar from '@components/Sidebar.jsx';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 
-import styles from './dashboard.module.css';
-
 // Lazy load all heavy components to reduce initial bundle and hydrate /dashboard faster
 const CalendarWrapper = lazy(() => import('@components/CalendarWrapper.jsx'));
 const UserRolesManager = lazy(() => import('@components/UserRolesManager.jsx'));
