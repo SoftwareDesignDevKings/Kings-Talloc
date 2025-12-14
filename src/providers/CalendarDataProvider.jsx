@@ -10,7 +10,7 @@ import {
 } from '@/firestore/firestoreFetch';
 import { calendarAvailabilitySplit } from '@/utils/calendarAvailability';
 import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
-import { useAuthSession } from '@/hooks/useAuthSession';
+import useAuthSession from '@/hooks/useAuthSession';
 
 const CalendarDataContext = createContext(null);
 

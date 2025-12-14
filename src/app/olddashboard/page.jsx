@@ -4,7 +4,7 @@
 
 import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from '@components/Sidebar.jsx';
-import { useAuthSession } from '@/hooks/useAuthSession';
+import useAuthSession from '@/hooks/useAuthSession';
 import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 
 // Lazy load all heavy components to reduce initial bundle and hydrate /dashboard faster

@@ -1,9 +1,11 @@
 'use client';
 
+import DashboardOverview from '@/components/DashboardOverview';
+
 const DashboardPage = () => {
     return (
-        <div className="d-flex align-items-center justify-content-center h-100">
-            <h2>Migrating SPA Design to New Dashboard</h2>
+        <div className="overflow-y-auto overflow-x-hidden h-100">
+            <DashboardOverview />
         </div>
     );
 };
