@@ -21,7 +21,7 @@ let testEnv;
 
 beforeAll(async () => {
     // Read the actual firestore.rules file
-    const rulesPath = path.join(__dirname, '../firebase', 'firestore.rules');
+    const rulesPath = path.join(__dirname, '../../firebase', 'firestore.rules');
     const rules = fs.readFileSync(rulesPath, 'utf8');
 
     // Initialize test environment with the actual rules
