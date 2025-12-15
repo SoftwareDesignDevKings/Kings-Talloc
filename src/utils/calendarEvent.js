@@ -29,7 +29,7 @@ export const calendarEventGetType = (event) => {
     const isAvailability = !!event.tutor;
     const isStudentRequest = !!event.isStudentRequest;
 
-    let collectionName = 'events';
+    let collectionName = 'shifts';
     if (isAvailability) {
         collectionName = 'tutorAvailabilities';
     } else if (isStudentRequest) {

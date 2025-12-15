@@ -32,7 +32,7 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
                 // Single query for all events this week (includes today + upcoming)
                 getDocs(
                     query(
-                        collection(db, 'events'),
+                        collection(db, 'shifts'),
                         where('start', '>=', Timestamp.fromDate(weekStart)),
                         where('start', '<', Timestamp.fromDate(weekEnd)),
                         orderBy('start', 'asc'),

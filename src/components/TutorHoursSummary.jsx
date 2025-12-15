@@ -63,7 +63,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     const fetchTutorHours = useCallback(async () => {
         const q = query(
-            collection(db, 'events'),
+            collection(db, 'shifts'),
             where('start', '>=', startDate),
             where('end', '<=', endDate),
             orderBy('start'),
@@ -132,7 +132,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     const fetchTimesheetEvents = async (tutorEmail) => {
         const q = query(
-            collection(db, 'events'),
+            collection(db, 'shifts'),
             where('start', '>=', startDate),
             where('end', '<=', endDate),
             orderBy('start'),

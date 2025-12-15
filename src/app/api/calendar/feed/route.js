@@ -34,8 +34,8 @@ export async function GET(request) {
         return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Fetch events where user is a participant (staff or student)
-    const eventsSnapshot = await adminDb.collection("events").get();
+    // Fetch shifts where user is a participant (staff or student)
+    const eventsSnapshot = await adminDb.collection("shifts").get();
     const events = [];
 
     eventsSnapshot.forEach((doc) => {

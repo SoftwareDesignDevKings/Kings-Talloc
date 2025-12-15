@@ -32,7 +32,7 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
                 // Single query for all events this week (includes today + stats)
                 getDocs(
                     query(
-                        collection(db, 'events'),
+                        collection(db, 'shifts'),
                         where('staff', 'array-contains', { value: userEmail, label: userEmail }),
                         where('start', '>=', Timestamp.fromDate(weekStart)),
                         where('start', '<', Timestamp.fromDate(weekEnd)),
@@ -41,7 +41,7 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
                 // Upcoming events beyond this week (limit 5)
                 getDocs(
                     query(
-                        collection(db, 'events'),
+                        collection(db, 'shifts'),
                         where('staff', 'array-contains', { value: userEmail, label: userEmail }),
                         where('start', '>=', Timestamp.fromDate(weekEnd)),
                         orderBy('start', 'asc'),
@@ -51,7 +51,7 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
                 // Events requiring confirmation
                 getDocs(
                     query(
-                        collection(db, 'events'),
+                        collection(db, 'shifts'),
                         where('staff', 'array-contains', { value: userEmail, label: userEmail }),
                         where('confirmationRequired', '==', true),
                     ),

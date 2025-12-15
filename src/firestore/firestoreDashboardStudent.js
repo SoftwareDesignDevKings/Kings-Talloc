@@ -29,7 +29,7 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             // Today's events for this student only
             getDocs(
                 query(
-                    collection(db, 'events'),
+                    collection(db, 'shifts'),
                     where('students', 'array-contains', { value: userEmail, label: userEmail }),
                     where('start', '>=', Timestamp.fromDate(startOfToday)),
                     where('start', '<=', Timestamp.fromDate(endOfToday)),
@@ -39,7 +39,7 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             // Upcoming events for this student (next 5)
             getDocs(
                 query(
-                    collection(db, 'events'),
+                    collection(db, 'shifts'),
                     where('students', 'array-contains', { value: userEmail, label: userEmail }),
                     where('start', '>', Timestamp.fromDate(now)),
                     orderBy('start', 'asc'),
@@ -49,7 +49,7 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             // Completed events (end time before now to avoid client-side filter)
             getDocs(
                 query(
-                    collection(db, 'events'),
+                    collection(db, 'shifts'),
                     where('students', 'array-contains', { value: userEmail, label: userEmail }),
                     where('workStatus', '==', 'completed'),
                     where('end', '<', Timestamp.fromDate(now)),

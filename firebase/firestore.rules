@@ -47,10 +47,10 @@ service cloud.firestore {
       allow delete: if isTeacher();
     }
 
-    // Events collection (APPROVED events only - counts for payroll/hours)
-    match /events/{eventId} {
+    // Shifts collection (APPROVED shifts only - counts for payroll/hours)
+    match /shifts/{shiftId} {
       allow read: if isAuthenticated();
-      // only teachers can create/delete events
+      // only teachers can create/delete shifts
       allow create, delete: if isTeacher();
       // teachers can update anything, tutors can only update workStatus
       allow update: if isTeacher() || (isTutor() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));

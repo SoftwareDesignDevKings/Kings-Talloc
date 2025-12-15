@@ -20,7 +20,7 @@ export const firestoreFetchEvents = async (
     setStudents,
     setLoading,
 ) => {
-    const q = query(collection(db, 'events'));
+    const q = query(collection(db, 'shifts'));
     let isFirstLoad = true;
     let studentClasses = []; // Cache student classes
 

@@ -77,7 +77,7 @@ const StudentRequestsDropdown = () => {
                 classes: request.classes,
             };
 
-            const eventsRef = collection(db, 'events');
+            const eventsRef = collection(db, 'shifts');
             await addDoc(eventsRef, eventData);
 
             setRequests((prev) => prev.filter((req) => req.id !== requestId));
