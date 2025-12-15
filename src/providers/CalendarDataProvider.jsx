@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     firestoreFetchEvents,
     firestoreFetchAvailabilities,
@@ -11,16 +11,9 @@ import {
 import { calendarAvailabilitySplit } from '@/utils/calendarAvailability';
 import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
 import useAuthSession from '@/hooks/useAuthSession';
+import CalendarDataContext from '@/contexts/CalendarDataContext';
 
-const CalendarDataContext = createContext(null);
-
-export const useCalendarData = () => {
-    const context = useContext(CalendarDataContext);
-    if (!context) {
-        throw new Error('useCalendarData must be used within CalendarDataProvider');
-    }
-    return context;
-};
+export { useCalendarData } from '@/contexts/CalendarDataContext';
 
 /**
  * CalendarDataProvider

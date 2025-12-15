@@ -1,19 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useCalendarData } from './CalendarDataProvider';
 import { calendarEventFilter } from '@/utils/calendarEvent';
 import { calendarAvailabilityFilter } from '@/utils/calendarAvailability';
+import CalendarUIContext from '@/contexts/CalendarUIContext';
 
-const CalendarUIContext = createContext(null);
-
-export const useCalendarUI = () => {
-    const context = useContext(CalendarUIContext);
-    if (!context) {
-        throw new Error('useCalendarUI must be used within CalendarUIProvider');
-    }
-    return context;
-};
+export { useCalendarUI } from '@/contexts/CalendarUIContext';
 
 /**
  * CalendarUIProvider
