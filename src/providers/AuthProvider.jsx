@@ -21,6 +21,8 @@ const AuthProvider = ({ children }) => {
     const { data: session, status, update } = useSession();
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState('student');
+    const [device, setDevice] = useState("desktop")
+
     const pathname = usePathname();
     const tokenRefreshInterval = useRef(null);
 
@@ -90,10 +92,22 @@ const AuthProvider = ({ children }) => {
         }
     }, [status, isPublicRoute, update]);
 
+    useEffect(() => {
+        setDevice(window.innerWidth < 768 ? 'mobile' : 'desktop');
+    }, []);
+
+    const authCtxValues = {
+        session, 
+        status, 
+        userRole, 
+        loading: isLoading,
+        device
+    }
+
     // Allow public routes to render without auth
     if (isPublicRoute) {
         return (
-            <AuthContext.Provider value={{ session, status, userRole, loading: isLoading }}>
+            <AuthContext.Provider value={authCtxValues}>
                 {children}
             </AuthContext.Provider>
         );
@@ -103,7 +117,7 @@ const AuthProvider = ({ children }) => {
     if (status === 'unauthenticated') return <LoginPage />;
 
     return (
-        <AuthContext.Provider value={{ session, status, userRole, loading: isLoading }}>
+        <AuthContext.Provider value={authCtxValues}>
             <AppLayout session={session} userRole={userRole}>
                 {children}
             </AppLayout>

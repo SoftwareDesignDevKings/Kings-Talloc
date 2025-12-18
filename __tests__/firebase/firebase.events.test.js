@@ -56,14 +56,14 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('events').get());
+            await assertSucceeds(db.collection('shifts').get());
         });
 
         test('unauthenticated users CANNOT read events', async () => {
             const context = testEnv.unauthenticatedContext();
             const db = context.firestore();
 
-            await assertFails(db.collection('events').get());
+            await assertFails(db.collection('shifts').get());
         });
     });
 
@@ -94,7 +94,7 @@ describe('Firebase Security Rules - Events Collection', () => {
                 locationType: 'onsite',
             };
 
-            await assertSucceeds(db.collection('events').add(eventData));
+            await assertSucceeds(db.collection('shifts').add(eventData));
         });
 
         test('tutor CANNOT create events', async () => {
@@ -113,7 +113,7 @@ describe('Firebase Security Rules - Events Collection', () => {
                 workStatus: 'notCompleted',
             };
 
-            await assertFails(db.collection('events').add(eventData));
+            await assertFails(db.collection('shifts').add(eventData));
         });
 
         test('student CANNOT create events', async () => {
@@ -130,7 +130,7 @@ describe('Firebase Security Rules - Events Collection', () => {
                 students: [{ value: studentEmail, label: 'Student' }],
             };
 
-            await assertFails(db.collection('events').add(eventData));
+            await assertFails(db.collection('shifts').add(eventData));
         });
     });
 
@@ -142,7 +142,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             //
             await testEnv.withSecurityRulesDisabled(async (context) => {
                 const db = context.firestore();
-                const ref = await db.collection('events').add({
+                const ref = await db.collection('shifts').add({
                     title: 'Test Event',
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
@@ -166,7 +166,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             const db = context.firestore();
 
             await assertSucceeds(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     title: 'Updated Title',
                     description: 'Updated description',
                     workStatus: 'completed',
@@ -182,7 +182,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             const db = context.firestore();
 
             await assertSucceeds(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     workStatus: 'completed',
                 }),
             );
@@ -197,14 +197,14 @@ describe('Firebase Security Rules - Events Collection', () => {
 
             // Test updating to 'completed'
             await assertSucceeds(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     workStatus: 'completed',
                 }),
             );
 
             // Test updating to 'notAttended'
             await assertSucceeds(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     workStatus: 'notAttended',
                 }),
             );
@@ -218,7 +218,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             const db = context.firestore();
 
             await assertFails(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     workStatus: 'completed',
                     title: 'Hacked title',
                 }),
@@ -233,7 +233,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             const db = context.firestore();
 
             await assertFails(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     title: 'Updated Title',
                 }),
             );
@@ -247,7 +247,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             const db = context.firestore();
 
             await assertFails(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     description: 'Updated description',
                 }),
             );
@@ -262,7 +262,7 @@ describe('Firebase Security Rules - Events Collection', () => {
 
             await assertFails(
                 db
-                    .collection('events')
+                    .collection('shifts')
                     .doc(eventId)
                     .update({
                         staff: [{ value: 'other@kings.edu.au', label: 'Other' }],
@@ -278,7 +278,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             const db = context.firestore();
 
             await assertFails(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     title: 'Updated by student',
                 }),
             );
@@ -292,7 +292,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             const db = context.firestore();
 
             await assertFails(
-                db.collection('events').doc(eventId).update({
+                db.collection('shifts').doc(eventId).update({
                     workStatus: 'completed',
                 }),
             );
@@ -306,7 +306,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             // Create an event for testing
             await testEnv.withSecurityRulesDisabled(async (context) => {
                 const db = context.firestore();
-                const ref = await db.collection('events').add({
+                const ref = await db.collection('shifts').add({
                     title: 'Test Event',
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
@@ -325,7 +325,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('events').doc(eventId).delete());
+            await assertSucceeds(db.collection('shifts').doc(eventId).delete());
         });
 
         test('tutor CANNOT delete events', async () => {
@@ -335,7 +335,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertFails(db.collection('events').doc(eventId).delete());
+            await assertFails(db.collection('shifts').doc(eventId).delete());
         });
 
         test('student CANNOT delete events', async () => {
@@ -345,7 +345,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertFails(db.collection('events').doc(eventId).delete());
+            await assertFails(db.collection('shifts').doc(eventId).delete());
         });
     });
 });

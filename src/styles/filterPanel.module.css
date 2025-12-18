@@ -15,13 +15,15 @@
 
 /* Filter Panel Container */
 .filterPanelContainer {
-    background-color: #f3f4f6; /* gray-100 */
+    background-color: #ffffff;
+    color: #000000;
     border-left: 1px solid #d1d5db; /* gray-300 */
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     transition: width 150ms ease-in-out;
     position: relative;
+    flex-shrink: 0;
 }
 
 /* Toggle Button - Absolutely positioned outside panel */
@@ -61,9 +63,16 @@
 .filterContent {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     width: 100%;
     padding: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Ensure all direct children take full width */
+.filterContent > * {
+    width: 100%;
 }
 
 .filterTitle {
@@ -87,3 +96,13 @@
 .checkboxIndented {
     margin-left: 1.5rem; /* tw-ml-6 */
 }
+
+.filterPanelContainer.open {
+    width: 16rem;
+}
+
+.filterPanelContainer.closed {
+    width: 0;
+    border-left: none;
+}
+

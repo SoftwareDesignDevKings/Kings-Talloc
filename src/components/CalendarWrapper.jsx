@@ -6,7 +6,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
 import CalendarFilterPanel from './calendar/CalendarFilterPanel.jsx';
-import CalendarTimeSlotWrapper from './calendar/CalendarTimeSlotWrapper.jsx';
+import CalendarTimeSlotWrapper from './calendar/CustomTimeslot.jsx';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 // Providers
