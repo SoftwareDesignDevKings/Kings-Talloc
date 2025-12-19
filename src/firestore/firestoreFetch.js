@@ -169,6 +169,31 @@ export const firestoreFetchClasses = async (setClasses) => {
     }
 };
 
+/**
+ * Fetch students for dropdowns (one-time)
+ * @param {Function} setStudents
+ */
+export const firestoreFetchStudents = async (setStudents) => {
+    try {
+        const studentsRef = collection(db, 'students');
+        const snapshot = await getDocs(studentsRef);
+
+        const students = snapshot.docs.map((doc) => {
+            const data = doc.data();
+
+            return {
+                email: data.email,
+                name: data.name || data.email,
+            };
+        });
+
+        setStudents(students);
+    } catch (error) {
+        console.error('Error fetching students:', error);
+        setStudents([]);
+    }
+};
+
 // /**
 //  * Fetch shifts in real-time and update state based on user role for CalendarWrapper
 //  * @param {String} userRole

@@ -7,7 +7,8 @@ import {
     firestoreFetchStudentRequests,
     firestoreFetchTutors,
     firestoreFetchClasses,
-    firestoreFetchSubjects
+    firestoreFetchSubjects,
+    firestoreFetchStudents
 } from '@/firestore/firestoreFetch';
 // import { calendarAvailabilitySplit } from '@/utils/calendarAvailability';
 import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
@@ -44,7 +45,7 @@ export const CalendarDataProvider = ({ children }) => {
         firestoreFetchTutors(setTutors)
         firestoreFetchClasses(setClasses)
         firestoreFetchSubjects(setSubjects)
-        // firestoreFetchStudents(setStudents);
+        firestoreFetchStudents(setStudents);
 
         return () => {
             // disconnect snapshots (real time listeners)
