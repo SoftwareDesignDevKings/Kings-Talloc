@@ -7,7 +7,7 @@ export const CalendarFlow = Object.freeze({
 
     CREATE_STUDENT_REQUEST: 'createStudentRequest',
     EDIT_STUDENT_REQUEST: 'editStudentRequest',
-    // VIEW_STUDENT_REQUEST: 'viewStudentRequest',
+    VIEW_STUDENT_REQUEST: 'viewStudentRequest',
 
     CREATE_AVAILABILITY: 'createAvailability',
     EDIT_AVAILABILITY: 'editAvailability',

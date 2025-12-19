@@ -53,8 +53,11 @@ const CalendarContent = () => {
 
     const {
         calendarShifts,
+        setCalendarShifts,
         calendarAvailabilities,
+        setCalendarAvailabilities,
         calendarStudentRequests,
+        setCalendarStudentRequests,
     } = useCalendarData();
 
     /* ----------------------------------------------------------- */
@@ -123,6 +126,27 @@ const CalendarContent = () => {
         setCalendarTarget(null);
     };
 
+    /**
+     * Update specific fields in the draft event/target
+     * @param {Object} fieldUpdates - Object with field names as keys (e.g., { title: "Math", staff: [...] })
+     */
+    const updateCalendarTarget = (fieldUpdates) => {
+        setCalendarTarget((prevTarget) => ({
+            ...prevTarget,      // Keep all existing fields
+            ...fieldUpdates,    // Overwrite with new field values
+        }));
+    };
+
+    // redefine them her 
+    const eventsData = {
+        allEvents: calendarShifts,
+        setAllEvents: setCalendarShifts,
+        availabilities: calendarAvailabilities,
+        setAvailabilities: setCalendarAvailabilities,
+        studentRequests: calendarStudentRequests,
+        setStudentRequests: setCalendarStudentRequests,
+    };
+
     /* ----------------------------------------------------------- */
     /* Handlers                                                    */
     /* ----------------------------------------------------------- */
@@ -141,17 +165,36 @@ const CalendarContent = () => {
 
         if (!entityType) return;
 
-        const draftTarget = {
+        // Create draft with all required fields initialized
+        const draftCalEvent = {
             entityType,
             start: slotInfo.start,
             end: slotInfo.end,
+            title: '',
+            description: '',
+            staff: [],
+            classes: [],
+            students: [],
+            tutorResponses: [],
+            studentResponses: [],
+            minStudents: 0,
+            createdByStudent: false,
+            approvalStatus: 'pending',
+            workStatus: 'notCompleted',
+            workType: 'tutoring',
+            locationType: '',
+            subject: null,
+            preference: null,
+            recurring: null,
+            createTeamsMeeting: false,
+            confirmationRequired: false,
         };
 
-        const action = strategy.actions.getCreateFlow(draftTarget);
+        const action = strategy.actions.getCreateFlow(draftCalEvent);
         if (!action) return;
 
         setCalendarAction(action);
-        setCalendarTarget(draftTarget);
+        setCalendarTarget(draftCalEvent);
     };
 
     /* ----------------------------------------------------------- */
@@ -185,10 +228,7 @@ const CalendarContent = () => {
     );
 
     const defaultView = device === 'mobile' ? Views.DAY : Views.WEEK;
-    const rbcViews =
-        device === 'mobile'
-            ? [Views.DAY, Views.WEEK]
-            : [Views.DAY, Views.WEEK, Views.MONTH];
+    const rbcViews = device === 'mobile' ? [Views.DAY, Views.WEEK] : [Views.DAY, Views.WEEK, Views.MONTH];
 
     /* ----------------------------------------------------------- */
     /* Render                                                      */
@@ -233,6 +273,9 @@ const CalendarContent = () => {
                 action={calendarAction}
                 target={calendarTarget}
                 onClose={closeCalendarAction}
+                updateTarget={updateCalendarTarget}
+                eventsData={eventsData}
+                studentEmail={session.email}
             />
         </div>
     );

@@ -2,7 +2,7 @@ import React from 'react';
 import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
 
-const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, userRole }) => {
+const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly }) => {
     return (
         <div className="accordion-item">
             <h2 className="accordion-header">

@@ -63,8 +63,11 @@ export const CalendarDataProvider = ({ children }) => {
                 // TODO: useMemo() to memoise for optimise re-render
                 // calendar streams (real-time)
                 calendarShifts,
+                setCalendarShifts,
                 calendarAvailabilities,
+                setCalendarAvailabilities,
                 calendarStudentRequests,
+                setCalendarStudentRequests,
 
                 // reference data (one-time fetch)
                 classes,

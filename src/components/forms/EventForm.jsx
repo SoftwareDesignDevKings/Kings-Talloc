@@ -30,7 +30,12 @@ import {
 import { addWeeks } from 'date-fns';
 import useAlert from '@/hooks/useAlert';
 
-const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData, readOnly = false, userRole }) => {
+const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData }) => {
+    // Derive mode flags
+    const isView = mode === 'view';
+    const isEdit = mode === 'edit';
+    const isEditing = isEdit || isView; // for backward compat with existing logic
+
     const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
@@ -100,12 +105,12 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
             return false;
         }
 
-        // Validate staff is not empty
-        if (!newEvent.staff || newEvent.staff.length === 0) {
-            setAlertType('error');
-            setAlertMessage('At least one tutor must be assigned to the event.');
-            return false;
-        }
+        // // Validate staff is not empty
+        // if (!newEvent.staff || newEvent.staff.length === 0) {
+        //     setAlertType('error');
+        //     setAlertMessage('At least one tutor must be assigned to the event.');
+        //     return false;
+        // }
 
         return true;
     };
@@ -331,21 +336,17 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
         );
     };
 
-    // Determine if tutor can only edit work status
-    const isTutorReadOnly = userRole === 'tutor' && isEditing;
-    const canEditWorkStatus = userRole === 'tutor' || !readOnly;
-
     return (
         <>
             <BaseModal
                 show={!showDeleteConfirm}
                 onHide={() => setShowModal(false)}
-                title={readOnly ? 'Event Details' : (isTutorReadOnly ? 'Event Details' : (isEditing ? 'Edit Event' : 'Add New Event'))}
+                title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
                 size="lg"
-                onSubmit={readOnly ? undefined : onSubmit}
-                submitText={isTutorReadOnly ? 'Update Status' : (isEditing ? 'Save Changes' : 'Add Event')}
+                onSubmit={isView ? undefined : onSubmit}
+                submitText={isEdit ? 'Save Changes' : 'Add Event'}
                 deleteButton={
-                    isEditing && !readOnly && !isTutorReadOnly
+                    isEdit
                         ? {
                               text: 'Delete',
                               onClick: handleDeleteClick,
@@ -353,15 +354,14 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                           }
                         : null
                 }
-                showFooter={!readOnly}
+                showFooter={!isView}
             >
                 <div className="accordion" id="eventFormAccordion">
                     <EventDetailsSection
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}
                         handleInputChange={handleInputChange}
-                        readOnly={readOnly || isTutorReadOnly}
-                        userRole={userRole}
+                        readOnly={isView}
                     />
 
                     <ParticipantsSection
@@ -376,7 +376,7 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                         selectedStudents={selectedStudents}
                         handleStudentSelectChange={handleStudentSelectChange}
                         studentOptions={studentOptions}
-                        readOnly={readOnly || isTutorReadOnly}
+                        readOnly={isView}
                     />
 
                     <SettingsSection
@@ -385,16 +385,14 @@ const EventForm = ({ isEditing, newEvent, setNewEvent, eventToEdit, setShowModal
                         handleMinStudentsChange={handleMinStudentsChange}
                         workTypeOptions={workTypeOptions}
                         workStatusOptions={workStatusOptions}
-                        readOnly={readOnly}
-                        canEditWorkStatus={canEditWorkStatus}
-                        isTutorReadOnly={isTutorReadOnly}
+                        readOnly={isView}
                     />
 
                     <StudentRequestSection
                         newEvent={newEvent}
                         handleApprovalChange={handleApprovalChange}
                         approvalOptions={approvalOptions}
-                        readOnly={readOnly || isTutorReadOnly}
+                        readOnly={isView}
                     />
                 </div>
             </BaseModal>
