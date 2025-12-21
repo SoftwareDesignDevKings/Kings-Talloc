@@ -10,6 +10,7 @@ import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
 import SettingsSection from './EventFormSections/SettingsSection.jsx';
 import StudentRequestSection from './EventFormSections/StudentRequestSection.jsx';
 import { useEventFormData } from './useEventFormData';
+import { useCalendarData } from '@/providers/CalendarDataProvider';
 import {
     calendarEventHandleDelete,
     calendarEventCreateTeamsMeeting,
@@ -30,7 +31,15 @@ import {
 import { addWeeks } from 'date-fns';
 import useAlert from '@/hooks/useAlert';
 
-const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, eventsData }) => {
+const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) => {
+    const {
+        calendarShifts: allEvents,
+        setCalendarShifts: setAllEvents,
+        calendarAvailabilities: availabilities,
+        setCalendarAvailabilities: setAvailabilities,
+        calendarStudentRequests: studentRequests,
+        setCalendarStudentRequests: setStudentRequests,
+    } = useCalendarData();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -270,7 +279,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, eve
         } else {
             // Delete non-recurring event directly
             calendarEventHandleDelete(eventToEdit, 'this', {
-                ...eventsData,
+                setAllEvents,
+                setAvailabilities,
+                setStudentRequests,
                 setAlertType,
                 setAlertMessage,
             });
@@ -280,7 +291,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, eve
 
     const handleConfirmDelete = (deleteOption) => {
         calendarEventHandleDelete(eventToEdit, deleteOption, {
-            ...eventsData,
+            setAllEvents,
+            setAvailabilities,
+            setStudentRequests,
             setAlertType,
             setAlertMessage,
         });

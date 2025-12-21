@@ -7,8 +7,10 @@ import enUS from 'date-fns/locale/en-US';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarData } from '@/providers/CalendarDataProvider';
+
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
+import { updateEventInFirestore } from '@/firestore/firestoreOperations';
 
 import {
     CalendarEntityType,
@@ -53,11 +55,8 @@ const CalendarContent = () => {
 
     const {
         calendarShifts,
-        setCalendarShifts,
         calendarAvailabilities,
-        setCalendarAvailabilities,
         calendarStudentRequests,
-        setCalendarStudentRequests,
     } = useCalendarData();
 
     /* ----------------------------------------------------------- */
@@ -137,15 +136,6 @@ const CalendarContent = () => {
         }));
     };
 
-    // redefine them her 
-    const eventsData = {
-        allEvents: calendarShifts,
-        setAllEvents: setCalendarShifts,
-        availabilities: calendarAvailabilities,
-        setAvailabilities: setCalendarAvailabilities,
-        studentRequests: calendarStudentRequests,
-        setStudentRequests: setCalendarStudentRequests,
-    };
 
     /* ----------------------------------------------------------- */
     /* Handlers                                                    */
@@ -165,36 +155,58 @@ const CalendarContent = () => {
 
         if (!entityType) return;
 
-        // Create draft with all required fields initialized
-        const draftCalEvent = {
-            entityType,
-            start: slotInfo.start,
-            end: slotInfo.end,
-            title: '',
-            description: '',
-            staff: [],
-            classes: [],
-            students: [],
-            tutorResponses: [],
-            studentResponses: [],
-            minStudents: 0,
-            createdByStudent: false,
-            approvalStatus: 'pending',
-            workStatus: 'notCompleted',
-            workType: 'tutoring',
-            locationType: '',
-            subject: null,
-            preference: null,
-            recurring: null,
-            createTeamsMeeting: false,
-            confirmationRequired: false,
-        };
+        // TODO: pass the action down into ModalRender.jsx and then call useModalStrat
 
-        const action = strategy.actions.getCreateFlow(draftCalEvent);
+        const action = strategy.actions.getCreateFlow();
         if (!action) return;
 
         setCalendarAction(action);
-        setCalendarTarget(draftCalEvent);
+        setCalendarTarget({
+            start: slotInfo.start,
+            end: slotInfo.end,
+        });
+    };
+
+    const handleEventDrop = async ({ event, start, end }) => {
+        if (!strategy.permissions?.canDrag?.(event)) return;
+
+        try {
+            // Determine collection based on entity type
+            const collectionMap = {
+                [CalendarEntityType.SHIFT]: 'shifts',
+                [CalendarEntityType.AVAILABILITY]: 'tutorAvailabilities',
+                [CalendarEntityType.STUDENT_REQUEST]: 'studentEventRequests',
+            };
+            const collectionName = collectionMap[event.entityType];
+
+            if (!collectionName) return;
+
+            // Update in Firestore
+            await updateEventInFirestore(event.id, { start, end }, collectionName);
+        } catch (error) {
+            console.error('Failed to update event:', error);
+        }
+    };
+
+    const handleEventResize = async ({ event, start, end }) => {
+        if (!strategy.permissions?.canResize?.(event)) return;
+
+        try {
+            // Determine collection based on entity type
+            const collectionMap = {
+                [CalendarEntityType.SHIFT]: 'shifts',
+                [CalendarEntityType.AVAILABILITY]: 'tutorAvailabilities',
+                [CalendarEntityType.STUDENT_REQUEST]: 'studentEventRequests',
+            };
+            const collectionName = collectionMap[event.entityType];
+
+            if (!collectionName) return;
+
+            // Update in Firestore
+            await updateEventInFirestore(event.id, { start, end }, collectionName);
+        } catch (error) {
+            console.error('Failed to resize event:', error);
+        }
     };
 
     /* ----------------------------------------------------------- */
@@ -250,6 +262,8 @@ const CalendarContent = () => {
 
                     draggableAccessor={canDragEvent}
                     resizableAccessor={canResizeEvent}
+                    onEventDrop={handleEventDrop}
+                    onEventResize={handleEventResize}
 
                     selectable
                     popup
@@ -266,15 +280,14 @@ const CalendarContent = () => {
                 />
             </div>
 
-            <CalendarFilterPanel calendarStrategy={strategy} />
+            <CalendarFilterPanel calendarStrategy={strategy} device={device} />
             
             {/* render different modals depending on the target, action  */}
             <CalendarRenderModals
-                action={calendarAction}
-                target={calendarTarget}
+                calendarAction={calendarAction}
+                calendarTarget={calendarTarget}
                 onClose={closeCalendarAction}
-                updateTarget={updateCalendarTarget}
-                eventsData={eventsData}
+                updateCalendarTarget={updateCalendarTarget} 
                 studentEmail={session.email}
             />
         </div>

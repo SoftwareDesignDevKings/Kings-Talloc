@@ -5,6 +5,7 @@ import { isAfter, add, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
+import { useCalendarData } from '@/providers/CalendarDataProvider';
 import {
     updateEventInFirestore,
     createEventInFirestore,
@@ -17,8 +18,8 @@ const TutorAvailabilityForm = ({
     setNewAvailability,
     eventToEdit,
     setShowModal,
-    eventsData,
 }) => {
+    const { calendarAvailabilities, setCalendarAvailabilities } = useCalendarData();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -79,8 +80,8 @@ const TutorAvailabilityForm = ({
         try {
             if (isEditing) {
                 await updateEventInFirestore(eventToEdit.id, availabilityData, 'tutorAvailabilities');
-                eventsData.setAvailabilities(
-                    eventsData.availabilities.map((availability) =>
+                setCalendarAvailabilities(
+                    calendarAvailabilities.map((availability) =>
                         availability.id === eventToEdit.id
                             ? { ...availabilityData, id: eventToEdit.id }
                             : availability,
@@ -91,8 +92,8 @@ const TutorAvailabilityForm = ({
                     availabilityData,
                     'tutorAvailabilities',
                 );
-                eventsData.setAvailabilities([
-                    ...eventsData.availabilities,
+                setCalendarAvailabilities([
+                    ...calendarAvailabilities,
                     { ...availabilityData, id: docId },
                 ]);
             }
@@ -106,8 +107,8 @@ const TutorAvailabilityForm = ({
     const handleDelete = async () => {
         try {
             await deleteEventFromFirestore(eventToEdit.id, 'tutorAvailabilities');
-            eventsData.setAvailabilities(
-                eventsData.availabilities.filter(
+            setCalendarAvailabilities(
+                calendarAvailabilities.filter(
                     (availability) => availability.id !== eventToEdit.id,
                 ),
             );

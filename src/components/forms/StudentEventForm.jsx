@@ -7,6 +7,7 @@ import BaseModal from '../modals/BaseModal.jsx';
 import { db } from '@/firestore/firestoreClient.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { firestoreFetchAvailabilities } from '../../firestore/firestoreFetch';
+import { useCalendarData } from '@/providers/CalendarDataProvider';
 import {
     updateEventInFirestore,
     createEventInFirestore,
@@ -20,8 +21,8 @@ const StudentEventForm = ({
     eventToEdit,
     setShowStudentModal,
     studentEmail,
-    eventsData,
 }) => {
+    const { calendarStudentRequests, setCalendarStudentRequests } = useCalendarData();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -167,15 +168,15 @@ const StudentEventForm = ({
         try {
             if (isEditing) {
                 await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                eventsData.setStudentRequests(
-                    eventsData.studentRequests.map((req) =>
+                setCalendarStudentRequests(
+                    calendarStudentRequests.map((req) =>
                         req.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : req
                     )
                 );
             } else {
                 const docId = await createEventInFirestore(eventData, 'studentEventRequests');
-                eventsData.setStudentRequests([
-                    ...eventsData.studentRequests,
+                setCalendarStudentRequests([
+                    ...calendarStudentRequests,
                     { ...eventData, id: docId },
                 ]);
             }
@@ -189,8 +190,8 @@ const StudentEventForm = ({
     const handleDelete = async () => {
         try {
             await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
-            eventsData.setStudentRequests(
-                eventsData.studentRequests.filter((req) => req.id !== eventToEdit.id)
+            setCalendarStudentRequests(
+                calendarStudentRequests.filter((req) => req.id !== eventToEdit.id)
             );
             setShowStudentModal(false);
         } catch (error) {

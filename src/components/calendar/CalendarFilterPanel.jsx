@@ -6,9 +6,9 @@ import styles from '@/styles/filterPanel.module.css';
 
 import { useState } from 'react';
 
-const CalendarFilterPanel = ({ calendarStrategy }) => {
+const CalendarFilterPanel = ({ calendarStrategy, device }) => {
     const { calendarFilters, calendarScope } = calendarStrategy;
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(device !== 'mobile');
     return (
         <div
             className={`${styles.filterPanelContainer} ${
