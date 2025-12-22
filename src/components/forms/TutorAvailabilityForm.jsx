@@ -11,6 +11,7 @@ import {
     createEventInFirestore,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
+import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 const TutorAvailabilityForm = ({
     mode,
@@ -83,7 +84,11 @@ const TutorAvailabilityForm = ({
                 setCalendarAvailabilities(
                     calendarAvailabilities.map((availability) =>
                         availability.id === eventToEdit.id
-                            ? { ...availabilityData, id: eventToEdit.id }
+                            ? {
+                                ...availabilityData,
+                                id: eventToEdit.id,
+                                entityType: CalendarEntityType.AVAILABILITY
+                            }
                             : availability,
                     ),
                 );
@@ -94,7 +99,11 @@ const TutorAvailabilityForm = ({
                 );
                 setCalendarAvailabilities([
                     ...calendarAvailabilities,
-                    { ...availabilityData, id: docId },
+                    {
+                        ...availabilityData,
+                        id: docId,
+                        entityType: CalendarEntityType.AVAILABILITY
+                    },
                 ]);
             }
             setShowModal(false);

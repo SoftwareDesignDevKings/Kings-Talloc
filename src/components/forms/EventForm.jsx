@@ -30,14 +30,12 @@ import {
 } from '@/firestore/firestoreOperations';
 import { addWeeks } from 'date-fns';
 import useAlert from '@/hooks/useAlert';
+import { CalendarEntityType } from '@/strategy/calendarStrategy.js';
 
 const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) => {
     const {
-        calendarShifts: allEvents,
         setCalendarShifts: setAllEvents,
-        calendarAvailabilities: availabilities,
         setCalendarAvailabilities: setAvailabilities,
-        calendarStudentRequests: studentRequests,
         setCalendarStudentRequests: setStudentRequests,
     } = useCalendarData();
     // Derive mode flags
@@ -169,7 +167,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
                     // Automatically create Teams meeting for approved student requests
-                    eventData.createTeamsMeeting = true;
+                    // eventData.createTeamsMeeting = true;
 
                     console.log('Approving student request and creating event with data:', eventData);
 

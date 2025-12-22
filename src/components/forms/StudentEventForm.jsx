@@ -13,6 +13,7 @@ import {
     createEventInFirestore,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
+import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 const StudentEventForm = ({
     mode,
@@ -170,14 +171,24 @@ const StudentEventForm = ({
                 await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
                 setCalendarStudentRequests(
                     calendarStudentRequests.map((req) =>
-                        req.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : req
+                        req.id === eventToEdit.id
+                            ? {
+                                ...eventData,
+                                id: eventToEdit.id,
+                                entityType: CalendarEntityType.STUDENT_REQUEST
+                            }
+                            : req
                     )
                 );
             } else {
                 const docId = await createEventInFirestore(eventData, 'studentEventRequests');
                 setCalendarStudentRequests([
                     ...calendarStudentRequests,
-                    { ...eventData, id: docId },
+                    {
+                        ...eventData,
+                        id: docId,
+                        entityType: CalendarEntityType.STUDENT_REQUEST
+                    },
                 ]);
             }
             setShowStudentModal(false);

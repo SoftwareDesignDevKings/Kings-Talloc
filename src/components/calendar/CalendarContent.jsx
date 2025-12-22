@@ -51,13 +51,9 @@ const MemoizedCalendarTimeSlot = memo(CustomTimeslot);
 
 const CalendarContent = () => {
     const { session, userRole, device } = useAuthSession();
-    const strategy = useCalendarStrategy(session.email, userRole);
+    const strategy = useCalendarStrategy(session.user.email, userRole);
 
-    const {
-        calendarShifts,
-        calendarAvailabilities,
-        calendarStudentRequests,
-    } = useCalendarData();
+    const { calendarShifts, calendarAvailabilities, calendarStudentRequests } = useCalendarData();
 
     /* ----------------------------------------------------------- */
     /* Merge all calendar entities                                 */
@@ -220,13 +216,19 @@ const CalendarContent = () => {
         const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
         const weekEnd = addDays(weekStart, 7);
 
+        // map RBC's 'value' prop to CustomTimeslot's 'slotStartValue'
+        const { value, children, ...rest } = props;
+
         return (
             <MemoizedCalendarTimeSlot
-                {...props}
+                {...rest}
+                slotStartValue={value}
                 slotAvailabilities={overlayAvailabilities}
                 slotWeekStart={weekStart}
                 slotWeekEnd={weekEnd}
-            />
+            >
+                {children}
+            </MemoizedCalendarTimeSlot>
         );
     };
 
@@ -245,6 +247,7 @@ const CalendarContent = () => {
     /* ----------------------------------------------------------- */
     /* Render                                                      */
     /* ----------------------------------------------------------- */
+
     return (
         <div className="d-flex h-100 w-100">
             <div className="flex-grow-1 p-3 calendar-scroll-container">

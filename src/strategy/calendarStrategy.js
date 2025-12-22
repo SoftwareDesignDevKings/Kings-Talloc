@@ -33,7 +33,8 @@ export const teacherCalendarStrategy = () => ({
     },
 
     visibility: {
-        includeInCalendar: (event) => event.entityType === CalendarEntityType.SHIFT,
+        includeInCalendar: (event) =>
+            event.entityType === CalendarEntityType.SHIFT || event.entityType === CalendarEntityType.STUDENT_REQUEST,
         showAvailabilitySlots: true,
     },
 
@@ -63,11 +64,8 @@ export const teacherCalendarStrategy = () => ({
         // should only be allowed to create / edit shifts
         getCreateFlow: () => CalendarFlow.CREATE_SHIFT,
         getEventFlow: (event) => {
-            if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return CalendarFlow.EDIT_STUDENT_REQUEST
-            } else {
-                return CalendarFlow.EDIT_SHIFT
-            }
+            // Teachers use EventForm for both shifts and student requests (to approve/convert)
+            return CalendarFlow.EDIT_SHIFT;
         }
     },
 });
@@ -90,17 +88,16 @@ export const tutorCalendarStrategy = (userEmail) => ({
     visibility: {
         includeInCalendar: (event) => {
             if (event.entityType === CalendarEntityType.AVAILABILITY) {
-                // Only my own availability is a real event
                 return event.tutor === userEmail;
             }
 
             if (event.entityType === CalendarEntityType.SHIFT) {
-                return event.tutors?.includes(userEmail);
+                return event.staff?.some((s) => s.value === userEmail);
             }
 
             return false;
         },
-        showAvailabilitySlots: true,
+        showAvailabilitySlots: false,
     },
 
     // panel filters
@@ -127,10 +124,14 @@ export const tutorCalendarStrategy = (userEmail) => ({
         getCreateFlow: () => CalendarFlow.CREATE_AVAILABILITY,
         getEventFlow: (event) => {
             if (event.entityType === CalendarEntityType.SHIFT) {
-                return CalendarFlow.VIEW_SHIFT
-            } else {
-                return CalendarFlow.VIEW_AVAILABILITY
+                return CalendarFlow.VIEW_SHIFT;
             }
+
+            if (event.entityType === CalendarEntityType.AVAILABILITY) {
+                return CalendarFlow.EDIT_AVAILABILITY;
+            }
+
+            return null;
         }
     }
 });
@@ -139,25 +140,25 @@ export const studentCalendarStrategy = (userEmail) => ({
     permissions: {
         canEdit: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            (event.students?.includes(userEmail) || event.isStudentRequest),
+            (event.students?.some((s) => s.value === userEmail) || event.isStudentRequest),
 
-        canDrag: (event) => 
+        canDrag: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            (event.students?.includes(userEmail) || event.isStudentRequest),
+            (event.students?.some((s) => s.value === userEmail) || event.isStudentRequest),
 
-        canResize: (event) => 
+        canResize: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            (event.students?.includes(userEmail) || event.isStudentRequest),
+            (event.students?.some((s) => s.value === userEmail) || event.isStudentRequest),
     },
 
     visibility: {
         includeInCalendar: (event) => {
             if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return event.students?.includes(userEmail) || event.isStudentRequest;
+                return event.students?.some((s) => s.value === userEmail) || event.isStudentRequest;
             }
 
             if (event.entityType === CalendarEntityType.SHIFT) {
-                return event.students?.includes(userEmail) || event.isStudentRequest;
+                return event.students?.some((s) => s.value === userEmail);
             }
 
             return false;

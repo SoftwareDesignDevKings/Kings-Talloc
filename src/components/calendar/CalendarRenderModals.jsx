@@ -2,18 +2,46 @@
 
 import React, { useMemo } from 'react';
 import useModalActionStrategy from '@/hooks/useModalActionStrategy';
+import useAuthSession from '@/hooks/useAuthSession';
 
 const CalendarRenderModals = ({
     calendarAction,
     calendarTarget,
     onClose,
     updateCalendarTarget,
-    studentEmail,
 }) => {
     // Hook is allowed to return null
     const modalActionStrategy = useModalActionStrategy(calendarAction);
+    const { session } = useAuthSession();
+    const userEmail = session?.user.email;
+    // Memoize the modal data so it doesn't recreate on every render
+    // Must be called before any early returns (Rules of Hooks)
+    const modalData = useMemo(() => {
+        if (!modalActionStrategy || !calendarTarget) {
+            return null;
+        }
 
-    // ⛔ Guard BEFORE destructuring
+        const { mode, createDraft } = modalActionStrategy;
+
+        if (mode !== 'create' || !createDraft) {
+            return calendarTarget;
+        }
+
+        // TEMP FIX: only create draft once
+        if (calendarTarget.entityType) {
+            return calendarTarget;
+        }
+
+        console.log("Session: ", session)
+        console.log("userEmail: ", userEmail)
+
+        return createDraft({
+            ...calendarTarget,
+            userEmail: userEmail,
+        });
+    }, [modalActionStrategy, calendarTarget, userEmail]);
+
+    // ⛔ Guard BEFORE rendering
     if (!calendarAction || !calendarTarget || !modalActionStrategy) {
         return null;
     }
@@ -21,30 +49,15 @@ const CalendarRenderModals = ({
     // ✅ Safe to destructure now
     const { Modal, mode, createDraft, dataProp } = modalActionStrategy;
 
-    const calendarTargetForModal = () => {
-        if (mode !== 'create' || !createDraft) {
-            return calendarTarget;
-        }
-
-        return createDraft({
-            ...calendarTarget,
-            userEmail: studentEmail,
-        });
-    };
-
-    const updateFormState = (updates) =>
-        updateCalendarTarget((prev) => ({
-            ...prev,
-            ...updates,
-        }));
+    const updateFormState = (updates) => updateCalendarTarget(updates);
 
     const modalProps = {
         mode,
-        [dataProp]: calendarTargetForModal(),
-        ...(mode !== 'create' && { eventToEdit: calendarTargetForModal() }),
+        [dataProp]: modalData,
+        ...(mode !== 'create' && { eventToEdit: modalData }),
         setShowModal: onClose,
         setShowStudentModal: onClose,
-        studentEmail,
+        userEmail,
     };
 
     if (dataProp === 'newEvent') {
