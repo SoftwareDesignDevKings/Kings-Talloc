@@ -1,6 +1,31 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities; */
+
+.gradient-background {
+    background-image: linear-gradient(to right, var(--tks-primary), var(--tks-secondary));
+}
+
+.text-tks-primary {
+    color: var(--tks-primary) !important;
+}
+
+.text-tks-secondary {
+    color: var(--tks-secondary) !important;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner-border-custom {
+    animation: spin 1.5s linear infinite;
+}
 
 @import 'react-big-calendar/lib/css/react-big-calendar.css';
 @import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
@@ -8,10 +33,43 @@
 :root {
     --calendar-bg: #ffffff;
     --calendar-text: #000000;
+
+    /* Primary */
+    --tks-primary: #6FA5CC;
+
+    /* Secondary */
+    --tks-secondary: #1A4D6F;
 }
 
 .app-gradient-bg {
-    background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
+    background: linear-gradient(to right, var(--tks-primary), var(--tks-secondary));
+}
+
+.text-purple {
+    color: #6366f1 !important;
+}
+
+.table-text-sm td {
+    font-size: 0.875rem;
+}
+
+.btn-dark-blue {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+    color: white !important;
+}
+
+.btn-dark-blue:hover {
+    background-color: #157347 !important;
+    border-color: #157347 !important;
+    color: white !important;
+}
+
+.btn-dark-blue:focus {
+    background-color: #157347 !important;
+    border-color: #157347 !important;
+    color: white !important;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.5) !important;
 }
 
 .dashboard-title {

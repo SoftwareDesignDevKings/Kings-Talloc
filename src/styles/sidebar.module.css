@@ -53,7 +53,7 @@
     padding-left: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem; /* tw-space-y-2 */
+    gap: 0.5rem;
 }
 
 /* Navigation List Items */
@@ -66,7 +66,7 @@
 }
 
 .navItem:hover {
-    background-color: #e0e7ff; /* indigo-100 */
+    background-color: #e0e7ff;
 }
 
 .navItemCollapsed {
@@ -74,7 +74,7 @@
 }
 
 .navItemExpanded {
-    gap: 0.5rem; /* tw-space-x-2 */
+    gap: 0.5rem; 
 }
 
 .navIcon {
@@ -100,7 +100,7 @@
 }
 
 .profileContainerExpanded {
-    gap: 0.5rem; /* tw-space-x-2 */
+    gap: 0.5rem;
 }
 
 .profileImage {

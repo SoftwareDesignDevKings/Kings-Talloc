@@ -7,9 +7,9 @@ import { FcGoogle, SiMicrosoft } from '@/components/icons';
 
 export default function Login() {
     return (
-        <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen tw-bg-gradient-to-r tw-from-indigo-500 tw-via-purple-500 tw-to-pink-500">
-            <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-0 tw-bg-white tw-rounded-lg tw-shadow-lg">
-                <div className="tw-flex tw-justify-center">
+        <div className="d-flex align-items-center justify-content-center min-vh-100 gradient-background">
+            <div className="w-100 p-4 bg-white rounded-3 shadow-lg" style={{ maxWidth: '28rem' }}>
+                <div className="d-flex justify-content-center">
                     <Image
                         src="/logo.png"
                         alt="Logo"
@@ -18,28 +18,28 @@ export default function Login() {
                         className="rounded"
                     />
                 </div>
-                <div className="tw-text-center">
-                    <h2 className="tw-text-3xl tw-font-extrabold tw-text-gray-900">
+                <div className="text-center">
+                    <h2 className="h2 fw-bolder text-dark">
                         Kings Talloc
                     </h2>
-                    <p className="tw-mt-2 tw-text-sm tw-text-gray-600">
+                    <p className="mt-2 text-muted">
                         Please sign in to access the dashboard and calendar.
                     </p>
                 </div>
-                <div className="tw-space-y-3" style={{ marginTop: '1rem' }}>
+                <div className="mt-4">
                     <button
                         onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                        className="tw-relative tw-flex tw-justify-center tw-items-center tw-w-full tw-px-4 tw-py-2 tw-text-base tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md tw-group hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
+                        className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
                     >
-                        <FcGoogle className="tw-w-4 tw-h-4 tw-mr-2" />
+                        <FcGoogle className="me-2" />
                         Sign in with Google SSO
                     </button>
 
                     <button
                         onClick={() => signIn('azure-ad', { callbackUrl: '/dashboard' })}
-                        className="tw-relative tw-flex tw-justify-center tw-items-center tw-w-full tw-px-4 tw-py-2 tw-text-base tw-font-medium tw-text-white tw-bg-blue-600 tw-border tw-border-transparent tw-rounded-md tw-group hover:tw-bg-blue-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-blue-500"
+                        className="btn btn-secondary w-100 d-flex align-items-center justify-content-center mt-3"
                     >
-                        <SiMicrosoft className="tw-w-4 tw-h-4 tw-mr-2" />
+                        <SiMicrosoft className="me-2" />
                         Sign in with Microsoft SSO
                     </button>
                 </div>

@@ -1,17 +1,5 @@
 /* Filter Panel Component Styles */
 
-/* Indigo Color Palette */
-.bgIndigo500 {
-    background-color: #6366f1;
-}
-
-.bgIndigo600 {
-    background-color: #4f46e5;
-}
-
-.ringIndigo400 {
-    --tw-ring-color: #818cf8;
-}
 
 /* Filter Panel Container */
 .filterPanelContainer {
@@ -94,7 +82,7 @@
 
 /* Indented Checkboxes */
 .checkboxIndented {
-    margin-left: 1.5rem; /* tw-ml-6 */
+    margin-left: 1.5rem;
 }
 
 .filterPanelContainer.open {
