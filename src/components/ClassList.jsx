@@ -179,16 +179,15 @@ const ClassList = () => {
     };
 
     return (
-        <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg tw-h-full tw-flex tw-flex-col">
-            <h2 className="tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">Manage Classes</h2>
-            <div className="tw-flex tw-mb-4">
+        <div className="p-4 bg-white rounded shadow h-100 d-flex flex-column">
+            <h2 className="h5 mb-4 fw-bold text-purple">Manage Classes</h2>
+            <div className="d-flex gap-2 mb-4">
                 <input
                     type="text"
                     placeholder="Search by class name"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="tw-p-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                    style={{ flex: 1 }}
+                    className="form-control"
                 />
                 <button
                     onClick={() => {
@@ -196,26 +195,19 @@ const ClassList = () => {
                         setIsEditing(false);
                         setShowModal(true);
                     }}
-                    className="tw-ml-4 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                    style={{ height: '2.5rem', width: 'auto' }}
+                    className="btn btn-primary text-nowrap"
                 >
                     Add Class
                 </button>
             </div>
 
-            <div className="tw-overflow-x-auto tw-flex-1" style={{ overflowY: 'auto' }}>
-                <table className="tw-min-w-full tw-bg-white">
-                    <thead className="tw-sticky tw-top-0 tw-bg-gray-200 tw-z-10">
+            <div className="table-responsive flex-fill" style={{ overflowY: 'auto' }}>
+                <table className="table table-hover table-text-sm">
+                    <thead className="sticky-top bg-light">
                         <tr>
-                            <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                Class Name
-                            </th>
-                            <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                Subject
-                            </th>
-                            <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                Actions
-                            </th>
+                            <th scope="col">Class Name</th>
+                            <th scope="col">Subject</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -328,7 +320,7 @@ const ClassList = () => {
                 </div>
             )}
 
-            {success && <p className="tw-text-sm tw-text-green-600 tw-mt-4">{success}</p>}
+            {success && <p className="text-success small mt-3">{success}</p>}
         </div>
     );
 };

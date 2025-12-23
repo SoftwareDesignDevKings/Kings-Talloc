@@ -72,14 +72,14 @@ const DashboardOverview = () => {
             {/* Stats Cards */}
             <StatsCards userRole={userRole} data={dashboardData} onUpdate={fetchDashboardData} />
 
-            <div className="d-flex justify-content-start mb-3">
+            {/* <div className="d-flex justify-content-start mb-3">
                 <button
                     className="btn btn-outline-primary btn-sm"
                     onClick={() => setShowCalendarModal(true)}
                 >
                     Sync Calendar
                 </button>
-            </div>
+            </div> */}
 
             <PersonalCalendarModal
                 show={showCalendarModal}

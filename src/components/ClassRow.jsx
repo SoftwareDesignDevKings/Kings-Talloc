@@ -16,39 +16,39 @@ const ClassRow = ({
     };
 
     return (
-        <tr className="tw-border-b tw-border-gray-200">
-            <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">{cls.name}</td>
-            <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                {getSubjectName(cls.subject)}
-            </td>
-            <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                <button
-                    onClick={() => {
-                        handleEditClass(cls);
-                        console.log(cls);
-                    }}
-                    className="tw-mr-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-blue-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-blue-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-blue-500"
-                >
-                    Edit
-                </button>
-                <button
-                    onClick={() => handleOpenStudentModal(cls)}
-                    className="tw-mr-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                >
-                    Add Students
-                </button>
-                <button
-                    onClick={() => handleViewStudents(cls)}
-                    className="tw-mr-2 tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-gray-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-gray-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-gray-500"
-                >
-                    View Students
-                </button>
-                <button
-                    onClick={() => confirmDeleteClass(cls)}
-                    className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
-                >
-                    Delete
-                </button>
+        <tr>
+            <td>{cls.name}</td>
+            <td>{getSubjectName(cls.subject)}</td>
+            <td>
+                <div className="d-flex gap-2">
+                    <button
+                        onClick={() => {
+                            handleEditClass(cls);
+                            console.log(cls);
+                        }}
+                        className="btn btn-sm btn-primary"
+                    >
+                        Edit
+                    </button>
+                    <button
+                        onClick={() => handleOpenStudentModal(cls)}
+                        className="btn btn-sm btn-dark-blue"
+                    >
+                        Add Students
+                    </button>
+                    <button
+                        onClick={() => handleViewStudents(cls)}
+                        className="btn btn-sm btn-secondary"
+                    >
+                        View Students
+                    </button>
+                    <button
+                        onClick={() => confirmDeleteClass(cls)}
+                        className="btn btn-sm btn-danger"
+                    >
+                        Delete
+                    </button>
+                </div>
             </td>
         </tr>
     );

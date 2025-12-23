@@ -1,10 +1,13 @@
 'use client';
 
+import TutorHoursSummary from "@/components/TutorHoursSummary";
+import useAuthSession from '@/hooks/useAuthSession';
+
 const TutorHoursPage = () => {
+    const { userRole, userEmail } = useAuthSession();
+
     return (
-        <div className="d-flex align-items-center justify-content-center h-100">
-            <h2>Migrating SPA Design to New Tutor Hours Page</h2>
-        </div>
+        <TutorHoursSummary userRole={userRole} userEmail={userEmail} />
     );
 };
 

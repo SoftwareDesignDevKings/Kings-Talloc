@@ -1,17 +1,17 @@
-import UserRolesManager from "@/components/UserRolesManager"
+import SubjectList from "@/components/SubjectList";
 import { getServerSession } from "next-auth";
 import { redirect } from 'next/navigation';
 
-const UserRolesPage = async () => {
+const SubjectsPage = async () => {
     const session = await getServerSession();
     if (!session) {
         redirect('/dashboard');
     }
 
     return (
-        <UserRolesManager />
+        <SubjectList />
     )
     
 }
 
-export default UserRolesPage
+export default SubjectsPage

@@ -326,49 +326,48 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     };
 
     return (
-        <div className="tw-p-4 sm:tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
-            <h2 className="tw-text-xl sm:tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">
+        <div className="p-2 p-md-4 bg-white rounded shadow-lg">
+            <h2 className="fs-4 fs-md-3 fw-bold mb-3" style={{ color: '#4F46E5' }}>
                 Tutor Hours Summary
             </h2>
-            <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end sm:tw-space-x-4 tw-space-y-3 sm:tw-space-y-0 tw-mb-4">
-                <div className="tw-w-full sm:tw-w-auto">
-                    <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
+            <div className="d-flex flex-column flex-md-row align-items-md-end gap-3 mb-3">
+                <div>
+                    <label className="form-label small fw-medium text-secondary d-block mb-1">
                         Start Date
                     </label>
                     <DatePicker
                         selected={startDate}
                         onChange={(date) => setStartDate(getMonday(date))}
-                        className="tw-mt-1 tw-p-2 tw-w-full tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
+                        className="form-control form-control-sm"
                     />
                 </div>
-                <div className="tw-w-full sm:tw-w-auto">
-                    <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
+                <div>
+                    <label className="form-label small fw-medium text-secondary d-block mb-1">
                         End Date
                     </label>
                     <DatePicker
                         selected={endDate}
                         onChange={(date) => setEndDate(new Date(date.setHours(23, 59, 59, 999)))}
-                        className="tw-mt-1 tw-p-2 tw-w-full tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
+                        className="form-control form-control-sm"
                     />
                 </div>
                 <CSVLink
                     data={csvData}
                     filename={`tutor_hours_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.csv`}
-                    className="tw-w-full sm:tw-w-auto"
                 >
-                    <button className="tw-w-full tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500">
+                    <button className="btn btn-primary btn-sm">
                         Export as CSV
                     </button>
                 </CSVLink>
             </div>
-            <div className="tw-mb-4 tw-p-3 sm:tw-p-4 tw-border tw-border-gray-300 tw-bg-gray-100 tw-rounded-md tw-flex tw-items-start tw-space-x-2">
-                <FaInfoCircle className="tw-h-5 tw-w-5 tw-text-gray-500 tw-mt-0.5 tw-flex-shrink-0" />
-                <div className="tw-text-xs sm:tw-text-sm tw-text-gray-700 tw-space-y-2">
-                    <p>
+            <div className="mb-3 p-3 border border-secondary-subtle bg-light rounded d-flex align-items-start gap-2">
+                <FaInfoCircle className="text-secondary mt-1 flex-shrink-0" style={{ fontSize: '1.25rem' }} />
+                <div className="small text-secondary">
+                    <p className="mb-2">
                         Please check if the hours are correct by Friday. If there are any
                         discrepancies, report them to Michael Ienna.
                     </p>
-                    <p>
+                    <p className="mb-0">
                         Any given hours that are between 3 (exclusive) and 6 (inclusive) hours
                         account for a 30-minute break. Any given hours that are greater than 6
                         (exclusive) account for a 1-hour break.
@@ -376,19 +375,19 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 </div>
             </div>
             {excludedShifts && (
-                <div className="tw-mb-4 tw-p-3 sm:tw-p-4 tw-border tw-border-blue-300 tw-bg-blue-50 tw-rounded-md tw-flex tw-items-start tw-space-x-2">
-                    <FaInfoCircle className="tw-h-5 tw-w-5 tw-text-blue-500 tw-mt-0.5 tw-flex-shrink-0" />
-                    <div className="tw-text-xs sm:tw-text-sm tw-text-blue-900 tw-space-y-2">
-                        <p className="tw-font-semibold">
+                <div className="mb-3 p-3 border border-info bg-info-subtle rounded d-flex align-items-start gap-2">
+                    <FaInfoCircle className="text-info mt-1 flex-shrink-0" style={{ fontSize: '1.25rem' }} />
+                    <div className="small text-dark">
+                        <p className="fw-semibold mb-2">
                             Short shifts (&lt;3 hours) excluded - Add manually:
                         </p>
                         {Object.entries(excludedShifts).map(([day, events]) => (
-                            <div key={day} className="tw-mt-2">
-                                <p className="tw-font-medium">{day}:</p>
-                                <ul className="tw-list-disc tw-list-inside tw-ml-2">
+                            <div key={day} className="mt-2">
+                                <p className="fw-medium mb-1">{day}:</p>
+                                <ul className="list-unstyled ms-3">
                                     {events.map((e, idx) => (
-                                        <li key={idx}>
-                                            {e.start.toLocaleTimeString('en-US', {
+                                        <li key={idx} className="mb-1">
+                                            • {e.start.toLocaleTimeString('en-US', {
                                                 hour: '2-digit',
                                                 minute: '2-digit',
                                                 hour12: false,
@@ -408,91 +407,67 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                     </div>
                 </div>
             )}
-            {
-                <div className="tw-overflow-x-auto tw--mx-4 sm:tw-mx-0">
-                    <div className="tw-inline-block tw-min-w-full tw-align-middle">
-                        <table className="tw-min-w-full tw-bg-white">
-                            <thead>
-                                <tr>
-                                    <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">
-                                        Email
-                                    </th>
-                                    <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">
-                                        Name
-                                    </th>
-                                    <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">
-                                        Tutoring
-                                    </th>
-                                    <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">
-                                        Coaching
-                                    </th>
-                                    <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">
-                                        Total
-                                    </th>
-                                    {userRole === 'teacher' && (
-                                        <th className="tw-py-2 tw-px-2 sm:tw-px-4 tw-bg-gray-200 tw-text-left tw-text-xs sm:tw-text-sm tw-font-medium tw-text-gray-700">
-                                            Actions
-                                        </th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {tutorHours.map((tutor, index) => (
-                                    <tr key={index} className="tw-border-b tw-border-gray-200">
-                                        <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900 tw-break-all">
-                                            {tutor.email}
-                                        </td>
-                                        <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">
-                                            {tutor.name}
-                                        </td>
-                                        <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">
-                                            {tutor.tutoringHours.toFixed(2)}
-                                        </td>
-                                        <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900">
-                                            {tutor.coachingHours.toFixed(2)}
-                                        </td>
-                                        <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm tw-text-gray-900 tw-font-semibold">
-                                            {(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}
-                                        </td>
-                                        {userRole === 'teacher' && (
-                                            <td className="tw-py-2 tw-px-2 sm:tw-px-4 tw-text-xs sm:tw-text-sm">
-                                                <div className="tw-flex tw-flex-col tw-gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            handleGenerateTimesheet(
-                                                                tutor.email,
-                                                                tutor.name,
-                                                                'Academic Tutor',
-                                                            )
-                                                        }
-                                                        className="tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-bg-blue-600 tw-rounded hover:tw-bg-blue-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-blue-500"
-                                                    >
-                                                        Generate Tutor Timesheet
-                                                    </button>
-                                                    {tutor.coachingHours > 0 && (
-                                                        <button
-                                                            onClick={() =>
-                                                                handleGenerateTimesheet(
-                                                                    tutor.email,
-                                                                    tutor.name,
-                                                                    'Coach',
-                                                                )
-                                                            }
-                                                            className="tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-text-white tw-bg-green-600 tw-rounded hover:tw-bg-green-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-green-500"
-                                                        >
-                                                            Generate Coaching Timesheet
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            }
+            <div className="table-responsive">
+                <table className="table table-sm table-hover bg-white">
+                    <thead className="table-light">
+                        <tr>
+                            <th className="small fw-medium text-secondary">Email</th>
+                            <th className="small fw-medium text-secondary">Name</th>
+                            <th className="small fw-medium text-secondary">Tutoring</th>
+                            <th className="small fw-medium text-secondary">Coaching</th>
+                            <th className="small fw-medium text-secondary">Total</th>
+                            {userRole === 'teacher' && (
+                                <th className="small fw-medium text-secondary">Actions</th>
+                            )}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tutorHours.map((tutor, index) => (
+                            <tr key={index}>
+                                <td className="small text-break align-middle">{tutor.email}</td>
+                                <td className="small align-middle">{tutor.name}</td>
+                                <td className="small align-middle">{tutor.tutoringHours.toFixed(2)}</td>
+                                <td className="small align-middle">{tutor.coachingHours.toFixed(2)}</td>
+                                <td className="small fw-semibold align-middle">
+                                    {(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}
+                                </td>
+                                {userRole === 'teacher' && (
+                                    <td className="small align-middle">
+                                        <div className="d-flex flex-column gap-2 align-items-start">
+                                            <button
+                                                onClick={() =>
+                                                    handleGenerateTimesheet(
+                                                        tutor.email,
+                                                        tutor.name,
+                                                        'Academic Tutor',
+                                                    )
+                                                }
+                                                className="btn btn-success btn-sm"
+                                            >
+                                                Generate Tutor Timesheet
+                                            </button>
+                                            {tutor.coachingHours > 0 && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleGenerateTimesheet(
+                                                            tutor.email,
+                                                            tutor.name,
+                                                            'Coach',
+                                                        )
+                                                    }
+                                                    className="btn btn-success btn-sm"
+                                                >
+                                                    Generate Coaching Timesheet
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                )}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };
