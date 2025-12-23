@@ -1,14 +1,18 @@
 import React from 'react';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import LoginPage from '@components/LoginPage.jsx';
+import Login from '@/components/Login.jsx';
 
-export default async function Login() {
+const LoginPage = async () => {
     const session = await getServerSession();
 
     if (session) {
         redirect('/dashboard');
     }
 
-    return <LoginPage />;
+    return (
+        <Login />
+    );
 }
+
+export default LoginPage

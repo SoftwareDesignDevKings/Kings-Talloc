@@ -1,7 +1,7 @@
 'use client';
 
 import LoadingPage from '@/components/LoadingPage.jsx';
-import LoginPage from '@/components/LoginPage.jsx';
+import Login from '@/components/Login.jsx';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useRef } from 'react';
 import { signInWithCustomToken, signOut } from 'firebase/auth';
@@ -114,7 +114,7 @@ const AuthProvider = ({ children }) => {
     }
 
     if (isLoading) return <LoadingPage />;
-    if (status === 'unauthenticated') return <LoginPage />;
+    if (status === 'unauthenticated') return <Login />;
 
     return (
         <AuthContext.Provider value={authCtxValues}>

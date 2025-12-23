@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { FcGoogle, SiMicrosoft } from '@/components/icons';
 
-export default function LoginPage() {
+export default function Login() {
     return (
         <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen tw-bg-gradient-to-r tw-from-indigo-500 tw-via-purple-500 tw-to-pink-500">
             <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-0 tw-bg-white tw-rounded-lg tw-shadow-lg">
