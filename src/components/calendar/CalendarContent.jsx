@@ -244,6 +244,7 @@ const CalendarContent = () => {
                     components={{
                         event: renderEvent,
                         timeSlotWrapper: renderTimeSlotWrapper,
+                        header: ({ label }) => <span style={{ fontWeight: 'bold' }}>{label}</span>
                     }}
                 />
             </div>

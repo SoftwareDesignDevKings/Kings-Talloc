@@ -225,3 +225,15 @@
 .rbc-calendar *:after {
     box-sizing: border-box !important;
 }
+
+/* Make calendar date headers bold */
+.rbc-month-view .rbc-header,
+.rbc-time-view .rbc-header,
+.rbc-agenda-view th {
+    font-weight: bold;
+}
+
+/* Make calendar date numbers in month view bold */
+.rbc-month-view .rbc-date-cell {
+    font-weight: bold;
+}
