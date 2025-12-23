@@ -69,8 +69,11 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     // Group events by tutor for faster lookup
     const eventsByTutor = new Map();
     for (const event of validEvents) {
+        // Only process events that have staff (shifts)
+        if (!event.staff || !Array.isArray(event.staff)) continue;
+
         for (const staff of event.staff) {
-            const tutorEmail = staff.value;
+            const tutorEmail = staff.value || staff;
             if (!eventsByTutor.has(tutorEmail)) {
                 eventsByTutor.set(tutorEmail, []);
             }
@@ -89,6 +92,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
         const tutorEvents = eventsByTutor.get(availability.tutor) || [];
 
         let slotStart = currentStart;
+        let wasSplit = false;
 
         for (const event of tutorEvents) {
             const eventStart = new Date(event.start);
@@ -101,9 +105,12 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
             if (eventStart > slotStart) {
                 splitSlots.push({
                     ...availability,
+                    id: crypto.randomUUID(),
+                    originalAvailabilityId: availability.id,
                     start: slotStart,
                     end: eventStart,
                 });
+                wasSplit = true;
             }
 
             // Move start past this event
@@ -116,6 +123,8 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
         if (slotStart < currentEnd) {
             splitSlots.push({
                 ...availability,
+                id: wasSplit ? crypto.randomUUID() : availability.id,
+                originalAvailabilityId: wasSplit ? availability.id : undefined,
                 start: slotStart,
                 end: currentEnd,
             });

@@ -1,21 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useCalendarUI } from '@contexts/CalendarUIContext';
 
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 import { updateEventInFirestore } from '@/firestore/firestoreOperations';
 
-import {
-    CalendarEntityType,
-    CalendarFlow,
-} from '@/strategy/calendarStrategy';
+import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent from './CustomEvent.jsx';
@@ -52,48 +49,16 @@ const MemoizedCalendarTimeSlot = memo(CustomTimeslot);
 const CalendarContent = () => {
     const { session, userRole, device } = useAuthSession();
     const strategy = useCalendarStrategy(session.user.email, userRole);
+    const calendarControl = useCalendarUI();
 
-    const { calendarShifts, calendarAvailabilities, calendarStudentRequests } = useCalendarData();
-
-    /* ----------------------------------------------------------- */
-    /* Merge all calendar entities                                 */
-    /* ----------------------------------------------------------- */
-    const calendarEntities = useMemo(
-        () => [
-            ...calendarShifts,
-            ...calendarAvailabilities,
-            ...calendarStudentRequests,
-        ],
-        [calendarShifts, calendarAvailabilities, calendarStudentRequests],
-    );
+    // Get pre-filtered data from CalendarControlProvider
+    const { filteredEvents, filteredAvailabilities } = calendarControl;
 
     /* ----------------------------------------------------------- */
-    /* Event layer (RBC events)                                    */
+    /* Events and Availabilities - Pre-filtered by CalendarControlProvider */
     /* ----------------------------------------------------------- */
-    const rbcEvents = useMemo(
-        () =>
-            calendarEntities.filter((calEvent) =>
-                strategy.visibility.includeInCalendar(calEvent),
-            ),
-        [calendarEntities, strategy],
-    );
-
-    /* ----------------------------------------------------------- */
-    /* Availability overlay layer                                  */
-    /* ----------------------------------------------------------- */
-    const overlayAvailabilities = useMemo(() => {
-        if (!strategy.visibility.showAvailabilitySlots) return [];
-
-        // Tutors: only OTHER tutors' availability
-        if (userRole === 'tutor') {
-            return calendarAvailabilities.filter(
-                (a) => a.tutor !== session.email,
-            );
-        }
-
-        // Teachers + students: all availability
-        return calendarAvailabilities;
-    }, [strategy, userRole, calendarAvailabilities, session.email]);
+    const rbcEvents = filteredEvents;
+    const overlayAvailabilities = filteredAvailabilities;
 
     /* ----------------------------------------------------------- */
     /* Calendar bounds                                             */
@@ -283,7 +248,7 @@ const CalendarContent = () => {
                 />
             </div>
 
-            <CalendarFilterPanel calendarStrategy={strategy} device={device} />
+            <CalendarFilterPanel calendarStrategy={strategy} device={device} userRole={userRole} />
             
             {/* render different modals depending on the target, action  */}
             <CalendarRenderModals

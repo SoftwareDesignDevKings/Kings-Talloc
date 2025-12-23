@@ -1,13 +1,14 @@
 import { CalendarDataProvider } from "@/providers/CalendarDataProvider";
+import { CalendarControlProvider } from "@/providers/CalendarControlProvider";
 import CalendarContent from "./CalendarContent";
 
 const CalendarWrapper = () => {
     return (
         <div className="h-100 w-100">
             <CalendarDataProvider>
-                 {/* <div className="flex-grow-1"> */}
+                <CalendarControlProvider>
                     <CalendarContent />
-                {/* </div> */}
+                </CalendarControlProvider>
             </CalendarDataProvider>
         </div>
     );

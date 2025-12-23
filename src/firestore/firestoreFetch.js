@@ -104,7 +104,7 @@ export const firestoreFetchTutors = async (setTutors) => {
 
             return {
                 email: data.email,
-                name: data.email,
+                name: data.name || data.email,  // Use name field if available, fallback to email
             };
         });
 

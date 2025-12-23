@@ -13,6 +13,7 @@ import {
 // import { calendarAvailabilitySplit } from '@/utils/calendarAvailability';
 import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
 import useAuthSession from '@/hooks/useAuthSession';
+import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import CalendarDataContext from '@/contexts/CalendarDataContext';
 
 export { useCalendarData } from '@/contexts/CalendarDataContext';

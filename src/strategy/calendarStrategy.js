@@ -16,8 +16,8 @@ export const CalendarFlow = Object.freeze({
 
 export const CalendarEntityType = Object.freeze({
     SHIFT: 'shifts',
-    AVAILABILITY: 'availability',
-    STUDENT_REQUEST: 'studentRequest',
+    AVAILABILITY: 'tutorAvailabilities',
+    STUDENT_REQUEST: 'studentEventRequests',
 });
 
 export const teacherCalendarStrategy = () => ({
@@ -164,7 +164,7 @@ export const studentCalendarStrategy = (userEmail) => ({
             return false;
         },
 
-        showAvailabilitySlots: false,
+        showAvailabilitySlots: true,
     },
 
     // students cannot accesss tutor avail type

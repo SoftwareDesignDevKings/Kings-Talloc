@@ -4,15 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
-import { db } from '@/firestore/firestoreClient.js';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { firestoreFetchAvailabilities } from '../../firestore/firestoreFetch';
 import { useCalendarData } from '@/providers/CalendarDataProvider';
-import {
-    updateEventInFirestore,
-    createEventInFirestore,
-    deleteEventFromFirestore,
-} from '@/firestore/firestoreOperations';
+import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 const StudentEventForm = ({
@@ -23,7 +16,13 @@ const StudentEventForm = ({
     setShowStudentModal,
     studentEmail,
 }) => {
-    const { calendarStudentRequests, setCalendarStudentRequests } = useCalendarData();
+    const {
+        calendarStudentRequests,
+        setCalendarStudentRequests,
+        calendarAvailabilities,
+        tutors,
+        subjects
+    } = useCalendarData();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -43,39 +42,24 @@ const StudentEventForm = ({
             ? newEvent.students[0]
             : { value: studentEmail, label: studentEmail },
     );
-    const [availabilities, setAvailabilities] = useState([]);
     const [error, setError] = useState('');
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
 
+    // Transform provider data into react-select format
     useEffect(() => {
-        const fetchTutors = async () => {
-            const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
-            const querySnapshot = await getDocs(q);
-            const tutorList = querySnapshot.docs.map((doc) => ({
-                value: doc.data().email,
-                label: doc.data().name || doc.data().email,
-            }));
-            setTutorOptions(tutorList);
-        };
+        const tutorList = tutors.map((tutor) => ({
+            value: tutor.email,
+            label: tutor.name || tutor.email,
+        }));
+        setTutorOptions(tutorList);
 
-        const fetchSubjects = async () => {
-            const querySnapshot = await getDocs(collection(db, 'subjects'));
-            const subjectList = querySnapshot.docs.map((doc) => ({
-                value: doc.id,
-                label: doc.data().name,
-            }));
-            setSubjectOptions(subjectList);
-        };
-
-        const fetchAllData = async () => {
-            await fetchTutors();
-            await fetchSubjects();
-            firestoreFetchAvailabilities(setAvailabilities);
-        };
-
-        fetchAllData();
-    }, []);
+        const subjectList = subjects.map((subject) => ({
+            value: subject.id,
+            label: subject.name,
+        }));
+        setSubjectOptions(subjectList);
+    }, [tutors, subjects]);
 
     useEffect(() => {
         if (!isEditing) {
@@ -88,6 +72,19 @@ const StudentEventForm = ({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedStudent]);
+
+    // Guard against stale selectedTutor when time changes
+    useEffect(() => {
+        if (
+            selectedTutor &&
+            filteredTutors.length > 0 &&
+            !filteredTutors.some(t => t.value === selectedTutor.value)
+        ) {
+            setSelectedTutor(null);
+            setNewEvent({ ...newEvent, staff: [] });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filteredTutors]);
 
     const handleTutorSelectChange = (selectedOption) => {
         setSelectedTutor(selectedOption);
@@ -117,21 +114,23 @@ const StudentEventForm = ({
 
     const filterTutorsByAvailability = (start, end) => {
         const availableTutors = tutorOptions.filter((tutor) => {
-            const tutorAvailabilities = availabilities.filter(
+            const tutorAvailabilities = calendarAvailabilities.filter(
                 (availability) => availability.tutor === tutor.value,
             );
+
             return tutorAvailabilities.some((availability) => {
                 const availStart = new Date(availability.start);
                 const availEnd = new Date(availability.end);
                 return (
                     (availStart <= start || availStart.getTime() === start.getTime()) &&
                     (availEnd >= end || availEnd.getTime() === end.getTime()) &&
-                    (availability.workType == 'tutoring' ||
-                        availability.workType == 'tutoringOrWork' ||
-                        availability.workType == undefined)
+                    (availability.workType === 'tutoring' ||
+                        availability.workType === 'tutoringOrWork' ||
+                        availability.workType === undefined)
                 ); // undefined check for backwards compatibility
             });
         });
+
         setFilteredTutors(availableTutors);
     };
 
@@ -165,6 +164,13 @@ const StudentEventForm = ({
             approvalStatus: newEvent.approvalStatus || 'pending',
             isStudentRequest: true,
         };
+
+        // Remove undefined fields (Firestore doesn't accept undefined)
+        Object.keys(eventData).forEach(key => {
+            if (eventData[key] === undefined) {
+                delete eventData[key];
+            }
+        });
 
         try {
             if (isEditing) {
