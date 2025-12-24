@@ -178,7 +178,7 @@ export const CalendarControlProvider = ({ children }) => {
         const splitAvailabilities = calendarAvailabilitySplit(filtered, filteredEvents);
 
         return splitAvailabilities;
-    }, [calendarStrategy.visibility, showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, filteredEvents]);
+    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, filteredEvents]);
 
     // ─────────────────────────────────────
     // context values

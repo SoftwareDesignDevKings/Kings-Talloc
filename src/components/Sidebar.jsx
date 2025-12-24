@@ -126,7 +126,7 @@ const Sidebar = ({ userRole, user }) => {
                         />
                     ) : (
                         <div className={styles.profilePlaceholder}>
-                            <FiUser className={styles.navIcon} />
+                            <FiUser className={styles.navIcon} data-testid="fi-user-icon" />
                         </div>
                     )}
                     {!isCollapsed && <span>{user.name}</span>}

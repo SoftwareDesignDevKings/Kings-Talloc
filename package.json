@@ -11,10 +11,7 @@
         "test:firebase": "firebase emulators:exec --only firestore --config firebase/firebase.json \"jest --config=__tests__/firebase/jest.firebase.config.js\"",
         "test:all": "npm run test && npm run test:firebase",
         "test:watch": "jest --watch",
-        "test:coverage": "jest --coverage",
-        "e2e": "firebase emulators:exec --only firestore,auth --config firebase/firebase.json \"E2E_TEST_ENABLED=1 NEXT_PUBLIC_USE_FIREBASE_EMULATORS=1 playwright test\"",
-        "e2e:ui": "firebase emulators:exec --only firestore,auth --config firebase/firebase.json \"E2E_TEST_ENABLED=1 NEXT_PUBLIC_USE_FIREBASE_EMULATORS=1 playwright test --ui\"",
-        "e2e:debug": "firebase emulators:exec --only firestore,auth --config firebase/firebase.json \"E2E_TEST_ENABLED=1 NEXT_PUBLIC_USE_FIREBASE_EMULATORS=1 playwright test --debug\""
+        "test:coverage": "jest --coverage"
     },
     "dependencies": {
         "bootstrap": "^5.3.8",
@@ -37,7 +34,6 @@
     },
     "devDependencies": {
         "@firebase/rules-unit-testing": "^3.0.1",
-        "@playwright/test": "^1.57.0",
         "@testing-library/jest-dom": "^6.9.0",
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^14.6.1",

@@ -32,9 +32,6 @@ const CalendarRenderModals = ({
             return calendarTarget;
         }
 
-        console.log("Session: ", session)
-        console.log("userEmail: ", userEmail)
-
         return createDraft({
             ...calendarTarget,
             userEmail: userEmail,
