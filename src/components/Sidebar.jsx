@@ -19,8 +19,8 @@ import { useRouter } from 'next/navigation';
 import styles from '@/styles/sidebar.module.css';
 
 const Sidebar = ({ userRole, user }) => {
-    const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -45,7 +45,9 @@ const Sidebar = ({ userRole, user }) => {
                 <div className="p-4">
                     <div className="d-flex justify-content-between align-items-center">
                         {!isCollapsed && (
-                            <h4 className={`fs-3 fw-bold ${styles.textIndigo600} mb-0`}>Menu</h4>
+                            <h4 className={`fs-3 fw-bold mb-0 ${styles.menuTitle}`}>
+                                Menu
+                            </h4>
                         )}
                         <button onClick={toggleSidebar} className={styles.toggleButton}>
                             {isCollapsed ? (
@@ -138,9 +140,9 @@ const Sidebar = ({ userRole, user }) => {
                     >
                         <button
                             onClick={() => signOut({ callbackUrl: '/login' })}
-                            className={styles.signOutButton}
+                            className="btn btn-danger w-100"
                         >
-                            Sign out
+                            Logout
                         </button>
                     </div>
                 )}
