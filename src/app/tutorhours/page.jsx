@@ -1,13 +1,15 @@
-'use client';
-
 import TutorHoursSummary from "@/components/TutorHoursSummary";
-import useAuthSession from '@/hooks/useAuthSession';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 
-const TutorHoursPage = () => {
-    const { userRole, userEmail } = useAuthSession();
+const TutorHoursPage = async () => {
+    const session = await getServerSession(authOptions);
 
     return (
-        <TutorHoursSummary userRole={userRole} userEmail={userEmail} />
+        <TutorHoursSummary 
+            userRole={session.user.role} 
+            userEmail={session.user.email} 
+        />
     );
 };
 

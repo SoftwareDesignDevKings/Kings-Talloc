@@ -5,7 +5,6 @@ import Login from '@/components/Login.jsx';
 
 const LoginPage = async () => {
     const session = await getServerSession();
-
     if (session) {
         redirect('/dashboard');
     }

@@ -1,16 +1,21 @@
 'use client';
 
-import React, { Suspense, lazy } from 'react';
+import React, { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 
-// const CalendarWrapper = lazy(() => import('@/components/CalendarWrapper.jsx'));
-const CalendarWrapper = lazy(() => import('@/components/calendar/CalendarWrapper'));
+// dynamically import CalendarWrapper to reduce initial bundle size
+const CalendarWrapper = dynamic(
+    () => import('@/components/calendar/CalendarWrapper'),
+    {
+        ssr: false,
+        loading: () => <LoadingSpinner />,
+    }
+);
 
 const CalendarPage = () => {
     return (
-        <Suspense fallback={<LoadingSpinner />}>
-            <CalendarWrapper />
-        </Suspense>
+        <CalendarWrapper />
     );
 };
 

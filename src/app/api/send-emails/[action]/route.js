@@ -5,9 +5,8 @@ import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function GET(_req, { params }) {
     const session = await getServerSession(authOptions);
-
     if (!session || !session.user) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+        return new Response(JSON.stringify({ message: 'Unauthorised' }), { status: 401 });
     }
 
     if (session.user.role !== 'teacher') {
