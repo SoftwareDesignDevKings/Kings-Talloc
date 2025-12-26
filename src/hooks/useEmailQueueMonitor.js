@@ -37,14 +37,9 @@ export const useEmailQueueMonitor = (userRole) => {
 
                 // Only trigger if queue size has changed AND is greater than 0
                 if (currentSize > 0 && currentSize !== previousSize) {
-                    console.log(
-                        `[Email Monitor] Queue size changed (${previousSize} → ${currentSize}), triggering email send...`,
-                    );
-
                     try {
                         const response = await fetch('/api/send-emails/send');
                         const data = await response.json();
-                        console.log('[Email Monitor]', data.message);
 
                         // Update previous size after successful send
                         previousQueueSizeRef.current = 0; // Reset since queue should be empty after send
@@ -52,10 +47,7 @@ export const useEmailQueueMonitor = (userRole) => {
                         console.error('[Email Monitor] Failed to send emails:', error);
                     }
                 } else if (currentSize === 0 && previousSize !== 0) {
-                    console.log('[Email Monitor] Queue cleared');
                     previousQueueSizeRef.current = 0;
-                } else {
-                    console.log(`[Email Monitor] No changes detected (size: ${currentSize})`);
                 }
             },
             1 * 60 * 5000,
@@ -66,7 +58,6 @@ export const useEmailQueueMonitor = (userRole) => {
             if (unsubscribe) unsubscribe();
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
-                console.log('[Email Monitor] Stopped');
             }
         };
     }, [userRole]);

@@ -10,6 +10,7 @@ export async function authFirebaseSignIn({ user }) {
 
         if (!userDoc.exists) {
             // Create new user with default "student" role
+            const calendarFeedToken = crypto.randomBytes(32).toString("hex");
             await userRef.set({
                 email: user.email,
                 name: user.name,
@@ -18,7 +19,7 @@ export async function authFirebaseSignIn({ user }) {
             });
 
             user.role = 'student';
-            user.calendarFeedToken = crypto.randomBytes(32).toString("hex");;
+            user.calendarFeedToken = calendarFeedToken;
         } else {
             // Fetch existing role from Firestore
             const userData = userDoc.data();

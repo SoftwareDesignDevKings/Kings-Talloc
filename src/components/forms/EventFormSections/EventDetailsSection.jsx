@@ -2,16 +2,20 @@ import React from 'react';
 import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
 
-const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, userRole }) => {
+const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly }) => {
+    // Collapse by default for student requests (teacher viewing)
+    const isStudentRequest = newEvent.createdByStudent;
+    const isExpanded = !isStudentRequest;
+
     return (
         <div className="accordion-item">
             <h2 className="accordion-header">
                 <button
-                    className="accordion-button"
+                    className={`accordion-button ${isExpanded ? '' : 'collapsed'}`}
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#eventDetails"
-                    aria-expanded="true"
+                    aria-expanded={isExpanded}
                     aria-controls="eventDetails"
                 >
                     <MdEventNote className="me-2" aria-hidden="true" /> Event Details
@@ -19,7 +23,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
             </h2>
             <div
                 id="eventDetails"
-                className="accordion-collapse collapse show"
+                className={`accordion-collapse collapse ${isExpanded ? 'show' : ''}`}
                 data-bs-parent="#eventFormAccordion"
             >
                 <div className="accordion-body">

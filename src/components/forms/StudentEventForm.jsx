@@ -1,27 +1,34 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { isAfter, isBefore, isSameOrBefore, isSameOrAfter, format } from 'date-fns';
+import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
-import { db } from '@/firestore/firestoreClient.js';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { firestoreFetchAvailabilities } from '../../firestore/firestoreFetch';
-import {
-    updateEventInFirestore,
-    createEventInFirestore,
-    deleteEventFromFirestore,
-} from '@/firestore/firestoreOperations';
+import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
+import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 const StudentEventForm = ({
-    isEditing,
+    mode,
     newEvent,
     setNewEvent,
     eventToEdit,
     setShowStudentModal,
     studentEmail,
-    eventsData,
 }) => {
+    const {
+        calendarStudentRequests,
+        setCalendarStudentRequests,
+        calendarAvailabilities,
+        tutors,
+        subjects
+    } = useCalendarData();
+    // Derive mode flags
+    const isView = mode === 'view';
+    const isEdit = mode === 'edit';
+    const isEditing = isEdit || isView; 
+    // for backward compat with existing logic
+
     const [tutorOptions, setTutorOptions] = useState([]);
     const [subjectOptions, setSubjectOptions] = useState([]);
     const [filteredTutors, setFilteredTutors] = useState([]);
@@ -30,44 +37,29 @@ const StudentEventForm = ({
     );
     const [selectedSubject, setSelectedSubject] = useState(newEvent.subject || null);
     const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
-    const [selectedStudent, setSelectedStudent] = useState(
+    const [selectedStudent] = useState(
         newEvent.students && newEvent.students.length > 0
             ? newEvent.students[0]
             : { value: studentEmail, label: studentEmail },
     );
-    const [availabilities, setAvailabilities] = useState([]);
     const [error, setError] = useState('');
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
 
+    // Transform provider data into react-select format
     useEffect(() => {
-        const fetchTutors = async () => {
-            const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
-            const querySnapshot = await getDocs(q);
-            const tutorList = querySnapshot.docs.map((doc) => ({
-                value: doc.data().email,
-                label: doc.data().name || doc.data().email,
-            }));
-            setTutorOptions(tutorList);
-        };
+        const tutorList = tutors.map((tutor) => ({
+            value: tutor.email,
+            label: tutor.name || tutor.email,
+        }));
+        setTutorOptions(tutorList);
 
-        const fetchSubjects = async () => {
-            const querySnapshot = await getDocs(collection(db, 'subjects'));
-            const subjectList = querySnapshot.docs.map((doc) => ({
-                value: doc.id,
-                label: doc.data().name,
-            }));
-            setSubjectOptions(subjectList);
-        };
-
-        const fetchAllData = async () => {
-            await fetchTutors();
-            await fetchSubjects();
-            await firestoreFetchAvailabilities(setAvailabilities);
-        };
-
-        fetchAllData();
-    }, []);
+        const subjectList = subjects.map((subject) => ({
+            value: subject.id,
+            label: subject.name,
+        }));
+        setSubjectOptions(subjectList);
+    }, [tutors, subjects]);
 
     useEffect(() => {
         if (!isEditing) {
@@ -80,6 +72,19 @@ const StudentEventForm = ({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedStudent]);
+
+    // Guard against stale selectedTutor when time changes
+    useEffect(() => {
+        if (
+            selectedTutor &&
+            filteredTutors.length > 0 &&
+            !filteredTutors.some(t => t.value === selectedTutor.value)
+        ) {
+            setSelectedTutor(null);
+            setNewEvent({ ...newEvent, staff: [] });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filteredTutors]);
 
     const handleTutorSelectChange = (selectedOption) => {
         setSelectedTutor(selectedOption);
@@ -109,21 +114,23 @@ const StudentEventForm = ({
 
     const filterTutorsByAvailability = (start, end) => {
         const availableTutors = tutorOptions.filter((tutor) => {
-            const tutorAvailabilities = availabilities.filter(
+            const tutorAvailabilities = calendarAvailabilities.filter(
                 (availability) => availability.tutor === tutor.value,
             );
+
             return tutorAvailabilities.some((availability) => {
                 const availStart = new Date(availability.start);
                 const availEnd = new Date(availability.end);
                 return (
                     (availStart <= start || availStart.getTime() === start.getTime()) &&
                     (availEnd >= end || availEnd.getTime() === end.getTime()) &&
-                    (availability.workType == 'tutoring' ||
-                        availability.workType == 'tutoringOrWork' ||
-                        availability.workType == undefined)
+                    (availability.workType === 'tutoring' ||
+                        availability.workType === 'tutoringOrWork' ||
+                        availability.workType === undefined)
                 ); // undefined check for backwards compatibility
             });
         });
+
         setFilteredTutors(availableTutors);
     };
 
@@ -150,6 +157,8 @@ const StudentEventForm = ({
             start: new Date(newEvent.start),
             end: new Date(newEvent.end),
             students: newEvent.students || [],
+            studentEmails: (newEvent.students || []).map(s => s.value || s), 
+            // firebase sec rules require students maped to their value 
             staff: newEvent.staff || [],
             subject: newEvent.subject,
             preference: newEvent.preference,
@@ -158,19 +167,36 @@ const StudentEventForm = ({
             isStudentRequest: true,
         };
 
+        // Remove undefined fields (Firestore doesn't accept undefined)
+        Object.keys(eventData).forEach(key => {
+            if (eventData[key] === undefined) {
+                delete eventData[key];
+            }
+        });
+
         try {
             if (isEditing) {
                 await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                eventsData.setStudentRequests(
-                    eventsData.studentRequests.map((req) =>
-                        req.id === eventToEdit.id ? { ...eventData, id: eventToEdit.id } : req
+                setCalendarStudentRequests(
+                    calendarStudentRequests.map((req) =>
+                        req.id === eventToEdit.id
+                            ? {
+                                ...eventData,
+                                id: eventToEdit.id,
+                                entityType: CalendarEntityType.STUDENT_REQUEST
+                            }
+                            : req
                     )
                 );
             } else {
                 const docId = await createEventInFirestore(eventData, 'studentEventRequests');
-                eventsData.setStudentRequests([
-                    ...eventsData.studentRequests,
-                    { ...eventData, id: docId },
+                setCalendarStudentRequests([
+                    ...calendarStudentRequests,
+                    {
+                        ...eventData,
+                        id: docId,
+                        entityType: CalendarEntityType.STUDENT_REQUEST
+                    },
                 ]);
             }
             setShowStudentModal(false);
@@ -183,8 +209,8 @@ const StudentEventForm = ({
     const handleDelete = async () => {
         try {
             await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
-            eventsData.setStudentRequests(
-                eventsData.studentRequests.filter((req) => req.id !== eventToEdit.id)
+            setCalendarStudentRequests(
+                calendarStudentRequests.filter((req) => req.id !== eventToEdit.id)
             );
             setShowStudentModal(false);
         } catch (error) {
@@ -206,23 +232,16 @@ const StudentEventForm = ({
         }
     };
 
-    // For new events, allow editing. For existing events, only allow if student created it
-    const isStudentCreated =
-        !isEditing ||
-        (newEvent.createdByStudent &&
-            newEvent.students?.some((student) => student.value === studentEmail));
-
     return (
         <BaseModal
             show={true}
             onHide={() => setShowStudentModal(false)}
-            title={isEditing ? 'Edit Event' : 'Add New Event'}
+            title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
             size="md"
-            onSubmit={onSubmit}
-            submitText={isEditing ? 'Save Changes' : 'Add Event'}
-            disabled={!isStudentCreated}
+            onSubmit={isView ? undefined : onSubmit}
+            submitText={isEdit ? 'Save Changes' : 'Add Event'}
             deleteButton={
-                isEditing && isStudentCreated
+                isEdit
                     ? {
                           text: 'Delete',
                           onClick: handleDelete,
@@ -230,6 +249,7 @@ const StudentEventForm = ({
                       }
                     : null
             }
+            showFooter={!isView}
         >
             {error && <div className="alert alert-danger" role="alert" aria-live="polite">{error}</div>}
 
@@ -245,7 +265,7 @@ const StudentEventForm = ({
                     value={format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")}
                     onChange={handleDateChange}
                     required
-                    disabled={!isStudentCreated}
+                    disabled={isView}
                     aria-label="Event start time"
                     aria-required="true"
                 />
@@ -262,7 +282,7 @@ const StudentEventForm = ({
                     value={format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")}
                     onChange={handleDateChange}
                     required
-                    disabled={!isStudentCreated}
+                    disabled={isView}
                     aria-label="Event end time"
                     aria-required="true"
                 />
@@ -278,7 +298,7 @@ const StudentEventForm = ({
                     onChange={handleSubjectChange}
                     classNamePrefix="select"
                     placeholder="Select a subject"
-                    isDisabled={!isStudentCreated}
+                    isDisabled={isView}
                     aria-label="Select subject"
                     inputId="subject"
                 />
@@ -292,7 +312,7 @@ const StudentEventForm = ({
                             type="button"
                             className={`btn btn-sm ${selectedPreference === preference ? 'btn-primary' : 'btn-outline-primary'}`}
                             onClick={() => handlePreferenceClick(preference)}
-                            disabled={!isStudentCreated}
+                            disabled={isView}
                             aria-pressed={selectedPreference === preference}
                             aria-label={`Select ${preference} as preference`}
                         >
@@ -312,7 +332,7 @@ const StudentEventForm = ({
                     onChange={handleTutorSelectChange}
                     onMenuOpen={handleMenuOpen}
                     classNamePrefix="select"
-                    isDisabled={!isStudentCreated}
+                    isDisabled={isView}
                     noOptionsMessage={() => 'No tutors available for the selected time range'}
                     aria-label="Assign tutor to event"
                     inputId="tutor"

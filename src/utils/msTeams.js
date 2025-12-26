@@ -50,8 +50,6 @@ export const createTeamsMeeting = async (subject, description, startTime, endTim
             throw new Error('Microsoft access token not found');
         }
 
-        console.log('[msTeams] Access token found, building event body...');
-
         const eventBody = {
             subject: subject,
             body: {
@@ -180,7 +178,8 @@ export const updateTeamsMeeting = async (eventId, subject, description, startTim
             const startDate = new Date(startTime);
             const endDate = recurrenceOptions.until || new Date(startDate);
             if (!recurrenceOptions.until) {
-                endDate.setMonth(endDate.getMonth() + 3); // Default 3 months
+                endDate.setMonth(endDate.getMonth() + 3); 
+                // 3 months default
             }
 
             eventBody.recurrence = {

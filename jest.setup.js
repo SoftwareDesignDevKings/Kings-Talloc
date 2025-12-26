@@ -45,6 +45,21 @@ if (isBrowserEnv) {
         },
     }));
 
+    jest.mock('next/navigation', () => ({
+        useRouter() {
+            return {
+                push: jest.fn(),
+                replace: jest.fn(),
+                reload: jest.fn(),
+                back: jest.fn(),
+                forward: jest.fn(),
+                prefetch: jest.fn(),
+            };
+        },
+        usePathname: jest.fn(() => '/'),
+        useSearchParams: jest.fn(() => new URLSearchParams()),
+    }));
+
     // Mock NextAuth
     jest.mock('next-auth/react', () => ({
         useSession: jest.fn(() => ({

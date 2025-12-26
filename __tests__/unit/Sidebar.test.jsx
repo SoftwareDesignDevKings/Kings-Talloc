@@ -1,9 +1,28 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Sidebar from '../src/components/Sidebar.jsx';
+import Sidebar from '../../src/components/Sidebar.jsx';
+import { useRouter } from 'next/navigation';
+
+// Mock useRouter from next/navigation globally or for this test file
+// The jest.setup.js file should already have a global mock for 'next/navigation'
+// We need to access the mocked push function.
+const mockRouter = {
+    push: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    prefetch: jest.fn(),
+};
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => mockRouter,
+    usePathname: jest.fn(() => '/'),
+    useSearchParams: jest.fn(() => new URLSearchParams()),
+}));
+
 
 const setup = (userRole = 'student', userOverrides = {}) => {
-    const setActiveSection = jest.fn();
     const user = {
         name: 'Test User',
         email: 'test@kings.edu.au',
@@ -11,12 +30,16 @@ const setup = (userRole = 'student', userOverrides = {}) => {
         ...userOverrides,
     };
 
-    render(<Sidebar setActiveSection={setActiveSection} userRole={userRole} user={user} />);
+    render(<Sidebar userRole={userRole} user={user} />);
 
-    return { setActiveSection };
+    return { }; // No longer returning setActiveSection
 };
 
 describe('Sidebar', () => {
+    beforeEach(() => {
+        mockRouter.push.mockClear(); // Clear mock calls before each test
+    });
+
     it('renders calendar for all user roles', () => {
         setup('student');
         expect(screen.getByText('Calendar')).toBeInTheDocument();
@@ -50,17 +73,17 @@ describe('Sidebar', () => {
         expect(screen.getByText('Tutor Hours')).toBeInTheDocument();
     });
 
-    it('calls setActiveSection when menu item is clicked', () => {
-        const { setActiveSection } = setup('teacher');
+    it('calls router.push when menu item is clicked', () => {
+        setup('teacher');
 
         fireEvent.click(screen.getByText('Calendar'));
-        expect(setActiveSection).toHaveBeenCalledWith('calendar');
+        expect(mockRouter.push).toHaveBeenCalledWith('calendar');
 
         fireEvent.click(screen.getByText('User Roles'));
-        expect(setActiveSection).toHaveBeenCalledWith('userRoles');
+        expect(mockRouter.push).toHaveBeenCalledWith('userRoles');
 
         fireEvent.click(screen.getByText('Manage Classes'));
-        expect(setActiveSection).toHaveBeenCalledWith('classes');
+        expect(mockRouter.push).toHaveBeenCalledWith('classes');
     });
 
     it('displays user name when provided', () => {
@@ -117,9 +140,9 @@ describe('Sidebar', () => {
 
         expect(screen.getByText('No Image User')).toBeInTheDocument();
 
-        // Should have default icon container with rounded styling
-        const profileSection = screen.getByText('No Image User').closest('div');
-        const iconContainer = profileSection.querySelector('.tw-rounded-full');
-        expect(iconContainer).toBeInTheDocument();
+        // Should have a placeholder div containing an FiUser icon
+        const profilePlaceholder = screen.getByText('No Image User').closest('div').querySelector('div'); // Get the div with profilePlaceholder class
+        expect(profilePlaceholder).toBeInTheDocument();
+        expect(profilePlaceholder).toContainElement(screen.getByTestId('fi-user-icon')); // Assuming FiUser renders with data-testid="fi-user-icon"
     });
 });

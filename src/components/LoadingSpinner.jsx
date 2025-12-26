@@ -3,28 +3,31 @@ import React from 'react';
 /**
  * Reusable loading spinner component used across the dashboard
  * @param {string} className - Additional CSS classes for the container
- * @param {string} size - Spinner size: 'sm' (12), 'md' (16), 'lg' (20), default (16)
+ * @param {string} size - Spinner size: 'sm' (3rem), 'md' (4rem), 'lg' (5rem), default (4rem)
  * @param {string} text - Loading text to display below spinner
  */
 const LoadingSpinner = ({ className = '', size = 'md', text = 'Loading...' }) => {
-    const sizeClasses = {
-        sm: 'tw-w-12 tw-h-12',
-        md: 'tw-w-16 tw-h-16',
-        lg: 'tw-w-20 tw-h-20',
+    const sizeStyles = {
+        sm: { width: '3rem', height: '3rem' },
+        md: { width: '4rem', height: '4rem' },
+        lg: { width: '5rem', height: '5rem' },
     };
 
-    const spinnerSize = sizeClasses[size] || sizeClasses.md;
+    const spinnerStyle = sizeStyles[size] || sizeStyles.md;
 
     return (
         <div
-            className={`tw-flex tw-items-center tw-justify-center tw-h-full tw-w-full ${className}`}
+            className={`d-flex align-items-center justify-content-center h-100 w-100 ${className}`}
         >
-            <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
-                <div className={`tw-relative ${spinnerSize}`}>
-                    <div className="tw-absolute tw-inset-0 tw-border-4 tw-border-purple-200 tw-rounded-full"></div>
-                    <div className="tw-absolute tw-inset-0 tw-border-4 tw-border-transparent tw-border-t-purple-600 tw-rounded-full tw-animate-spin"></div>
+            <div className="d-flex flex-column align-items-center gap-3">
+                <div
+                    className="spinner-border text-tks-primary"
+                    style={spinnerStyle}
+                    role="status"
+                >
+                    <span className="visually-hidden">{text}</span>
                 </div>
-                {text && <div className="tw-text-gray-700 tw-text-base tw-font-medium">{text}</div>}
+                {text && <div className="text-secondary fs-6 fw-medium">{text}</div>}
             </div>
         </div>
     );

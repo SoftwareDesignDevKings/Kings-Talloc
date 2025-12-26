@@ -137,55 +137,49 @@ const SubjectList = () => {
     };
 
     return (
-        <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg">
-            <h2 className="tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">Manage Subjects</h2>
-            <div className="tw-flex tw-mb-4">
+        <div className="p-4 bg-white rounded shadow h-100 d-flex flex-column">
+            <h2 className="h5 mb-4 fw-bold text-purple">Manage Subjects</h2>
+            <div className="d-flex gap-2 mb-4">
                 <input
                     type="text"
                     placeholder="Search by subject name"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="tw-p-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                    style={{ flex: 1 }}
+                    className="form-control"
                 />
                 <button
                     onClick={openAddModal}
-                    className="tw-ml-4 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                    style={{ height: '2.5rem', width: 'auto' }}
+                    className="btn btn-primary text-nowrap"
                 >
                     {isEditing ? 'Edit Subject' : 'Add Subject'}
                 </button>
             </div>
-            {
-                <div className="tw-overflow-x-auto">
-                    <table className="tw-min-w-full tw-bg-white">
-                        <thead>
-                            <tr>
-                                <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Subject Name
-                                </th>
-                                <th className="tw-py-2 tw-px-4 tw-bg-gray-200 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredSubjects.map((subject) => (
-                                <SubjectRow
-                                    key={subject.id}
-                                    subject={subject}
-                                    handleOpenTutorModal={openAddTutorModal}
-                                    confirmDeleteSubject={openDeleteModal}
-                                    handleExpandSubject={handleExpandSubject}
-                                    expandedSubject={expandedSubject}
-                                    confirmRemoveTutor={handleRemoveTutor}
-                                    handleEditSubject={openEditModal}
-                                />
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            }
+
+            <div className="table-responsive flex-fill" style={{ overflowY: 'auto' }}>
+                <table className="table table-hover table-text-sm">
+                    <thead className="sticky-top bg-light">
+                        <tr>
+                            <th scope="col">Subject Name</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredSubjects.map((subject) => (
+                            <SubjectRow
+                                key={subject.id}
+                                subject={subject}
+                                handleOpenTutorModal={openAddTutorModal}
+                                confirmDeleteSubject={openDeleteModal}
+                                handleExpandSubject={handleExpandSubject}
+                                expandedSubject={expandedSubject}
+                                confirmRemoveTutor={handleRemoveTutor}
+                                handleEditSubject={openEditModal}
+                            />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
             <SubjectModal
                 showModal={showModal}
                 setShowModal={setShowModal}

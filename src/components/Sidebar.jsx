@@ -15,10 +15,13 @@ import {
 } from '@/components/icons';
 import Image from 'next/image';
 import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import styles from '@/styles/sidebar.module.css';
 
-const Sidebar = ({ setActiveSection, userRole, user }) => {
-    const [showProfileMenu, setShowProfileMenu] = useState(false);
+const Sidebar = ({ userRole, user }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -36,15 +39,17 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
 
     return (
         <div
-            className={`tw-h-screen tw-bg-white tw-text-gray-900 tw-shadow-lg tw-flex tw-flex-col tw-justify-between tw-transition-width tw-duration-300 ${isCollapsed ? 'tw-w-20' : 'tw-w-64'}`}
+            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : styles.sidebarExpanded} d-flex flex-column justify-content-between`}
         >
             <div>
-                <div className="tw-p-6">
-                    <div className="tw-flex tw-justify-between tw-items-center">
+                <div className="p-4">
+                    <div className="d-flex justify-content-between align-items-center">
                         {!isCollapsed && (
-                            <h2 className="tw-text-2xl tw-font-bold tw-text-indigo-600">Menu</h2>
+                            <h4 className={`fs-3 fw-bold mb-0 ${styles.menuTitle}`}>
+                                Menu
+                            </h4>
                         )}
-                        <button onClick={toggleSidebar} className="tw-text-indigo-600">
+                        <button onClick={toggleSidebar} className={styles.toggleButton}>
                             {isCollapsed ? (
                                 <FiChevronRight size={24} />
                             ) : (
@@ -53,64 +58,64 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="tw-flex-1">
-                    <ul className="tw-mt-4 tw-space-y-2 tw-list-none tw-pl-0">
+                <div className="flex-grow-1">
+                    <ul className={styles.navList}>
                         <li
-                            className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                            onClick={() => setActiveSection('dashboard')}
+                            className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
+                            onClick={() => router.push('dashboard')}
                         >
-                            <FiHome className="tw-text-indigo-600" />
+                            <FiHome className={styles.navIcon} />
                             {!isCollapsed && <span>Dashboard</span>}
                         </li>
                         <li
-                            className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                            onClick={() => setActiveSection('calendar')}
+                            className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
+                            onClick={() => router.push('calendar')}
                         >
-                            <FiCalendar className="tw-text-indigo-600" />
+                            <FiCalendar className={styles.navIcon} />
                             {!isCollapsed && <span>Calendar</span>}
                         </li>
                         {userRole === 'teacher' && (
                             <>
                                 <li
-                                    className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                    onClick={() => setActiveSection('userRoles')}
+                                    className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
+                                    onClick={() => router.push('userRoles')}
                                 >
-                                    <FiUsers className="tw-text-indigo-600" />
+                                    <FiUsers className={styles.navIcon} />
                                     {!isCollapsed && <span>User Roles</span>}
                                 </li>
                                 <li
-                                    className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                    onClick={() => setActiveSection('classes')}
+                                    className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
+                                    onClick={() => router.push('classes')}
                                 >
-                                    <FiBook className="tw-text-indigo-600" />
+                                    <FiBook className={styles.navIcon} />
                                     {!isCollapsed && <span>Manage Classes</span>}
                                 </li>
                             </>
                         )}
                         {userRole === 'teacher' && (
                             <li
-                                className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                onClick={() => setActiveSection('subjects')}
+                                className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
+                                onClick={() => router.push('subjects')}
                             >
-                                <FiBookOpen className="tw-text-indigo-600" />
+                                <FiBookOpen className={styles.navIcon} />
                                 {!isCollapsed && <span>Manage Subjects</span>}
                             </li>
                         )}
                         {userRole !== 'student' && (
                             <li
-                                className={`tw-py-2 tw-px-6 tw-cursor-pointer hover:tw-bg-indigo-100 tw-flex tw-items-center ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
-                                onClick={() => setActiveSection('tutorHours')}
+                                className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
+                                onClick={() => router.push('tutorHours')}
                             >
-                                <FiClock className="tw-text-indigo-600" />
+                                <FiClock className={styles.navIcon} />
                                 {!isCollapsed && <span>Tutor Hours</span>}
                             </li>
                         )}
                     </ul>
                 </div>
             </div>
-            <div className="tw-p-4 tw-border-t tw-border-gray-200 tw-relative">
+            <div className={styles.profileSection}>
                 <div
-                    className={`tw-flex tw-items-center tw-cursor-pointer ${isCollapsed ? 'tw-justify-center' : 'tw-space-x-2'}`}
+                    className={`${styles.profileContainer} ${isCollapsed ? styles.profileContainerCollapsed : styles.profileContainerExpanded}`}
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                 >
                     {user?.image ? (
@@ -119,25 +124,25 @@ const Sidebar = ({ setActiveSection, userRole, user }) => {
                             alt="Profile"
                             width={32}
                             height={32}
-                            className="tw-rounded-full"
+                            className={styles.profileImage}
                         />
                     ) : (
-                        <div className="tw-w-8 tw-h-8 tw-rounded-full tw-bg-gray-200 tw-flex tw-items-center tw-justify-center">
-                            <FiUser className="tw-text-indigo-600" />
+                        <div className={styles.profilePlaceholder}>
+                            <FiUser className={styles.navIcon} data-testid="fi-user-icon" />
                         </div>
                     )}
                     {!isCollapsed && <span>{user.name}</span>}
-                    {!isCollapsed && <FiSettings className="tw-text-indigo-600" />}
+                    {!isCollapsed && <FiSettings className={styles.navIcon} />}
                 </div>
                 {showProfileMenu && (
                     <div
-                        className={`tw-mt-2 tw-bg-white tw-shadow-lg tw-rounded-md tw-p-4 tw-absolute tw-bottom-16 tw-z-50 ${isCollapsed ? 'tw-left-0' : 'tw-left-1/2 tw-transform tw--translate-x-1/2'} tw-w-56`}
+                        className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded}`}
                     >
                         <button
                             onClick={() => signOut({ callbackUrl: '/login' })}
-                            className="tw-w-full tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
+                            className="btn btn-danger w-100"
                         >
-                            Sign out
+                            Logout
                         </button>
                     </div>
                 )}

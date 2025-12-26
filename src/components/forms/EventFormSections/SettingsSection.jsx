@@ -9,8 +9,6 @@ const SettingsSection = ({
     workTypeOptions,
     workStatusOptions,
     readOnly,
-    canEditWorkStatus = true,
-    isTutorReadOnly = false,
 }) => {
     return (
         <div className="accordion-item">
@@ -46,7 +44,7 @@ const SettingsSection = ({
                             id="minStudents"
                             value={newEvent.minStudents || 0}
                             onChange={handleMinStudentsChange}
-                            disabled={readOnly || isTutorReadOnly}
+                            disabled={readOnly}
                             aria-label="Minimum number of students required"
                             min="0"
                         />
@@ -92,7 +90,7 @@ const SettingsSection = ({
                             value={workTypeOptions.find(
                                 (option) => option.value === (newEvent.workType || 'tutoring'),
                             )}
-                            isDisabled={readOnly || isTutorReadOnly}
+                            isDisabled={readOnly}
                             aria-label="Event work type"
                             inputId="workType"
                         />
@@ -116,7 +114,7 @@ const SettingsSection = ({
                                 (option) =>
                                     option.value === (newEvent.workStatus || 'notCompleted'),
                             )}
-                            isDisabled={readOnly || !canEditWorkStatus}
+                            isDisabled={readOnly}
                             aria-label="Event work status"
                             inputId="workStatus"
                         />

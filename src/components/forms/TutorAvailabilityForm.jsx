@@ -5,20 +5,27 @@ import { isAfter, add, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
+import { useCalendarData } from '@/providers/CalendarDataProvider';
 import {
     updateEventInFirestore,
     createEventInFirestore,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
+import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 const TutorAvailabilityForm = ({
-    isEditing,
+    mode,
     newAvailability,
     setNewAvailability,
     eventToEdit,
     setShowModal,
-    eventsData,
 }) => {
+    const { calendarAvailabilities, setCalendarAvailabilities } = useCalendarData();
+    // Derive mode flags
+    const isView = mode === 'view';
+    const isEdit = mode === 'edit';
+    const isEditing = isEdit || isView; // for backward compat with existing logic
+
     const [error, setError] = useState('');
 
     const handleInputChange = (e) => {
@@ -74,10 +81,14 @@ const TutorAvailabilityForm = ({
         try {
             if (isEditing) {
                 await updateEventInFirestore(eventToEdit.id, availabilityData, 'tutorAvailabilities');
-                eventsData.setAvailabilities(
-                    eventsData.availabilities.map((availability) =>
+                setCalendarAvailabilities(
+                    calendarAvailabilities.map((availability) =>
                         availability.id === eventToEdit.id
-                            ? { ...availabilityData, id: eventToEdit.id }
+                            ? {
+                                ...availabilityData,
+                                id: eventToEdit.id,
+                                entityType: CalendarEntityType.AVAILABILITY
+                            }
                             : availability,
                     ),
                 );
@@ -86,9 +97,13 @@ const TutorAvailabilityForm = ({
                     availabilityData,
                     'tutorAvailabilities',
                 );
-                eventsData.setAvailabilities([
-                    ...eventsData.availabilities,
-                    { ...availabilityData, id: docId },
+                setCalendarAvailabilities([
+                    ...calendarAvailabilities,
+                    {
+                        ...availabilityData,
+                        id: docId,
+                        entityType: CalendarEntityType.AVAILABILITY
+                    },
                 ]);
             }
             setShowModal(false);
@@ -101,8 +116,8 @@ const TutorAvailabilityForm = ({
     const handleDelete = async () => {
         try {
             await deleteEventFromFirestore(eventToEdit.id, 'tutorAvailabilities');
-            eventsData.setAvailabilities(
-                eventsData.availabilities.filter(
+            setCalendarAvailabilities(
+                calendarAvailabilities.filter(
                     (availability) => availability.id !== eventToEdit.id,
                 ),
             );
@@ -150,12 +165,12 @@ const TutorAvailabilityForm = ({
         <BaseModal
             show={true}
             onHide={() => setShowModal(false)}
-            title={isEditing ? 'Edit Availability' : 'Add Availability'}
+            title={isView ? 'Availability Details' : (isEdit ? 'Edit Availability' : 'Add Availability')}
             size="md"
-            onSubmit={onSubmit}
-            submitText={isEditing ? 'Save Changes' : 'Add Availability'}
+            onSubmit={isView ? undefined : onSubmit}
+            submitText={isEdit ? 'Save Changes' : 'Add Availability'}
             deleteButton={
-                isEditing
+                isEdit
                     ? {
                           text: 'Delete',
                           onClick: handleDelete,
@@ -163,6 +178,7 @@ const TutorAvailabilityForm = ({
                       }
                     : null
             }
+            showFooter={!isView}
         >
             {error && <div className="alert alert-danger mb-3 py-2" role="alert" aria-live="polite">{error}</div>}
 
@@ -190,6 +206,7 @@ const TutorAvailabilityForm = ({
                             }
                             onChange={handleInputChange}
                             required
+                            disabled={isView}
                             aria-label="Availability start time"
                             aria-required="true"
                         />
@@ -211,32 +228,35 @@ const TutorAvailabilityForm = ({
                             }
                             onChange={handleInputChange}
                             required
+                            disabled={isView}
                             aria-label="Availability end time"
                             aria-required="true"
                         />
                     </div>
 
-                    <div className="d-flex gap-2 align-items-center mt-3">
-                        <small className="text-muted" id="quick-duration-label">Quick:</small>
-                        <div className="btn-group btn-group-sm" role="group" aria-labelledby="quick-duration-label">
-                            <button
-                                type="button"
-                                className="btn btn-outline-primary"
-                                onClick={() => setHours(6)}
-                                aria-label="Set duration to 6 hours"
-                            >
-                                6hrs
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-outline-secondary"
-                                onClick={() => setHours(3)}
-                                aria-label="Set duration to 3 hours"
-                            >
-                                3hrs
-                            </button>
+                    {!isView && (
+                        <div className="d-flex gap-2 align-items-center mt-3">
+                            <small className="text-muted" id="quick-duration-label">Quick:</small>
+                            <div className="btn-group btn-group-sm" role="group" aria-labelledby="quick-duration-label">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-primary"
+                                    onClick={() => setHours(6)}
+                                    aria-label="Set duration to 6 hours"
+                                >
+                                    6hrs
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => setHours(3)}
+                                    aria-label="Set duration to 3 hours"
+                                >
+                                    3hrs
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
 
@@ -258,6 +278,7 @@ const TutorAvailabilityForm = ({
                                 onChange={handleWorkTypeChange}
                                 classNamePrefix="select"
                                 placeholder="Select type..."
+                                isDisabled={isView}
                                 aria-label="Work type"
                                 inputId="workType"
                             />
@@ -281,6 +302,7 @@ const TutorAvailabilityForm = ({
                                 classNamePrefix="select"
                                 placeholder="Select location..."
                                 required
+                                isDisabled={isView}
                                 aria-label="Location type"
                                 inputId="locationType"
                             />

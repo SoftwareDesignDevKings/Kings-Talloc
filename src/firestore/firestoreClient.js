@@ -1,7 +1,7 @@
 // firebase.js
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
@@ -23,8 +23,8 @@ if (getApps().length > 0) {
     app = initializeApp(firebaseConfig);
 }
 
-// app check for recaptcha in browser
-if (typeof window !== "undefined") {
+// app check for recaptcha in browser (skip in emulator mode)
+if (typeof window !== "undefined" && !process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS) {
     initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider(
             process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
@@ -48,5 +48,19 @@ const db = getFirestore(app);
  * CLIENT SIDE - Firebase Storage instance
  */
 const storage = getStorage(app);
+
+// Connect to emulators if enabled
+if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === '1') {
+    if (typeof window !== 'undefined') {
+        // Only connect emulators on the client side once
+        try {
+            connectAuthEmulator(auth, `http://${process.env.NEXT_PUBLIC_E2E_TEST_FIREBASE_AUTH_EMULATOR_HOST}`, { disableWarnings: true });
+            connectFirestoreEmulator(db, process.env.NEXT_PUBLIC_E2E_TEST_FIRESTORE_EMULATOR_HOST, 8080);
+            console.log('Connected to Firebase emulators');
+        } catch (error) {
+            // Emulators already connected
+        }
+    }
+}
 
 export { app, auth, db, storage };

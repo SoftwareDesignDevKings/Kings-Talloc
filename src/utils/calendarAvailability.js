@@ -1,57 +1,6 @@
 // import { isBefore, isAfter } from 'date-fns';
 
 /**
- * Filter availabilities based on role and filters
- */
-export const calendarAvailabilityFilter = (splitAvailabilitiesData, { userRole, filters }) => {
-    let filtered = splitAvailabilitiesData;
-    const { subject, tutors, visibility, availabilityWorkType } = filters;
-
-    // student view - only filter events by tutoring / tutoring || work 
-    if (userRole === 'student') {
-        filtered = filtered.filter((availability) => availability.workType === 'tutoring' || 
-                                                     availability.workType === 'tutoringOrWork'
-        );
-    }
-    
-    if (userRole === 'teacher' && availabilityWorkType) {
-        filtered = filtered.filter(
-            (availability) => availability.workType === availabilityWorkType,
-        );
-    }
-
-    if ((userRole === 'tutor' || userRole === 'teacher') && visibility?.hideTutoringAvailabilites) {
-        filtered = filtered.filter((availability) => !(availability.workType === 'tutoring'));
-    }
-
-    if ((userRole === 'tutor' || userRole === 'teacher') && visibility?.hideWorkAvailabilities) {
-        filtered = filtered.filter((availability) => !(availability.workType === 'work'));
-    }
-
-    if (
-        (userRole === 'tutor' || userRole === 'teacher') &&
-        visibility?.hideTutoringAvailabilites &&
-        visibility?.hideWorkAvailabilities
-    ) {
-        filtered = filtered.filter((availability) => !(availability.workType === 'tutoringOrWork'));
-    }
-
-    if (subject) {
-        if (tutors?.length > 0) {
-            filtered = filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
-        } else {
-            filtered = filtered.filter((avail) =>
-                subject.tutors.some((tutor) => tutor.email === avail.tutor),
-            );
-        }
-    } else if (tutors?.length > 0) {
-        filtered = filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
-    }
-
-    return filtered;
-};
-
-/**
  * Split availabilities around booked events
  */
 export const calendarAvailabilitySplit = (availabilities, events) => {
@@ -69,8 +18,11 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     // Group events by tutor for faster lookup
     const eventsByTutor = new Map();
     for (const event of validEvents) {
+        // Only process events that have staff (shifts)
+        if (!event.staff || !Array.isArray(event.staff)) continue;
+
         for (const staff of event.staff) {
-            const tutorEmail = staff.value;
+            const tutorEmail = staff.value || staff;
             if (!eventsByTutor.has(tutorEmail)) {
                 eventsByTutor.set(tutorEmail, []);
             }
@@ -89,6 +41,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
         const tutorEvents = eventsByTutor.get(availability.tutor) || [];
 
         let slotStart = currentStart;
+        let wasSplit = false;
 
         for (const event of tutorEvents) {
             const eventStart = new Date(event.start);
@@ -101,9 +54,12 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
             if (eventStart > slotStart) {
                 splitSlots.push({
                     ...availability,
+                    id: crypto.randomUUID(),
+                    originalAvailabilityId: availability.id,
                     start: slotStart,
                     end: eventStart,
                 });
+                wasSplit = true;
             }
 
             // Move start past this event
@@ -116,6 +72,8 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
         if (slotStart < currentEnd) {
             splitSlots.push({
                 ...availability,
+                id: wasSplit ? crypto.randomUUID() : availability.id,
+                originalAvailabilityId: wasSplit ? availability.id : undefined,
                 start: slotStart,
                 end: currentEnd,
             });

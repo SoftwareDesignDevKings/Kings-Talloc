@@ -1,6 +1,6 @@
 import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
-
+import { CalendarEntityType } from '@/strategy/calendarStrategy';
 /**
  * Adds or updates an event in the email events queue
  * Only sends notifications when event times change
@@ -12,6 +12,11 @@ import { db } from '@/firestore/firestoreClient';
  */
 export const addOrUpdateEventInQueue = async (event, action, originalEvent = null) => {
     try {
+        // Skip email notifications for testing events
+        if (event.title && event.title.includes('(TESTING)')) {
+            return { message: `Event ${action}d but no notification sent (testing event)` };
+        }
+
         // For new events, always send notification
         if (action === 'store') {
             const eventDoc = doc(db, 'emailEventsQueue', event.id);
@@ -81,10 +86,10 @@ export const removeEventFromQueue = async (id) => {
  * Updates an event in Firestore
  * @param {string} eventId - The ID of the event to update
  * @param {Object} eventData - The updated event data
- * @param {string} [collectionName='events'] - The Firestore collection name
+ * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const updateEventInFirestore = async (eventId, eventData, collectionName = 'events') => {
+export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts') => {
     const eventDoc = doc(db, collectionName, eventId);
     await updateDoc(eventDoc, eventData);
 };
@@ -92,10 +97,10 @@ export const updateEventInFirestore = async (eventId, eventData, collectionName 
 /**
  * Creates a new event in Firestore
  * @param {Object} eventData - The event data to create
- * @param {string} [collectionName='events'] - The Firestore collection name
+ * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<string>} The ID of the created document
  */
-export const createEventInFirestore = async (eventData, collectionName = 'events') => {
+export const createEventInFirestore = async (eventData, collectionName = 'shifts') => {
     const docRef = await addDoc(collection(db, collectionName), eventData);
     return docRef.id;
 };
@@ -103,10 +108,10 @@ export const createEventInFirestore = async (eventData, collectionName = 'events
 /**
  * Deletes an event from Firestore
  * @param {string} eventId - The ID of the event to delete
- * @param {string} [collectionName='events'] - The Firestore collection name
+ * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const deleteEventFromFirestore = async (eventId, collectionName = 'events') => {
+export const deleteEventFromFirestore = async (eventId, collectionName = 'shifts') => {
     await deleteDoc(doc(db, collectionName, eventId));
 };
 
@@ -114,13 +119,13 @@ export const deleteEventFromFirestore = async (eventId, collectionName = 'events
  * Adds an exception to a recurring event (marks a specific occurrence as deleted)
  * @param {string} recurringEventId - The ID of the recurring event
  * @param {number} occurrenceIndex - The index of the occurrence to delete
- * @param {string} [collectionName='events'] - The Firestore collection name
+ * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
 export const addEventException = async (
     recurringEventId,
     occurrenceIndex,
-    collectionName = 'events',
+    collectionName = 'shifts',
 ) => {
     const eventDocRef = doc(db, collectionName, recurringEventId);
 
@@ -140,13 +145,13 @@ export const addEventException = async (
  * Sets the 'until' date for a recurring event to stop future occurrences
  * @param {string} recurringEventId - The ID of the recurring event
  * @param {Date} untilDate - The date until which the event should recur
- * @param {string} [collectionName='events'] - The Firestore collection name
+ * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
 export const setRecurringUntilDate = async (
     recurringEventId,
     untilDate,
-    collectionName = 'events',
+    collectionName = 'shifts',
 ) => {
     const eventDocRef = doc(db, collectionName, recurringEventId);
     await updateDoc(eventDocRef, {

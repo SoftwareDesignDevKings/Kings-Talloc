@@ -10,15 +10,18 @@ const StudentRequestSection = ({
 }) => {
     if (!newEvent.createdByStudent) return null;
 
+    // Auto-expand for student requests (when opened by teacher)
+    const isExpanded = true;
+
     return (
         <div className="accordion-item">
             <h2 className="accordion-header">
                 <button
-                    className="accordion-button collapsed"
+                    className={`accordion-button ${isExpanded ? '' : 'collapsed'}`}
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#studentRequest"
-                    aria-expanded="false"
+                    aria-expanded={isExpanded}
                     aria-controls="studentRequest"
                 >
                     <MdNoteAlt className="me-2" aria-hidden="true" /> Student Request
@@ -26,7 +29,7 @@ const StudentRequestSection = ({
             </h2>
             <div
                 id="studentRequest"
-                className="accordion-collapse collapse"
+                className={`accordion-collapse collapse ${isExpanded ? 'show' : ''}`}
                 data-bs-parent="#eventFormAccordion"
             >
                 <div className="accordion-body">

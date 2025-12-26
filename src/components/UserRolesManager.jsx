@@ -213,18 +213,17 @@ const UserRolesManager = () => {
     };
 
     return (
-        <div className="tw-p-8 tw-bg-white tw-rounded-lg tw-shadow-lg tw-h-full">
-            <h2 className="tw-text-2xl tw-font-bold tw-mb-4 tw-text-indigo-600">
+        <div className="p-4 bg-white rounded shadow h-100">
+            <h2 className="h4 mb-4 fw-bold text-purple">
                 Manage User Roles
             </h2>
-            <div className="tw-flex tw-mb-4">
+            <div className="d-flex gap-2 mb-4">
                 <input
                     type="text"
                     placeholder="Search by name, email, or role"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="tw-p-2 tw-border tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-outline-none focus:tw-ring-indigo-500 focus:tw-border-indigo-500 sm:tw-text-sm"
-                    style={{ flex: 1 }}
+                    className="form-control"
                 />
                 <button
                     onClick={() => {
@@ -234,101 +233,82 @@ const UserRolesManager = () => {
                         setName('');
                         setRole('student');
                     }}
-                    className="tw-ml-4 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                    style={{ height: '2.5rem', width: 'auto' }}
+                    className="btn btn-primary text-nowrap"
                 >
                     Add User Role
                 </button>
             </div>
-            {
-                <div
-                    className="tw-overflow-x-auto"
-                    style={{ height: 'calc(100% - 5rem)', overflowY: 'auto' }}
-                >
-                    <table className="tw-min-w-full tw-bg-white">
-                        <thead className="tw-sticky tw-top-0 tw-bg-gray-200 tw-z-10">
-                            <tr>
-                                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Email
-                                </th>
-                                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Name
-                                </th>
-                                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Role
-                                </th>
-                                <th className="tw-py-2 tw-px-4 tw-text-left tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Actions
-                                </th>
+            <div className="table-responsive" style={{ height: 'calc(100% - 8rem)', overflowY: 'auto' }}>
+                <table className="table table-hover table-text-sm">
+                    <thead className="sticky-top bg-light">
+                        <tr>
+                            <th scope="col">Email</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Role</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredUsers.map((user) => (
+                            <tr key={user.id}>
+                                <td>{user.email}</td>
+                                <td>{user.name}</td>
+                                <td>{user.role.toUpperCase()}</td>
+                                <td>
+                                    <div className="d-flex gap-2 align-items-center">
+                                        <button
+                                            onClick={() => handleEdit(user)}
+                                            className="btn btn-sm btn-primary"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(user.email)}
+                                            className="btn btn-sm btn-danger"
+                                        >
+                                            Delete
+                                        </button>
+                                        {user.role === 'tutor' && (
+                                            <>
+                                                <input
+                                                    type="file"
+                                                    accept=".docx,.pdf"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            handleTimesheetUpload(
+                                                                user.email,
+                                                                user.name,
+                                                                file,
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="d-none"
+                                                    id={`timesheet-upload-${user.email}`}
+                                                    disabled={uploadingTimesheets[user.email]}
+                                                />
+                                                <label
+                                                    htmlFor={`timesheet-upload-${user.email}`}
+                                                    className={`btn btn-sm mb-0 ${
+                                                        uploadingTimesheets[user.email]
+                                                            ? 'btn-secondary disabled'
+                                                            : 'btn-success'
+                                                    }`}
+                                                    style={{ cursor: uploadingTimesheets[user.email] ? 'not-allowed' : 'pointer' }}
+                                                >
+                                                    {uploadingTimesheets[user.email]
+                                                        ? 'Uploading...'
+                                                        : 'Upload Timesheet'}
+                                                </label>
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {filteredUsers.map((user) => (
-                                <tr key={user.id} className="tw-border-b tw-border-gray-200">
-                                    <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                                        {user.email}
-                                    </td>
-                                    <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                                        {user.name}
-                                    </td>
-                                    <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                                        {user.role.toUpperCase()}
-                                    </td>
-                                    <td className="tw-py-2 tw-px-4 tw-text-sm tw-text-gray-900">
-                                        <div className="tw-flex tw-items-center tw-gap-2">
-                                            <button
-                                                onClick={() => handleEdit(user)}
-                                                className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-indigo-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-indigo-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-indigo-500"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(user.email)}
-                                                className="tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-bg-red-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-red-700 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-red-500"
-                                            >
-                                                Delete
-                                            </button>
-                                            {user.role === 'tutor' && (
-                                                <>
-                                                    <input
-                                                        type="file"
-                                                        accept=".docx,.pdf"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                handleTimesheetUpload(
-                                                                    user.email,
-                                                                    user.name,
-                                                                    file,
-                                                                );
-                                                            }
-                                                        }}
-                                                        className="tw-hidden"
-                                                        id={`timesheet-upload-${user.email}`}
-                                                        disabled={uploadingTimesheets[user.email]}
-                                                    />
-                                                    <label
-                                                        htmlFor={`timesheet-upload-${user.email}`}
-                                                        className={`tw-px-2 tw-py-1 tw-text-sm tw-font-medium tw-text-white tw-rounded tw-cursor-pointer tw-text-center ${
-                                                            uploadingTimesheets[user.email]
-                                                                ? 'tw-bg-gray-400 tw-cursor-not-allowed'
-                                                                : 'tw-bg-green-600 hover:tw-bg-green-700'
-                                                        }`}
-                                                    >
-                                                        {uploadingTimesheets[user.email]
-                                                            ? 'Uploading...'
-                                                            : 'Upload Timesheet'}
-                                                    </label>
-                                                </>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            }
+                        ))}
+                    </tbody>
+                </table>
+            </div>
             {showModal && (
                 <div
                     className="modal fade"

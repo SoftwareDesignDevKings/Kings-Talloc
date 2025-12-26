@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 
 const LoadingPage = ({ withBackground = true }) => {
@@ -17,23 +19,25 @@ const LoadingPage = ({ withBackground = true }) => {
     }, []);
 
     const dots = '.'.repeat(dotCount);
-    const backgroundStyle = withBackground
-        ? 'tw-fixed tw-inset-0 tw-bg-gradient-to-r tw-from-indigo-500 tw-via-purple-500 tw-to-pink-500'
-        : 'tw-fixed tw-inset-0 tw-bg-white';
+    const backgroundClass = withBackground
+        ? 'gradient-background'
+        : 'bg-white';
+    
+    const spinnerColorClass = withBackground ? 'text-light' : 'text-tks-primary';
+    const textColorClass = withBackground ? 'text-white' : 'text-secondary';
 
     return (
-        <div className={`tw-flex tw-items-center tw-justify-center ${backgroundStyle}`}>
-            <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
-                <div className="tw-relative tw-w-16 tw-h-16">
-                    <div
-                        className={`tw-absolute tw-inset-0 tw-border-4 ${withBackground ? 'tw-border-purple-300' : 'tw-border-purple-200'} tw-rounded-full`}
-                    ></div>
-                    <div
-                        className={`tw-absolute tw-inset-0 tw-border-4 tw-border-transparent ${withBackground ? 'tw-border-t-white' : 'tw-border-t-purple-600'} tw-rounded-full tw-animate-spin`}
-                    ></div>
+        <div className={`d-flex align-items-center justify-content-center position-fixed top-0 start-0 w-100 h-100 ${backgroundClass}`}>
+            <div className="d-flex flex-column align-items-center gap-3">
+                <div 
+                    className={`spinner-border ${spinnerColorClass}`} 
+                    style={{ width: '4rem', height: '4rem' }} 
+                    role="status"
+                >
+                    <span className="visually-hidden">Loading...</span>
                 </div>
                 <span
-                    className={`tw-text-lg tw-font-medium ${withBackground ? 'tw-text-white' : 'tw-text-gray-700'}`}
+                    className={`fs-5 fw-medium ${textColorClass}`}
                 >
                     Loading{dots}
                 </span>

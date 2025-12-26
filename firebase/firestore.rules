@@ -26,12 +26,13 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == 'student';
     }
 
-    // Helper function to check if student owns the request (checks students array)
+    // Helper function to check if student owns the request (checks studentEmails array)
     function studentOwnsRequest(studentEmail) {
-      // For student event requests, check if email is in students array
-      // Students array format: [{value: "email", label: "name"}] or ["email"]
-      return resource.data.students.size() > 0 &&
-             resource.data.students[0].value == studentEmail;
+      // Check primitive email array (studentEmails) for access control
+      // students array [{value, label}] is kept for UI only
+      return studentEmail != null &&
+             'studentEmails' in resource.data &&
+             studentEmail in resource.data.studentEmails;
     }
 
     // Users collection - only teachers can modify roles
@@ -39,7 +40,7 @@ service cloud.firestore {
       allow read: if isAuthenticated();
 
       // firestore db stores user docs with email as doc ID
-      allow create: if isAuthenticated() && (request.auth.token.email == documentEmail || request.auth.token.email == "computing@kings.edu.au" || request.auth.token.email == "mienna@kings.edu.au");
+      allow create: if isAuthenticated() && (request.auth.token.email == documentEmail);
 
       // isTeacher || ((isAuthenticated) && (theirUserAcc) && (notModifying the key 'role'))
       // prevent non-teacher users from modifying their own role
@@ -47,7 +48,16 @@ service cloud.firestore {
       allow delete: if isTeacher();
     }
 
-    // Events collection (APPROVED events only - counts for payroll/hours)
+    // Shifts collection (APPROVED shifts only - counts for payroll/hours)
+    match /shifts/{shiftId} {
+      allow read: if isAuthenticated();
+      // only teachers can create/delete shifts
+      allow create, delete: if isTeacher();
+      // teachers can update anything, tutors can only update workStatus
+      allow update: if isTeacher() || (isTutor() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
+    }
+
+    // BACKWARDS COMPATIBILITY: events collection (APPROVED events only - counts for payroll/hours)
     match /events/{eventId} {
       allow read: if isAuthenticated();
       // only teachers can create/delete events

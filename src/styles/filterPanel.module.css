@@ -1,0 +1,96 @@
+/* Filter Panel Component Styles */
+
+
+/* Filter Panel Container */
+.filterPanelContainer {
+    background-color: #ffffff;
+    color: #000000;
+    border-left: 1px solid #d1d5db; /* gray-300 */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    transition: width 150ms ease-in-out;
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Toggle Button - Absolutely positioned outside panel */
+.toggleButton {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: -2.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    cursor: pointer;
+    background-color: #6366f1; /* indigo-500 */
+    color: #ffffff;
+    border-radius: 0.375rem 0 0 0.375rem; /* rounded-l-md */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: none;
+    transition: background-color 200ms ease-in-out, box-shadow 200ms ease-in-out;
+}
+
+.toggleButton:hover {
+    background-color: #4f46e5; /* indigo-600 */
+}
+
+.toggleButton:focus {
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgba(129, 140, 248, 0.5), /* indigo-400 ring */
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Filter Content */
+.filterContent {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    padding: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Ensure all direct children take full width */
+.filterContent > * {
+    width: 100%;
+}
+
+.filterTitle {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #374151; /* gray-700 */
+}
+
+/* Checkbox Labels */
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+}
+
+.checkboxLabel input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+/* Indented Checkboxes */
+.checkboxIndented {
+    margin-left: 1.5rem;
+}
+
+.filterPanelContainer.open {
+    width: 16rem;
+}
+
+.filterPanelContainer.closed {
+    width: 0;
+    border-left: none;
+}
+

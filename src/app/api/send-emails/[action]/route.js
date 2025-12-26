@@ -5,9 +5,8 @@ import { authOptions } from '../../auth/[...nextauth]/authOptions';
 
 export async function GET(_req, { params }) {
     const session = await getServerSession(authOptions);
-
     if (!session || !session.user) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+        return new Response(JSON.stringify({ message: 'Unauthorised' }), { status: 401 });
     }
 
     if (session.user.role !== 'teacher') {
@@ -175,16 +174,31 @@ export async function GET(_req, { params }) {
         const querySnapshot = await adminDb.collection('emailEventsQueue').get();
         const emailEventsQueue = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-        if (emailEventsQueue.length > 0) {
-            await sendEmailNotification(emailEventsQueue);
+        // Filter out testing events
+        const eventsToSend = emailEventsQueue.filter((event) => !event.title?.includes('(TESTING)'));
 
-            // Delete processed events from the email queue
+        if (emailEventsQueue.length > 0) {
+            // Send emails for non-testing events
+            if (eventsToSend.length > 0) {
+                await sendEmailNotification(eventsToSend);
+            }
+
+            // Delete all processed events from the queue (including testing events)
             const deletePromises = emailEventsQueue.map((event) => {
                 return adminDb.collection('emailEventsQueue').doc(event.id).delete();
             });
             await Promise.all(deletePromises);
 
-            return new Response(JSON.stringify({ message: 'Emails sent successfully' }), {
+            const testingEventsCount = emailEventsQueue.length - eventsToSend.length;
+            let message = 'Emails sent successfully';
+
+            if (eventsToSend.length === 0 && testingEventsCount > 0) {
+                message = `No emails sent (${testingEventsCount} testing event(s) skipped)`;
+            } else if (testingEventsCount > 0) {
+                message = `Emails sent successfully (${testingEventsCount} testing event(s) skipped)`;
+            }
+
+            return new Response(JSON.stringify({ message }), {
                 status: 200,
             });
         } else {
