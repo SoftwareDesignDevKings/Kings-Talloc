@@ -140,11 +140,14 @@ const TeacherStats = ({ data, onUpdate }) => {
             <div className="col-12 col-md-4 col-lg-3">
                 <div
                     className="card border-0 shadow-sm position-relative"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', outline: 'none' }}
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
                 >
                     <div
                         className="card-body"
                         onClick={() => setShowApprovalsDropdown(!showApprovalsDropdown)}
+                        style={{ outline: 'none' }}
                     >
                         <div className="d-flex align-items-center">
                             <div className="flex-shrink-0">

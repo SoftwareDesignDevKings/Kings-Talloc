@@ -214,7 +214,7 @@ const UserRolesManager = () => {
 
     return (
         <div className="p-4 bg-white rounded shadow h-100">
-            <h2 className="h4 mb-4 fw-bold text-purple">
+            <h2 className="h4 mb-4 fw-bold text-tks-secondary">
                 Manage User Roles
             </h2>
             <div className="d-flex gap-2 mb-4">

@@ -327,7 +327,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     return (
         <div className="p-2 p-md-4 bg-white rounded shadow-lg">
-            <h2 className="fs-4 fs-md-3 fw-bold mb-3" style={{ color: '#4F46E5' }}>
+            <h2 className="h4 mb-4 fw-bold text-tks-secondary">
                 Tutor Hours Summary
             </h2>
             <div className="d-flex flex-column flex-md-row align-items-md-end gap-3 mb-3">
