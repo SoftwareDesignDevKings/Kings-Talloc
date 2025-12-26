@@ -9,7 +9,7 @@ import { addWeeks, isBefore } from 'date-fns';
  * @param {number} options.maxOccurrences - Maximum number of occurrences to generate (default: 52 for weekly, 26 for fortnightly)
  * @returns {Array} Expanded array of events with recurring events duplicated
  */
-export const recurringExpand = (events, options = {}) => {
+export const recurringCalendarExpand = (events, options = {}) => {
     const {
         rangeStart = new Date(),
         rangeEnd = addWeeks(new Date(), 52),

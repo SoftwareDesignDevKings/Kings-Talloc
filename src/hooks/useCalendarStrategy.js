@@ -1,11 +1,5 @@
 import { teacherCalendarStrategy, tutorCalendarStrategy, studentCalendarStrategy} from "@/strategy/calendarStrategy";
 
-// .freeze makes it immutable (not using TS here)
-// export const CalendarEntityType = Object.freeze({
-//     SHIFT: 'shifts',
-//     AVAILABILITY: 'availability',
-//     STUDENT_REQUEST: 'studentRequest',
-// });
 
 const useCalendarStrategy = (userEmail, userRole) => {
     if (userRole === "teacher") {

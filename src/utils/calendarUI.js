@@ -136,7 +136,8 @@ export const calendarUIGetSlotProps = (
 
     const uniqueTutorsThisWeek = [...new Set(tutorsWithAvailabilitiesThisWeek)];
 
-    const maxTutors = uniqueTutorsThisWeek.length || 1; // To prevent division by zero
+    const maxTutors = uniqueTutorsThisWeek.length || 1; 
+    // prevent division by zero
 
     if (availableTutors > 0) {
         const backgroundColor = calculateGreenIntensity(availableTutors, maxTutors);

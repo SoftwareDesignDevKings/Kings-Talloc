@@ -49,13 +49,12 @@ const MemoizedCalendarTimeSlot = memo(CustomTimeslot);
 const CalendarContent = () => {
     const { session, userRole, device } = useAuthSession();
     const strategy = useCalendarStrategy(session.user.email, userRole);
-    const calendarControl = useCalendarUI();
 
-    // Get pre-filtered data from CalendarControlProvider
-    const { filteredEvents, filteredAvailabilities } = calendarControl;
+    // get pre-filtered data from CalendarUIProvider
+    const { filteredEvents, filteredAvailabilities } = useCalendarUI();;
 
     /* ----------------------------------------------------------- */
-    /* Events and Availabilities - Pre-filtered by CalendarControlProvider */
+    /* Events and Availabilities - Pre-filtered by CalendarUIProvider */
     /* ----------------------------------------------------------- */
     const rbcEvents = filteredEvents;
     const overlayAvailabilities = filteredAvailabilities;

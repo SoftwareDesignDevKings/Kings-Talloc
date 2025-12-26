@@ -12,8 +12,8 @@ import AppLayout from '@/components/AppLayout';
 
 /**
  * Authentication provider to wrap around components that require authentication.
- * Handles both NextAuth session and Firebase authentication sync.
- * Automatically refreshes Firebase tokens every 50 minutes to prevent expiration.
+ * handles both NextAuth session and Firebase authentication sync.
+ * automatically refreshes Firebase tokens every 50 minutes to prevent expiration.
  * @param {JSX} children
  * @returns
  */

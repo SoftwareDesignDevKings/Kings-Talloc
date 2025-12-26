@@ -10,7 +10,7 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
     const { calendarFilters, calendarScope } = calendarStrategy;
     const [isOpen, setIsOpen] = useState(device !== 'mobile');
 
-    // Get filter state and actions from CalendarControlProvider
+    // Get filter state and actions from CalendarUIProvider
     const { tutors, subjects } = useCalendarData();
     const { filters, visibility, actions } = useCalendarUI();
 

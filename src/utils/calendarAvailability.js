@@ -1,57 +1,6 @@
 // import { isBefore, isAfter } from 'date-fns';
 
 /**
- * Filter availabilities based on role and filters
- */
-export const calendarAvailabilityFilter = (splitAvailabilitiesData, { userRole, filters }) => {
-    let filtered = splitAvailabilitiesData;
-    const { subject, tutors, visibility, availabilityWorkType } = filters;
-
-    // student view - only filter events by tutoring / tutoring || work 
-    if (userRole === 'student') {
-        filtered = filtered.filter((availability) => availability.workType === 'tutoring' || 
-                                                     availability.workType === 'tutoringOrWork'
-        );
-    }
-    
-    if (userRole === 'teacher' && availabilityWorkType) {
-        filtered = filtered.filter(
-            (availability) => availability.workType === availabilityWorkType,
-        );
-    }
-
-    if ((userRole === 'tutor' || userRole === 'teacher') && visibility?.hideTutoringAvailabilites) {
-        filtered = filtered.filter((availability) => !(availability.workType === 'tutoring'));
-    }
-
-    if ((userRole === 'tutor' || userRole === 'teacher') && visibility?.hideWorkAvailabilities) {
-        filtered = filtered.filter((availability) => !(availability.workType === 'work'));
-    }
-
-    if (
-        (userRole === 'tutor' || userRole === 'teacher') &&
-        visibility?.hideTutoringAvailabilites &&
-        visibility?.hideWorkAvailabilities
-    ) {
-        filtered = filtered.filter((availability) => !(availability.workType === 'tutoringOrWork'));
-    }
-
-    if (subject) {
-        if (tutors?.length > 0) {
-            filtered = filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
-        } else {
-            filtered = filtered.filter((avail) =>
-                subject.tutors.some((tutor) => tutor.email === avail.tutor),
-            );
-        }
-    } else if (tutors?.length > 0) {
-        filtered = filtered.filter((avail) => tutors.some((tutor) => tutor.value === avail.tutor));
-    }
-
-    return filtered;
-};
-
-/**
  * Split availabilities around booked events
  */
 export const calendarAvailabilitySplit = (availabilities, events) => {

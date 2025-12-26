@@ -1,14 +1,14 @@
 import { CalendarDataProvider } from "@/providers/CalendarDataProvider";
-import { CalendarControlProvider } from "@/providers/CalendarControlProvider";
+import { CalendarUIProvider } from "@/providers/CalendarUIProvider";
 import CalendarContent from "./CalendarContent";
 
 const CalendarWrapper = () => {
     return (
         <div className="h-100 w-100">
             <CalendarDataProvider>
-                <CalendarControlProvider>
+                <CalendarUIProvider>
                     <CalendarContent />
-                </CalendarControlProvider>
+                </CalendarUIProvider>
             </CalendarDataProvider>
         </div>
     );
