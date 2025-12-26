@@ -4,7 +4,6 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 
 const TutorHoursPage = async () => {
     const session = await getServerSession(authOptions);
-
     return (
         <TutorHoursSummary 
             userRole={session.user.role} 

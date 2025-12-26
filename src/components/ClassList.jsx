@@ -180,7 +180,7 @@ const ClassList = () => {
 
     return (
         <div className="p-4 bg-white rounded shadow h-100 d-flex flex-column">
-            <h2 className="h5 mb-4 fw-bold text-purple">Manage Classes</h2>
+            <h2 className="h4 mb-4 fw-bold text-tks-secondary">Manage Classes</h2>
             <div className="d-flex gap-2 mb-4">
                 <input
                     type="text"

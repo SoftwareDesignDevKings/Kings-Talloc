@@ -27,7 +27,9 @@ export default function Login() {
                     </p>
                 </div>
                 <div className="mt-3 p-4 bg-warning-subtle border border-warning rounded">
-                    <p className="text-center mb-3 fw-bold text-dark">Important</p>
+                    <h5 className="text-center mb-3 fw-bold text-dark">
+                        Important
+                    </h5>
                     <p className="mb-2 small text-dark">
                         You must sign in with <strong>MICROSOFT ONLY</strong> for full functionality.
                         Calendar integration, email features, and other Microsoft services will not work with Google sign-in.
@@ -38,19 +40,19 @@ export default function Login() {
                 </div>
                 <div className="mt-4">
                     <button
-                        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                        className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
-                    >
-                        <FcGoogle className="me-2" />
-                        Sign in with Google SSO
-                    </button>
-
-                    <button
                         onClick={() => signIn('azure-ad', { callbackUrl: '/dashboard' })}
-                        className="btn btn-secondary w-100 d-flex align-items-center justify-content-center mt-3"
+                        className="btn btn-dark w-100 d-flex align-items-center justify-content-center"
                     >
                         <SiMicrosoft className="me-2" />
                         Sign in with Microsoft SSO
+                    </button>
+                    <button
+                        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                        className="btn w-100 d-flex align-items-center justify-content-center mt-2"
+                        style={{ backgroundColor: 'white', color: '#202124', border: '1px solid #dadce0' }}
+                    >
+                        <FcGoogle className="me-2" />
+                        Sign in with Google SSO
                     </button>
                 </div>
             </div>
