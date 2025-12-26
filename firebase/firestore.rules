@@ -26,12 +26,13 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == 'student';
     }
 
-    // Helper function to check if student owns the request (checks students array)
+    // Helper function to check if student owns the request (checks studentEmails array)
     function studentOwnsRequest(studentEmail) {
-      // For student event requests, check if email is in students array
-      // Students array format: [{value: "email", label: "name"}] or ["email"]
-      return resource.data.students.hasAny([{value: studentEmail}]) ||
-             resource.data.students.hasAny([studentEmail]);
+      // Check primitive email array (studentEmails) for access control
+      // students array [{value, label}] is kept for UI only
+      return studentEmail != null &&
+             'studentEmails' in resource.data &&
+             studentEmail in resource.data.studentEmails;
     }
 
     // Users collection - only teachers can modify roles

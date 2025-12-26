@@ -157,6 +157,8 @@ const StudentEventForm = ({
             start: new Date(newEvent.start),
             end: new Date(newEvent.end),
             students: newEvent.students || [],
+            studentEmails: (newEvent.students || []).map(s => s.value || s), 
+            // firebase sec rules require students maped to their value 
             staff: newEvent.staff || [],
             subject: newEvent.subject,
             preference: newEvent.preference,

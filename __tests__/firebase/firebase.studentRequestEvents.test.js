@@ -81,6 +81,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
                 start: new Date('2025-10-15T09:00:00'),
                 end: new Date('2025-10-15T10:00:00'),
                 students: [{ value: studentEmail, label: 'Student Name' }],
+                studentEmails: [studentEmail],
                 subject: 'Mathematics',
                 description: 'Need help with calculus',
                 status: 'pending',
@@ -136,6 +137,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
                     students: [{ value: studentEmail, label: 'Student Name' }],
+                    studentEmails: [studentEmail],
                     subject: 'Mathematics',
                     status: 'pending',
                 });
@@ -214,6 +216,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
                     students: [{ value: studentEmail, label: 'Student Name' }],
+                    studentEmails: [studentEmail],
                     status: 'pending',
                 });
                 requestId = ref.id;
