@@ -24,7 +24,6 @@ const ClassRow = ({
                     <button
                         onClick={() => {
                             handleEditClass(cls);
-                            console.log(cls);
                         }}
                         className="btn btn-sm btn-primary"
                     >

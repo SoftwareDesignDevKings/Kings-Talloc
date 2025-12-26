@@ -40,11 +40,10 @@ const AuthProvider = ({ children }) => {
                     // signin AND force token refresh so custom claims are updated
                     await signInWithCustomToken(auth, session.user.firebaseToken);
 
-                    // firebaseToken has claims (role, email) set in authOptions.js, but never fully refreshed on client side 
+                    // firebaseToken has claims (role, email) set in authOptions.js, but never fully refreshed on client side
                     // force refresh to ensure claims are applied in every firebase request
                     await auth.currentUser.getIdToken(true);
-                    // getAuth().currentUser.getIdToken(true).then(t => console.log(t))
-                    
+
                     setIsLoading(false);
                 }
 
@@ -53,7 +52,7 @@ const AuthProvider = ({ children }) => {
                     setIsLoading(false);
                 }
             } catch (err) {
-                console.log('Error in syncing auth: ', err);
+                console.error('Error in syncing auth: ', err);
                 setIsLoading(false);
             }
         };

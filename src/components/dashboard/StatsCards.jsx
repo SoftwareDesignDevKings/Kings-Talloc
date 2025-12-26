@@ -48,7 +48,6 @@ const TeacherStats = ({ data, onUpdate }) => {
 
     const handleApproveRequest = async (requestId) => {
         try {
-            console.log('[StatsCards] Starting approval for request:', requestId);
 
             // Find the request data
             const request = data.pendingRequestsData.find((req) => req.id === requestId);
@@ -58,15 +57,6 @@ const TeacherStats = ({ data, onUpdate }) => {
                 setAlertMessage('Request not found');
                 return;
             }
-
-            console.log('[StatsCards] Found request:', {
-                id: request.id,
-                title: request.title,
-                start: request.start,
-                end: request.end,
-                students: request.students,
-                staff: request.staff,
-            });
 
             // Create event data for the main events collection
             const eventData = {
@@ -86,22 +76,15 @@ const TeacherStats = ({ data, onUpdate }) => {
                 createTeamsMeeting: true, // Automatically create Teams meeting
             };
 
-            console.log('[StatsCards] Created eventData with createTeamsMeeting: true');
-
             // Delete from studentEventRequests and create in events collection
-            console.log('[StatsCards] Deleting from studentEventRequests...');
             await deleteEventFromFirestore(requestId, 'studentEventRequests');
 
-            console.log('[StatsCards] Creating new event in events collection...');
             const docId = await createEventInFirestore(eventData);
-            console.log('[StatsCards] Created event with ID:', docId);
 
             // Queue email notification
-            console.log('[StatsCards] Queueing email notification...');
             await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
 
             // Create Teams meeting in background (don't wait)
-            console.log('[StatsCards] Starting Teams meeting creation in background...');
             calendarEventCreateTeamsMeeting(docId, eventData, {
                 setAlertType,
                 setAlertMessage,

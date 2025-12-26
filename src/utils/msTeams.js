@@ -50,8 +50,6 @@ export const createTeamsMeeting = async (subject, description, startTime, endTim
             throw new Error('Microsoft access token not found');
         }
 
-        console.log('[msTeams] Access token found, building event body...');
-
         const eventBody = {
             subject: subject,
             body: {
