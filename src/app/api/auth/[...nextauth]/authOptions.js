@@ -48,6 +48,11 @@ async function handleJwt({ token, user, account, profile }) {
  * Add role, firebaseToken, profile, and image from JWT to session object
  */
 async function handleSession({ session, token }) {
+    // Only modify session if it exists and has a user
+    if (!session?.user) {
+        return session;
+    }
+
     session.user.role = token.role;
     session.user.firebaseToken = token.firebaseToken;
     session.user.calendarFeedToken = token.calendarFeedToken;

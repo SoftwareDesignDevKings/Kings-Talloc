@@ -26,6 +26,16 @@ export default function Login() {
                         Please sign in to access the dashboard and calendar.
                     </p>
                 </div>
+                <div className="mt-3 p-4 bg-warning-subtle border border-warning rounded">
+                    <p className="text-center mb-3 fw-bold text-dark">Important</p>
+                    <p className="mb-2 small text-dark">
+                        You must sign in with <strong>MICROSOFT ONLY</strong> for full functionality.
+                        Calendar integration, email features, and other Microsoft services will not work with Google sign-in.
+                    </p>
+                    <p className="mt-2 mb-0 small text-dark">
+                        Google is available for testing purposes only.
+                    </p>
+                </div>
                 <div className="mt-4">
                     <button
                         onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
