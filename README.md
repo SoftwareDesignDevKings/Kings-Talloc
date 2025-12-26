@@ -2,12 +2,12 @@
 
 [![CI Pipeline](https://img.shields.io/badge/CI%20Pipeline-Passing-brightgreen?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/SoftwareDesignDevKings/Kings-Talloc/actions)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
-[![Next.js](https://img.shields.io/badge/Next.js-14.2.5-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
-[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](<[https://firebase.google.com](https://console.firebase.google.com/u/1/project/kings-talloc-1f638/overview)>)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.7-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://console.firebase.google.com/u/1/project/kings-talloc-1f638/overview)
 
 Kings-Talloc is a Tutor Allocation Web App developed by tutors in the CST Department.
 
-**Live Deployment**: [https://kings-talloc.vercel.app](https://kings-talloc.vercel.app)
+**Live Deployment**: [https://talloc.kings.edu.au](https://talloc.kings.edu.au)
 
 **Vercel Project**: Hosted under CST projects at [vercel.com/tkscsts-projects/kings-talloc](https://vercel.com/tkscsts-projects/kings-talloc)
 
@@ -36,48 +36,51 @@ The app will be available at `http://localhost:3000`
 ### Testing
 
 ```bash
-# Run all tests
+# run all tests
 npm run test:all
 
-# Run Jest tests only
+# run Jest tests only
 npm run test
 
-# Run Firebase emulator tests only
+# run Firebase emulator tests only
 npm run test:firebase
 ```
-
 ---
 
 ## Overview
 
-Kings-Talloc streamlines tutor allocation and scheduling for the CST Department. Students request tutoring sessions, tutors manage availability, and teachers oversee allocations through an interactive calendar interface. Built with Next.js and Firebase Firestore, the system provides real-time updates with role-based access restricted to `@kings.edu.au`.
+Kings-Talloc streamlines tutor allocation and scheduling for the CST Department. Students request tutoring sessions, tutors manage availability, and teachers oversee allocations through a calendar interface. 
+
+Built with Next.js and Firebase Firestore, the system provides real-time updates with role-based access restricted to `@kings.edu.au`.
 
 ---
 
 ## Features
+Kings-Talloc is built with React Big Calendar. 
+Old version was styled using tailwind CSS and now integrated with Bootstrap for responsiveness and accessibility features. 
 
-### Role-Based Access
+### NextAuth
+- Student, Tutor, and Teacher roles assigned after MS OAuth login. 
+- Manual assignment of roles from 'Teacher' as ICT scope does not give role identity. 
+    - Entra Tennant restricted to `@kings.edu.au | @student.kings.edu.au` domains only
 
-- Student, Tutor, and Teacher roles with Google OAuth authentication
-- Manual assignment of roles from 'Teacher' as Google OAuth does not give a role tag to identify.
-- Restricted to `@kings.edu.au | @student.kings.edu.au` domains only
+- Integrated with Firebase Auth to ensure only users of the app can access the firestore database.
+- Production ReCapture integrated to ensure origin of all requests. 
 
 ### Scheduling & Calendar
-
-- Interactive calendar with drag-and-drop event management
+Built with React Big Calendar
+- Drag-and-drop event management
 - Tutor availability tracking (tutoring, coaching, work)
 - Student session requests with teacher approval workflow
 - Real-time event updates via Firestore listeners
 
 ### Event Management
-
 - Create, edit, and delete tutoring/coaching sessions
 - Track event completion status and hours
 - Student confirmation system for group sessions
 - Filter events by tutor, subject, and availability type
 
 ### Dashboard & Analytics
-
 - Role-specific overview cards showing upcoming events, pending approvals, and completion stats
 - Weekly hours tracking for tutors (tutoring vs coaching)
 - Active tutor utilisation and subject distribution for teachers
@@ -96,7 +99,7 @@ Kings-Talloc streamlines tutor allocation and scheduling for the CST Department.
 
 > [!NOTE]
 > The project uses **GitHub Actions** for continuous integration. All tests must pass before code can be merged.
-> Tests are primarily for Firebase auth with 1 unit test configured.
+> Tests are primarily for Firebase auth with 1 unit test configured for future integration. 
 
 **Pipeline Steps:**
 
@@ -107,8 +110,7 @@ Kings-Talloc streamlines tutor allocation and scheduling for the CST Department.
 ---
 
 ## MS Teams Integration
-
-> [!NOTE]
+> [!IMPORTANT]
 > Microsoft Teams is now fully integrated via Microsoft Graph API on Kings-Talloc. 
 
 **Features:**
@@ -120,26 +122,26 @@ Kings-Talloc streamlines tutor allocation and scheduling for the CST Department.
 
 **Deployment:**
 
-- Currently deployed on Vercel at [kings-talloc.vercel.app](https://kings-talloc.vercel.app)
-- Final step: Configure Kings domain to wrap Vercel deployment
+- ICT has CNAME pointed [talloc.kings.edu.au](https://talloc.kings.edu.au) to deployed version on Vercel at [kings-talloc.vercel.app](https://kings-talloc.vercel.app)
+- All code pushed to `main` is automatically deployed on Vercel. 
 
 ---
 
 ## Future Fixes
-
 > [!NOTE]
 > The following improvements are planned for future development:
 
 **1. React Big Calendar Performance**
-
-- The calendar component is wrapped in a large wrapper, causing slow initial load times
+- Initial design was `/dashboard` was designed around SPA (initial slow load time, fast interactivity after Next.js hydrates the app). 
+- Potential areas of improvement: **migrating to Next's app router**. 
+    - Components for `CalendarWrapper` and `TutorHoursSummary` could be split into seperate page.jsx. 
+    - Incremental site generation of the `/calendar` page.  
 - Consider lazy loading or virtualisation for better performance
 
 **2. Context Provider Optimisation**
-
 - Multiple nested providers may cause unnecessary re-renders
 - Consider consolidating or memoising provider values
 
-**3. Domain Configuration**
-
-- Configure Kings domain to wrap Vercel deployment for production URL
+**3. Styling**
+- Bootstrap was integrated to quickly develop a responsive UI for the redesign of the old app. 
+- Migration completely away from tailwind to bootstrap will speed up load times as there will be no CSS styles conflicting with bootstrap. 
