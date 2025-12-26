@@ -9,7 +9,7 @@ export async function middleware(req) {
 
     // allow public routes
     const { pathname } = req.nextUrl;
-    if (pathname === '/login' || pathname === '/') {
+    if (pathname === '/login' || pathname === '/' || pathname.startsWith('/api/auth')) {
         return NextResponse.next();
     }
 
