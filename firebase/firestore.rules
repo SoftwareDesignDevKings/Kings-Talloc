@@ -30,8 +30,8 @@ service cloud.firestore {
     function studentOwnsRequest(studentEmail) {
       // For student event requests, check if email is in students array
       // Students array format: [{value: "email", label: "name"}] or ["email"]
-      return resource.data.students.size() > 0 &&
-             resource.data.students[0].value == studentEmail;
+      return resource.data.students.hasAny([{value: studentEmail}]) ||
+             resource.data.students.hasAny([studentEmail]);
     }
 
     // Users collection - only teachers can modify roles
