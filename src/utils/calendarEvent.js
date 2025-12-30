@@ -221,7 +221,7 @@ export const calendarEventUpdateTeamsMeeting = async (
     end,
     isAvailability,
     isStudentRequest,
-    { setAlertType, setAlertMessage },
+    { addAlert },
 ) => {
     if (!event.teamsEventId || isAvailability || isStudentRequest) return;
 
@@ -240,19 +240,17 @@ export const calendarEventUpdateTeamsMeeting = async (
             endTime,
             attendees,
         );
-        setAlertType('success');
-        setAlertMessage('Teams meeting updated successfully');
+        addAlert('success', 'Teams meeting updated successfully');
     } catch (error) {
         console.error('Failed to update Teams meeting:', error);
-        setAlertType('error');
-        setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
+        addAlert('error', `Failed to update Teams meeting: ${error.message}`);
     }
 };
 
 /**
  * Create Teams meeting for a new event
  */
-export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { setAlertType, setAlertMessage }) => {
+export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { addAlert }) => {
 
     if (!eventData.createTeamsMeeting) {
         return;
@@ -285,23 +283,22 @@ export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { setA
             teamsJoinUrl: result.joinUrl,
         });
 
-        setAlertType('success');
-        setAlertMessage(
+        addAlert(
+            'success',
             eventData.recurring
                 ? 'Recurring event and Teams meeting series created successfully'
-                : 'Teams meeting created successfully',
+                : 'Teams meeting created successfully'
         );
     } catch (error) {
         console.error('Failed to create Teams meeting:', error);
-        setAlertType('error');
-        setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+        addAlert('error', `Failed to create Teams meeting: ${error.message}`);
     }
 };
 
 /**
  * Handle Teams meeting when updating an existing event
  */
-export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventData, { setAlertType, setAlertMessage }) => {
+export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventData, { addAlert }) => {
     const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
         (p) => p.value || p,
     );
@@ -314,12 +311,10 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
                 teamsEventId: null,
                 teamsJoinUrl: null,
             });
-            setAlertType('success');
-            setAlertMessage('Teams meeting deleted successfully');
+            addAlert('success', 'Teams meeting deleted successfully');
         } catch (error) {
             console.error('Failed to delete Teams meeting:', error);
-            setAlertType('error');
-            setAlertMessage(`Failed to delete Teams meeting: ${error.message}`);
+            addAlert('error', `Failed to delete Teams meeting: ${error.message}`);
         }
         return;
     }
@@ -349,12 +344,10 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
                     attendeesEmailArr,
                     recurrenceOptions,
                 );
-                setAlertType('success');
-                setAlertMessage('Teams meeting updated successfully');
+                addAlert('success', 'Teams meeting updated successfully');
             } catch (error) {
                 console.error('Failed to update Teams meeting:', error);
-                setAlertType('error');
-                setAlertMessage(`Failed to update Teams meeting: ${error.message}`);
+                addAlert('error', `Failed to update Teams meeting: ${error.message}`);
             }
         } else {
             // Create new Teams meeting
@@ -370,12 +363,10 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
                     teamsEventId: result.teamsEventId,
                     teamsJoinUrl: result.joinUrl,
                 });
-                setAlertType('success');
-                setAlertMessage('Teams meeting created successfully');
+                addAlert('success', 'Teams meeting created successfully');
             } catch (error) {
                 console.error('Failed to create Teams meeting:', error);
-                setAlertType('error');
-                setAlertMessage(`Failed to create Teams meeting: ${error.message}`);
+                addAlert('error', `Failed to create Teams meeting: ${error.message}`);
             }
         }
     }
@@ -396,8 +387,7 @@ export const calendarEventHandleDrop = async (
         setAllEvents,
         setAvailabilities,
         setStudentRequests,
-        setAlertType,
-        setAlertMessage,
+        addAlert,
     },
 ) => {
     const { isAvailability, isStudentRequest, collectionName } = calendarEventGetType(event);
@@ -476,12 +466,10 @@ export const calendarEventHandleDrop = async (
                             attendees,
                         );
 
-                        setAlertType('success');
-                        setAlertMessage('Event moved and Teams occurrence updated');
+                        addAlert('success', 'Event moved and Teams occurrence updated');
                     } catch (error) {
                         console.error('Failed to update Teams meeting for instance:', error);
-                        setAlertType('error');
-                        setAlertMessage(`Event moved but Teams meeting failed: ${error.message}`);
+                        addAlert('error', `Event moved but Teams meeting failed: ${error.message}`);
                     }
                 }
             } else if (updateOption === 'thisAndFuture') {
@@ -536,13 +524,12 @@ export const calendarEventHandleDrop = async (
                             teamsEventId: result.teamsEventId,
                             teamsJoinUrl: result.joinUrl,
                         });
-                        setAlertType('success');
-                        setAlertMessage('Future events moved and new Teams series created');
+                        addAlert('success', 'Future events moved and new Teams series created');
                     } catch (error) {
                         console.error('Failed to update Teams meeting for future events:', error);
-                        setAlertType('error');
-                        setAlertMessage(
-                            `Events moved but Teams meeting failed: ${error.message}`,
+                        addAlert(
+                            'error',
+                            `Events moved but Teams meeting failed: ${error.message}`
                         );
                     }
                 }
@@ -563,7 +550,7 @@ export const calendarEventHandleDrop = async (
                 updatedEnd,
                 isAvailability,
                 isStudentRequest,
-                { setAlertType, setAlertMessage },
+                { addAlert },
             );
         }
     } catch (error) {
@@ -594,8 +581,7 @@ export const calendarEventHandleResize = async (
         setAllEvents,
         setAvailabilities,
         setStudentRequests,
-        setAlertType,
-        setAlertMessage,
+        addAlert,
     },
 ) => {
     const { isAvailability, isStudentRequest, collectionName } = calendarEventGetType(event);
@@ -672,12 +658,10 @@ export const calendarEventHandleResize = async (
                             attendees,
                         );
 
-                        setAlertType('success');
-                        setAlertMessage('Event resized and Teams occurrence updated');
+                        addAlert('success', 'Event resized and Teams occurrence updated');
                     } catch (error) {
                         console.error('Failed to update Teams meeting for instance:', error);
-                        setAlertType('error');
-                        setAlertMessage(`Event resized but Teams meeting failed: ${error.message}`);
+                        addAlert('error', `Event resized but Teams meeting failed: ${error.message}`);
                     }
                 }
             } else if (updateOption === 'thisAndFuture') {
@@ -732,13 +716,12 @@ export const calendarEventHandleResize = async (
                             teamsEventId: result.teamsEventId,
                             teamsJoinUrl: result.joinUrl,
                         });
-                        setAlertType('success');
-                        setAlertMessage('Future events resized and new Teams series created');
+                        addAlert('success', 'Future events resized and new Teams series created');
                     } catch (error) {
                         console.error('Failed to update Teams meeting for future events:', error);
-                        setAlertType('error');
-                        setAlertMessage(
-                            `Events resized but Teams meeting failed: ${error.message}`,
+                        addAlert(
+                            'error',
+                            `Events resized but Teams meeting failed: ${error.message}`
                         );
                     }
                 }
@@ -760,8 +743,7 @@ export const calendarEventHandleResize = async (
                 isAvailability,
                 isStudentRequest,
                 {
-                    setAlertType,
-                    setAlertMessage,
+                    addAlert,
                 },
             );
         }
@@ -784,7 +766,7 @@ export const calendarEventHandleResize = async (
 export const calendarEventHandleDelete = async (
     eventToDelete,
     deleteOption,
-    { setAllEvents, setAvailabilities, setStudentRequests, setAlertType, setAlertMessage },
+    { setAllEvents, setAvailabilities, setStudentRequests, addAlert },
 ) => {
     if (!eventToDelete || !eventToDelete.id) return;
 
@@ -802,12 +784,10 @@ export const calendarEventHandleDelete = async (
             if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
                 try {
                     await deleteTeamsMeeting(eventToDelete.teamsEventId);
-                    setAlertType('success');
-                    setAlertMessage('Recurring event and Teams meeting deleted successfully');
+                    addAlert('success', 'Recurring event and Teams meeting deleted successfully');
                 } catch (error) {
                     console.error('Failed to delete Teams meeting:', error);
-                    setAlertType('error');
-                    setAlertMessage(`Event deleted but Teams meeting failed: ${error.message}`);
+                    addAlert('error', `Event deleted but Teams meeting failed: ${error.message}`);
                 }
             }
 
@@ -830,18 +810,16 @@ export const calendarEventHandleDelete = async (
                         eventToDelete.teamsEventId,
                         untilDate,
                     );
-                    setAlertType('success');
-                    setAlertMessage('Future occurrences and Teams meeting series updated');
+                    addAlert('success', 'Future occurrences and Teams meeting series updated');
                 } catch (error) {
                     console.error('Failed to update Teams meeting recurrence:', error);
-                    setAlertType('error');
-                    setAlertMessage(
-                        `Future occurrences deleted but updating Teams meeting failed: ${error.message}`,
+                    addAlert(
+                        'error',
+                        `Future occurrences deleted but updating Teams meeting failed: ${error.message}`
                     );
                 }
             } else {
-                setAlertType('success');
-                setAlertMessage('Future occurrences deleted successfully');
+                addAlert('success', 'Future occurrences deleted successfully');
             }
 
             setAllEvents((prev) =>
@@ -878,18 +856,16 @@ export const calendarEventHandleDelete = async (
                     );
                     // Delete this specific occurrence
                     await deleteTeamsMeetingOccurrence(occurrenceId);
-                    setAlertType('success');
-                    setAlertMessage('Event instance and Teams occurrence deleted successfully');
+                    addAlert('success', 'Event instance and Teams occurrence deleted successfully');
                 } catch (error) {
                     console.error('Failed to delete Teams meeting occurrence:', error);
-                    setAlertType('error');
-                    setAlertMessage(
-                        `Event instance deleted but Teams occurrence deletion failed: ${error.message}`,
+                    addAlert(
+                        'error',
+                        `Event instance deleted but Teams occurrence deletion failed: ${error.message}`
                     );
                 }
             } else {
-                setAlertType('success');
-                setAlertMessage('Event instance deleted successfully');
+                addAlert('success', 'Event instance deleted successfully');
             }
 
             setAllEvents((prev) => prev.filter((event) => event.id !== eventToDelete.id));
@@ -899,12 +875,10 @@ export const calendarEventHandleDelete = async (
             if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
                 try {
                     await deleteTeamsMeeting(eventToDelete.teamsEventId);
-                    setAlertType('success');
-                    setAlertMessage('Event and Teams meeting deleted successfully');
+                    addAlert('success', 'Event and Teams meeting deleted successfully');
                 } catch (error) {
                     console.error('Failed to delete Teams meeting:', error);
-                    setAlertType('error');
-                    setAlertMessage(`Event deleted but Teams meeting failed: ${error.message}`);
+                    addAlert('error', `Event deleted but Teams meeting failed: ${error.message}`);
                 }
             }
 

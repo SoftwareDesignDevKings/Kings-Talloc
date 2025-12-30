@@ -8,6 +8,8 @@ import { useCalendarData } from '@/providers/CalendarDataProvider';
 import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
+import useAlert from '@/hooks/useAlert.js';
+
 const StudentEventForm = ({
     mode,
     newEvent,
@@ -16,14 +18,14 @@ const StudentEventForm = ({
     setShowStudentModal,
     studentEmail,
 }) => {
-    const {
-        calendarStudentRequests,
+    const { calendarStudentRequests,
         setCalendarStudentRequests,
         calendarAvailabilities,
         tutors,
         subjects
     } = useCalendarData();
-    // Derive mode flags
+    
+    // derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView; 
@@ -43,10 +45,11 @@ const StudentEventForm = ({
             : { value: studentEmail, label: studentEmail },
     );
     const [error, setError] = useState('');
+    const { addAlert } = useAlert();
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
 
-    // Transform provider data into react-select format
+    // transform provider data into react-select format
     useEffect(() => {
         const tutorList = tutors.map((tutor) => ({
             value: tutor.email,
@@ -73,7 +76,7 @@ const StudentEventForm = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedStudent]);
 
-    // Guard against stale selectedTutor when time changes
+    // guard against stale selectedTutor when time changes
     useEffect(() => {
         if (
             selectedTutor &&
@@ -152,6 +155,12 @@ const StudentEventForm = ({
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Validate tutor selection
+        if (!selectedTutor || filteredTutors.length === 0) {
+            addAlert('error', 'You must select a tutor available to have a tutor session');
+            return;
+        }
+
         const eventData = {
             title: 'Tutoring',
             start: new Date(newEvent.start),
@@ -198,6 +207,10 @@ const StudentEventForm = ({
                         entityType: CalendarEntityType.STUDENT_REQUEST
                     },
                 ]);
+
+                // Show two alerts stacked on top of each other
+                addAlert('success', 'Tutoring session request created successfully');
+                addAlert('info', 'Watch your emails for an MS Teams Meeting. DO NOT RSVP.');
             }
             setShowStudentModal(false);
         } catch (error) {

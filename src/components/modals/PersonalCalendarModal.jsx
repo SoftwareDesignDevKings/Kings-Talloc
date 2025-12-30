@@ -7,7 +7,7 @@ import useAlert from '@/hooks/useAlert';
 
 const PersonalCalendarModal = ({ show, onHide }) => {
     const [urls, setUrls] = useState(null);
-    const { setAlertMessage, setAlertType } = useAlert();
+    const { addAlert } = useAlert();
 
     useEffect(() => {
         if (!show) return;
@@ -23,8 +23,7 @@ const PersonalCalendarModal = ({ show, onHide }) => {
 
     const handleCopy = (url) => {
         navigator.clipboard.writeText(url);
-        setAlertType('success');
-        setAlertMessage('Copied to clipboard');
+        addAlert('success', 'Copied to clipboard');
     };
 
     return (

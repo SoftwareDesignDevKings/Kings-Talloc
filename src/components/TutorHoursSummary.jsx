@@ -49,7 +49,7 @@ const isTutorConfirmed = (event, tutorEmail) => {
  * Component to display and manage tutor hours summary
  */
 const TutorHoursSummary = ({ userRole, userEmail }) => {
-    const { setAlertMessage, setAlertType } = useAlert();
+    const { addAlert } = useAlert();
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
         const monday = getMonday(new Date());
@@ -316,12 +316,10 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             link.click();
             document.body.removeChild(link);
 
-            setAlertType('success');
-            setAlertMessage(`${role} timesheet generated and downloaded successfully`);
+            addAlert('success', `${role} timesheet generated and downloaded successfully`);
         } catch (error) {
             console.error('Error generating timesheet:', error);
-            setAlertType('error');
-            setAlertMessage(`Error generating timesheet: ${error.message}`);
+            addAlert('error', `Error generating timesheet: ${error.message}`);
         }
     };
 
