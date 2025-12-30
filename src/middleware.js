@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req) {
+    // ===== MAINTENANCE MODE: OFF =====
+    // uncomment the lines below to enable maintenance mode
+    //
+    // const { pathname } = req.nextUrl;
+    // if (pathname !== '/maintenance') {
+    //     return NextResponse.redirect(new URL('/maintenance', req.url));
+    // }
+    // return NextResponse.next();
+    // ============================
+
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
         throw new Error('NEXTAUTH_SECRET is not defined');
@@ -9,6 +19,12 @@ export async function middleware(req) {
 
     // allow public routes
     const { pathname } = req.nextUrl;
+
+    // prevent accidental access to /maintenance when maintenance mode is OFF 
+    if (pathname === '/maintenance') {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+
     if (pathname === '/login' || pathname === '/' || pathname.startsWith('/api/auth')) {
         return NextResponse.next();
     }
@@ -48,6 +64,7 @@ export const config = {
         '/classes/:path*',
         '/subjects/:path*',
         '/tutorHours/:path*',
+        '/maintenance',
         '/api/:path*'
     ]
 };
