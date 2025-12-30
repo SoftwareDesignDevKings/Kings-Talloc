@@ -7,10 +7,13 @@ import enUS from 'date-fns/locale/en-US';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
+import { useCalendarData } from '@/providers/CalendarDataProvider';
 
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
-import { updateEventInFirestore } from '@/firestore/firestoreOperations';
+import useAlert from '@/hooks/useAlert';
+import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
+import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
 
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
@@ -49,9 +52,20 @@ const MemoizedCalendarTimeSlot = memo(CustomTimeslot);
 const CalendarContent = () => {
     const { session, userRole, device } = useAuthSession();
     const strategy = useCalendarStrategy(session.user.email, userRole);
+    const { addAlert } = useAlert();
 
     // get pre-filtered data from CalendarUIProvider
-    const { filteredEvents, filteredAvailabilities } = useCalendarUI();;
+    const { filteredEvents, filteredAvailabilities } = useCalendarUI();
+
+    // get state setters from CalendarDataProvider
+    const {
+        calendarShifts,
+        setCalendarShifts,
+        calendarAvailabilities,
+        setCalendarAvailabilities,
+        calendarStudentRequests,
+        setCalendarStudentRequests,
+    } = useCalendarData();
 
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIProvider */
@@ -115,8 +129,6 @@ const CalendarContent = () => {
 
         if (!entityType) return;
 
-        // TODO: pass the action down into ModalRender.jsx and then call useModalStrat
-
         const action = strategy.actions.getCreateFlow();
         if (!action) return;
 
@@ -125,6 +137,69 @@ const CalendarContent = () => {
             start: slotInfo.start,
             end: slotInfo.end,
         });
+    };
+
+    const handleDuplicateEvent = async (event) => {
+        try {
+            // calculate new start/end (next day, same duration)
+            const duration = event.end - event.start;
+            const newStart = addDays(event.start, 1);
+            const newEnd = new Date(newStart.getTime() + duration);
+
+            // copy event data but remove properties that shouldn't be duplicated
+            const { id, createdAt, updatedAt, recurringEventId, isRecurringInstance, recurring, until, eventExceptions, entityType, ...eventData } = event;
+
+            // Prepare the duplicated event data
+            const duplicatedEvent = {
+                ...eventData,
+                start: newStart,
+                end: newEnd,
+            };
+
+            // determine collection name based on entity type
+            let collectionName;
+            let stateArray;
+            let stateSetter;
+            if (entityType === CalendarEntityType.SHIFT) {
+                collectionName = 'shifts';
+                stateArray = calendarShifts;
+                stateSetter = setCalendarShifts;
+            } else if (entityType === CalendarEntityType.AVAILABILITY) {
+                collectionName = 'tutorAvailabilities';
+                stateArray = calendarAvailabilities;
+                stateSetter = setCalendarAvailabilities;
+            } else if (entityType === CalendarEntityType.STUDENT_REQUEST) {
+                collectionName = 'studentEventRequests';
+                stateArray = calendarStudentRequests;
+                stateSetter = setCalendarStudentRequests;
+            } else {
+                addAlert('error', 'Cannot duplicate this event type');
+                return;
+            }
+
+            // save to Firestore and update a new RBC event 
+            const docId = await createEventInFirestore(duplicatedEvent, collectionName);
+            const newEvent = {
+                ...duplicatedEvent,
+                id: docId,
+                entityType: entityType,
+            };
+            stateSetter([...stateArray, newEvent]);
+
+            // Create Teams meeting only if the original event had createTeamsMeeting enabled
+            if (duplicatedEvent.createTeamsMeeting && entityType !== CalendarEntityType.AVAILABILITY &&
+                (duplicatedEvent.staff?.length > 0 || duplicatedEvent.students?.length > 0)) {
+                calendarEventCreateTeamsMeeting(docId, duplicatedEvent, { addAlert }).catch((error) => {
+                    console.error('Teams meeting creation failed:', error);
+                    addAlert('error', `Event duplicated but Teams meeting failed: ${error.message}`);
+                });
+            }
+
+            addAlert('success', 'Event duplicated to next day');
+        } catch (error) {
+            console.error('Error duplicating event:', error);
+            addAlert('error', `Failed to duplicate event: ${error.message}`);
+        }
     };
 
     const handleEventDrop = async ({ event, start, end }) => {
@@ -199,9 +274,8 @@ const CalendarContent = () => {
     const renderEvent = (eventProps) => (
         <MemoizedCustomEvent
             event={eventProps.event}
-            canDuplicate={strategy.actions.canDuplicateEvent?.(
-                eventProps.event,
-            )}
+            canDuplicate={strategy.actions.canDuplicateEvent?.(eventProps.event)}
+            onDuplicate={handleDuplicateEvent}
         />
     );
 

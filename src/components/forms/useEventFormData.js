@@ -21,13 +21,13 @@ export const useEventFormData = (newEvent) => {
                     const tutorData = docSnap.data();
                     const availabilityQuery = query(
                         collection(db, 'tutorAvailabilities'),
-                        where('tutor', '==', docSnap.id),
+                        where('tutor', '==', tutorData.email),
                     );
                     const availabilitySnapshot = await getDocs(availabilityQuery);
                     let availabilityStatus = 'unavailable';
 
                     if (!availabilitySnapshot.empty) {
-                        const available = availabilitySnapshot.docs.some((availabilityDoc) => {
+                        const matchingAvailability = availabilitySnapshot.docs.find((availabilityDoc) => {
                             const availabilityData = availabilityDoc.data();
                             const availabilityStart = availabilityData.start.toDate();
                             const availabilityEnd = availabilityData.end.toDate();
@@ -37,16 +37,16 @@ export const useEventFormData = (newEvent) => {
                             return eventStart >= availabilityStart && eventEnd <= availabilityEnd;
                         });
 
-                        if (available) {
-                            availabilityStatus =
-                                availabilitySnapshot.docs[0].data().locationType || 'onsite';
+                        if (matchingAvailability) {
+                            const locationType = matchingAvailability.data().locationType;
+                            availabilityStatus = locationType || 'onsite';
                         }
                     }
 
                     return {
                         value: docSnap.id,
                         label: tutorData.name || tutorData.email,
-                        status: availabilityStatus,
+                        locationType: availabilityStatus,
                     };
                 }),
             );

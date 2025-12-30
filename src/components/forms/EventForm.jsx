@@ -164,7 +164,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
                     // Automatically create Teams meeting for approved student requests
-                    // eventData.createTeamsMeeting = true;
 
                     await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
                     const docId = await createEventInFirestore(eventData);
@@ -318,7 +317,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
         const { data } = props;
         return (
             <components.Option {...props}>
-                <span>{getStatusIcon(data.status)}</span> {data.label}
+                <span>{getStatusIcon(data.locationType)}</span> {data.label}
             </components.Option>
         );
     };
@@ -327,7 +326,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
         const { data } = props;
         return (
             <components.SingleValue {...props}>
-                <span>{getStatusIcon(data.status)}</span> {data.label}
+                <span>{getStatusIcon(data.locationType)}</span> {data.label}
             </components.SingleValue>
         );
     };
