@@ -27,7 +27,7 @@ const AuthProvider = ({ children }) => {
     const tokenRefreshInterval = useRef(null);
 
     // Public routes that don't require auth
-    const publicRoutes = ['/', '/login'];
+    const publicRoutes = ['/', '/login', '/maintenance'];
     const isPublicRoute = publicRoutes.includes(pathname);
 
     // Sync Firebase Auth with NextAuth session
