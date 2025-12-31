@@ -131,12 +131,11 @@ Built with React Big Calendar
 > [!NOTE]
 > The following improvements are planned for future development:
 
-**1. React Big Calendar Performance**
-- Initial design was `/dashboard` was designed around SPA (initial slow load time, fast interactivity after Next.js hydrates the app). 
-- Potential areas of improvement: **migrating to Next's app router**. 
-    - Components for `CalendarWrapper` and `TutorHoursSummary` could be split into seperate page.jsx. 
-    - Incremental site generation of the `/calendar` page.  
-- Consider lazy loading or virtualisation for better performance
+**1. React Big Calendar Performance** ✅ **(Resolved)**
+- ~~Initial design was `/dashboard` was designed around SPA (initial slow load time, fast interactivity after Next.js hydrates the app).~~
+- ~~Components for `CalendarWrapper` and `TutorHoursSummary` could be split into seperate page.jsx.~~
+- **Status**: Migrated to Next.js app router with separate pages (`/calendar`, `/tutorHours`)
+- **Future optimisation**: Split Firestore fetches into date ranges rather than fetching all events at once for improved performance with large datasets
 
 **2. Context Provider Optimisation**
 - Multiple nested providers may cause unnecessary re-renders
