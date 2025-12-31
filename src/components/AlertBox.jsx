@@ -49,16 +49,16 @@ const AlertBox = ({ message, setMessage, type, setType }) => {
     }
 
     return (
-        <div className="modal show d-block w-auto m-4" aria-hidden="false">
-            <div className={`modal-content ${colour} position-fixed bottom-0 end-0 m-4 w-auto`}>
+        <div className="w-auto" aria-hidden="false">
+            <div className={`modal-content ${colour} w-auto rounded`}>
                 <div className="modal-header border-0 py-3">
                     <div className="modal-body text-white m-0 p-0" id="alertModalLabel">
-                        <i className={`bi ${iconClass} flex-shrink-0 me-2`}></i>
+                        <i className={`bi ${iconClass} flex-shrink-0 ms-3 me-2 `}></i>
                         {message}
                     </div>
                     <button
                         type="button"
-                        className="btn-close btn-close-white ms-2 p-0 m-auto"
+                        className="btn-close btn-close-white ms-2 p-0 m-auto me-3"
                         onClick={handleAlertClose}
                     ></button>
                 </div>

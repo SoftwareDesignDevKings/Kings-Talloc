@@ -15,7 +15,7 @@ const UserRolesManager = () => {
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [uploadingTimesheets, setUploadingTimesheets] = useState({});
-    const { setAlertMessage, setAlertType } = useAlert();
+    const { addAlert } = useAlert();
     const modalRef = useRef(null);
 
     useEffect(() => {
@@ -82,8 +82,7 @@ const UserRolesManager = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateEmail(email)) {
-            setAlertMessage('Please enter a valid email address.');
-            setAlertType('error');
+            addAlert('error', 'Please enter a valid email address.');
             return;
         }
 
@@ -94,16 +93,14 @@ const UserRolesManager = () => {
             if (!isEditing) {
                 const userDoc = await getDoc(userRef);
                 if (userDoc.exists()) {
-                    setAlertMessage('A user with this email already exists.');
-                    setAlertType('error');
+                    addAlert('error', 'A user with this email already exists.');
                     return;
                 }
             }
 
             await setDoc(userRef, { email, name, role }, { merge: true });
 
-            setAlertMessage(`Role of ${role} assigned to ${email}`);
-            setAlertType('success');
+            addAlert('success', `Role of ${role} assigned to ${email}`);
 
             // Close modal using Bootstrap API
             if (modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
@@ -131,13 +128,9 @@ const UserRolesManager = () => {
         } catch (error) {
             console.error('Error adding/updating user:', error);
             if (error.code === 'permission-denied') {
-                setAlertMessage('Permission denied. You do not have access to modify user roles.');
-                setAlertType('error');
+                addAlert('error', 'Permission denied. You do not have access to modify user roles.');
             } else {
-                setAlertMessage(
-                    `Error: ${error.message || 'Failed to save user role. Please try again.'}`,
-                );
-                setAlertType('error');
+                addAlert('error', `Error: ${error.message || 'Failed to save user role. Please try again.'}`);
             }
         }
     };
@@ -148,12 +141,10 @@ const UserRolesManager = () => {
             const updatedUsers = users.filter((user) => user.email !== userEmail);
             setUsers(updatedUsers);
             setFilteredUsers(updatedUsers);
-            setAlertMessage(`User ${userEmail} deleted successfully.`);
-            setAlertType('success');
+            addAlert('success', `User ${userEmail} deleted successfully.`);
         } catch (error) {
             console.error('Error deleting user:', error);
-            setAlertMessage('Error deleting user. Please try again.');
-            setAlertType('error');
+            addAlert('error', 'Error deleting user. Please try again.');
         }
     };
 
@@ -201,12 +192,10 @@ const UserRolesManager = () => {
             // Use setDoc with email as document ID instead of addDoc
             await setDoc(doc(db, 'timesheets', userEmail), timesheetData);
 
-            setAlertMessage(`Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
-            setAlertType('success');
+            addAlert('success', `Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
         } catch (error) {
             console.error('Error uploading timesheet:', error);
-            setAlertMessage('Error uploading timesheet. Please try again.');
-            setAlertType('error');
+            addAlert('error', 'Error uploading timesheet. Please try again.');
         } finally {
             setUploadingTimesheets((prev) => ({ ...prev, [userEmail]: false }));
         }

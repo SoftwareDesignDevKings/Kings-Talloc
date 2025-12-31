@@ -35,13 +35,13 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     // --- Student-created events ---
     if (isStudentEvent) {
         if (event.approvalStatus === 'pending') {
-            // Pending → light red
-            backgroundColor = 'lightcoral';
-            borderColor = 'red';
-        } else if (event.approvalStatus === 'approved') {
-            // Approved → orange
+            // Pending → orange
             backgroundColor = 'orange';
             borderColor = 'darkorange';
+        } else if (event.approvalStatus === 'approved') {
+            // Approved → nice red
+            backgroundColor = 'indianred';
+            borderColor = 'brown';
         } else if (event.approvalStatus === 'denied') {
             // Denied → dark red
             backgroundColor = 'red';
@@ -71,9 +71,9 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
             backgroundColor = 'red';
             borderColor = 'darkred';
         } else {
-            // Pending → light red
-            backgroundColor = 'lightcoral';
-            borderColor = 'red';
+            // Pending → orange
+            backgroundColor = 'orange';
+            borderColor = 'darkorange';
         }
     }
 

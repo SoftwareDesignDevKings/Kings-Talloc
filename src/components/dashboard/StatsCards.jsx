@@ -44,7 +44,7 @@ const StatCard = ({ icon: Icon, iconBgColor, title, value, subtitle }) => (
 
 const TeacherStats = ({ data, onUpdate }) => {
     const [showApprovalsDropdown, setShowApprovalsDropdown] = useState(false);
-    const { setAlertMessage, setAlertType } = useAlert();
+    const { addAlert } = useAlert();
 
     const handleApproveRequest = async (requestId) => {
         try {
@@ -53,8 +53,7 @@ const TeacherStats = ({ data, onUpdate }) => {
             const request = data.pendingRequestsData.find((req) => req.id === requestId);
             if (!request) {
                 console.error('[StatsCards] Request not found');
-                setAlertType('error');
-                setAlertMessage('Request not found');
+                addAlert('error', 'Request not found');
                 return;
             }
 
@@ -86,22 +85,18 @@ const TeacherStats = ({ data, onUpdate }) => {
 
             // Create Teams meeting in background (don't wait)
             calendarEventCreateTeamsMeeting(docId, eventData, {
-                setAlertType,
-                setAlertMessage,
+                addAlert,
             }).catch((error) => {
                 console.error('[StatsCards] Teams meeting creation failed:', error);
-                setAlertType('error');
-                setAlertMessage(`Event approved but Teams meeting failed: ${error.message}`);
+                addAlert('error', `Event approved but Teams meeting failed: ${error.message}`);
             });
 
-            setAlertType('success');
-            setAlertMessage('Request approved successfully. Teams meeting is being created...');
+            addAlert('success', 'Request approved successfully. Teams meeting is being created...');
 
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error('[StatsCards] Error approving request:', error);
-            setAlertType('error');
-            setAlertMessage(`Failed to approve request: ${error.message}`);
+            addAlert('error', `Failed to approve request: ${error.message}`);
         }
     };
 

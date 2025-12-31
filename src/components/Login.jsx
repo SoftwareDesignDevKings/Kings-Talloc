@@ -11,10 +11,10 @@ export default function Login() {
             <div className="w-100 p-4 bg-white rounded-3 shadow-lg" style={{ maxWidth: '28rem' }}>
                 <div className="d-flex justify-content-center">
                     <Image
-                        src="/logo.png"
-                        alt="Logo"
-                        width={200}
-                        height={200}
+                        src="/TKS-CREST-PMS.svg"
+                        alt="The King's School Logo"
+                        width={275}
+                        height={275}
                         className="rounded"
                     />
                 </div>

@@ -93,14 +93,8 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                     href={newEvent.teamsJoinUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="btn d-flex align-items-center gap-2"
-                                    style={{
-                                        backgroundColor: '#5059C9',
-                                        borderColor: '#5059C9',
-                                        color: 'white',
-                                    }}
+                                    className="btn btn-success"
                                 >
-                                    <SiMicrosoftTeams size={20} aria-hidden="true" />
                                     Join Meeting
                                 </a>
                             )}

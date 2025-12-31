@@ -49,7 +49,7 @@ const isTutorConfirmed = (event, tutorEmail) => {
  * Component to display and manage tutor hours summary
  */
 const TutorHoursSummary = ({ userRole, userEmail }) => {
-    const { setAlertMessage, setAlertType } = useAlert();
+    const { addAlert } = useAlert();
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
         const monday = getMonday(new Date());
@@ -277,7 +277,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             const events = await fetchTimesheetEvents(tutorEmail);
             const { dayData, excludedEvents } = buildDayData(events);
             const hoursData = processDayData(dayData);
-            setExcludedShifts(Object.keys(excludedEvents).length > 0 ? excludedEvents : null);
+            setExcludedShifts(Object.keys(excludedEvents).length > 0 ? { tutorName, events: excludedEvents } : null);
 
             // Calculate total hours from excluded events
             let excludedHoursTotal = 0;
@@ -316,17 +316,15 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             link.click();
             document.body.removeChild(link);
 
-            setAlertType('success');
-            setAlertMessage(`${role} timesheet generated and downloaded successfully`);
+            addAlert('success', `${role} timesheet generated and downloaded successfully`);
         } catch (error) {
             console.error('Error generating timesheet:', error);
-            setAlertType('error');
-            setAlertMessage(`Error generating timesheet: ${error.message}`);
+            addAlert('error', `Error generating timesheet: ${error.message}`);
         }
     };
 
     return (
-        <div className="p-2 p-md-4 bg-white rounded shadow-lg">
+        <div className="p-2 p-md-4 bg-white rounded shadow-lg h-100 d-flex flex-column">
             <h2 className="h4 mb-4 fw-bold text-tks-secondary">
                 Tutor Hours Summary
             </h2>
@@ -374,42 +372,47 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                     </p>
                 </div>
             </div>
-            {excludedShifts && (
-                <div className="mb-3 p-3 border border-info bg-info-subtle rounded d-flex align-items-start gap-2">
-                    <FaInfoCircle className="text-info mt-1 flex-shrink-0" style={{ fontSize: '1.25rem' }} />
-                    <div className="small text-dark">
-                        <p className="fw-semibold mb-2">
-                            Short shifts (&lt;3 hours) excluded - Add manually:
-                        </p>
-                        {Object.entries(excludedShifts).map(([day, events]) => (
-                            <div key={day} className="mt-2">
-                                <p className="fw-medium mb-1">{day}:</p>
-                                <ul className="list-unstyled ms-3">
-                                    {events.map((e, idx) => (
-                                        <li key={idx} className="mb-1">
-                                            • {e.start.toLocaleTimeString('en-US', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                hour12: false,
-                                            })}{' '}
-                                            -{' '}
-                                            {e.end.toLocaleTimeString('en-US', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                hour12: false,
-                                            })}{' '}
-                                            ({e.duration.toFixed(2)} hrs)
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
+            <div className="flex-grow-1 overflow-auto">
+                {excludedShifts && (
+                    <div className="mb-3 p-3 border border-info bg-info-subtle rounded d-flex align-items-start gap-2">
+                        <FaInfoCircle className="text-info mt-1 flex-shrink-0" style={{ fontSize: '1.25rem' }} />
+                        <div className="small text-dark">
+                            <h5 className="fw-bold mb-2">Excluded Hours Below Payroll Threshold</h5>
+                            <p className="fw-bold mb-2">
+                                TUTOR: {excludedShifts.tutorName}
+                            </p>
+                            <p className="fw-semibold fst-italic mb-1">
+                                Short shifts (&lt;3 hours) excluded as they are below the minimum shift threshold. Add the following shift hours manually:
+                            </p>
+                            {Object.entries(excludedShifts.events).map(([day, events]) => (
+                                <div key={day} className="mt-2">
+                                    <p className="fw-medium mb-1">{day}:</p>
+                                    <ul className="list-unstyled ms-3">
+                                        {events.map((e, idx) => (
+                                            <li key={idx} className="mb-1">
+                                                • {e.start.toLocaleTimeString('en-US', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    hour12: false,
+                                                })}{' '}
+                                                -{' '}
+                                                {e.end.toLocaleTimeString('en-US', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    hour12: false,
+                                                })}{' '}
+                                                ({e.duration.toFixed(2)} hrs)
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
-            <div className="table-responsive">
-                <table className="table table-sm table-hover bg-white">
-                    <thead className="table-light">
+                )}
+                <div className="table-responsive">
+                    <table className="table table-sm table-hover bg-white">
+                        <thead className="sticky-top bg-light">
                         <tr>
                             <th className="small fw-medium text-secondary">Email</th>
                             <th className="small fw-medium text-secondary">Name</th>
@@ -467,6 +470,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     );

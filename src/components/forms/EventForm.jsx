@@ -47,7 +47,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const { setAlertMessage, setAlertType } = useAlert();
+    const { addAlert } = useAlert();
 
     // Fetch form data using custom hook
     const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
@@ -99,8 +99,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
         const start = new Date(newEvent.start);
         const end = new Date(newEvent.end);
         if (!isAfter(end, start)) {
-            setAlertType('error');
-            setAlertMessage('End date must be after the start date.');
+            addAlert('error', 'End date must be after the start date.');
             return false;
         }
         return true;
@@ -114,8 +113,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
 
         // Validate staff is not empty
         if (!newEvent.staff || newEvent.staff.length === 0) {
-            setAlertType('error');
-            setAlertMessage('At least one tutor must be assigned to the event.');
+            addAlert('error', 'At least one tutor must be assigned to the event.');
             return false;
         }
 
@@ -128,8 +126,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
 
         // Validate title
         if (!newEvent.title) {
-            setAlertType('error');
-            setAlertMessage('Title is required');
+            addAlert('error', 'Title is required');
             return;
         }
 
@@ -167,7 +164,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
                     // Automatically create Teams meeting for approved student requests
-                    // eventData.createTeamsMeeting = true;
 
                     await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
                     const docId = await createEventInFirestore(eventData);
@@ -176,8 +172,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
 
                     // Handle Teams meeting creation
                     await calendarEventCreateTeamsMeeting(docId, eventData, {
-                        setAlertType,
-                        setAlertMessage,
+                        addAlert,
                     });
 
                     setShowModal(false);
@@ -225,12 +220,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                                 new Date(standaloneEventData.end).toISOString(),
                                 attendeesEmailArr,
                             );
-                            setAlertType('success');
-                            setAlertMessage('Event updated and Teams occurrence updated');
+                            addAlert('success', 'Event updated and Teams occurrence updated');
                         } catch (error) {
                             console.error('Failed to update Teams meeting occurrence:', error);
-                            setAlertType('error');
-                            setAlertMessage(`Event updated but Teams meeting failed: ${error.message}`);
+                            addAlert('error', `Event updated but Teams meeting failed: ${error.message}`);
                         }
                     }
                 } else {
@@ -240,8 +233,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
 
                     // Handle Teams meeting update/delete
                     await calendarEventHandleTeamsMeetingUpdate(eventToEdit, eventData, {
-                        setAlertType,
-                        setAlertMessage,
+                        addAlert,
                     });
                 }
             } else {
@@ -252,8 +244,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                 // Handle Teams meeting creation for new events
                 if (eventData.approvalStatus === 'approved' || eventData.createTeamsMeeting) {
                     await calendarEventCreateTeamsMeeting(docId, eventData, {
-                        setAlertType,
-                        setAlertMessage,
+                        addAlert,
                     });
                 }
             }
@@ -275,8 +266,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                 setAllEvents,
                 setAvailabilities,
                 setStudentRequests,
-                setAlertType,
-                setAlertMessage,
+                addAlert,
             });
             setShowModal(false);
         }
@@ -287,8 +277,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
             setAllEvents,
             setAvailabilities,
             setStudentRequests,
-            setAlertType,
-            setAlertMessage,
+            addAlert,
         });
         setShowDeleteConfirm(false);
         setShowModal(false);
@@ -328,7 +317,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
         const { data } = props;
         return (
             <components.Option {...props}>
-                <span>{getStatusIcon(data.status)}</span> {data.label}
+                <span>{getStatusIcon(data.locationType)}</span> {data.label}
             </components.Option>
         );
     };
@@ -337,7 +326,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
         const { data } = props;
         return (
             <components.SingleValue {...props}>
-                <span>{getStatusIcon(data.status)}</span> {data.label}
+                <span>{getStatusIcon(data.locationType)}</span> {data.label}
             </components.SingleValue>
         );
     };
