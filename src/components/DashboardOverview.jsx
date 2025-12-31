@@ -9,6 +9,7 @@ import { auth } from '@/firestore/firestoreClient';
 import StatsCards from '@/components/dashboard/StatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
 import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
+import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
 
 const DashboardOverview = () => {
     const { session, userRole } = useAuthSession();
@@ -85,7 +86,12 @@ const DashboardOverview = () => {
                 show={showCalendarModal}
                 onHide={() => setShowCalendarModal(false)}
             />
-            
+
+            <WelcomeModal
+                userEmail={session?.user?.email}
+                userRole={userRole}
+            />
+
             {/* Today's Events */}
             <div className="row mb-4">
                 <div className="col-12">

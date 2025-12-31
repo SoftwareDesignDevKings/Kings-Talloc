@@ -84,6 +84,12 @@ export const FiChevronDown = (props) => (
     </IconWrapper>
 );
 
+export const FiChevronUp = (props) => (
+    <IconWrapper {...props}>
+        <polyline points="18 15 12 9 6 15" />
+    </IconWrapper>
+);
+
 export const FiCheck = (props) => (
     <IconWrapper {...props}>
         <polyline points="20 6 9 17 4 12" />

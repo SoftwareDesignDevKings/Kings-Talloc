@@ -21,6 +21,7 @@ import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent from './CustomEvent.jsx';
 import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
+import CalendarLegend from './CalendarLegend.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
 
@@ -288,38 +289,44 @@ const CalendarContent = () => {
 
     return (
         <div className="d-flex h-100 w-100">
-            <div className="flex-grow-1 p-3 calendar-scroll-container">
-                <DnDCalendar
-                    localizer={localizer}
-                    events={rbcEvents}
-                    startAccessor="start"
-                    endAccessor="end"
-                    min={minTime}
-                    max={maxTime}
-                    style={{ height: '100%' }}
+            <div className="flex-grow-1 p-3 calendar-scroll-container position-relative">
+                <div className="h-100">
+                    <DnDCalendar
+                        localizer={localizer}
+                        events={rbcEvents}
+                        startAccessor="start"
+                        endAccessor="end"
+                        min={minTime}
+                        max={maxTime}
+                        style={{ height: '100%' }}
 
-                    defaultView={defaultView}
-                    views={rbcViews}
+                        defaultView={defaultView}
+                        views={rbcViews}
 
-                    draggableAccessor={canDragEvent}
-                    resizableAccessor={canResizeEvent}
-                    onEventDrop={handleEventDrop}
-                    onEventResize={handleEventResize}
+                        draggableAccessor={canDragEvent}
+                        resizableAccessor={canResizeEvent}
+                        onEventDrop={handleEventDrop}
+                        onEventResize={handleEventResize}
 
-                    selectable
-                    popup
-                    messages={calendarUIMessages}
-                    eventPropGetter={calendarUIGetEventStyle}
+                        selectable
+                        popup
+                        messages={calendarUIMessages}
+                        eventPropGetter={calendarUIGetEventStyle}
 
-                    onSelectEvent={handleSelectEvent}
-                    onSelectSlot={handleSelectSlot}
+                        onSelectEvent={handleSelectEvent}
+                        onSelectSlot={handleSelectSlot}
 
-                    components={{
-                        event: renderEvent,
-                        timeSlotWrapper: renderTimeSlotWrapper,
-                        header: ({ label }) => <span style={{ fontWeight: 'bold' }}>{label}</span>
-                    }}
-                />
+                        components={{
+                            event: renderEvent,
+                            timeSlotWrapper: renderTimeSlotWrapper,
+                            header: ({ label }) => <span style={{ fontWeight: 'bold' }}>{label}</span>
+                        }}
+                    />
+                </div>
+            </div>
+        
+            <div className="position-absolute bottom-0 end-0 mb-3 me-3" style={{ zIndex: 10 }}>
+                <CalendarLegend />
             </div>
 
             <CalendarFilterPanel calendarStrategy={strategy} device={device} userRole={userRole} />

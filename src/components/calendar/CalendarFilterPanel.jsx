@@ -1,14 +1,16 @@
 import React from 'react';
 import Select from 'react-select';
-import { FiChevronLeft, FiChevronRight } from '@/components/icons';
+import { FiChevronLeft, FiChevronRight, FaInfoCircle } from '@/components/icons';
 import styles from '@/styles/filterPanel.module.css';
 import { useState } from 'react';
 import { useCalendarUI } from '@contexts/CalendarUIContext';
 import { useCalendarData } from '@/providers/CalendarDataProvider';
+import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
 
 const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
     const { calendarFilters, calendarScope } = calendarStrategy;
     const [isOpen, setIsOpen] = useState(device !== 'mobile');
+    const [showHowToModal, setShowHowToModal] = useState(false);
 
     // Get filter state and actions from CalendarUIProvider
     const { tutors, subjects } = useCalendarData();
@@ -65,7 +67,19 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
 
             {isOpen && (
                 <div className={styles.filterContent}>
-                    <h3 className={styles.filterTitle}>Filters</h3>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h3 className={styles.filterTitle} style={{ margin: 0 }}>Filters</h3>
+                        {userRole === 'student' && (
+                            <button
+                                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                onClick={() => setShowHowToModal(true)}
+                                title="How to use the calendar"
+                            >
+                                <FaInfoCircle size={16} />
+                                <span className="d-none d-md-inline">Help</span>
+                            </button>
+                        )}
+                    </div>
 
                     {/* ───── Dropdown filters ───── */}
 
@@ -181,6 +195,12 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
                     )}
                 </div>
             )}
+
+            <CalendarHowToModal
+                show={showHowToModal}
+                onHide={() => setShowHowToModal(false)}
+                autoShow={true}
+            />
         </div>
     );
 }
