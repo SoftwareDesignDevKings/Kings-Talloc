@@ -32,7 +32,7 @@ const customJestConfig = {
         '!**/node_modules/**',
     ],
     testMatch: [
-        '<rootDir>/__tests__/**/*.(test|spec).{js,jsx}',
+        '<rootDir>/tests/**/*.(test|spec).{js,jsx}',
         '<rootDir>/**/*.(test|spec).{js,jsx}',
     ],
 };

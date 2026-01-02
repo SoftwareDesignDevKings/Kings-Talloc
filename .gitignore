@@ -12,7 +12,7 @@
 /coverage
 /test-results/
 /playwright-report/
-/__tests__/e2e/.auth/
+/tests/e2e/.auth/
 playwright/.cache/
 firestore-debug.log
 

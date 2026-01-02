@@ -4,7 +4,7 @@
  * Tests events collection access control focusing on the new tutor workStatus update permission
  * This tests the actual firestore.rules file against the Firebase emulator
  *
- * Run with: firebase emulators:exec --only firestore "npm test -- __tests__/firebaseRules.events.test.js"
+ * Run with: firebase emulators:exec --only firestore "npm test -- tests/firebase.events.test.js"
  *
  * @jest-environment node
  */
