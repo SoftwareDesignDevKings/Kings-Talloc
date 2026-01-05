@@ -174,22 +174,28 @@ export async function GET(_req, { params }) {
         const querySnapshot = await adminDb.collection('emailEventsQueue').get();
         const emailEventsQueue = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-        // Filter out testing events
-        const eventsToSend = emailEventsQueue.filter((event) => !event.title?.includes('(TESTING)'));
+        // Filter for events created by this user only (and not testing events)
+        const userEmail = session.user.email;
+        const eventsToSend = emailEventsQueue.filter(
+            (event) => event.createdByEmail === userEmail && !event.title?.includes('(TESTING)')
+        );
 
-        if (emailEventsQueue.length > 0) {
-            // Send emails for non-testing events
+        // Get all events created by this user (including testing events)
+        const userEventsEmails = emailEventsQueue.filter((event) => event.createdByEmail === userEmail);
+
+        if (userEventsEmails.length > 0) {
+            // Send emails for non-testing events created by this user
             if (eventsToSend.length > 0) {
                 await sendEmailNotification(eventsToSend);
             }
 
-            // Delete all processed events from the queue (including testing events)
-            const deletePromises = emailEventsQueue.map((event) => {
+            // Delete only the events created by this user from the queue
+            const deletePromises = userEventsEmails.map((event) => {
                 return adminDb.collection('emailEventsQueue').doc(event.id).delete();
             });
             await Promise.all(deletePromises);
 
-            const testingEventsCount = emailEventsQueue.length - eventsToSend.length;
+            const testingEventsCount = userEventsEmails.length - eventsToSend.length;
             let message = 'Emails sent successfully';
 
             if (eventsToSend.length === 0 && testingEventsCount > 0) {
@@ -198,11 +204,9 @@ export async function GET(_req, { params }) {
                 message = `Emails sent successfully (${testingEventsCount} testing event(s) skipped)`;
             }
 
-            return new Response(JSON.stringify({ message }), {
-                status: 200,
-            });
+            return new Response(JSON.stringify({ message }), { status: 200 });
         } else {
-            return new Response(JSON.stringify({ message: 'No events to send' }), { status: 200 });
+            return new Response(JSON.stringify({ message: 'No events to send.' }), { status: 400 });
         }
     } catch (error) {
         console.error('Error sending emails:', error);

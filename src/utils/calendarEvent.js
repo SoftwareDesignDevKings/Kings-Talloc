@@ -965,7 +965,7 @@ export const calendarEventHandleDuplicate = async (
             const docId = await createEventInFirestore(eventData);
             eventData.id = docId;
             setAllEvents([...allEvents, { ...eventData, id: docId }]);
-            await addOrUpdateEventInQueue(eventData, 'store');
+            await addOrUpdateEventInQueue(eventData, 'store', userEmail);
 
             if (eventData.approvalStatus === 'approved') {
                 const subject = eventData.title;

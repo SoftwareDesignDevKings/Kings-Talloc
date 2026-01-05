@@ -10,9 +10,11 @@ import StatsCards from '@/components/dashboard/StatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
 import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
 import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
+import useAlert from '@/hooks/useAlert';
 
 const DashboardOverview = () => {
     const { session, userRole } = useAuthSession();
+    const { addAlert } = useAlert();
     const [dashboardData, setDashboardData] = useState({
         upcomingEvents: [],
         todayEvents: [],
@@ -68,8 +70,26 @@ const DashboardOverview = () => {
         return () => window.removeEventListener('focus', handleFocus);
     }, [fetchDashboardData]);
 
+    // Handle sending email notifications
+    const handleSendEmailNotifications = async () => {
+        try {
+            const response = await fetch('/api/send-emails/send');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to send emails');
+            }
+
+            addAlert('success', data.message || 'Emails sent successfully');
+        } catch (error) {
+            console.log('Error sending emails:', error);
+            addAlert('error', error.message || 'Failed to send emails');
+        }
+    };
+
     return (
         <div className="container-fluid p-0">
+
             {/* Stats Cards */}
             <StatsCards userRole={userRole} data={dashboardData} onUpdate={fetchDashboardData} />
 
@@ -86,6 +106,20 @@ const DashboardOverview = () => {
                 show={showCalendarModal}
                 onHide={() => setShowCalendarModal(false)}
             />
+
+            {/* Email Shift Notifications Button (Teachers Only) */}
+            {userRole === 'teacher' && (
+                <div className="row mb-3">
+                    <div className="col-12">
+                        <button
+                            className="btn btn-outline-success"
+                            onClick={handleSendEmailNotifications}
+                        >
+                            Email Shift Notifications
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <WelcomeModal
                 userEmail={session?.user?.email}
