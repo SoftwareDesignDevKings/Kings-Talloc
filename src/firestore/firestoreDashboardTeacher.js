@@ -87,7 +87,8 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             if (isTodayEvent) {
                 todayEvents.push(event);
             }
-            if (isUpcomingEvent && upcomingEvents.length < 5) {
+            // Only add to upcoming if it's not today (avoid duplicates)
+            if (isUpcomingEvent && !isTodayEvent && upcomingEvents.length < 5) {
                 upcomingEvents.push(event);
             }
 
