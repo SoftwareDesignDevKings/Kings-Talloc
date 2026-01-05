@@ -28,7 +28,7 @@ const AlertProvider = ({ children }) => {
             {children}
 
             {/* Alerts stacked in fixed container */}
-            <div className="position-fixed bottom-0 end-0 m-4 d-flex flex-column align-items-end gap-2">
+            <div className="position-fixed bottom-0 end-0 m-4 d-flex flex-column align-items-end gap-2" style={{ zIndex: 9999 }}>
                 {alerts.map((alert) => (
                     <AlertBox
                         key={alert.id}

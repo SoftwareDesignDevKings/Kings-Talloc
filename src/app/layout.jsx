@@ -4,6 +4,7 @@ import AppSessionProvider from '@/providers/AppSessionProvider';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import LoadingPage from '@/components/LoadingPage';
+import VersionGuard from '@/components/VersionGuard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -31,6 +32,9 @@ export default function RootLayout({ children }) {
                 />
             </head>
             <body className={inter.className} suppressHydrationWarning>
+                {/* force version update */}
+                <VersionGuard />
+        
                 <AppSessionProvider>
                     <Suspense fallback={<LoadingPage />}>
                         {children}

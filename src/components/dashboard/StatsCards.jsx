@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     FiCalendar,
     FiUsers,
@@ -20,6 +20,7 @@ import {
 } from '@/firestore/firestoreOperations';
 import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
 import useAlert from '@/hooks/useAlert';
+import useAuthSession from '@/hooks/useAuthSession';
 
 const StatCard = ({ icon: Icon, iconBgColor, title, value, subtitle }) => (
     <div className="col-12 col-md-4 col-lg-3">
@@ -45,6 +46,26 @@ const StatCard = ({ icon: Icon, iconBgColor, title, value, subtitle }) => (
 const TeacherStats = ({ data, onUpdate }) => {
     const [showApprovalsDropdown, setShowApprovalsDropdown] = useState(false);
     const { addAlert } = useAlert();
+    const { session } = useAuthSession();
+    const userEmail = session?.user?.email;
+    const dropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowApprovalsDropdown(false);
+            }
+        };
+
+        if (showApprovalsDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showApprovalsDropdown]);
 
     const handleApproveRequest = async (requestId) => {
         try {
@@ -81,7 +102,7 @@ const TeacherStats = ({ data, onUpdate }) => {
             const docId = await createEventInFirestore(eventData);
 
             // Queue email notification
-            await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
+            await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail);
 
             // Create Teams meeting in background (don't wait)
             calendarEventCreateTeamsMeeting(docId, eventData, {
@@ -134,15 +155,13 @@ const TeacherStats = ({ data, onUpdate }) => {
 
             <div className="col-12 col-md-4 col-lg-3">
                 <div
+                    ref={dropdownRef}
                     className="card border-0 shadow-sm position-relative"
-                    style={{ cursor: 'pointer', outline: 'none' }}
-                    tabIndex={-1}
-                    onMouseDown={(e) => e.preventDefault()}
+                    style={{ cursor: 'pointer' }}
                 >
                     <div
                         className="card-body"
                         onClick={() => setShowApprovalsDropdown(!showApprovalsDropdown)}
-                        style={{ outline: 'none' }}
                     >
                         <div className="d-flex align-items-center">
                             <div className="flex-shrink-0">

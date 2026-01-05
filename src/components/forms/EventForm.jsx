@@ -32,7 +32,7 @@ import { addWeeks } from 'date-fns';
 import useAlert from '@/hooks/useAlert';
 import { CalendarEntityType } from '@/strategy/calendarStrategy.js';
 
-const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) => {
+const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail }) => {
     const {
         setCalendarShifts: setAllEvents,
         setCalendarAvailabilities: setAvailabilities,
@@ -168,7 +168,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                     await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
                     const docId = await createEventInFirestore(eventData);
 
-                    await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
+                    await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail);
 
                     // Handle Teams meeting creation
                     await calendarEventCreateTeamsMeeting(docId, eventData, {
@@ -178,7 +178,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                     setShowModal(false);
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', eventToEdit);
+                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', userEmail, eventToEdit);
                     setShowModal(false);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
@@ -200,7 +200,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                     } = { ...eventToEdit, ...eventData };
 
                     const newDocId = await createEventInFirestore(standaloneEventData, collectionName);
-                    await addOrUpdateEventInQueue({ ...standaloneEventData, id: newDocId }, 'store');
+                    await addOrUpdateEventInQueue({ ...standaloneEventData, id: newDocId }, 'store', userEmail);
                     setShowModal(false);
 
                     if (standaloneEventData.teamsEventId) {
@@ -228,7 +228,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                     }
                 } else {
                     await updateEventInFirestore(eventToEdit.id, eventData);
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', eventToEdit);
+                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', userEmail, eventToEdit);
                     setShowModal(false);
 
                     // Handle Teams meeting update/delete
@@ -238,7 +238,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
                 }
             } else {
                 const docId = await createEventInFirestore(eventData);
-                await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store');
+                await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail, null);
                 setShowModal(false);
 
                 // Handle Teams meeting creation for new events
@@ -250,6 +250,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
             }
         } catch (error) {
             console.error('Failed to submit event:', error);
+            addAlert('error', `Failed to submit event: ${error.message}`);
         }
     };
 

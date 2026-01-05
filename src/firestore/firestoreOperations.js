@@ -7,11 +7,17 @@ import { CalendarEntityType } from '@/strategy/calendarStrategy';
  * @param {Object} event - The event object containing event details and id
  * @param {string} action - The action being performed (e.g., 'store', 'update')
  * @param {Object} originalEvent - The original event data (for updates)
+ * @param {string} createdByEmail - Email of the user creating/updating the event (required)
  * @returns {Promise<{message: string}>} Success message
  * @throws {Error} If operation fails
  */
-export const addOrUpdateEventInQueue = async (event, action, originalEvent = null) => {
+export const addOrUpdateEventInQueue = async (event, action, createdByEmail, originalEvent = null) => {
     try {
+        // Validate createdByEmail is provided
+        if (!createdByEmail) {
+            throw new Error('createdByEmail is required for email queue operations');
+        }
+
         // Skip email notifications for testing events
         if (event.title && event.title.includes('(TESTING)')) {
             return { message: `Event ${action}d but no notification sent (testing event)` };
@@ -22,6 +28,7 @@ export const addOrUpdateEventInQueue = async (event, action, originalEvent = nul
             const eventDoc = doc(db, 'emailEventsQueue', event.id);
             await setDoc(eventDoc, {
                 ...event,
+                createdByEmail,
                 timestamp: new Date(),
             });
             return { message: `Event ${action}d successfully in email queue` };
@@ -50,6 +57,7 @@ export const addOrUpdateEventInQueue = async (event, action, originalEvent = nul
                 const eventDoc = doc(db, 'emailEventsQueue', event.id);
                 await setDoc(eventDoc, {
                     ...event,
+                    createdByEmail,
                     timestamp: new Date(),
                 });
                 return { message: `Event ${action}d successfully in email queue (times changed)` };

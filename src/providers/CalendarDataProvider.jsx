@@ -11,8 +11,6 @@ import {
     firestoreFetchStudents
 } from '@/firestore/firestoreFetch';
 // import { calendarAvailabilitySplit } from '@/utils/calendarAvailability';
-import { useEmailQueueMonitor } from '@/hooks/useEmailQueueMonitor';
-import useAuthSession from '@/hooks/useAuthSession';
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import CalendarDataContext from '@/contexts/CalendarDataContext';
 
@@ -35,8 +33,6 @@ export const CalendarDataProvider = ({ children }) => {
     const [tutors, setTutors] = useState([]);
     const [classes, setClasses] = useState([]);
 
-    const { userRole } = useAuthSession();
-
     useEffect(() => {
         const unsubShifts = firestoreFetchShifts(setCalendarShifts)
         const unsubAvailabilities = firestoreFetchAvailabilities(setCalendarAvailabilities)
@@ -55,8 +51,6 @@ export const CalendarDataProvider = ({ children }) => {
             unsubtStudenRequests()
         }
     }, [])
-
-    useEmailQueueMonitor(userRole);
 
     return (
         <CalendarDataContext.Provider
