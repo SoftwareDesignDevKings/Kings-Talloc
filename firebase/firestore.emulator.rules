@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // EMULATOR ONLY - Open access for local development
+    // Production uses firestore.rules (secure)
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

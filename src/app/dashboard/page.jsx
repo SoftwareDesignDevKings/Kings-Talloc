@@ -11,7 +11,8 @@ const DashboardPage = () => {
 
     // Redirect mobile users to calendar (once on mount)
     useEffect(() => {
-        if (device === "mobile") {
+        // Only redirect if device has been determined and is mobile
+        if (device && device === "mobile") {
             router.replace('/calendar');
         }
     }, [device, router]);

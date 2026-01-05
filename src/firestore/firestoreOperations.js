@@ -1,4 +1,4 @@
-import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 /**
@@ -122,23 +122,13 @@ export const deleteEventFromFirestore = async (eventId, collectionName = 'shifts
  * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const addEventException = async (
-    recurringEventId,
-    occurrenceIndex,
-    collectionName = 'shifts',
-) => {
+export const addEventException = async (recurringEventId, occurrenceIndex, collectionName = 'shifts') => {
     const eventDocRef = doc(db, collectionName, recurringEventId);
 
-    // Get current exceptions array or initialize empty
-    const eventDoc = await getDoc(eventDocRef);
-    const currentExceptions = eventDoc.exists() ? eventDoc.data().eventExceptions || [] : [];
-
-    // Add new exception if not already present
-    if (!currentExceptions.includes(occurrenceIndex)) {
-        await updateDoc(eventDocRef, {
-            eventExceptions: [...currentExceptions, occurrenceIndex],
-        });
-    }
+    // firestore arrayUnion handles race-condition and duplicates automatically
+    await updateDoc(eventDocRef, {
+        eventExceptions: arrayUnion(occurrenceIndex)
+    });
 };
 
 /**
@@ -148,11 +138,7 @@ export const addEventException = async (
  * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const setRecurringUntilDate = async (
-    recurringEventId,
-    untilDate,
-    collectionName = 'shifts',
-) => {
+export const setRecurringUntilDate = async (recurringEventId, untilDate, collectionName = 'shifts') => {
     const eventDocRef = doc(db, collectionName, recurringEventId);
     await updateDoc(eventDocRef, {
         until: untilDate,

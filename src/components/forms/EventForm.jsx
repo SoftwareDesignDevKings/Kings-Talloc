@@ -111,11 +111,12 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal }) =
             return false;
         }
 
-        // Validate staff is not empty
-        if (!newEvent.staff || newEvent.staff.length === 0) {
-            addAlert('error', 'At least one tutor must be assigned to the event.');
-            return false;
-        }
+        if (process.env.NODE_ENV !== 'development') {
+            if (!newEvent.staff || newEvent.staff.length === 0) {
+                addAlert('error', 'At least one tutor must be assigned to the event.');
+                return false;
+            }
+        } 
 
         return true;
     };
