@@ -180,7 +180,7 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
 /**
  * REQUIRED FIRESTORE COMPOSITE INDEXES:
  *
- * Collection: events
+ * Collection: shifts
  * - Fields: start (Ascending), __name__ (Ascending)
  *
  * Collection: tutorAvailabilities

@@ -23,6 +23,9 @@ firestore-debug.log
 # production
 /build
 
+# build artifacts
+/public/version.json
+
 # misc
 .DS_Store
 *.pem
