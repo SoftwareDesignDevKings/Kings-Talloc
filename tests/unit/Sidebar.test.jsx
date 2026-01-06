@@ -77,13 +77,13 @@ describe('Sidebar', () => {
         setup('teacher');
 
         fireEvent.click(screen.getByText('Calendar'));
-        expect(mockRouter.push).toHaveBeenCalledWith('calendar');
+        expect(mockRouter.push).toHaveBeenCalledWith('/calendar');
 
         fireEvent.click(screen.getByText('User Roles'));
-        expect(mockRouter.push).toHaveBeenCalledWith('userRoles');
+        expect(mockRouter.push).toHaveBeenCalledWith('/userRoles');
 
         fireEvent.click(screen.getByText('Manage Classes'));
-        expect(mockRouter.push).toHaveBeenCalledWith('classes');
+        expect(mockRouter.push).toHaveBeenCalledWith('/classes');
     });
 
     it('displays user name when provided', () => {

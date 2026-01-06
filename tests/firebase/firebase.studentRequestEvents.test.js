@@ -4,7 +4,7 @@
  * Tests studentEventRequests collection access control
  * This tests the actual firestore.rules file against the Firebase emulator
  *
- * Run with: firebase emulators:exec --only firestore "npm test -- __tests__/firebase.studentRequestEvents.test.js"
+ * Run with: firebase emulators:exec --only firestore "npm test -- tests/firebase.studentRequestEvents.test.js"
  *
  * @jest-environment node
  */

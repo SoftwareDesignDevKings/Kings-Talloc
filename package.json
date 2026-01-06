@@ -4,12 +4,13 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
+        "dev:emulator": "./devEmulator.sh",
         "prebuild": "node scripts/generateBuildVersion.js",
         "build": "node scripts/generateBuildVersion.js && next build",
         "start": "next start",
         "lint": "next lint",
         "test": "jest --testPathIgnorePatterns=firebase",
-        "test:firebase": "firebase emulators:exec --only firestore --config firebase/firebase.json \"jest --config=__tests__/firebase/jest.firebase.config.js\"",
+        "test:firebase": "firebase emulators:exec --only firestore --config firebase/firebase.json \"jest --config=tests/firebase/jest.firebase.config.js\"",
         "test:all": "npm run test && npm run test:firebase",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage"
