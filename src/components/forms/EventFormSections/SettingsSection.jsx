@@ -88,7 +88,7 @@ const SettingsSection = ({
                             }
                             classNamePrefix="select"
                             value={workTypeOptions.find(
-                                (option) => option.value === (newEvent.workType || 'tutoring'),
+                                (option) => option.value === (newEvent.workType || 'work'),
                             )}
                             isDisabled={readOnly}
                             aria-label="Event work type"
