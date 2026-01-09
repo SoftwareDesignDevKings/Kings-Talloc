@@ -5,10 +5,12 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 const TutorHoursPage = async () => {
     const session = await getServerSession(authOptions);
     return (
-        <TutorHoursSummary 
-            userRole={session.user.role} 
-            userEmail={session.user.email} 
-        />
+        <div className="overflow-y-auto overflow-x-hidden h-100">
+            <TutorHoursSummary
+                userRole={session.user.role}
+                userEmail={session.user.email}
+            />
+        </div>
     );
 };
 

@@ -289,10 +289,11 @@ const TeacherStats = ({ data, onUpdate }) => {
                 value={`${data.activeTutors}/${data.totalTutors}`}
             />
             <StatCard
-                icon={FiTrendingUp}
+                icon={FiActivity}
                 iconBgColor="bg-success"
-                title="Weekly Utilization"
-                value={`${data.weeklyUtilization}%`}
+                title="Total Hours"
+                value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1)}
+                subtitle={`T: ${data.weeklyHours.tutoring} | C: ${data.weeklyHours.coaching}`}
             />
         </>
     );
@@ -309,7 +310,7 @@ const TutorStats = ({ data }) => (
         <StatCard
             icon={FiActivity}
             iconBgColor="bg-success"
-            title="Hours This Week"
+            title="Total Hours"
             value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1)}
             subtitle={`T: ${data.weeklyHours.tutoring} | C: ${data.weeklyHours.coaching}`}
         />
@@ -346,6 +347,13 @@ const StudentStats = ({ data }) => (
             iconBgColor="bg-primary"
             title="Upcoming Sessions"
             value={data.upcomingEventsCount}
+        />
+        <StatCard
+            icon={FiActivity}
+            iconBgColor="bg-success"
+            title="Total Hours"
+            value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1)}
+            subtitle={`T: ${data.weeklyHours.tutoring} | C: ${data.weeklyHours.coaching}`}
         />
         <StatCard
             icon={FiClock}

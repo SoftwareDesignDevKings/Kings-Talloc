@@ -64,6 +64,8 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
         const upcomingEvents = [];
         let totalBookedHours = 0;
         let completedEvents = 0;
+        let tutoringHours = 0;
+        let coachingHours = 0;
 
         // OPTIMIZATION 3: Single-pass O(n) processing instead of multiple O(n) loops
         for (const doc of weeklyEventsSnapshot.docs) {
@@ -109,11 +111,19 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             }
 
             // Booked hours - O(1)
-            totalBookedHours += (end - start) / 3600000; // milliseconds to hours
+            const hours = (end - start) / 3600000; // milliseconds to hours
+            totalBookedHours += hours;
 
-            // Completed count - O(1)
-            if (data.workStatus === 'completed' && end < now) {
-                completedEvents++;
+            // Completed count and hours tracking - O(1)
+            if (data.workStatus === 'completed') {
+                if (end < now) {
+                    completedEvents++;
+                }
+                if (data.workType === 'coaching') {
+                    coachingHours += hours;
+                } else {
+                    tutoringHours += hours;
+                }
             }
         }
 
@@ -160,6 +170,10 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             totalTutors: tutorsSnapshot.size,
             weeklyUtilization,
             topSubjects,
+            weeklyHours: {
+                tutoring: Math.round(tutoringHours * 10) / 10,
+                coaching: Math.round(coachingHours * 10) / 10,
+            },
         };
     } catch (error) {
         console.error('Error fetching teacher dashboard data:', error);
@@ -174,6 +188,7 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             totalTutors: 0,
             weeklyUtilization: 0,
             topSubjects: [],
+            weeklyHours: { tutoring: 0, coaching: 0 },
         };
     }
 };

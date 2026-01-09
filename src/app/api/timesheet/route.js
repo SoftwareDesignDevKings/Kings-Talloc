@@ -19,7 +19,7 @@ export async function POST(req) {
 
         if (!timesheetDoc.exists) {
             return new Response(
-                JSON.stringify({ error: 'No timesheet template found for this tutor' }),
+                JSON.stringify({ error: `No timesheet for user: ${tutorName} was uploaded` }),
                 {
                     status: 404,
                     headers: { 'Content-Type': 'application/json' },

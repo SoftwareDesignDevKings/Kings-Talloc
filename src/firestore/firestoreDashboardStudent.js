@@ -15,13 +15,23 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
 
+    // Week boundaries
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - diff);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
     try {
-        // OPTIMIZATION 1: Reduced from 7 to 5 queries
+        // OPTIMIZATION 1: Reduced from 7 to 5 queries (now 6 with weekly hours)
         // Combined completed events query with end date filter to avoid client-side .filter()
         const [
             todayEventsSnapshot,
             upcomingEventsSnapshot,
             completedEventsSnapshot,
+            weeklyCompletedEventsSnapshot,
             pendingRequestsSnapshot,
             rejectedRequestsSnapshot,
             tutorsSnapshot,
@@ -53,6 +63,16 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
                     where('students', 'array-contains', { value: userEmail, label: userEmail }),
                     where('workStatus', '==', 'completed'),
                     where('end', '<', Timestamp.fromDate(now)),
+                ),
+            ),
+            // Weekly completed events for hours calculation
+            getDocs(
+                query(
+                    collection(db, 'shifts'),
+                    where('students', 'array-contains', { value: userEmail, label: userEmail }),
+                    where('workStatus', '==', 'completed'),
+                    where('start', '>=', Timestamp.fromDate(weekStart)),
+                    where('start', '<', Timestamp.fromDate(weekEnd)),
                 ),
             ),
             // Pending requests for this student
@@ -104,6 +124,22 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
         // Completed count is now server-filtered with end < now
         const completedEvents = completedEventsSnapshot.size;
 
+        // Calculate weekly hours
+        let tutoringHours = 0;
+        let coachingHours = 0;
+        for (const doc of weeklyCompletedEventsSnapshot.docs) {
+            const data = doc.data();
+            const start = data.start.toDate();
+            const end = data.end.toDate();
+            const hours = (end - start) / 3600000; // milliseconds to hours
+
+            if (data.workType === 'coaching') {
+                coachingHours += hours;
+            } else {
+                tutoringHours += hours;
+            }
+        }
+
         return {
             todayEvents,
             upcomingEvents,
@@ -113,6 +149,10 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             approvedRequests: 0, // Removed redundant approved query (events are already approved once in events collection)
             rejectedRequests: rejectedRequestsSnapshot.size,
             availableTutors: tutorsSnapshot.size,
+            weeklyHours: {
+                tutoring: Math.round(tutoringHours * 10) / 10,
+                coaching: Math.round(coachingHours * 10) / 10,
+            },
         };
     } catch (error) {
         console.error('Error fetching student dashboard data:', error);
@@ -125,6 +165,7 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             approvedRequests: 0,
             rejectedRequests: 0,
             availableTutors: 0,
+            weeklyHours: { tutoring: 0, coaching: 0 },
         };
     }
 };

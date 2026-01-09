@@ -304,7 +304,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to generate timesheet');
+                const errorData = await response.json();
+                addAlert('error', errorData.error || 'Failed to generate timesheet');
+                return;
             }
 
             // Download the file
