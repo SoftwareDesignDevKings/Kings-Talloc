@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '@/firestore/firestoreClient.js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
 /**
  * Hook to fetch and manage event form data (staff, classes, students)
  * This is a real hook because it has side effects (data fetching)
+ * Now includes debouncing to prevent excessive queries on rapid date changes
  */
 export const useEventFormData = (newEvent) => {
     const [staffOptions, setStaffOptions] = useState([]);
     const [classOptions, setClassOptions] = useState([]);
     const [studentOptions, setStudentOptions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const debounceTimerRef = useRef(null);
 
     useEffect(() => {
         const fetchStaff = async () => {
@@ -79,7 +81,22 @@ export const useEventFormData = (newEvent) => {
             setIsLoading(false);
         };
 
-        fetchAll();
+        // Clear any existing timer
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        // Set new timer - only fetch after 500ms of no changes
+        debounceTimerRef.current = setTimeout(() => {
+            fetchAll();
+        }, 500);
+
+        // Cleanup function
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
     }, [newEvent.start, newEvent.end]);
 
     return {

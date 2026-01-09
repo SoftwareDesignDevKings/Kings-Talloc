@@ -2,7 +2,7 @@
 
 import AlertContext from '@/contexts/AlertContext';
 import AlertBox from '@/components/AlertBox';
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 
 /**
  * Custom Alert Provider for alert boxes
@@ -12,19 +12,22 @@ import { useState } from 'react';
 const AlertProvider = ({ children }) => {
     const [alerts, setAlerts] = useState([]);
 
-    // add a new alert to the stack
-    const addAlert = (type, message) => {
+    // add a new alert to the stack - memoized to prevent re-renders
+    const addAlert = useCallback((type, message) => {
         const id = Date.now() + Math.random();
         setAlerts((prev) => [...prev, { id, message, type }]);
-    };
+    }, []);
 
-    // remove an alert
-    const removeAlert = (id) => {
+    // remove an alert - memoized to prevent re-renders
+    const removeAlert = useCallback((id) => {
         setAlerts((prev) => prev.filter((alert) => alert.id !== id));
-    };
+    }, []);
+
+    // Memoize context value to prevent unnecessary re-renders
+    const contextValue = useMemo(() => ({ addAlert }), [addAlert]);
 
     return (
-        <AlertContext.Provider value={{ addAlert }}>
+        <AlertContext.Provider value={contextValue}>
             {children}
 
             {/* Alerts stacked in fixed container */}

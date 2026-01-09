@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { isAfter } from 'date-fns';
 import { components } from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
@@ -49,51 +49,39 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const { addAlert } = useAlert();
 
-    // Fetch form data using custom hook
+    // fetch form data using custom hook
     const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
 
-    // Inline handlers
-    const handleInputChange = (e) => {
+    // memoided handlers to prevent unnecessary re-renders
+    const handleInputChange = useCallback((e) => {
         const { name, value, type, checked } = e.target;
         const val = type === 'checkbox' ? checked : value;
-        setNewEvent({ ...newEvent, [name]: val });
-    };
+        setNewEvent((prev) => ({ ...prev, [name]: val }));
+    }, [setNewEvent]);
 
-    const handleStaffChange = (selectedStaff) => {
-        setNewEvent({ ...newEvent, staff: selectedStaff });
-    };
-
-    const handleClassChange = (selectedClasses) => {
-        setNewEvent({ ...newEvent, classes: selectedClasses });
-    };
-
-    const handleStudentChange = (selectedStudents) => {
-        setNewEvent({ ...newEvent, students: selectedStudents });
-    };
-
-    const handleStaffSelectChange = (selectedOptions) => {
+    const handleStaffSelectChange = useCallback((selectedOptions) => {
         setSelectedStaff(selectedOptions);
-        handleStaffChange(selectedOptions);
-    };
+        setNewEvent((prev) => ({ ...prev, staff: selectedOptions }));
+    }, [setNewEvent]);
 
-    const handleClassSelectChange = (selectedOptions) => {
+    const handleClassSelectChange = useCallback((selectedOptions) => {
         setSelectedClasses(selectedOptions);
-        handleClassChange(selectedOptions);
-    };
+        setNewEvent((prev) => ({ ...prev, classes: selectedOptions }));
+    }, [setNewEvent]);
 
-    const handleStudentSelectChange = (selectedOptions) => {
+    const handleStudentSelectChange = useCallback((selectedOptions) => {
         setSelectedStudents(selectedOptions);
-        handleStudentChange(selectedOptions);
-    };
+        setNewEvent((prev) => ({ ...prev, students: selectedOptions }));
+    }, [setNewEvent]);
 
-    const handleMinStudentsChange = (e) => {
-        setNewEvent({ ...newEvent, minStudents: parseInt(e.target.value, 10) });
-    };
+    const handleMinStudentsChange = useCallback((e) => {
+        setNewEvent((prev) => ({ ...prev, minStudents: parseInt(e.target.value, 10) }));
+    }, [setNewEvent]);
 
-    const handleApprovalChange = (selectedOption) => {
+    const handleApprovalChange = useCallback((selectedOption) => {
         const approvalStatus = selectedOption.value;
-        setNewEvent({ ...newEvent, approvalStatus });
-    };
+        setNewEvent((prev) => ({ ...prev, approvalStatus }));
+    }, [setNewEvent]);
 
     const validateDates = () => {
         const start = new Date(newEvent.start);

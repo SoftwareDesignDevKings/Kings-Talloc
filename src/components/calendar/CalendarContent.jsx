@@ -43,8 +43,8 @@ const localizer = dateFnsLocalizer({
 
 const DnDCalendar = withDragAndDrop(Calendar);
 
-const MemoizedCustomEvent = memo(CustomEvent);
-const MemoizedCalendarTimeSlot = memo(CustomTimeslot);
+const MemoisedCustomEvent = memo(CustomEvent);
+const MemoisedCalendarTimeSlot = memo(CustomTimeslot);
 
 /* ───────────────────────────────────────────────────────────── */
 /* CalendarContent                                                */
@@ -102,13 +102,22 @@ const CalendarContent = () => {
 
     /**
      * Update specific fields in the draft event/target
-     * @param {Object} fieldUpdates - Object with field names as keys (e.g., { title: "Math", staff: [...] })
+     * @param {Object|Function} fieldUpdates - object with field names as keys (e.g. { title: "Math", staff: [...] }) 
+     * or a function that receives previous state
      */
     const updateCalendarTarget = (fieldUpdates) => {
-        setCalendarTarget((prevTarget) => ({
-            ...prevTarget,      // Keep all existing fields
-            ...fieldUpdates,    // Overwrite with new field values
-        }));
+        setCalendarTarget((prevTarget) => {
+            let updates;
+            if (typeof fieldUpdates === 'function') {
+                updates = fieldUpdates(prevTarget)
+            } else {
+                updates = fieldUpdates
+            }
+            return {
+                ...prevTarget,
+                ...updates
+            }
+        });
     };
 
 
@@ -277,7 +286,7 @@ const CalendarContent = () => {
         const { value, children, ...rest } = props;
 
         return (
-            <MemoizedCalendarTimeSlot
+            <MemoisedCalendarTimeSlot
                 {...rest}
                 slotStartValue={value}
                 slotAvailabilities={overlayAvailabilities}
@@ -285,13 +294,13 @@ const CalendarContent = () => {
                 slotWeekEnd={weekEnd}
             >
                 {children}
-            </MemoizedCalendarTimeSlot>
+            </MemoisedCalendarTimeSlot>
         );
     };
 
     // render RBC custom event
     const renderEvent = (eventProps) => (
-        <MemoizedCustomEvent
+        <MemoisedCustomEvent
             event={eventProps.event}
             canDuplicate={strategy.actions.canDuplicateEvent?.(eventProps.event)}
             onDuplicate={handleDuplicateEvent}

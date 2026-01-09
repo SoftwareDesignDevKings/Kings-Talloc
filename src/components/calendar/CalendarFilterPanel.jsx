@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import Select from 'react-select';
 import { FiChevronLeft, FiChevronRight, FaInfoCircle } from '@/components/icons';
 import styles from '@/styles/filterPanel.module.css';
@@ -16,15 +16,19 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
     const { tutors, subjects } = useCalendarData();
     const { filters, visibility, actions } = useCalendarUI();
 
-    // load subject options for students
-    const subjectOptions = subjects?.map((subject) => ({
-        value: subject.id,
-        label: subject.name,
-        tutors: subject.tutors,
-    })) || [];
+    // Memoise subject options transformation
+    const subjectOptions = useMemo(() =>
+        
+        subjects?.map((subject) => ({
+            value: subject.id,
+            label: subject.name,
+            tutors: subject.tutors,
+        })) || [],
+        [subjects]
+    );
 
-    // load tutor options for the select. for students: filter tutors by selected subject
-    const tutorOptions = (() => {
+    // Memoise tutor options transformation
+    const tutorOptions = useMemo(() => {
         if (userRole === 'student' && filters.filterBySubject) {
             const selectedSubject = subjects?.find(s => s.id === filters.filterBySubject.value);
             return selectedSubject?.tutors?.map((tutor) => ({
@@ -36,7 +40,7 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
             value: tutor.email,
             label: tutor.name || tutor.email,
         })) || [];
-    })();
+    }, [userRole, filters.filterBySubject, subjects, tutors]);
 
     // prepare work type options for availabilities
     const availabilityWorkTypeOptions = [
@@ -46,11 +50,11 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
         { value: 'tutoringOrWork', label: 'Tutoring or Work' },
     ];
 
-    // dandle subject change - clear tutor filter when subject changes
-    const handleSubjectChange = (newSubject) => {
+    // Memoise subject change handler to prevent re-renders
+    const handleSubjectChange = useCallback((newSubject) => {
         actions.setFilterBySubject(newSubject);
         actions.setFilterByTutor(null);
-    };
+    }, [actions]);
 
     return (
         <div

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import useModalActionStrategy from '@/hooks/useModalActionStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 
@@ -10,12 +10,11 @@ const CalendarRenderModals = ({
     onClose,
     updateCalendarTarget,
 }) => {
-    // Hook is allowed to return null
     const modalActionStrategy = useModalActionStrategy(calendarAction);
     const { session } = useAuthSession();
-    const userEmail = session?.user.email;
-    // Memoize the modal data so it doesn't recreate on every render
-    // Must be called before any early returns (Rules of Hooks)
+    const userEmail = session.user.email;
+
+    // memoise the modal data so it doesn't recreate on every render
     const modalData = useMemo(() => {
         if (!modalActionStrategy || !calendarTarget) {
             return null;
@@ -38,14 +37,20 @@ const CalendarRenderModals = ({
         });
     }, [modalActionStrategy, calendarTarget, userEmail]);
 
-    // ⛔ Guard BEFORE rendering
+    // sync draft data back to calendarTarget when first created
+    // this ensures subsequent updates preserve the entityType and prevent re-creating the draft
+    useEffect(() => {
+        if (modalData && modalData.entityType && !calendarTarget.entityType) {
+            updateCalendarTarget(modalData);
+        }
+    }, [modalData, calendarTarget, updateCalendarTarget]);
+
+    // guard before rendering
     if (!calendarAction || !calendarTarget || !modalActionStrategy) {
         return null;
     }
 
-    // ✅ Safe to destructure now
-    const { Modal, mode, createDraft, dataProp } = modalActionStrategy;
-
+    const { Modal, mode, dataProp } = modalActionStrategy;
     const updateFormState = (updates) => updateCalendarTarget(updates);
 
     const modalProps = {

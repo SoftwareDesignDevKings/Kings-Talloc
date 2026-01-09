@@ -105,4 +105,4 @@ const ParticipantsSection = ({
     );
 };
 
-export default ParticipantsSection;
+export default React.memo(ParticipantsSection);

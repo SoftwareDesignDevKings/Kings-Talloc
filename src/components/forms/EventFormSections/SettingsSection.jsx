@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import Select from 'react-select';
 import { MdSettings } from '@/components/icons';
 
@@ -10,6 +10,20 @@ const SettingsSection = ({
     workStatusOptions,
     readOnly,
 }) => {
+    // memoised handlers for Select components
+    const handleWorkTypeChange = useCallback((selectedOption) => {
+        setNewEvent((prev) => ({
+            ...prev,
+            workType: selectedOption.value,
+        }));
+    }, [setNewEvent]);
+
+    const handleWorkStatusChange = useCallback((selectedOption) => {
+        setNewEvent((prev) => ({
+            ...prev,
+            workStatus: selectedOption.value,
+        }));
+    }, [setNewEvent]);
     return (
         <div className="accordion-item">
             <h2 className="accordion-header">
@@ -80,12 +94,7 @@ const SettingsSection = ({
                         <Select
                             name="workType"
                             options={workTypeOptions}
-                            onChange={(selectedOption) =>
-                                setNewEvent({
-                                    ...newEvent,
-                                    workType: selectedOption.value,
-                                })
-                            }
+                            onChange={handleWorkTypeChange}
                             classNamePrefix="select"
                             value={workTypeOptions.find(
                                 (option) => option.value === (newEvent.workType || 'work'),
@@ -103,12 +112,7 @@ const SettingsSection = ({
                         <Select
                             name="workStatus"
                             options={workStatusOptions}
-                            onChange={(selectedOption) =>
-                                setNewEvent({
-                                    ...newEvent,
-                                    workStatus: selectedOption.value,
-                                })
-                            }
+                            onChange={handleWorkStatusChange}
                             classNamePrefix="select"
                             value={workStatusOptions.find(
                                 (option) =>
@@ -125,4 +129,4 @@ const SettingsSection = ({
     );
 };
 
-export default SettingsSection;
+export default React.memo(SettingsSection);

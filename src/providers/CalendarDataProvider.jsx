@@ -52,25 +52,34 @@ export const CalendarDataProvider = ({ children }) => {
         }
     }, [])
 
+
+    const contextValues = useMemo(() => ({
+        // calendar streams (real-time)
+        calendarShifts,
+        setCalendarShifts,
+        calendarAvailabilities,
+        setCalendarAvailabilities,
+        calendarStudentRequests,
+        setCalendarStudentRequests,
+
+        // reference data (one-time fetch)
+        classes,
+        subjects,
+        tutors,
+        students,
+    }), [
+        calendarShifts,
+        calendarAvailabilities,
+        calendarStudentRequests,
+        classes,
+        subjects,
+        tutors,
+        students,
+    ]);
+
     return (
         <CalendarDataContext.Provider
-            value={{
-
-                // TODO: useMemo() to memoise for optimise re-render
-                // calendar streams (real-time)
-                calendarShifts,
-                setCalendarShifts,
-                calendarAvailabilities,
-                setCalendarAvailabilities,
-                calendarStudentRequests,
-                setCalendarStudentRequests,
-
-                // reference data (one-time fetch)
-                classes,
-                subjects,
-                tutors,
-                students,
-            }}
+            value={contextValues}
         >
             {children}
         </CalendarDataContext.Provider>

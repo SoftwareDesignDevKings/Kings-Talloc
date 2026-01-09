@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
 
 const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly }) => {
+    const handleTeamsMeetingToggle = useCallback(() => {
+        setNewEvent((prev) => ({
+            ...prev,
+            createTeamsMeeting: !prev.createTeamsMeeting,
+        }));
+    }, [setNewEvent]);
+
+    const handleWeeklyRecurringToggle = useCallback(() => {
+        setNewEvent((prev) => ({
+            ...prev,
+            recurring: prev.recurring === 'weekly' ? null : 'weekly',
+        }));
+    }, [setNewEvent]);
+
+    const handleFortnightlyRecurringToggle = useCallback(() => {
+        setNewEvent((prev) => ({
+            ...prev,
+            recurring: prev.recurring === 'fortnightly' ? null : 'fortnightly',
+        }));
+    }, [setNewEvent]);
     // Collapse by default for student requests (teacher viewing)
     const isStudentRequest = newEvent.createdByStudent;
     const isExpanded = !isStudentRequest;
@@ -66,12 +86,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 <button
                                     type="button"
                                     className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
-                                    onClick={() =>
-                                        setNewEvent({
-                                            ...newEvent,
-                                            createTeamsMeeting: !newEvent.createTeamsMeeting,
-                                        })
-                                    }
+                                    onClick={handleTeamsMeetingToggle}
                                     style={
                                         newEvent.createTeamsMeeting
                                             ? {
@@ -169,13 +184,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 <button
                                     type="button"
                                     className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                    onClick={() => {
-                                        setNewEvent({
-                                            ...newEvent,
-                                            recurring:
-                                                newEvent.recurring === 'weekly' ? null : 'weekly',
-                                        });
-                                    }}
+                                    onClick={handleWeeklyRecurringToggle}
                                     aria-pressed={newEvent.recurring === 'weekly'}
                                     aria-label="Repeat weekly"
                                 >
@@ -184,15 +193,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 <button
                                     type="button"
                                     className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                    onClick={() => {
-                                        setNewEvent({
-                                            ...newEvent,
-                                            recurring:
-                                                newEvent.recurring === 'fortnightly'
-                                                    ? null
-                                                    : 'fortnightly',
-                                        });
-                                    }}
+                                    onClick={handleFortnightlyRecurringToggle}
                                     aria-pressed={newEvent.recurring === 'fortnightly'}
                                     aria-label="Repeat fortnightly"
                                 >
@@ -207,4 +208,4 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
     );
 };
 
-export default EventDetailsSection;
+export default React.memo(EventDetailsSection);
