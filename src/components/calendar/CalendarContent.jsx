@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
@@ -13,7 +13,7 @@ import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 import useAlert from '@/hooks/useAlert';
 import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
-import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
+import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
 
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
@@ -245,6 +245,14 @@ const CalendarContent = () => {
 
             // FIRESTORE UPDATE
             await updateEventInFirestore(event.id, { start, end }, collectionName);
+
+            // TEAMS MEETING UPDATE - if event is a shift with Teams meeting enabled
+            if (event.entityType === CalendarEntityType.SHIFT && event.createTeamsMeeting === true && event.teamsEventId) {
+                const isAvailability = event.entityType === CalendarEntityType.AVAILABILITY;
+                const isStudentRequest = event.entityType === CalendarEntityType.STUDENT_REQUEST;
+                
+                await calendarEventUpdateTeamsMeeting(event, start, end, isAvailability, isStudentRequest, { addAlert });
+            }
 
         } catch (error) {
             // ROLLBACK on failure - restore original position

@@ -347,6 +347,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         setNewEvent={setNewEvent}
                         handleInputChange={handleInputChange}
                         readOnly={isView}
+                        addAlert={addAlert}
                     />
 
                     <ParticipantsSection
