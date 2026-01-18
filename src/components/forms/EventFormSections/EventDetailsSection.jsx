@@ -1,8 +1,20 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
 
 const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly }) => {
+    const [isRecurring, setIsRecurring] = useState(!!newEvent.recurring)
+
+    // Sync isRecurring state with newEvent.recurring changes
+    useEffect(() => {
+        setIsRecurring(!!newEvent.recurring)
+    }, [newEvent.recurring])
+
+    const handleOccurenceNumChange = useCallback((e) => {
+        const value = parseInt(e.target.value, 10) || 0;
+        setNewEvent((prev) => ({ ...prev, occurenceNum: value }));
+    }, [setNewEvent]);
+
     const handleTeamsMeetingToggle = useCallback(() => {
         setNewEvent((prev) => ({
             ...prev,
@@ -184,7 +196,10 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 <button
                                     type="button"
                                     className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                    onClick={handleWeeklyRecurringToggle}
+                                    onClick={() => {
+                                        handleWeeklyRecurringToggle()
+                                        setIsRecurring(true)
+                                    }}
                                     aria-pressed={newEvent.recurring === 'weekly'}
                                     aria-label="Repeat weekly"
                                 >
@@ -193,13 +208,38 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 <button
                                     type="button"
                                     className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                    onClick={handleFortnightlyRecurringToggle}
+                                    onClick={() => {
+                                        handleFortnightlyRecurringToggle()
+                                        setIsRecurring(true)
+                                    }}
                                     aria-pressed={newEvent.recurring === 'fortnightly'}
                                     aria-label="Repeat fortnightly"
                                 >
                                     Repeat Fortnightly
                                 </button>
                             </div>
+
+                            {isRecurring &&
+                                <div className="mb-3">
+                                    <label htmlFor="occurenceNum" className="form-label small text-muted mb-1">
+                                        Number of Occurrences *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        name="occurenceNum"
+                                        id="occurenceNum"
+                                        value={newEvent.occurenceNum || ''}
+                                        onChange={handleOccurenceNumChange}
+                                        disabled={readOnly}
+                                        aria-label="Number of Occurrences"
+                                        aria-required="true"
+                                        min="1"
+                                        placeholder="Enter number of occurrences"
+                                    />
+                                </div>
+
+                            }
                         </div>
                     )}
                 </div>

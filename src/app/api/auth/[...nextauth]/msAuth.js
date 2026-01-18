@@ -22,6 +22,10 @@ export async function authMsRefreshToken(token) {
         return token;
     }
 
+    if (process.env.NODE_ENV === "development") {
+        return token
+    }
+
     const FIVE_MINUTES = 5 * 60 * 1000;
     const shouldRefresh = Date.now() > token.microsoftTokenExpiry - FIVE_MINUTES;
     if (shouldRefresh) {

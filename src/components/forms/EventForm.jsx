@@ -28,7 +28,6 @@ import {
     deleteEventFromFirestore,
     addEventException,
 } from '@/firestore/firestoreOperations';
-import { addWeeks } from 'date-fns';
 import useAlert from '@/hooks/useAlert';
 import { CalendarEntityType } from '@/strategy/calendarStrategy.js';
 
@@ -104,7 +103,15 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 addAlert('error', 'At least one tutor must be assigned to the event.');
                 return false;
             }
-        } 
+        }
+
+        // Validate recurring event has occurrence number
+        if (newEvent.recurring && !isEditing) {
+            if (!newEvent.occurenceNum || newEvent.occurenceNum < 1) {
+                addAlert('error', 'Number of occurrences must be provided for recurring events.');
+                return false;
+            }
+        }
 
         return true;
     };
@@ -140,12 +147,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             preference: newEvent.preference || null,
             recurring: newEvent.recurring || null,
             createTeamsMeeting: newEvent.createTeamsMeeting || false,
+            occurenceNum: newEvent.occurenceNum || null,
         };
 
-        // Add 'until' date if recurring
-        if (eventData.recurring && !isEditing) {
-            eventData.until = addWeeks(new Date(newEvent.start), 10);
-        } else if (eventData.recurring && isEditing && newEvent.until) {
+        // Add 'until' date if recurring (for editing existing recurring events)
+        if (eventData.recurring && isEditing && newEvent.until) {
             eventData.until = newEvent.until;
         }
 
@@ -226,6 +232,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     });
                 }
             } else {
+                // Create single event (recurring or not)
                 const docId = await createEventInFirestore(eventData);
                 await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail, null);
                 setShowModal(false);

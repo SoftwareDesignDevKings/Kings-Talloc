@@ -29,7 +29,7 @@ export const recurringCalendarExpand = (events, options = {}) => {
         expandedEvents.push(event);
 
         // Calculate recurring event parameters
-        const { recurring, start, end, eventExceptions = [], until } = event;
+        const { recurring, start, end, eventExceptions = [], until, occurenceNum } = event;
         const eventDuration = end.getTime() - start.getTime();
 
         let weeksToAdd;
@@ -37,10 +37,12 @@ export const recurringCalendarExpand = (events, options = {}) => {
 
         if (recurring === 'weekly') {
             weeksToAdd = 1;
-            maxLimit = maxOccurrences;
+            // Use event's occurenceNum if available, otherwise fall back to maxOccurrences
+            maxLimit = occurenceNum || maxOccurrences;
         } else {
             weeksToAdd = 2;
-            maxLimit = Math.floor(maxOccurrences / 2);
+            // Use event's occurenceNum if available, otherwise fall back to calculated value
+            maxLimit = occurenceNum || Math.floor(maxOccurrences / 2);
         }
 
         const untilDate = until || null;

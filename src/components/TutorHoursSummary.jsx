@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/firestore/firestoreClient';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
+import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 
 const getMonday = (d) => {
     d = new Date(d);
@@ -27,11 +28,13 @@ const calculateBreakTime = (totalHours) => {
     return 0;
 };
 
-const isEventValid = (event) => {
-    if (event.createdByStudent && event.approvalStatus !== 'approved') {
+// checks if shift is valid
+// reject shifts that are not approved yet by Ienna, or shifts not completed by the tutor
+const isShiftValid = (shift) => {
+    if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
         return false;
     }
-    if (event.workStatus !== 'completed') {
+    if (shift.workStatus !== 'completed') {
         return false;
     }
     return true;
@@ -61,26 +64,74 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
     const [excludedShifts, setExcludedShifts] = useState(null);
 
+    useEffect(() => {
+        fetchTutorHours();
+    }, [startDate, endDate, fetchTutorHours]);
+
+
     const fetchTutorHours = useCallback(async () => {
-        const q = query(
+        // Query 1: Non-recurring shifts in the date range
+        const nonRecurringQuery = query(
             collection(db, 'shifts'),
             where('start', '>=', startDate),
-            where('end', '<=', endDate),
-            orderBy('start'),
+            where('start', '<=', endDate),
+            where('recurring', '==', null)
         );
 
-        const querySnapshot = await getDocs(q);
-        const events = querySnapshot.docs.map((doc) => doc.data());
+        // Query 2: ALL recurring shifts (no date filter)
+        const recurringQuery = query(
+            collection(db, 'shifts'),
+            where('recurring', 'in', ['weekly', 'fortnightly'])
+        );
+
+        const [nonRecurringSnapshot, recurringSnapshot] = await Promise.all([
+            getDocs(nonRecurringQuery),
+            getDocs(recurringQuery)
+        ]);
+
+        // Process non-recurring shifts
+        let shifts = nonRecurringSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+            };
+        })
+
+        // Process recurring events - expand and filter to date range
+        let recurringShifts = recurringSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+                ...(data.until && { until: data.until.toDate() }),
+            };
+        });
+
+        // Expand recurring events, then filter for this time sheet date range
+        recurringShifts = recurringCalendarExpand(recurringShifts, {
+            rangeStart: startDate,
+            rangeEnd: endDate,
+            maxOccurrences: 52,
+            // TODO: double check maxOccurance to what Ienna defines in the new version. 
+
+        }).filter(shift => shift.start >= startDate && shift.start <= endDate);
+    
+
+        // Combine non-recurring and expanded recurring events
+        shifts = [...shifts, ...recurringShifts];
 
         const tutorHoursMap = {};
-
-        for (const event of events) {
-            if (!isEventValid(event)) {
+        for (const shift of shifts) {
+            if (!isShiftValid(shift)) {
                 continue;
             }
 
-            for (const staff of event.staff) {
-                if (!isTutorConfirmed(event, staff.value)) {
+            for (const staff of shift.staff) {
+                // TODO: check if this is even required - as curr system doent care if we tutor has confirmed it
+                if (!isTutorConfirmed(shift, staff.value)) {
                     continue;
                 }
 
@@ -93,15 +144,15 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 }
 
                 // Calculate event duration in hours
-                let eventDuration = (event.end.seconds - event.start.seconds) / 3600;
-                const breakTime = calculateBreakTime(eventDuration);
-                eventDuration -= breakTime;
+                let shiftDuration = (shift.end - shift.start) / 3600000; // milliseconds to hours
+                const shiftBreakTime = calculateBreakTime(shiftDuration);
+                shiftDuration -= shiftBreakTime;
 
                 // Add to appropriate category based on workType
-                if (event.workType === 'coaching') {
-                    tutorHoursMap[staff.value].coachingHours += eventDuration;
+                if (shift.workType === 'coaching') {
+                    tutorHoursMap[staff.value].coachingHours += shiftDuration;
                 } else {
-                    tutorHoursMap[staff.value].tutoringHours += eventDuration;
+                    tutorHoursMap[staff.value].tutoringHours += shiftDuration;
                 }
             }
         }
@@ -118,10 +169,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         setTutorHours(tutorHoursArray);
     }, [startDate, endDate, userRole, userEmail]);
 
-    useEffect(() => {
-        fetchTutorHours();
-    }, [startDate, endDate, fetchTutorHours]);
-
     const csvData = tutorHours.map((tutor) => ({
         Email: tutor.email,
         Name: tutor.name,
@@ -131,18 +178,59 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     }));
 
     const fetchTimesheetEvents = async (tutorEmail) => {
-        const q = query(
+        // Query 1: Non-recurring events in the date range
+        const nonRecurringQuery = query(
             collection(db, 'shifts'),
             where('start', '>=', startDate),
-            where('end', '<=', endDate),
-            orderBy('start'),
+            where('start', '<=', endDate),
+            where('recurring', '==', null)
         );
 
-        const querySnapshot = await getDocs(q);
-        const events = querySnapshot.docs.map((doc) => doc.data());
+        // Query 2: ALL recurring events
+        const recurringQuery = query(
+            collection(db, 'shifts'),
+            where('recurring', 'in', ['weekly', 'fortnightly'])
+        );
 
+        const [nonRecurringSnapshot, recurringSnapshot] = await Promise.all([
+            getDocs(nonRecurringQuery),
+            getDocs(recurringQuery)
+        ]);
+
+        // Process non-recurring events
+        let events = nonRecurringSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+            };
+        });
+
+        // process recurring events
+        let recurringEvents = recurringSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+                ...(data.until && { until: data.until.toDate() }),
+            };
+        });
+
+        // Expand recurring events
+        recurringEvents = recurringCalendarExpand(recurringEvents, {
+            rangeStart: startDate,
+            rangeEnd: endDate,
+            maxOccurrences: 52,
+        }).filter(event => event.start >= startDate && event.start <= endDate);
+
+        // Combine events
+        events = [...events, ...recurringEvents];
+
+        // Filter for this tutor
         return events.filter((event) => {
-            if (!isEventValid(event)) return false;
+            if (!isShiftValid(event)) return false;
 
             const isStaffMember = event.staff.some((staff) => staff.value === tutorEmail);
             if (!isStaffMember) return false;
@@ -157,10 +245,10 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
         // Group events by day and categorize them
         for (const event of events) {
-            const eventStartDate = new Date(event.start.seconds * 1000);
-            const eventEndDate = new Date(event.end.seconds * 1000);
+            const eventStartDate = event.start;
+            const eventEndDate = event.end;
             const dayName = eventStartDate.toLocaleDateString('en-US', { weekday: 'long' });
-            const eventDuration = (event.end.seconds - event.start.seconds) / 3600;
+            const eventDuration = (event.end - event.start) / 3600000; // milliseconds to hours
 
             if (!dayData[dayName]) {
                 dayData[dayName] = {
@@ -321,7 +409,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             addAlert('success', `${role} timesheet generated and downloaded successfully`);
         } catch (error) {
             console.error('Error generating timesheet:', error);
-            addAlert('error', `Error generating timesheet: ${error.message}`);
+            addAlert('error', `Error: ${error.message}`);
         }
     };
 

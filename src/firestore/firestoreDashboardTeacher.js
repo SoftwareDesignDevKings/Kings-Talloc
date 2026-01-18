@@ -1,5 +1,6 @@
 import { db } from '@/firestore/firestoreClient';
-import { collection, query, where, getDocs, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 
 /**
  * Fetch dashboard data for teacher role
@@ -25,19 +26,30 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
     weekEnd.setDate(weekStart.getDate() + 7);
 
     try {
-        // OPTIMIZATION 1: Reduced from 6 to 4 queries
-        // Fetch weekly events once, derive today's and upcoming from it
-        const [weeklyEventsSnapshot, pendingRequestsSnapshot, tutorsSnapshot, weeklyAvailabilitiesSnapshot] =
-            await Promise.all([
-                // Single query for all events this week (includes today + upcoming)
-                getDocs(
-                    query(
-                        collection(db, 'shifts'),
-                        where('start', '>=', Timestamp.fromDate(weekStart)),
-                        where('start', '<', Timestamp.fromDate(weekEnd)),
-                        orderBy('start', 'asc'),
-                    ),
-                ),
+        // OPTIMIZATION 1: Separate queries for non-recurring and recurring events
+        const [
+            nonRecurringEventsSnapshot,
+            recurringEventsSnapshot,
+            pendingRequestsSnapshot,
+            tutorsSnapshot,
+            weeklyAvailabilitiesSnapshot
+        ] = await Promise.all([
+            // Non-recurring events this week
+            getDocs(
+                query(
+                    collection(db, 'shifts'),
+                    where('start', '>=', Timestamp.fromDate(weekStart)),
+                    where('start', '<', Timestamp.fromDate(weekEnd)),
+                    where('recurring', '==', null)
+                )
+            ),
+            // ALL recurring events (no date filter)
+            getDocs(
+                query(
+                    collection(db, 'shifts'),
+                    where('recurring', 'in', ['weekly', 'fortnightly'])
+                )
+            ),
                 // Only pending requests
                 getDocs(
                     query(
@@ -57,7 +69,40 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
                 ),
             ]);
 
-        // OPTIMIZATION 2: Pre-allocate data structures for O(1) operations
+        // OPTIMIZATION 2: Process non-recurring events
+        let weeklyEvents = nonRecurringEventsSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+            };
+        });
+
+        // Process recurring events
+        let recurringEvents = recurringEventsSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+                ...(data.until && { until: data.until.toDate() }),
+            };
+        });
+
+        // Expand recurring events for this week
+        recurringEvents = recurringCalendarExpand(recurringEvents, {
+            rangeStart: weekStart,
+            rangeEnd: weekEnd,
+            maxOccurrences: 52,
+        }).filter(event => event.start >= weekStart && event.start < weekEnd);
+
+        // Combine all events
+        weeklyEvents = [...weeklyEvents, ...recurringEvents];
+
+        // OPTIMIZATION 3: Pre-allocate data structures for O(1) operations
         const activeTutorEmails = new Set(); // O(1) add/lookup
         const subjectCounts = new Map(); // O(1) add/lookup (faster than {})
         const todayEvents = [];
@@ -67,23 +112,14 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
         let tutoringHours = 0;
         let coachingHours = 0;
 
-        // OPTIMIZATION 3: Single-pass O(n) processing instead of multiple O(n) loops
-        for (const doc of weeklyEventsSnapshot.docs) {
-            const data = doc.data();
-            const start = data.start.toDate();
-            const end = data.end.toDate();
+        // OPTIMIZATION 4: Single-pass O(n) processing instead of multiple O(n) loops
+        for (const event of weeklyEvents) {
+            const start = event.start;
+            const end = event.end;
 
             // Classify event (today, upcoming, or past)
             const isTodayEvent = start >= startOfToday && start <= endOfToday;
             const isUpcomingEvent = start > now;
-
-            // Build event object once
-            const event = {
-                id: doc.id,
-                ...data,
-                start,
-                end,
-            };
 
             // Categorize events
             if (isTodayEvent) {
@@ -95,18 +131,18 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             }
 
             // Track active tutors - O(1) per staff member
-            if (data.staff) {
-                for (let i = 0; i < data.staff.length; i++) {
-                    activeTutorEmails.add(data.staff[i].value);
+            if (event.staff) {
+                for (let i = 0; i < event.staff.length; i++) {
+                    activeTutorEmails.add(event.staff[i].value);
                 }
             }
 
             // Subject distribution - O(1) per event
-            if (data.subject) {
+            if (event.subject) {
                 const subjectName =
-                    typeof data.subject === 'string'
-                        ? data.subject
-                        : data.subject.label || data.subject.value || 'Unknown';
+                    typeof event.subject === 'string'
+                        ? event.subject
+                        : event.subject.label || event.subject.value || 'Unknown';
                 subjectCounts.set(subjectName, (subjectCounts.get(subjectName) || 0) + 1);
             }
 
@@ -115,11 +151,11 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             totalBookedHours += hours;
 
             // Completed count and hours tracking - O(1)
-            if (data.workStatus === 'completed') {
+            if (event.workStatus === 'completed') {
                 if (end < now) {
                     completedEvents++;
                 }
-                if (data.workType === 'coaching') {
+                if (event.workType === 'coaching') {
                     coachingHours += hours;
                 } else {
                     tutoringHours += hours;
