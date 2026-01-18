@@ -73,7 +73,7 @@ const StudentEventForm = ({
                 approvalStatus: 'pending',
             }));
         }
-    }, [selectedStudent, isEditing]);
+    }, [selectedStudent, isEditing, setNewEvent]);
 
     // guard against stale selectedTutor when time changes
     useEffect(() => {
@@ -85,7 +85,7 @@ const StudentEventForm = ({
             setSelectedTutor(null);
             setNewEvent(prev => ({ ...prev, staff: [] }));
         }
-    }, [filteredTutors, selectedTutor]);
+    }, [filteredTutors, selectedTutor, setNewEvent]);
 
     const handleTutorSelectChange = (selectedOption) => {
         setSelectedTutor(selectedOption);
