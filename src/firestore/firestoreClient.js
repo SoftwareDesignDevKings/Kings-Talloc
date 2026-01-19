@@ -23,15 +23,29 @@ if (getApps().length > 0) {
     app = initializeApp(firebaseConfig);
 }
 
-// app check for recaptcha in browser (skip in emulator mode)
-if (typeof window !== "undefined" && !process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS) {
-    initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(
-            process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-        ),
-        isTokenAutoRefreshEnabled: true,
-    });
+
+// app check for recaptcha in browser
+if (typeof window !== "undefined") {
+
+    // only run in production
+    if (process.env.NODE_ENV !== 'development') {
+        initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(
+                process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+            ),
+            isTokenAutoRefreshEnabled: true,
+        });
+    }
 }
+
+// if (typeof window !== "undefined") {
+//     initializeAppCheck(app, {
+//         provider: new ReCaptchaV3Provider(
+//             process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+//         ),
+//         isTokenAutoRefreshEnabled: true,
+//     });
+// }
 
 /**
  * CLIENT SIDE - Firebase Auth instance
@@ -49,16 +63,16 @@ const db = getFirestore(app);
  */
 const storage = getStorage(app);
 
-// Connect to emulators if enabled
-if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === '1') {
-    if (typeof window !== 'undefined') {
-        // Only connect emulators on the client side once
-        try {
-            connectAuthEmulator(auth, `http://${process.env.NEXT_PUBLIC_E2E_TEST_FIREBASE_AUTH_EMULATOR_HOST}`, { disableWarnings: true });
-            connectFirestoreEmulator(db, process.env.NEXT_PUBLIC_E2E_TEST_FIRESTORE_EMULATOR_HOST, 8080);
-            console.log('Connected to Firebase emulators');
-        } catch (error) {
-            // Emulators already connected
+// Connect to emulators in development mode (client-side only)
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    try {
+        connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+        connectFirestoreEmulator(db, '127.0.0.1', 8080);
+        console.log('🔥 Connected to Firebase emulators');
+    } catch (error) {
+        // Ignore "already started" errors (hot reload)
+        if (!error.message.includes('already been started')) {
+            console.error('⚠️ Emulator connection failed:', error.message);
         }
     }
 }

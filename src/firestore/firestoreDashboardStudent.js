@@ -1,5 +1,7 @@
 import { db } from '@/firestore/firestoreClient';
-import { collection, query, where, getDocs, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
+import { addWeeks } from 'date-fns';
 
 /**
  * Fetch dashboard data for student role
@@ -15,38 +17,43 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
 
+    // Week boundaries
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - diff);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
     try {
-        // OPTIMIZATION 1: Reduced from 7 to 5 queries
-        // Combined completed events query with end date filter to avoid client-side .filter()
+        // OPTIMIZATION 1: Separate queries for non-recurring and recurring events
         const [
-            todayEventsSnapshot,
-            upcomingEventsSnapshot,
+            nonRecurringEventsSnapshot,
+            recurringEventsSnapshot,
             completedEventsSnapshot,
             pendingRequestsSnapshot,
             rejectedRequestsSnapshot,
             tutorsSnapshot,
         ] = await Promise.all([
-            // Today's events for this student only
+            // Non-recurring events for this student (broad range for today + upcoming + weekly)
             getDocs(
                 query(
                     collection(db, 'shifts'),
                     where('students', 'array-contains', { value: userEmail, label: userEmail }),
                     where('start', '>=', Timestamp.fromDate(startOfToday)),
-                    where('start', '<=', Timestamp.fromDate(endOfToday)),
-                    orderBy('start', 'asc'),
+                    where('recurring', '==', null),
                 ),
             ),
-            // Upcoming events for this student (next 5)
+            // ALL recurring events for this student
             getDocs(
                 query(
                     collection(db, 'shifts'),
                     where('students', 'array-contains', { value: userEmail, label: userEmail }),
-                    where('start', '>', Timestamp.fromDate(now)),
-                    orderBy('start', 'asc'),
-                    limit(5),
+                    where('recurring', 'in', ['weekly', 'fortnightly']),
                 ),
             ),
-            // Completed events (end time before now to avoid client-side filter)
+            // Completed events count (end time before now)
             getDocs(
                 query(
                     collection(db, 'shifts'),
@@ -75,34 +82,71 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             getDocs(query(collection(db, 'users'), where('role', '==', 'tutor'))),
         ]);
 
-        // OPTIMIZATION 2: Pre-allocate arrays for O(1) push operations
-        const todayEvents = [];
-        const upcomingEvents = [];
-
-        // OPTIMIZATION 3: Single-pass O(n) processing with for...of loops
-        for (const doc of todayEventsSnapshot.docs) {
+        // OPTIMIZATION 2: Process non-recurring events
+        let allEvents = nonRecurringEventsSnapshot.docs.map((doc) => {
             const data = doc.data();
-            todayEvents.push({
+            return {
                 id: doc.id,
                 ...data,
                 start: data.start.toDate(),
                 end: data.end.toDate(),
-            });
-        }
+            };
+        });
 
-        for (const doc of upcomingEventsSnapshot.docs) {
+        // Process recurring events
+        let recurringEvents = recurringEventsSnapshot.docs.map((doc) => {
             const data = doc.data();
-            upcomingEvents.push({
+            return {
                 id: doc.id,
                 ...data,
                 start: data.start.toDate(),
                 end: data.end.toDate(),
-            });
-        }
+                ...(data.until && { until: data.until.toDate() }),
+            };
+        });
+
+        // Expand recurring events (for today to future)
+        recurringEvents = recurringCalendarExpand(recurringEvents, {
+            rangeStart: startOfToday,
+            rangeEnd: addWeeks(now, 52),
+            maxOccurrences: 52,
+        }).filter(event => event.start >= startOfToday);
+
+        // Combine all events
+        allEvents = [...allEvents, ...recurringEvents];
+
+        // Filter for today's events
+        const todayEvents = allEvents.filter(event => {
+            return event.start >= startOfToday && event.start <= endOfToday;
+        });
+
+        // Filter for upcoming events (limit to 5)
+        const upcomingEvents = allEvents.filter(event => {
+            return event.start > now;
+        }).slice(0, 5);
 
         // OPTIMIZATION 4: Direct .size access instead of client-side .filter()
         // Completed count is now server-filtered with end < now
         const completedEvents = completedEventsSnapshot.size;
+
+        // Calculate weekly hours from already-expanded events
+        let tutoringHours = 0;
+        let coachingHours = 0;
+        const weeklyCompletedEvents = allEvents.filter(event => {
+            return event.start >= weekStart &&
+                   event.start < weekEnd &&
+                   event.workStatus === 'completed';
+        });
+
+        for (const event of weeklyCompletedEvents) {
+            const hours = (event.end - event.start) / 3600000; // milliseconds to hours
+
+            if (event.workType === 'coaching') {
+                coachingHours += hours;
+            } else {
+                tutoringHours += hours;
+            }
+        }
 
         return {
             todayEvents,
@@ -113,6 +157,10 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             approvedRequests: 0, // Removed redundant approved query (events are already approved once in events collection)
             rejectedRequests: rejectedRequestsSnapshot.size,
             availableTutors: tutorsSnapshot.size,
+            weeklyHours: {
+                tutoring: Math.round(tutoringHours * 10) / 10,
+                coaching: Math.round(coachingHours * 10) / 10,
+            },
         };
     } catch (error) {
         console.error('Error fetching student dashboard data:', error);
@@ -125,6 +173,7 @@ export const fetchDashboardFirestoreDataStudent = async (userEmail, now = new Da
             approvedRequests: 0,
             rejectedRequests: 0,
             availableTutors: 0,
+            weeklyHours: { tutoring: 0, coaching: 0 },
         };
     }
 };

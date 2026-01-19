@@ -4,7 +4,7 @@
  * Tests users collection access control focusing on role management permissions
  * This tests the actual firestore.rules file against the Firebase emulator
  *
- * Run with: firebase emulators:exec --only firestore "npm test -- __tests__/firebase.users.test.js"
+ * Run with: firebase emulators:exec --only firestore "npm test -- tests/firebase.users.test.js"
  *
  * @jest-environment node
  */

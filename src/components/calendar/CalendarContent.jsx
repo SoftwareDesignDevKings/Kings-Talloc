@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
@@ -13,7 +13,7 @@ import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 import useAlert from '@/hooks/useAlert';
 import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
-import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
+import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
 
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
@@ -43,8 +43,8 @@ const localizer = dateFnsLocalizer({
 
 const DnDCalendar = withDragAndDrop(Calendar);
 
-const MemoizedCustomEvent = memo(CustomEvent);
-const MemoizedCalendarTimeSlot = memo(CustomTimeslot);
+const MemoisedCustomEvent = memo(CustomEvent);
+const MemoisedCalendarTimeSlot = memo(CustomTimeslot);
 
 /* ───────────────────────────────────────────────────────────── */
 /* CalendarContent                                                */
@@ -102,13 +102,22 @@ const CalendarContent = () => {
 
     /**
      * Update specific fields in the draft event/target
-     * @param {Object} fieldUpdates - Object with field names as keys (e.g., { title: "Math", staff: [...] })
+     * @param {Object|Function} fieldUpdates - object with field names as keys (e.g. { title: "Math", staff: [...] }) 
+     * or a function that receives previous state
      */
     const updateCalendarTarget = (fieldUpdates) => {
-        setCalendarTarget((prevTarget) => ({
-            ...prevTarget,      // Keep all existing fields
-            ...fieldUpdates,    // Overwrite with new field values
-        }));
+        setCalendarTarget((prevTarget) => {
+            let updates;
+            if (typeof fieldUpdates === 'function') {
+                updates = fieldUpdates(prevTarget)
+            } else {
+                updates = fieldUpdates
+            }
+            return {
+                ...prevTarget,
+                ...updates
+            }
+        });
     };
 
 
@@ -140,6 +149,7 @@ const CalendarContent = () => {
         });
     };
 
+    // rbc - handle event duplication
     const handleDuplicateEvent = async (event) => {
         try {
             // calculate new start/end (next day, same duration)
@@ -147,10 +157,8 @@ const CalendarContent = () => {
             const newStart = addDays(event.start, 1);
             const newEnd = new Date(newStart.getTime() + duration);
 
-            // copy event data but remove properties that shouldn't be duplicated
+            // copy event data but remove properties that shouldn't be duplicated and create duplication event dictionary
             const { id, createdAt, updatedAt, recurringEventId, isRecurringInstance, recurring, until, eventExceptions, entityType, ...eventData } = event;
-
-            // Prepare the duplicated event data
             const duplicatedEvent = {
                 ...eventData,
                 start: newStart,
@@ -203,51 +211,77 @@ const CalendarContent = () => {
         }
     };
 
+    // helper to map entity type to firebase collection name and state setter
+    const getCalendarEntityHandlers = (entityType) => {
+        const collectionMap = {
+            [CalendarEntityType.SHIFT]: 'shifts',
+            [CalendarEntityType.AVAILABILITY]: 'tutorAvailabilities',
+            [CalendarEntityType.STUDENT_REQUEST]: 'studentEventRequests',
+        };
+        const stateSetterMap = {
+            [CalendarEntityType.SHIFT]: setCalendarShifts,
+            [CalendarEntityType.AVAILABILITY]: setCalendarAvailabilities,
+            [CalendarEntityType.STUDENT_REQUEST]: setCalendarStudentRequests,
+        };
+        return {
+            collectionName: collectionMap[entityType],
+            setStateFn: stateSetterMap[entityType],
+        };
+    };
+
+    // shared handler for event updates with instant UI state update and rollback
+    const updateEventWithRollback = async (event, start, end, actionLabel) => {
+        const originalStart = event.start;
+        const originalEnd = event.end;
+        const { collectionName, setStateFn } = getCalendarEntityHandlers(event.entityType);
+
+        if (!collectionName || !setStateFn) return;
+
+        try {
+            // UI STATE UPDATE - immediate UI feedback
+            setStateFn(prev => prev.map(existingEvent =>
+                existingEvent.id === event.id ? { ...existingEvent, start, end } : existingEvent
+            ));
+
+            // FIRESTORE UPDATE
+            await updateEventInFirestore(event.id, { start, end }, collectionName);
+
+            // TEAMS MEETING UPDATE - if event is a shift with Teams meeting enabled
+            if (event.entityType === CalendarEntityType.SHIFT && event.createTeamsMeeting === true && event.teamsEventId) {
+                const isAvailability = event.entityType === CalendarEntityType.AVAILABILITY;
+                const isStudentRequest = event.entityType === CalendarEntityType.STUDENT_REQUEST;
+                
+                await calendarEventUpdateTeamsMeeting(event, start, end, isAvailability, isStudentRequest, { addAlert });
+            }
+
+        } catch (error) {
+            // ROLLBACK on failure - restore original position
+            setStateFn(prev => prev.map(existingEvent =>
+                existingEvent.id === event.id ? { ...existingEvent, start: originalStart, end: originalEnd } : existingEvent
+            ));
+
+            addAlert('error', `Failed to ${actionLabel} event: ${error.message}`);
+            console.error(`Failed to ${actionLabel} event:`, error);
+        }
+    };
+
+    // handle RBC event drop
     const handleEventDrop = async ({ event, start, end }) => {
-        if (!strategy.permissions?.canDrag?.(event)) return;
-
-        try {
-            // Determine collection based on entity type
-            const collectionMap = {
-                [CalendarEntityType.SHIFT]: 'shifts',
-                [CalendarEntityType.AVAILABILITY]: 'tutorAvailabilities',
-                [CalendarEntityType.STUDENT_REQUEST]: 'studentEventRequests',
-            };
-            const collectionName = collectionMap[event.entityType];
-
-            if (!collectionName) return;
-
-            // Update in Firestore
-            await updateEventInFirestore(event.id, { start, end }, collectionName);
-        } catch (error) {
-            console.error('Failed to update event:', error);
+        if (!strategy.permissions.canDrag(event)) {
+            return;
         }
+        await updateEventWithRollback(event, start, end, 'move');
     };
-
+    
+    // handle RBC event resize
     const handleEventResize = async ({ event, start, end }) => {
-        if (!strategy.permissions?.canResize?.(event)) return;
-
-        try {
-            // Determine collection based on entity type
-            const collectionMap = {
-                [CalendarEntityType.SHIFT]: 'shifts',
-                [CalendarEntityType.AVAILABILITY]: 'tutorAvailabilities',
-                [CalendarEntityType.STUDENT_REQUEST]: 'studentEventRequests',
-            };
-            const collectionName = collectionMap[event.entityType];
-
-            if (!collectionName) return;
-
-            // Update in Firestore
-            await updateEventInFirestore(event.id, { start, end }, collectionName);
-        } catch (error) {
-            console.error('Failed to resize event:', error);
-        }
+        if (!strategy.permissions.canResize(event)) {
+            return;
+        }        
+        await updateEventWithRollback(event, start, end, 'resize');
     };
 
-    /* ----------------------------------------------------------- */
-    /* Render helpers                                              */
-    /* ----------------------------------------------------------- */
+    // render RBC time-slots
     const renderTimeSlotWrapper = (props) => {
         if (!strategy.visibility.showAvailabilitySlots) {
             return props.children;
@@ -260,7 +294,7 @@ const CalendarContent = () => {
         const { value, children, ...rest } = props;
 
         return (
-            <MemoizedCalendarTimeSlot
+            <MemoisedCalendarTimeSlot
                 {...rest}
                 slotStartValue={value}
                 slotAvailabilities={overlayAvailabilities}
@@ -268,24 +302,22 @@ const CalendarContent = () => {
                 slotWeekEnd={weekEnd}
             >
                 {children}
-            </MemoizedCalendarTimeSlot>
+            </MemoisedCalendarTimeSlot>
         );
     };
 
+    // render RBC custom event
     const renderEvent = (eventProps) => (
-        <MemoizedCustomEvent
+        <MemoisedCustomEvent
             event={eventProps.event}
             canDuplicate={strategy.actions.canDuplicateEvent?.(eventProps.event)}
             onDuplicate={handleDuplicateEvent}
         />
     );
 
+    // render different views depending on device
     const defaultView = device === 'mobile' ? Views.DAY : Views.WEEK;
     const rbcViews = device === 'mobile' ? [Views.DAY, Views.WEEK] : [Views.DAY, Views.WEEK, Views.MONTH];
-
-    /* ----------------------------------------------------------- */
-    /* Render                                                      */
-    /* ----------------------------------------------------------- */
 
     return (
         <div className="d-flex h-100 w-100">

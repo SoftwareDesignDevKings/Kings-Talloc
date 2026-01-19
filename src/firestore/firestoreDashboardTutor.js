@@ -1,5 +1,7 @@
 import { db } from '@/firestore/firestoreClient';
-import { collection, query, where, getDocs, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
+import { addWeeks } from 'date-fns';
 
 /**
  * Fetch dashboard data for tutor role
@@ -25,27 +27,24 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
     weekEnd.setDate(weekStart.getDate() + 7);
 
     try {
-        // OPTIMIZATION 1: Reduced from 5 to 3 queries
-        // Fetch weekly events once, derive today's, upcoming, completed, and incomplete from it
-        const [weeklyEventsSnapshot, upcomingEventsSnapshot, confirmationEventsSnapshot] =
+        // OPTIMIZATION 1: Separate queries for non-recurring and recurring events
+        const [nonRecurringEventsSnapshot, recurringEventsSnapshot, confirmationEventsSnapshot] =
             await Promise.all([
-                // Single query for all events this week (includes today + stats)
+                // Non-recurring events for this tutor (this week onwards)
                 getDocs(
                     query(
                         collection(db, 'shifts'),
                         where('staff', 'array-contains', { value: userEmail, label: userEmail }),
                         where('start', '>=', Timestamp.fromDate(weekStart)),
-                        where('start', '<', Timestamp.fromDate(weekEnd)),
+                        where('recurring', '==', null),
                     ),
                 ),
-                // Upcoming events beyond this week (limit 5)
+                // ALL recurring events for this tutor
                 getDocs(
                     query(
                         collection(db, 'shifts'),
                         where('staff', 'array-contains', { value: userEmail, label: userEmail }),
-                        where('start', '>=', Timestamp.fromDate(weekEnd)),
-                        orderBy('start', 'asc'),
-                        limit(5),
+                        where('recurring', 'in', ['weekly', 'fortnightly']),
                     ),
                 ),
                 // Events requiring confirmation
@@ -58,53 +57,77 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
                 ),
             ]);
 
-        // OPTIMIZATION 2: Pre-allocate data structures for O(1) operations
+        // OPTIMIZATION 2: Process non-recurring events
+        let allEvents = nonRecurringEventsSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+            };
+        });
+
+        // Process recurring events
+        let recurringEvents = recurringEventsSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                start: data.start.toDate(),
+                end: data.end.toDate(),
+                ...(data.until && { until: data.until.toDate() }),
+            };
+        });
+
+        // Expand recurring events (this week onwards)
+        recurringEvents = recurringCalendarExpand(recurringEvents, {
+            rangeStart: weekStart,
+            rangeEnd: addWeeks(weekEnd, 52),
+            maxOccurrences: 52,
+        }).filter(event => event.start >= weekStart);
+
+        // Combine all events
+        allEvents = [...allEvents, ...recurringEvents];
+
+        // Filter for this week's events
+        const weeklyEvents = allEvents.filter(event => {
+            return event.start >= weekStart && event.start < weekEnd;
+        });
+
+        // OPTIMIZATION 3: Pre-allocate data structures for O(1) operations
         const uniqueStudentEmails = new Set(); // O(1) add/lookup
         const todayEvents = [];
-        const thisWeekUpcoming = [];
         let tutoringHours = 0;
         let coachingHours = 0;
         let needsCompletion = 0;
         let completedEvents = 0;
 
-        // OPTIMIZATION 3: Single-pass O(n) processing instead of multiple O(n) loops
-        for (const doc of weeklyEventsSnapshot.docs) {
-            const data = doc.data();
-            const start = data.start.toDate();
-            const end = data.end.toDate();
+        // OPTIMIZATION 4: Single-pass O(n) processing instead of multiple O(n) loops
+        for (const event of weeklyEvents) {
+            const start = event.start;
+            const end = event.end;
             const hours = (end - start) / 3600000; // milliseconds to hours
 
             // Classify event (today, upcoming, completed)
             const isTodayEvent = start >= startOfToday && start <= endOfToday;
-            const isUpcomingEvent = start > now;
-
-            // Build event object once
-            const event = {
-                id: doc.id,
-                ...data,
-                start,
-                end,
-            };
 
             // Categorize events
             if (isTodayEvent) {
                 todayEvents.push(event);
             }
-            if (isUpcomingEvent && thisWeekUpcoming.length < 5) {
-                thisWeekUpcoming.push(event);
-            }
 
             // Track unique students - O(1) per student
-            if (data.students) {
-                for (let i = 0; i < data.students.length; i++) {
-                    uniqueStudentEmails.add(data.students[i].value);
+            if (event.students) {
+                for (let i = 0; i < event.students.length; i++) {
+                    uniqueStudentEmails.add(event.students[i].value);
                 }
             }
 
             // Hours calculation & completion tracking - O(1)
-            if (data.workStatus === 'completed') {
+            if (event.workStatus === 'completed') {
                 completedEvents++;
-                if (data.workType === 'coaching') {
+                if (event.workType === 'coaching') {
                     coachingHours += hours;
                 } else {
                     tutoringHours += hours;
@@ -115,21 +138,10 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
             }
         }
 
-        // OPTIMIZATION 4: Process upcoming events - combine this week + beyond
-        const upcomingEvents = [];
-        for (let i = 0; i < thisWeekUpcoming.length && upcomingEvents.length < 5; i++) {
-            upcomingEvents.push(thisWeekUpcoming[i]);
-        }
-        for (const doc of upcomingEventsSnapshot.docs) {
-            if (upcomingEvents.length >= 5) break;
-            const data = doc.data();
-            upcomingEvents.push({
-                id: doc.id,
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-            });
-        }
+        // OPTIMIZATION 5: Process upcoming events from already-expanded allEvents
+        const upcomingEvents = allEvents
+            .filter(event => event.start > now)
+            .slice(0, 5);
 
         // OPTIMIZATION 5: Confirmation processing - single pass O(n)
         let needsConfirmation = 0;

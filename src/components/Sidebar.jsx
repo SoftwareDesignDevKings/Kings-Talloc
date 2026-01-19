@@ -62,14 +62,14 @@ const Sidebar = ({ userRole, user }) => {
                     <ul className={styles.navList}>
                         <li
                             className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                            onClick={() => router.push('dashboard')}
+                            onClick={() => router.push('/dashboard')}
                         >
                             <FiHome className={styles.navIcon} />
                             {!isCollapsed && <span>Dashboard</span>}
                         </li>
                         <li
                             className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                            onClick={() => router.push('calendar')}
+                            onClick={() => router.push('/calendar')}
                         >
                             <FiCalendar className={styles.navIcon} />
                             {!isCollapsed && <span>Calendar</span>}
@@ -78,14 +78,14 @@ const Sidebar = ({ userRole, user }) => {
                             <>
                                 <li
                                     className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                    onClick={() => router.push('userRoles')}
+                                    onClick={() => router.push('/userRoles')}
                                 >
                                     <FiUsers className={styles.navIcon} />
                                     {!isCollapsed && <span>User Roles</span>}
                                 </li>
                                 <li
                                     className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                    onClick={() => router.push('classes')}
+                                    onClick={() => router.push('/classes')}
                                 >
                                     <FiBook className={styles.navIcon} />
                                     {!isCollapsed && <span>Manage Classes</span>}
@@ -95,7 +95,7 @@ const Sidebar = ({ userRole, user }) => {
                         {userRole === 'teacher' && (
                             <li
                                 className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                onClick={() => router.push('subjects')}
+                                onClick={() => router.push('/subjects')}
                             >
                                 <FiBookOpen className={styles.navIcon} />
                                 {!isCollapsed && <span>Manage Subjects</span>}
@@ -104,7 +104,7 @@ const Sidebar = ({ userRole, user }) => {
                         {userRole !== 'student' && (
                             <li
                                 className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                onClick={() => router.push('tutorHours')}
+                                onClick={() => router.push('/tutorHours')}
                             >
                                 <FiClock className={styles.navIcon} />
                                 {!isCollapsed && <span>Tutor Hours</span>}

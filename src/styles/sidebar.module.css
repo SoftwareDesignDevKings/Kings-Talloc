@@ -10,11 +10,17 @@
 }
 
 .sidebarCollapsed {
-    width: 5rem;
+    width: 5rem !important;
+    min-width: 5rem;
+    max-width: 5rem;
+    flex-shrink: 0;
 }
 
 .sidebarExpanded {
-    width: 16rem;
+    width: 16rem !important;
+    min-width: 16rem;
+    max-width: 16rem;
+    flex-shrink: 0;
 }
 
 /* Menu Title */

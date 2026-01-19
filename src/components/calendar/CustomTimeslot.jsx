@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { addMinutes } from 'date-fns';
 
 /**
@@ -14,90 +14,97 @@ const CustomTimeslot = ({
     children,
     slotStartValue,
     slotAvailabilities = [],
-    slotTutorFilter = [], 
+    slotTutorFilter = [],
     slotWeekStart,
     slotWeekEnd,
 }) => {
-    const slotStartTime = new Date(slotStartValue);
-    const slotEndTime = addMinutes(slotStartTime, 30);
+    const slotStartTime = useMemo(() => new Date(slotStartValue), [slotStartValue]);
+    const slotEndTime = useMemo(() => addMinutes(slotStartTime, 30), [slotStartTime]);
 
     /* --------------------------------------------------------- */
     /* Filter availabilities by selected tutors                  */
     /* --------------------------------------------------------- */
-    const availabilitiesRelevantToSlot = [];
+    const availabilitiesRelevantToSlot = useMemo(() => {
+        const filtered = [];
 
-    if (slotTutorFilter.length > 0) {
-        for (const availability of slotAvailabilities) {
-            for (const tutor of slotTutorFilter) {
-                if (tutor.value === availability.tutor) {
-                    availabilitiesRelevantToSlot.push(availability);
-                    break;
+        if (slotTutorFilter.length > 0) {
+            for (const availability of slotAvailabilities) {
+                for (const tutor of slotTutorFilter) {
+                    if (tutor.value === availability.tutor) {
+                        filtered.push(availability);
+                        break;
+                    }
                 }
             }
+        } else {
+            for (const availability of slotAvailabilities) {
+                filtered.push(availability);
+            }
         }
-    } else {
-        for (const availability of slotAvailabilities) {
-            availabilitiesRelevantToSlot.push(availability);
-        }
-    }
+
+        return filtered;
+    }, [slotAvailabilities, slotTutorFilter]);
 
     /* --------------------------------------------------------- */
     /* Tutors fully covering this 30-minute slot                 */
     /* --------------------------------------------------------- */
-    const tutorInitialsCoveringThisSlot = [];
+    const uniqueTutorInitialsForSlot = useMemo(() => {
+        const tutorInitialsCoveringThisSlot = [];
 
-    for (const availability of availabilitiesRelevantToSlot) {
-        const availabilityStartTime = new Date(availability.start);
-        const availabilityEndTime = new Date(availability.end);
+        for (const availability of availabilitiesRelevantToSlot) {
+            const availabilityStartTime = new Date(availability.start);
+            const availabilityEndTime = new Date(availability.end);
 
-        const fullyCoversSlot =
-            availabilityStartTime <= slotStartTime &&
-            availabilityEndTime >= slotEndTime;
+            const fullyCoversSlot =
+                availabilityStartTime <= slotStartTime &&
+                availabilityEndTime >= slotEndTime;
 
-        if (fullyCoversSlot) {
-            tutorInitialsCoveringThisSlot.push(
-                availability.tutor.substring(0, 2).toUpperCase(),
-            );
+            if (fullyCoversSlot) {
+                tutorInitialsCoveringThisSlot.push(
+                    availability.tutor.substring(0, 2).toUpperCase(),
+                );
+            }
         }
-    }
 
-    const uniqueTutorInitialsForSlot =
-        Array.from(new Set(tutorInitialsCoveringThisSlot)).sort();
+        return Array.from(new Set(tutorInitialsCoveringThisSlot)).sort();
+    }, [availabilitiesRelevantToSlot, slotStartTime, slotEndTime]);
 
     /* --------------------------------------------------------- */
     /* Weekly tutor capacity (for heat scaling)                  */
     /* --------------------------------------------------------- */
-    const tutorsAvailableAtAnyTimeThisWeek = [];
+    const weeklyTutorCapacity = useMemo(() => {
+        const tutorsAvailableAtAnyTimeThisWeek = [];
 
-    for (const availability of availabilitiesRelevantToSlot) {
-        const availabilityStartTime = new Date(availability.start);
+        for (const availability of availabilitiesRelevantToSlot) {
+            const availabilityStartTime = new Date(availability.start);
 
-        if (
-            availabilityStartTime >= slotWeekStart &&
-            availabilityStartTime < slotWeekEnd
-        ) {
-            tutorsAvailableAtAnyTimeThisWeek.push(availability.tutor);
+            if (
+                availabilityStartTime >= slotWeekStart &&
+                availabilityStartTime < slotWeekEnd
+            ) {
+                tutorsAvailableAtAnyTimeThisWeek.push(availability.tutor);
+            }
         }
-    }
 
-    const uniqueTutorsAvailableThisWeek = Array.from(
-        new Set(tutorsAvailableAtAnyTimeThisWeek),
-    );
+        const uniqueTutorsAvailableThisWeek = Array.from(
+            new Set(tutorsAvailableAtAnyTimeThisWeek),
+        );
 
-    const weeklyTutorCapacity =
-        uniqueTutorsAvailableThisWeek.length || 1;
+        return uniqueTutorsAvailableThisWeek.length || 1;
+    }, [availabilitiesRelevantToSlot, slotWeekStart, slotWeekEnd]);
 
     /* --------------------------------------------------------- */
     /* Slot background colour                                    */
     /* --------------------------------------------------------- */
-    let slotBackgroundColor = 'transparent';
-
-    if (uniqueTutorInitialsForSlot.length > 0) {
-        slotBackgroundColor = computeAvailabilityHeatColor(
-            uniqueTutorInitialsForSlot.length,
-            weeklyTutorCapacity,
-        );
-    }
+    const slotBackgroundColor = useMemo(() => {
+        if (uniqueTutorInitialsForSlot.length > 0) {
+            return computeAvailabilityHeatColor(
+                uniqueTutorInitialsForSlot.length,
+                weeklyTutorCapacity,
+            );
+        }
+        return 'transparent';
+    }, [uniqueTutorInitialsForSlot, weeklyTutorCapacity]);
 
     /* --------------------------------------------------------- */
     /* Render                                                    */

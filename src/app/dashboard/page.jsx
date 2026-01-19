@@ -8,9 +8,14 @@ import { useEffect } from 'react';
 const DashboardPage = () => {
     const { device } = useAuthSession()
     const router = useRouter();
-    if (device === "mobile") {
-        router.replace('/calendar');
-    }
+
+    // Redirect mobile users to calendar (once on mount)
+    useEffect(() => {
+        // Only redirect if device has been determined and is mobile
+        if (device && device === "mobile") {
+            router.replace('/calendar');
+        }
+    }, [device, router]);
 
     // download JS bundle ahead of time - enabled quicker hydration
     useEffect(() => {

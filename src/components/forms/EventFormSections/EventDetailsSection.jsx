@@ -1,8 +1,40 @@
-import React from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
 
 const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly }) => {
+    const [isRecurring, setIsRecurring] = useState(!!newEvent.recurring)
+
+    // Sync isRecurring state with newEvent.recurring changes
+    useEffect(() => {
+        setIsRecurring(!!newEvent.recurring)
+    }, [newEvent.recurring])
+
+    const handleOccurenceNumChange = useCallback((e) => {
+        const value = parseInt(e.target.value, 10) || 0;
+        setNewEvent((prev) => ({ ...prev, occurenceNum: value }));
+    }, [setNewEvent]);
+
+    const handleTeamsMeetingToggle = useCallback(() => {
+        setNewEvent((prev) => ({
+            ...prev,
+            createTeamsMeeting: !prev.createTeamsMeeting,
+        }));
+    }, [setNewEvent]);
+
+    const handleWeeklyRecurringToggle = useCallback(() => {
+        setNewEvent((prev) => ({
+            ...prev,
+            recurring: prev.recurring === 'weekly' ? null : 'weekly',
+        }));
+    }, [setNewEvent]);
+
+    const handleFortnightlyRecurringToggle = useCallback(() => {
+        setNewEvent((prev) => ({
+            ...prev,
+            recurring: prev.recurring === 'fortnightly' ? null : 'fortnightly',
+        }));
+    }, [setNewEvent]);
     // Collapse by default for student requests (teacher viewing)
     const isStudentRequest = newEvent.createdByStudent;
     const isExpanded = !isStudentRequest;
@@ -66,12 +98,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 <button
                                     type="button"
                                     className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
-                                    onClick={() =>
-                                        setNewEvent({
-                                            ...newEvent,
-                                            createTeamsMeeting: !newEvent.createTeamsMeeting,
-                                        })
-                                    }
+                                    onClick={handleTeamsMeetingToggle}
                                     style={
                                         newEvent.createTeamsMeeting
                                             ? {
@@ -170,11 +197,8 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                     type="button"
                                     className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
                                     onClick={() => {
-                                        setNewEvent({
-                                            ...newEvent,
-                                            recurring:
-                                                newEvent.recurring === 'weekly' ? null : 'weekly',
-                                        });
+                                        handleWeeklyRecurringToggle()
+                                        setIsRecurring(true)
                                     }}
                                     aria-pressed={newEvent.recurring === 'weekly'}
                                     aria-label="Repeat weekly"
@@ -185,13 +209,8 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                     type="button"
                                     className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
                                     onClick={() => {
-                                        setNewEvent({
-                                            ...newEvent,
-                                            recurring:
-                                                newEvent.recurring === 'fortnightly'
-                                                    ? null
-                                                    : 'fortnightly',
-                                        });
+                                        handleFortnightlyRecurringToggle()
+                                        setIsRecurring(true)
                                     }}
                                     aria-pressed={newEvent.recurring === 'fortnightly'}
                                     aria-label="Repeat fortnightly"
@@ -199,6 +218,28 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                     Repeat Fortnightly
                                 </button>
                             </div>
+
+                            {isRecurring &&
+                                <div className="mb-3">
+                                    <label htmlFor="occurenceNum" className="form-label small text-muted mb-1">
+                                        Number of Occurrences *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        name="occurenceNum"
+                                        id="occurenceNum"
+                                        value={newEvent.occurenceNum || ''}
+                                        onChange={handleOccurenceNumChange}
+                                        disabled={readOnly}
+                                        aria-label="Number of Occurrences"
+                                        aria-required="true"
+                                        min="1"
+                                        placeholder="Enter number of occurrences"
+                                    />
+                                </div>
+
+                            }
                         </div>
                     )}
                 </div>
@@ -207,4 +248,4 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
     );
 };
 
-export default EventDetailsSection;
+export default React.memo(EventDetailsSection);

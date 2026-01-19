@@ -66,15 +66,14 @@ const StudentEventForm = ({
 
     useEffect(() => {
         if (!isEditing) {
-            setNewEvent({
-                ...newEvent,
+            setNewEvent(prev => ({
+                ...prev,
                 students: [selectedStudent],
                 createdByStudent: true,
                 approvalStatus: 'pending',
-            });
+            }));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedStudent]);
+    }, [selectedStudent, isEditing, setNewEvent]);
 
     // guard against stale selectedTutor when time changes
     useEffect(() => {
@@ -84,24 +83,23 @@ const StudentEventForm = ({
             !filteredTutors.some(t => t.value === selectedTutor.value)
         ) {
             setSelectedTutor(null);
-            setNewEvent({ ...newEvent, staff: [] });
+            setNewEvent(prev => ({ ...prev, staff: [] }));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filteredTutors]);
+    }, [filteredTutors, selectedTutor, setNewEvent]);
 
     const handleTutorSelectChange = (selectedOption) => {
         setSelectedTutor(selectedOption);
-        setNewEvent({ ...newEvent, staff: [selectedOption] });
+        setNewEvent(prev => ({ ...prev, staff: [selectedOption] }));
     };
 
     const handleSubjectChange = (selectedOption) => {
         setSelectedSubject(selectedOption);
-        setNewEvent({ ...newEvent, subject: selectedOption });
+        setNewEvent(prev => ({ ...prev, subject: selectedOption }));
     };
 
     const handlePreferenceClick = (preference) => {
         setSelectedPreference(preference);
-        setNewEvent({ ...newEvent, preference });
+        setNewEvent(prev => ({ ...prev, preference }));
     };
 
     const validateDates = () => {
