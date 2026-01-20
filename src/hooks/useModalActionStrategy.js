@@ -30,7 +30,7 @@ const MODAL_ACTION_STRATEGY = {
             createdByStudent: false,
             approvalStatus: 'pending',
             workStatus: 'notCompleted',
-            workType: 'tutoring',
+            workType: 'work',
             locationType: '',
             subject: null,
             preference: null,
@@ -70,7 +70,7 @@ const MODAL_ACTION_STRATEGY = {
 
             title: 'Availability', // optional polish
             tutor: userEmail,
-            workType: 'tutoring',
+            workType: 'work',
             locationType: 'onsite',
         }),
     },
