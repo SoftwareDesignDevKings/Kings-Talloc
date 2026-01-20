@@ -237,3 +237,8 @@
 .rbc-month-view .rbc-date-cell {
     font-weight: bold;
 }
+
+/* React DatePicker z-index fix */
+.react-datepicker-popper {
+    z-index: 9999 !important;
+}

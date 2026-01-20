@@ -141,7 +141,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             createdByStudent: newEvent.createdByStudent || false,
             approvalStatus: newEvent.approvalStatus || 'pending',
             workStatus: newEvent.workStatus || 'notCompleted',
-            workType: newEvent.workType || 'tutoring',
+            workType: newEvent.workType || 'work',
             locationType: newEvent.locationType || '',
             subject: newEvent.subject || null,
             preference: newEvent.preference || null,
