@@ -206,7 +206,7 @@ const UserRolesManager = () => {
             <h2 className="h4 mb-4 fw-bold text-tks-secondary">
                 Manage User Roles
             </h2>
-            <div className="d-flex gap-2 mb-4">
+            <div className="d-flex gap-2 mb-3">
                 <input
                     type="text"
                     placeholder="Search by name, email, or role"
@@ -226,6 +226,23 @@ const UserRolesManager = () => {
                 >
                     Add User Role
                 </button>
+            </div>
+            <hr className="my-3" />
+            <div className="d-flex flex-wrap gap-2 mb-4">
+                <a
+                    href="/api/download-template?type=tutor"
+                    download="Tutor_Timesheet_Template.docx"
+                    className="btn btn-outline-secondary btn-sm"
+                >
+                    Tutor Timesheet Template
+                </a>
+                <a
+                    href="/api/download-template?type=coach"
+                    download="Coach_Timesheet_Template.docx"
+                    className="btn btn-outline-secondary btn-sm"
+                >
+                    Coach Timesheet Template
+                </a>
             </div>
             <div className="table-responsive" style={{ height: 'calc(100% - 8rem)', overflowY: 'auto' }}>
                 <table className="table table-hover table-text-sm">

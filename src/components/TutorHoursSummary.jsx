@@ -412,7 +412,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 )}
                 <div className="table-responsive">
                     <table className="table table-sm table-hover bg-white">
-                        <thead className="sticky-top bg-light">
+                        <thead className="sticky-top bg-light" style={{ zIndex: 1 }}>
                         <tr>
                             <th className="small fw-medium text-secondary">Email</th>
                             <th className="small fw-medium text-secondary">Name</th>
