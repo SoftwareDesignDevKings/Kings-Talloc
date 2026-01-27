@@ -77,7 +77,7 @@ const CalendarContent = () => {
     /* ----------------------------------------------------------- */
     /* Calendar bounds                                             */
     /* ----------------------------------------------------------- */
-    const minTime = parse('06:00', 'HH:mm', new Date());
+    const minTime = parse('04:00', 'HH:mm', new Date());
     const maxTime = parse('22:00', 'HH:mm', new Date());
 
     /* ----------------------------------------------------------- */

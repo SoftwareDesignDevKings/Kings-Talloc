@@ -150,16 +150,16 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             const hours = (end - start) / 3600000; // milliseconds to hours
             totalBookedHours += hours;
 
-            // Completed count and hours tracking - O(1)
-            if (event.workStatus === 'completed') {
-                if (end < now) {
-                    completedEvents++;
-                }
-                if (event.workType === 'coaching') {
-                    coachingHours += hours;
-                } else {
-                    tutoringHours += hours;
-                }
+            // For teachers: count ALL allocated hours regardless of completion (budget tracking)
+            if (event.workType === 'coaching') {
+                coachingHours += hours;
+            } else {
+                tutoringHours += hours;
+            }
+
+            // Completed count - O(1)
+            if (event.workStatus === 'completed' && end < now) {
+                completedEvents++;
             }
         }
 
