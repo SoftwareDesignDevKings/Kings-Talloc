@@ -26,26 +26,13 @@ if (getApps().length > 0) {
 
 // app check for recaptcha in browser
 if (typeof window !== "undefined") {
-
-    // only run in production
-    if (process.env.NODE_ENV !== 'development') {
-        initializeAppCheck(app, {
-            provider: new ReCaptchaV3Provider(
-                process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-            ),
-            isTokenAutoRefreshEnabled: true,
-        });
-    }
+    initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(
+            process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+        ),
+        isTokenAutoRefreshEnabled: true,
+    });
 }
-
-// if (typeof window !== "undefined") {
-//     initializeAppCheck(app, {
-//         provider: new ReCaptchaV3Provider(
-//             process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-//         ),
-//         isTokenAutoRefreshEnabled: true,
-//     });
-// }
 
 /**
  * CLIENT SIDE - Firebase Auth instance
@@ -63,18 +50,18 @@ const db = getFirestore(app);
  */
 const storage = getStorage(app);
 
-// Connect to emulators in development mode (client-side only)
-if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-    try {
-        connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-        connectFirestoreEmulator(db, '127.0.0.1', 8080);
-        console.log('🔥 Connected to Firebase emulators');
-    } catch (error) {
-        // Ignore "already started" errors (hot reload)
-        if (!error.message.includes('already been started')) {
-            console.error('⚠️ Emulator connection failed:', error.message);
-        }
-    }
-}
+// // Connect to emulators in development mode (client-side only)
+// if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+//     try {
+//         connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+//         connectFirestoreEmulator(db, '127.0.0.1', 8080);
+//         console.log('🔥 Connected to Firebase emulators');
+//     } catch (error) {
+//         // Ignore "already started" errors (hot reload)
+//         if (!error.message.includes('already been started')) {
+//             console.error('⚠️ Emulator connection failed:', error.message);
+//         }
+//     }
+// }
 
 export { app, auth, db, storage };

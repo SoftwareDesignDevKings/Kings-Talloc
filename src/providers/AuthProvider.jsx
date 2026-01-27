@@ -26,33 +26,28 @@ const AuthProvider = ({ children }) => {
     const pathname = usePathname();
     const tokenRefreshInterval = useRef(null);
 
-    // Public routes that don't require auth
+    // public routes that don't require auth
     const publicRoutes = ['/', '/login', '/maintenance'];
     const isPublicRoute = publicRoutes.includes(pathname);
 
-    // Sync Firebase Auth with NextAuth session
+    // sync Firebase Auth with NextAuth session
     useEffect(() => {
         const syncAuth = async () => {
             try {
                 if (status === 'authenticated' && session.user) {
                     setUserRole(session.user.role);
 
-                    // if in production, firebase signin
-                    // Skip Firebase custom token in development (emulators don't accept production tokens)
-                    if (process.env.NODE_ENV !== 'development') {
-                        // signin AND force token refresh so custom claims are updated
-                        await signInWithCustomToken(auth, session.user.firebaseToken);
-
-                        // firebaseToken has claims (role, email) set in authOptions.js, but never fully refreshed on client side
-                        // force refresh to ensure claims are applied in every firebase request
-                        await auth.currentUser.getIdToken(true);
-                    } else {
-                        
+                    if (!session.user.firebaseToken) {
+                        setIsLoading(false);
+                        return;
                     }
 
-                    // await signInWithCustomToken(auth, session.user.firebaseToken);
-                    // await auth.currentUser.getIdToken(true);
+                    // signin AND force token refresh so custom claims are updated
+                    await signInWithCustomToken(auth, session.user.firebaseToken);
 
+                    // firebaseToken has claims (role, email) set in authOptions.js, but never fully refreshed on client side
+                    // force refresh to ensure claims are applied in every firebase request
+                    await auth.currentUser.getIdToken(true);
                     setIsLoading(false);
                 }
 
@@ -62,6 +57,8 @@ const AuthProvider = ({ children }) => {
                 }
             } catch (err) {
                 console.error('Error in syncing auth: ', err);
+                console.error('Error code:', err.code);
+                console.error('Error message:', err.message);
                 setIsLoading(false);
             }
         };
@@ -81,7 +78,7 @@ const AuthProvider = ({ children }) => {
             tokenRefreshInterval.current = setInterval(async () => {
                 try {
                     const updatedSession = await update();
-                    if (updatedSession?.user?.firebaseToken && process.env.NODE_ENV !== 'development') {
+                    if (updatedSession?.user?.firebaseToken) {
                         await signInWithCustomToken(auth, updatedSession.user.firebaseToken);
                         await auth.currentUser.getIdToken(true);
                     }
@@ -100,7 +97,18 @@ const AuthProvider = ({ children }) => {
     }, [status, isPublicRoute, update]);
 
     useEffect(() => {
-        setDevice(window.innerWidth < 768 ? 'mobile' : 'desktop');
+        const handleResize = () => {
+            setDevice(window.innerWidth < 768 ? 'mobile' : 'desktop');
+        };
+
+        // Set initial device type
+        handleResize();
+
+        // Add event listener for window resize
+        window.addEventListener('resize', handleResize);
+
+        // Cleanup listener on unmount
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     // memoize context value to prevent unnecessary re-renders
