@@ -13,8 +13,8 @@ The Tallocc application is deployed on Vercel and accessible via the official do
 
 ## Service Access
 
-> [!IMPORTANT]
-> All services are managed under **computing@kings.edu.au** or the **SoftwareDevKings** organization on GitHub.
+> [!NOTE]
+> All services are owned under the account **computing@kings.edu.au** or the **SoftwareDevKings** organization on GitHub.
 
 ### 1. GitHub Repository
 
@@ -29,19 +29,14 @@ The Tallocc application is deployed on Vercel and accessible via the official do
 **Google Account:** computing@kings.edu.au
 
 > [!TIP]
-> For local development, use `npm run dev` to run the Firebase emulator instead of connecting to the production database.
+> For local development, use `npm run dev:emulator` to run the Firebase emulator instead of connecting to the production database.
+> AI generated shell script to run both firebase emulator and development server in `devEmulator.sh`.
 
 ### 3. reCAPTCHA App Check
+reCAPTCHA to verify that requests originate from the deployed frontend `talloc.kings.edu.au`. 
 
 **Admin Console:** https://www.google.com/u/1/recaptcha/admin/site/739611843
-
 **Status:** Applied and active
-
-### 4. Vercel
-
-**Dashboard:** https://vercel.com/tkscsts-projects/kings-talloc/
-
-**Account:** computing@kings.edu.au
 
 ---
 
@@ -70,16 +65,19 @@ The following groups can bypass the deployment protection rules:
 
 ## Vercel Deployment
 
-### GitHub-Vercel Integration
+App is currently deployed on Vercel. 
 
-> [!IMPORTANT]
+**Dashboard:** https://vercel.com/tkscsts-projects/kings-talloc/
+**Account:** computing@kings.edu.au
+
+### GitHub-Vercel Integration
+> [!WARNING]
 > Vercel links deployments to the **GitHub account** that made the most recent code change.
+> The deployment is currently connected through the maintainer's GitHub account to ensure continuous deployments as new features and fixes are added.
 >
-> The person who last updated the code needs to have their GitHub account connected to Vercel, otherwise the app **will not deploy**.
+> The person who last updated the code needs to have their GitHub account connected to Vercel, otherwise the app **will not deploy** any new code changes from a pull request. 
 
 ### Current Setup
-
-The deployment is currently connected through the maintainer's GitHub account to ensure continuous deployments as new features and fixes are added.
 
 ### Vercel Team Plan Limitations
 

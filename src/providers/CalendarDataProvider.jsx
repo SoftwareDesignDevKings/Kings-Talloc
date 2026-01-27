@@ -10,10 +10,8 @@ import {
     firestoreFetchSubjects,
     firestoreFetchStudents
 } from '@/firestore/firestoreFetch';
-// import { calendarAvailabilitySplit } from '@/utils/calendarAvailability';
-import useCalendarStrategy from '@/hooks/useCalendarStrategy';
-import CalendarDataContext from '@/contexts/CalendarDataContext';
 
+import CalendarDataContext from '@/contexts/CalendarDataContext';
 export { useCalendarData } from '@/contexts/CalendarDataContext';
 
 /**
@@ -37,7 +35,6 @@ export const CalendarDataProvider = ({ children }) => {
         const unsubShifts = firestoreFetchShifts(setCalendarShifts)
         const unsubAvailabilities = firestoreFetchAvailabilities(setCalendarAvailabilities)
         const unsubtStudenRequests = firestoreFetchStudentRequests(setCalendarStudentRequests)
-
 
         firestoreFetchTutors(setTutors)
         firestoreFetchClasses(setClasses)

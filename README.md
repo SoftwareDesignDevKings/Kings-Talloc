@@ -45,6 +45,49 @@ npm run test
 # run Firebase emulator tests only
 npm run test:firebase
 ```
+
+---
+
+## Development with Firebase Emulator
+
+> [!IMPORTANT]
+> When developing locally with the Firebase emulator, you **must** uncomment the emulator connection code to avoid touching the production database.
+
+### Running with Emulator
+
+```bash
+npm run dev:emulator
+```
+
+This command starts both the Next.js frontend server and the Firebase emulator suite from the `devEmulator.sh` shell script.
+
+### Configuration Required
+
+Before running the emulator, **uncomment** the following section in `src/firestore/firestoreClient.js:53-65`:
+
+```javascript
+// Connect to emulators in development mode (client-side only)
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    try {
+        connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+        connectFirestoreEmulator(db, '127.0.0.1', 8080);
+        console.log('Connected to Firebase emulators');
+    } catch (error) {
+        // Ignore "already started" errors (hot reload)
+        if (!error.message.includes('already been started')) {
+            console.error('Emulator connection failed:', error.message);
+        }
+    }
+}
+```
+
+**Why this matters:**
+- With emulator code uncommented: All Firebase operations run against the local emulator
+- With emulator code commented: Operations run against the **production database**. 
+
+> [!WARNING]
+> Always remember to keep this code commented when deploying or running in production mode to ensure the app connects to the live Firebase instance.
+
 ---
 
 ## Overview

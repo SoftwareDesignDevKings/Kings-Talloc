@@ -291,7 +291,7 @@ const TeacherStats = ({ data, onUpdate }) => {
             <StatCard
                 icon={FiActivity}
                 iconBgColor="bg-success"
-                title="Total Hours"
+                title="Total Allocated Hours"
                 value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1)}
                 subtitle={`T: ${data.weeklyHours.tutoring} | C: ${data.weeklyHours.coaching}`}
             />

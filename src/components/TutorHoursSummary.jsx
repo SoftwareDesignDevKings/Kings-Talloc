@@ -64,11 +64,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
     const [excludedShifts, setExcludedShifts] = useState(null);
 
-    useEffect(() => {
-        fetchTutorHours();
-    }, [startDate, endDate, fetchTutorHours]);
-
-
     const fetchTutorHours = useCallback(async () => {
         // Query 1: Non-recurring shifts in the date range
         const nonRecurringQuery = query(
@@ -168,6 +163,10 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
         setTutorHours(tutorHoursArray);
     }, [startDate, endDate, userRole, userEmail]);
+
+    useEffect(() => {
+        fetchTutorHours();
+    }, [startDate, endDate, fetchTutorHours]);
 
     const csvData = tutorHours.map((tutor) => ({
         Email: tutor.email,
