@@ -39,8 +39,8 @@ service cloud.firestore {
     match /users/{documentEmail} {
       allow read: if isAuthenticated();
 
-      // firestore db stores user docs with email as doc ID
-      allow create: if isAuthenticated() && (request.auth.token.email == documentEmail);
+      // Teachers can create any user, others can only create their own account
+      allow create: if isTeacher() || (isAuthenticated() && request.auth.token.email == documentEmail);
 
       // isTeacher || ((isAuthenticated) && (theirUserAcc) && (notModifying the key 'role'))
       // prevent non-teacher users from modifying their own role
