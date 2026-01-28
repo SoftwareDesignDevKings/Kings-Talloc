@@ -21,60 +21,60 @@ export const CalendarUIProvider = ({ children }) => {
     const { calendarFilters, calendarScope } = calendarStrategy;
 
     // Visibility toggles (defaults from strategy)
-    const [showAllEvents, setShowAllEventsState] = useState(true);
+    const [showAllEvents, setShowAllEvents] = useState(true);
     const [showTutorInitials, setShowTutorInitials] = useState(true);
     const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
     const [hideDeniedStudentRequests, setHideDeniedStudentRequests] = useState(false);
-    const [showTutoringEvents, setShowTutoringEventsState] = useState(true);
-    const [showCoachingEvents, setShowCoachingEventsState] = useState(true);
-    const [showWorkEvents, setShowWorkEventsState] = useState(true);
+    const [showTutoringEvents, setShowTutoringEvents] = useState(true);
+    const [showCoachingEvents, setShowCoachingEvents] = useState(true);
+    const [showWorkEvents, setShowWorkEvents] = useState(true);
 
     // Hierarchical toggle handlers
-    const setShowAllEvents = useCallback((checked) => {
-        setShowAllEventsState(checked);
+    const handleShowAllEventsChange = useCallback((checked) => {
+        setShowAllEvents(checked);
         if (!checked) {
             // Uncheck all sub-toggles when parent is unchecked
-            setShowTutoringEventsState(false);
-            setShowCoachingEventsState(false);
-            setShowWorkEventsState(false);
+            setShowTutoringEvents(false);
+            setShowCoachingEvents(false);
+            setShowWorkEvents(false);
         } else {
             // Check all sub-toggles when parent is checked
-            setShowTutoringEventsState(true);
-            setShowCoachingEventsState(true);
-            setShowWorkEventsState(true);
+            setShowTutoringEvents(true);
+            setShowCoachingEvents(true);
+            setShowWorkEvents(true);
         }
     }, []);
 
-    const setShowTutoringEvents = useCallback((checked) => {
-        setShowTutoringEventsState(checked);
+    const handleShowTutoringEventsChange = useCallback((checked) => {
+        setShowTutoringEvents(checked);
         if (checked && !showAllEvents) {
             // If enabling this and parent is off, turn parent on
-            setShowAllEventsState(true);
+            setShowAllEvents(true);
         } else if (!checked && !showCoachingEvents && !showWorkEvents) {
             // If disabling this and all others are off, turn parent off
-            setShowAllEventsState(false);
+            setShowAllEvents(false);
         }
     }, [showAllEvents, showCoachingEvents, showWorkEvents]);
 
-    const setShowCoachingEvents = useCallback((checked) => {
-        setShowCoachingEventsState(checked);
+    const handleShowCoachingEventsChange = useCallback((checked) => {
+        setShowCoachingEvents(checked);
         if (checked && !showAllEvents) {
             // If enabling this and parent is off, turn parent on
-            setShowAllEventsState(true);
+            setShowAllEvents(true);
         } else if (!checked && !showTutoringEvents && !showWorkEvents) {
             // If disabling this and all others are off, turn parent off
-            setShowAllEventsState(false);
+            setShowAllEvents(false);
         }
     }, [showAllEvents, showTutoringEvents, showWorkEvents]);
 
-    const setShowWorkEvents = useCallback((checked) => {
-        setShowWorkEventsState(checked);
+    const handleShowWorkEventsChange = useCallback((checked) => {
+        setShowWorkEvents(checked);
         if (checked && !showAllEvents) {
             // If enabling this and parent is off, turn parent on
-            setShowAllEventsState(true);
+            setShowAllEvents(true);
         } else if (!checked && !showTutoringEvents && !showCoachingEvents) {
             // If disabling this and all others are off, turn parent off
-            setShowAllEventsState(false);
+            setShowAllEvents(false);
         }
     }, [showAllEvents, showTutoringEvents, showCoachingEvents]);
 
@@ -260,13 +260,13 @@ export const CalendarUIProvider = ({ children }) => {
                 setFilterByTutor,
                 setFilterByWorkType,
                 setFilterAvailabilityByWorkType,
-                setShowAllEvents,
+                setShowAllEvents: handleShowAllEventsChange,
                 setShowTutorInitials,
                 setHideOwnAvailabilities,
                 setHideDeniedStudentRequests,
-                setShowTutoringEvents,
-                setShowCoachingEvents,
-                setShowWorkEvents,
+                setShowTutoringEvents: handleShowTutoringEventsChange,
+                setShowCoachingEvents: handleShowCoachingEventsChange,
+                setShowWorkEvents: handleShowWorkEventsChange,
             },
         }),
         [
@@ -285,10 +285,10 @@ export const CalendarUIProvider = ({ children }) => {
             filteredAvailabilities,
             calendarFilters,
             calendarScope,
-            setShowAllEvents,
-            setShowTutoringEvents,
-            setShowCoachingEvents,
-            setShowWorkEvents,
+            handleShowAllEventsChange,
+            handleShowTutoringEventsChange,
+            handleShowCoachingEventsChange,
+            handleShowWorkEventsChange,
         ],
     );
 
