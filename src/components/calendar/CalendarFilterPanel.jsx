@@ -169,6 +169,17 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
                                     </label>
                                 </div>
                             )}
+
+                            <div className={`${styles.checkboxIndented} mb-3`}>
+                                <label className={styles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={visibility.showWorkEvents}
+                                        onChange={(e) => actions.setShowWorkEvents(e.target.checked)}
+                                    />
+                                    <span>Show Work Shifts</span>
+                                </label>
+                            </div>
                         </>
                     )}
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import CalendarUIContext from "@contexts/CalendarUIContext"
@@ -21,12 +21,62 @@ export const CalendarUIProvider = ({ children }) => {
     const { calendarFilters, calendarScope } = calendarStrategy;
 
     // Visibility toggles (defaults from strategy)
-    const [showAllEvents, setShowAllEvents] = useState(true);
+    const [showAllEvents, setShowAllEventsState] = useState(true);
     const [showTutorInitials, setShowTutorInitials] = useState(true);
     const [hideOwnAvailabilities, setHideOwnAvailabilities] = useState(false);
     const [hideDeniedStudentRequests, setHideDeniedStudentRequests] = useState(false);
-    const [showTutoringEvents, setShowTutoringEvents] = useState(true);
-    const [showCoachingEvents, setShowCoachingEvents] = useState(true);
+    const [showTutoringEvents, setShowTutoringEventsState] = useState(true);
+    const [showCoachingEvents, setShowCoachingEventsState] = useState(true);
+    const [showWorkEvents, setShowWorkEventsState] = useState(true);
+
+    // Hierarchical toggle handlers
+    const setShowAllEvents = useCallback((checked) => {
+        setShowAllEventsState(checked);
+        if (!checked) {
+            // Uncheck all sub-toggles when parent is unchecked
+            setShowTutoringEventsState(false);
+            setShowCoachingEventsState(false);
+            setShowWorkEventsState(false);
+        } else {
+            // Check all sub-toggles when parent is checked
+            setShowTutoringEventsState(true);
+            setShowCoachingEventsState(true);
+            setShowWorkEventsState(true);
+        }
+    }, []);
+
+    const setShowTutoringEvents = useCallback((checked) => {
+        setShowTutoringEventsState(checked);
+        if (checked && !showAllEvents) {
+            // If enabling this and parent is off, turn parent on
+            setShowAllEventsState(true);
+        } else if (!checked && !showCoachingEvents && !showWorkEvents) {
+            // If disabling this and all others are off, turn parent off
+            setShowAllEventsState(false);
+        }
+    }, [showAllEvents, showCoachingEvents, showWorkEvents]);
+
+    const setShowCoachingEvents = useCallback((checked) => {
+        setShowCoachingEventsState(checked);
+        if (checked && !showAllEvents) {
+            // If enabling this and parent is off, turn parent on
+            setShowAllEventsState(true);
+        } else if (!checked && !showTutoringEvents && !showWorkEvents) {
+            // If disabling this and all others are off, turn parent off
+            setShowAllEventsState(false);
+        }
+    }, [showAllEvents, showTutoringEvents, showWorkEvents]);
+
+    const setShowWorkEvents = useCallback((checked) => {
+        setShowWorkEventsState(checked);
+        if (checked && !showAllEvents) {
+            // If enabling this and parent is off, turn parent on
+            setShowAllEventsState(true);
+        } else if (!checked && !showTutoringEvents && !showCoachingEvents) {
+            // If disabling this and all others are off, turn parent off
+            setShowAllEventsState(false);
+        }
+    }, [showAllEvents, showTutoringEvents, showCoachingEvents]);
 
     // Filter panel state (defined by user)
     const [filterBySubject, setFilterBySubject] = useState(null);
@@ -66,12 +116,15 @@ export const CalendarUIProvider = ({ children }) => {
             return [];
         }
 
-        // filter by tutoring/coaching work type 
+        // filter by tutoring/coaching/work type
         if (!showTutoringEvents) {
             filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'tutoring'));
         }
         if (!showCoachingEvents) {
             filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'coaching'));
+        }
+        if (!showWorkEvents) {
+            filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'work'));
         }
 
         // filter by tutor selection
@@ -112,7 +165,7 @@ export const CalendarUIProvider = ({ children }) => {
         }
 
         return filtered;
-    }, [calendarEntities, calendarStrategy.visibility, showAllEvents, showTutoringEvents, showCoachingEvents, filterByTutor, hideDeniedStudentRequests, userRole, hideOwnAvailabilities, calendarAvailabilities, userEmail, filterAvailabilityByWorkType]);
+    }, [calendarEntities, calendarStrategy.visibility, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, hideOwnAvailabilities, calendarAvailabilities, userEmail, filterAvailabilityByWorkType]);
 
     // ─────────────────────────────────────
     // Filter availabilities by panel controls
@@ -166,11 +219,11 @@ export const CalendarUIProvider = ({ children }) => {
             filtered = filtered.filter(a => a.workType === workType);
         }
 
-        // Split availabilities around clashing shifts
-        const splitAvailabilities = calendarAvailabilitySplit(filtered, filteredEvents);
+        // Split availabilities around clashing shifts (always use actual shifts, not filtered)
+        const splitAvailabilities = calendarAvailabilitySplit(filtered, calendarShifts);
 
         return splitAvailabilities;
-    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, filteredEvents]);
+    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
 
     // ─────────────────────────────────────
     // context values
@@ -191,6 +244,7 @@ export const CalendarUIProvider = ({ children }) => {
                 hideDeniedStudentRequests,
                 showTutoringEvents,
                 showCoachingEvents,
+                showWorkEvents,
             },
 
             // Filtered data (ready to use)
@@ -212,6 +266,7 @@ export const CalendarUIProvider = ({ children }) => {
                 setHideDeniedStudentRequests,
                 setShowTutoringEvents,
                 setShowCoachingEvents,
+                setShowWorkEvents,
             },
         }),
         [
@@ -225,10 +280,15 @@ export const CalendarUIProvider = ({ children }) => {
             hideDeniedStudentRequests,
             showTutoringEvents,
             showCoachingEvents,
+            showWorkEvents,
             filteredEvents,
             filteredAvailabilities,
             calendarFilters,
             calendarScope,
+            setShowAllEvents,
+            setShowTutoringEvents,
+            setShowCoachingEvents,
+            setShowWorkEvents,
         ],
     );
 
