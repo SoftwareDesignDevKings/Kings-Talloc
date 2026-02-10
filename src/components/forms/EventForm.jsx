@@ -31,7 +31,7 @@ import {
 import useAlert from '@/hooks/useAlert';
 import { CalendarEntityType } from '@/strategy/calendarStrategy.js';
 
-const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail }) => {
+const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
     const {
         setCalendarShifts: setAllEvents,
         setCalendarAvailabilities: setAvailabilities,
@@ -41,6 +41,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView; // for backward compat with existing logic
+
+    // Tutors can edit workStatus even in view mode
+    const isTutorPartialEdit = isView && userRole === 'tutor';
 
     const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
@@ -335,8 +338,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 onHide={() => setShowModal(false)}
                 title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
                 size="lg"
-                onSubmit={isView ? undefined : onSubmit}
-                submitText={isEdit ? 'Save Changes' : 'Add Event'}
+                onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
+                submitText={isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
                 deleteButton={
                     isEdit
                         ? {
@@ -346,7 +349,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                           }
                         : null
                 }
-                showFooter={!isView}
+                showFooter={!isView || isTutorPartialEdit}
             >
                 <div className="accordion" id="eventFormAccordion">
                     <EventDetailsSection
@@ -379,6 +382,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         workTypeOptions={workTypeOptions}
                         workStatusOptions={workStatusOptions}
                         readOnly={isView}
+                        userRole={userRole}
                     />
 
                     <StudentRequestSection

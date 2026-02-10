@@ -11,7 +11,7 @@ const CalendarRenderModals = ({
     updateCalendarTarget,
 }) => {
     const modalActionStrategy = useModalActionStrategy(calendarAction);
-    const { session } = useAuthSession();
+    const { session, userRole } = useAuthSession();
     const userEmail = session.user.email;
 
     // memoise the modal data so it doesn't recreate on every render
@@ -60,6 +60,7 @@ const CalendarRenderModals = ({
         setShowModal: onClose,
         setShowStudentModal: onClose,
         userEmail,
+        userRole,
     };
 
     if (dataProp === 'newEvent') {
