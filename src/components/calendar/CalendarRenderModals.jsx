@@ -4,12 +4,7 @@ import React, { useMemo, useEffect } from 'react';
 import useModalActionStrategy from '@/hooks/useModalActionStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 
-const CalendarRenderModals = ({
-    calendarAction,
-    calendarTarget,
-    onClose,
-    updateCalendarTarget,
-}) => {
+const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTarget, onClose }) => {
     const modalActionStrategy = useModalActionStrategy(calendarAction);
     const { session, userRole } = useAuthSession();
     const userEmail = session.user.email;

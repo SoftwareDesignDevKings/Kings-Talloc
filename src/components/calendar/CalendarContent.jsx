@@ -14,6 +14,7 @@ import useAuthSession from '@/hooks/useAuthSession';
 import useAlert from '@/hooks/useAlert';
 import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
 import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
+import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
@@ -229,6 +230,27 @@ const CalendarContent = () => {
         };
     };
 
+    // handle drag/drop or resize for recurring instances
+    const handleRecurringInstanceUpdate = async (event, start, end, actionLabel) => {
+        const { setStateFn } = getCalendarEntityHandlers(event.entityType);
+
+        if (!setStateFn) return;
+
+        try {
+            // Detach from series and create standalone event with new times
+            await detachRecurringInstance(event, { start, end });
+
+            // Remove the recurring instance from state (Firestore listener will add the new standalone event)
+            setStateFn(prev => prev.filter(e => e.id !== event.id));
+
+            addAlert('success', `Event detached and ${actionLabel}d successfully`);
+
+        } catch (error) {
+            addAlert('error', `Failed to ${actionLabel} recurring event: ${error.message}`);
+            console.error(`Failed to ${actionLabel} recurring event:`, error);
+        }
+    };
+
     // shared handler for event updates with instant UI state update and rollback
     const updateEventWithRollback = async (event, start, end, actionLabel) => {
         const originalStart = event.start;
@@ -250,7 +272,7 @@ const CalendarContent = () => {
             if (event.entityType === CalendarEntityType.SHIFT && event.createTeamsMeeting === true && event.teamsEventId) {
                 const isAvailability = event.entityType === CalendarEntityType.AVAILABILITY;
                 const isStudentRequest = event.entityType === CalendarEntityType.STUDENT_REQUEST;
-                
+
                 await calendarEventUpdateTeamsMeeting(event, start, end, isAvailability, isStudentRequest, { addAlert });
             }
 
@@ -270,15 +292,27 @@ const CalendarContent = () => {
         if (!strategy.permissions.canDrag(event)) {
             return;
         }
-        await updateEventWithRollback(event, start, end, 'move');
+
+        // Check if this is a recurring instance - if so, detach it
+        if (event.isRecurringInstance) {
+            await handleRecurringInstanceUpdate(event, start, end, 'move');
+        } else {
+            await updateEventWithRollback(event, start, end, 'move');
+        }
     };
-    
+
     // handle RBC event resize
     const handleEventResize = async ({ event, start, end }) => {
         if (!strategy.permissions.canResize(event)) {
             return;
-        }        
-        await updateEventWithRollback(event, start, end, 'resize');
+        }
+
+        // Check if this is a recurring instance - if so, detach it
+        if (event.isRecurringInstance) {
+            await handleRecurringInstanceUpdate(event, start, end, 'resize');
+        } else {
+            await updateEventWithRollback(event, start, end, 'resize');
+        }
     };
 
     // render RBC time-slots

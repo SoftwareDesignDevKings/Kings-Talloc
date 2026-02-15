@@ -2,7 +2,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
 
-const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly }) => {
+const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing }) => {
     const [isRecurring, setIsRecurring] = useState(!!newEvent.recurring)
 
     // Sync isRecurring state with newEvent.recurring changes
@@ -184,63 +184,76 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                     </div>
 
                     {!readOnly && (
-                        <div className="d-flex gap-2 align-items-center mt-3">
-                            <small className="text-muted" id="recurring-label">
-                                Recurring:
-                            </small>
-                            <div
-                                className="btn-group btn-group-sm"
-                                role="group"
-                                aria-labelledby="recurring-label"
-                            >
-                                <button
-                                    type="button"
-                                    className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                    onClick={() => {
-                                        handleWeeklyRecurringToggle()
-                                        setIsRecurring(true)
-                                    }}
-                                    aria-pressed={newEvent.recurring === 'weekly'}
-                                    aria-label="Repeat weekly"
+                        <>
+                            <div className="d-flex gap-2 align-items-center mt-3">
+                                <small className="text-muted" id="recurring-label">
+                                    Recurring:
+                                </small>
+                                <div
+                                    className="btn-group btn-group-sm"
+                                    role="group"
+                                    aria-labelledby="recurring-label"
                                 >
-                                    Repeat Weekly
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                    onClick={() => {
-                                        handleFortnightlyRecurringToggle()
-                                        setIsRecurring(true)
-                                    }}
-                                    aria-pressed={newEvent.recurring === 'fortnightly'}
-                                    aria-label="Repeat fortnightly"
-                                >
-                                    Repeat Fortnightly
-                                </button>
+                                    <button
+                                        type="button"
+                                        className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                        onClick={() => {
+                                            handleWeeklyRecurringToggle()
+                                            setIsRecurring(true)
+                                        }}
+                                        disabled={readOnly || (isEditing && newEvent.occurenceNum)}
+                                        aria-pressed={newEvent.recurring === 'weekly'}
+                                        aria-label="Repeat weekly"
+                                    >
+                                        Repeat Weekly
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                                        onClick={() => {
+                                            handleFortnightlyRecurringToggle()
+                                            setIsRecurring(true)
+                                        }}
+                                        disabled={readOnly || (isEditing && newEvent.occurenceNum)}
+                                        aria-pressed={newEvent.recurring === 'fortnightly'}
+                                        aria-label="Repeat fortnightly"
+                                    >
+                                        Repeat Fortnightly
+                                    </button>
+                                </div>
                             </div>
 
-                            {isRecurring &&
-                                <div className="mb-3">
-                                    <label htmlFor="occurenceNum" className="form-label small text-muted mb-1">
-                                        Number of Occurrences *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        name="occurenceNum"
-                                        id="occurenceNum"
-                                        value={newEvent.occurenceNum || ''}
-                                        onChange={handleOccurenceNumChange}
-                                        disabled={readOnly}
-                                        aria-label="Number of Occurrences"
-                                        aria-required="true"
-                                        min="1"
-                                        placeholder="Enter number of occurrences"
-                                    />
+                            {isRecurring && !newEvent.isRecurringInstance && (
+                                <div className="mt-2">
+                                    {isEditing && newEvent.occurenceNum ? (
+                                        <small className="text-muted d-block">
+                                            <strong>Occurrences:</strong> {newEvent.eventExceptions && newEvent.eventExceptions.length > 0
+                                                ? newEvent.occurenceNum - newEvent.eventExceptions.length
+                                                : newEvent.occurenceNum}
+                                        </small>
+                                    ) : (
+                                        <>
+                                            <label htmlFor="occurenceNum" className="form-label small text-muted mb-1">
+                                                Number of Occurrences *
+                                            </label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm shadow-none w-100"
+                                                name="occurenceNum"
+                                                id="occurenceNum"
+                                                value={newEvent.occurenceNum || ''}
+                                                onChange={handleOccurenceNumChange}
+                                                disabled={readOnly}
+                                                aria-label="Number of Occurrences"
+                                                aria-required="true"
+                                                min="1"
+                                                placeholder="Enter number"
+                                            />
+                                        </>
+                                    )}
                                 </div>
-
-                            }
-                        </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

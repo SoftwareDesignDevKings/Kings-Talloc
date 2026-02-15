@@ -15,7 +15,6 @@ import {
     calendarEventHandleDelete,
     calendarEventCreateTeamsMeeting,
     calendarEventHandleTeamsMeetingUpdate,
-    calendarEventGetType,
 } from '@/utils/calendarEvent';
 import {
     getTeamsMeetingOccurrenceId,
@@ -26,10 +25,9 @@ import {
     createEventInFirestore,
     addOrUpdateEventInQueue,
     deleteEventFromFirestore,
-    addEventException,
 } from '@/firestore/firestoreOperations';
+import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
-import { CalendarEntityType } from '@/strategy/calendarStrategy.js';
 
 const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
     const {
@@ -108,6 +106,12 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             }
         }
 
+        // Validate cannot make completed events recurring
+        if (newEvent.recurring && newEvent.workStatus === 'completed') {
+            addAlert('error', 'Cannot make completed events recurring.');
+            return false;
+        }
+
         // Validate recurring event has occurrence number
         if (newEvent.recurring && !isEditing) {
             if (!newEvent.occurenceNum || newEvent.occurenceNum < 1) {
@@ -128,6 +132,16 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             addAlert('error', 'Title is required');
             return;
         }
+
+        // Debug: Check if recurring instance flag is preserved
+        console.log('EventForm onSubmit - eventToEdit:', {
+            id: eventToEdit?.id,
+            isRecurringInstance: eventToEdit?.isRecurringInstance,
+            recurringEventId: eventToEdit?.recurringEventId,
+            occurrenceIndex: eventToEdit?.occurrenceIndex,
+            recurring: eventToEdit?.recurring,
+            workStatus: eventToEdit?.workStatus,
+        });
 
         const eventData = {
             title: newEvent.title || '',
@@ -180,25 +194,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     setShowModal(false);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
-                    const { collectionName } = calendarEventGetType(eventToEdit);
-                    await addEventException(
-                        eventToEdit.recurringEventId,
-                        eventToEdit.occurrenceIndex,
-                        collectionName,
-                    );
-                    const {
-                        id,
-                        recurringEventId,
-                        isRecurringInstance,
-                        occurrenceIndex,
-                        recurring,
-                        eventExceptions,
-                        until,
-                        ...standaloneEventData
-                    } = { ...eventToEdit, ...eventData };
-
-                    const newDocId = await createEventInFirestore(standaloneEventData, collectionName);
-                    await addOrUpdateEventInQueue({ ...standaloneEventData, id: newDocId }, 'store', userEmail);
+                    const newDocId = await detachRecurringInstance(eventToEdit, eventData);
+                    await addOrUpdateEventInQueue({ ...eventData, id: newDocId }, 'store', userEmail);
                     setShowModal(false);
 
                     if (standaloneEventData.teamsEventId) {
@@ -357,7 +354,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         setNewEvent={setNewEvent}
                         handleInputChange={handleInputChange}
                         readOnly={isView}
-                        addAlert={addAlert}
+                        isEditing={isEditing}
                     />
 
                     <ParticipantsSection
