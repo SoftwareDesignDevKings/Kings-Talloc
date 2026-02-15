@@ -32,7 +32,7 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                             >
                                                 {isToday
                                                     ? 'Today'
-                                                    : format(new Date(event.start), 'MMM d')}
+                                                    : format(new Date(event.start), 'd MMM')}
                                             </div>
                                             <div className="small text-muted">
                                                 {format(new Date(event.start), 'h:mm a')}

@@ -959,6 +959,10 @@ export const calendarEventHandleDuplicate = async (
             end: nextDayEnd,
             tutorResponses: [],
             studentResponses: [],
+            recurring: null,  // Duplicated shifts should always be non-recurring
+            until: null,
+            isRecurringInstance: false,
+            recurringEventId: null,
         };
 
         try {

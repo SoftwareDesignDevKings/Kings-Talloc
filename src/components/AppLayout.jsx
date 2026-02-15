@@ -7,15 +7,19 @@ import Sidebar from '@/components/Sidebar';
  * - Gradient background with sidebar and white card container
  * - Dashboard title and user email display
  * @param {Object} session - NextAuth session object
- * @param {string} userRole - User role (student/teacher/tutor)
+ * @param {string} 
  * @param {JSX} children - Page content
  */
 const AppLayout = ({ session, userRole, children }) => {
     let dashboardTitle;
+    
+    console.log("userRole: ", userRole)
     if (userRole === 'student') {
         dashboardTitle = 'Student Dashboard';
     } else if (userRole === 'teacher') {
         dashboardTitle = 'Teacher Dashboard';
+    } else if (userRole === 'admin') {
+        dashboardTitle = 'Admin Dashboard';    
     } else {
         dashboardTitle = 'Tutor Dashboard';
     }

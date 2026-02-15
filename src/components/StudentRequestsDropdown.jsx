@@ -146,7 +146,7 @@ const StudentRequestsDropdown = () => {
 
                                     <div className="small">
                                         <div className="text-muted">
-                                            {format(request.start, 'MMM d, yyyy h:mm a')} -{' '}
+                                            {format(request.start, 'd MMM yyyy h:mm a')} -{' '}
                                             {format(request.end, 'h:mm a')}
                                         </div>
                                         {request.subject && (

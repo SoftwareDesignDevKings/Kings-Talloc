@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
-import enUS from 'date-fns/locale/en-US';
+import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
@@ -32,7 +32,7 @@ const { memo } = React;
 /* RBC setup                                                     */
 /* ───────────────────────────────────────────────────────────── */
 
-const locales = { 'en-US': enUS };
+const locales = { 'en-AU': enAU };
 
 const localizer = dateFnsLocalizer({
     format,
@@ -164,6 +164,10 @@ const CalendarContent = () => {
                 ...eventData,
                 start: newStart,
                 end: newEnd,
+                recurring: null,  // Explicitly set to null (not missing) so it matches the non-recurring query
+                until: null,
+                isRecurringInstance: false,
+                recurringEventId: null,
             };
 
             // determine collection name based on entity type
@@ -358,6 +362,7 @@ const CalendarContent = () => {
             <div className="flex-grow-1 p-3 calendar-scroll-container position-relative">
                 <div className="h-100">
                     <DnDCalendar
+                        culture="en-AU"
                         localizer={localizer}
                         events={rbcEvents}
                         startAccessor="start"

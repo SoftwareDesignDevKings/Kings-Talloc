@@ -49,8 +49,10 @@ const DashboardOverview = () => {
             };
 
             const data = await fetchByRole[userRole]?.();
-            setDashboardData(data);
-
+            
+            if (data) {
+                setDashboardData(data);
+            }
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         }
