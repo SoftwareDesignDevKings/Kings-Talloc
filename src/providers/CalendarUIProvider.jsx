@@ -10,14 +10,14 @@ import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
  * UI Provider to persist on re-renders across different page.jsx
  */
 export const CalendarUIProvider = ({ children }) => {
-    const { session, userRole } = useAuthSession();
-    const userEmail = session?.user?.email;
+    const { session, userRole, userRoles } = useAuthSession();
+    const userEmail = session.user.email;
 
     // Get calendar data
     const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useCalendarData();
 
     // cal strategy for filters and scope
-    const calendarStrategy = useCalendarStrategy(userEmail, userRole);
+    const calendarStrategy = useCalendarStrategy(userEmail, userRole, userRoles);
     const { calendarFilters, calendarScope } = calendarStrategy;
 
     // Visibility toggles (defaults from strategy)

@@ -1,15 +1,21 @@
-import { teacherCalendarStrategy, tutorCalendarStrategy, studentCalendarStrategy} from "@/strategy/calendarStrategy";
+import { teacherCalendarStrategy, tutorCalendarStrategy, coachCalendarStrategy, studentCalendarStrategy, adminCalendarStrategy} from "@/strategy/calendarStrategy";
 
 
-const useCalendarStrategy = (userEmail, userRole) => {
-    if (userRole === "teacher") {
+const useCalendarStrategy = (userEmail, defaultUserRole, userRoles) => {
+    if (userRoles && userRoles.includes("admin")) {
+        return adminCalendarStrategy();
+    }
+
+    if (defaultUserRole === "teacher") {
         return teacherCalendarStrategy();
-    } else if (userRole === "tutor") {
+    } else if (defaultUserRole === "tutor") {
         return tutorCalendarStrategy(userEmail);
-    } else if (userRole === "student") {
+    } else if (defaultUserRole === "student") {
         return studentCalendarStrategy(userEmail);
+    } else if (defaultUserRole === "coach") {
+        return coachCalendarStrategy(userEmail);
     } else {
-        throw new Error(`Unknown calendar role: ${userRole}`)
+        throw new Error(`Unknown calendar role: ${defaultUserRole}`)
     }
 };
 

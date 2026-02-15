@@ -9,11 +9,15 @@ export async function GET(_req, { params }) {
         return new Response(JSON.stringify({ message: 'Unauthorised' }), { status: 401 });
     }
 
-    if (session.user.role !== 'teacher') {
+    const userRole = session.user.defaultRole || session.user.role;
+    const userRoles = session.user.userRoles
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!isAdmin) {
         return new Response(
             JSON.stringify({
-                message: 'Forbidden: Only teachers can send emails',
-                role: session.user.role,
+                message: 'Forbidden: Only admins can send emails',
+                role: userRole,
             }),
             { status: 403 },
         );

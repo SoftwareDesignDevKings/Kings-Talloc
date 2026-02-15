@@ -28,7 +28,7 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
 
         return createDraft({
             ...calendarTarget,
-            userEmail: userEmail,
+            userEmail: userEmail
         });
     }, [modalActionStrategy, calendarTarget, userEmail]);
 

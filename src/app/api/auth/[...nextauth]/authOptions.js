@@ -17,6 +17,8 @@ async function handleJwt({ token, user, account, profile }) {
     // Initial sign in - user object is available
     if (user) {
         token.role = user.role;
+        token.defaultRole = user.defaultRole;
+        token.userRoles = user.userRoles;
         token.email = user.email;
         token.name = user.name;
         token.calendarFeedToken = user.calendarFeedToken;
@@ -54,6 +56,8 @@ async function handleSession({ session, token }) {
     }
 
     session.user.role = token.role;
+    session.user.defaultRole = token.defaultRole;
+    session.user.userRoles = token.userRoles;
     session.user.firebaseToken = token.firebaseToken;
     session.user.calendarFeedToken = token.calendarFeedToken;
 

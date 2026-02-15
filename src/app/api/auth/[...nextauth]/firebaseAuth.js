@@ -14,16 +14,24 @@ export async function authFirebaseSignIn({ user }) {
             await userRef.set({
                 email: user.email,
                 name: user.name,
-                role: 'student',
+                // role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
                 calendarFeedToken,
             });
 
-            user.role = 'student';
+            // user.role = 'student';
+            user.defaultRole = 'student';
+            user.userRoles = [];
             user.calendarFeedToken = calendarFeedToken;
         } else {
             // Fetch existing role from Firestore
             const userData = userDoc.data();
-            user.role = userData.role;
+
+            // backwards compabitility - userData.roles is an arr for many roles
+            // user.role = userData.role || userData.roles;
+            user.defaultRole = userData.defaultRole || userData.role;
+            user.userRoles = userData.userRoles || [];
 
             if (!userData.calendarFeedToken) {
                 const calendarFeedToken = crypto.randomBytes(32).toString("hex");
@@ -73,9 +81,11 @@ export async function authFirebaseGenerateToken(token, user) {
             }
         }
 
-        // generate fresh Firebase custom token
+        // generate fresh Firebase custom token with role claims
         const firebaseToken = await adminAuth.createCustomToken(userUid, {
-            role: userRole,
+            role: userRole, // Keep for backward compatibility
+            defaultRole: token.defaultRole || userRole,
+            userRoles: token.userRoles || [],
             email: token.email,
         });        
         
