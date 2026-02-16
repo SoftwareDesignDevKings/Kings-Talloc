@@ -70,58 +70,60 @@ export const adminCalendarStrategy = () => ({
     },
 });
 
+export const teacherCalendarStrategy = () => adminCalendarStrategy();
+
 // Teacher: same as student permissions, but can see everything (like admin)
-export const teacherCalendarStrategy = () => ({
-    permissions: {
-        // Can edit ANY student request
-        canEdit: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
+// export const teacherCalendarStrategy = () => ({
+//     permissions: {
+//         // Can edit ANY student request
+//         canEdit: (event) =>
+//             event.entityType === CalendarEntityType.STUDENT_REQUEST,
 
-        canDrag: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
+//         canDrag: (event) =>
+//             event.entityType === CalendarEntityType.STUDENT_REQUEST,
 
-        canResize: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
-    },
+//         canResize: (event) =>
+//             event.entityType === CalendarEntityType.STUDENT_REQUEST,
+//     },
 
-    visibility: {
-        // Can see everything (like admin)
-        includeInCalendar: (event) =>
-            event.entityType === CalendarEntityType.SHIFT ||
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        showAvailabilitySlots: true,
-    },
+//     visibility: {
+//         // Can see everything (like admin)
+//         includeInCalendar: (event) =>
+//             event.entityType === CalendarEntityType.SHIFT ||
+//             event.entityType === CalendarEntityType.STUDENT_REQUEST,
+//         showAvailabilitySlots: true,
+//     },
 
-    calendarFilters: {
-        canFilterByTutor: true,
-        canFilterBySubject: true,
-        canFilterByWorkType: true,
-        canFilterByAvailabilityType: true,
-    },
+//     calendarFilters: {
+//         canFilterByTutor: true,
+//         canFilterBySubject: true,
+//         canFilterByWorkType: true,
+//         canFilterByAvailabilityType: true,
+//     },
 
-    calendarScope: {
-        canToggleDeniedStudentRequests: true,
-        canToggleTutorAvailabilities: true,
-        canToggleCoachingShifts: true,
-        canToggleTutoringShifts: true,
-    },
+//     calendarScope: {
+//         canToggleDeniedStudentRequests: true,
+//         canToggleTutorAvailabilities: true,
+//         canToggleCoachingShifts: true,
+//         canToggleTutoringShifts: true,
+//     },
 
-    actions: {
-        // Can create and modify any student request
-        canCreateEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canModifyEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canDuplicateEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+//     actions: {
+//         // Can create and modify any student request
+//         canCreateEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+//         canModifyEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+//         canDuplicateEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
 
-        getCreateFlow: () => CalendarFlow.CREATE_STUDENT_REQUEST,
-        getEventFlow: (event) => {
-            // Student requests are editable, everything else is view-only
-            if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return CalendarFlow.EDIT_STUDENT_REQUEST;
-            }
-            return CalendarFlow.VIEW_SHIFT;
-        },
-    },
-})
+//         getCreateFlow: () => CalendarFlow.CREATE_STUDENT_REQUEST,
+//         getEventFlow: (event) => {
+//             // Student requests are editable, everything else is view-only
+//             if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
+//                 return CalendarFlow.EDIT_STUDENT_REQUEST;
+//             }
+//             return CalendarFlow.VIEW_SHIFT;
+//         },
+//     },
+// })
 
 // temp sol - coaches r the same as just tutors.
 export const coachCalendarStrategy = (userEmail) => tutorCalendarStrategy(userEmail)

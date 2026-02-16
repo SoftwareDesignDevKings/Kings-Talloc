@@ -14,13 +14,13 @@ export async function authFirebaseSignIn({ user }) {
             await userRef.set({
                 email: user.email,
                 name: user.name,
-                // role: 'student',
+                role: 'student',
                 defaultRole: 'student',
                 userRoles: [],
                 calendarFeedToken,
             });
 
-            // user.role = 'student';
+            user.role = 'student';
             user.defaultRole = 'student';
             user.userRoles = [];
             user.calendarFeedToken = calendarFeedToken;
@@ -29,7 +29,7 @@ export async function authFirebaseSignIn({ user }) {
             const userData = userDoc.data();
 
             // backwards compabitility - userData.roles is an arr for many roles
-            // user.role = userData.role || userData.roles;
+            user.role = userData.role || userData.roles;
             user.defaultRole = userData.defaultRole || userData.role;
             user.userRoles = userData.userRoles || [];
 

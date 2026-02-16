@@ -5,6 +5,15 @@ import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { FcGoogle, SiMicrosoft } from '@/components/icons';
 
+// Dev bypass users (matches authOptions.js)
+const DEV_BYPASS_USERS = [
+    { id: 'dev-computing', email: 'computing@kings.edu.au', label: '🔧 Admin (Teacher)', variant: 'success' },
+    { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: '👨‍🏫 Tutor', variant: 'primary' },
+    { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: '👨‍🏫 Tutor + Admin', variant: 'info' },
+    { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: '📚 Teacher', variant: 'warning' },
+    { id: 'dev-coach', email: 'coach@kings.edu.au', label: '⚽ Coach + Tutor', variant: 'secondary' }
+];
+
 export default function Login() {
     return (
         <div className="d-flex align-items-center justify-content-center min-vh-100 gradient-background">
@@ -39,6 +48,23 @@ export default function Login() {
                     </p>
                 </div>
                 <div className="mt-4">
+                    {process.env.NODE_ENV === 'development' && (
+                        <div className="mb-3">
+                            <p className="small text-muted mb-2 text-center">Development Bypass Accounts:</p>
+                            <div className="d-grid gap-1">
+                                {DEV_BYPASS_USERS.map(user => (
+                                    <button
+                                        key={user.id}
+                                        onClick={() => signIn(user.id, { callbackUrl: '/dashboard' })}
+                                        className={`btn btn-${user.variant} btn-sm`}
+                                    >
+                                        {user.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <hr className="my-3" />
+                        </div>
+                    )}
                     <button
                         onClick={() => signIn('azure-ad', { callbackUrl: '/dashboard' })}
                         className="btn btn-dark w-100 d-flex align-items-center justify-content-center"

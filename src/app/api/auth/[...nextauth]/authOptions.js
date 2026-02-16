@@ -1,12 +1,58 @@
 import Google from 'next-auth/providers/google';
 import AzureAD from 'next-auth/providers/azure-ad';
+import Credentials from 'next-auth/providers/credentials';
 import { authFirebaseSignIn, authFirebaseGenerateToken } from './firebaseAuth';
 import { authMsStoreTokens, authMsRefreshToken } from './msAuth';
+
+// Dev bypass users configuration (development only)
+const DEV_BYPASS_USERS = {
+    'computing@kings.edu.au': {
+        name: 'Computing Admin',
+        role: 'admin',
+        defaultRole: 'teacher',
+        userRoles: ['admin']
+    },
+    'tutor@kings.edu.au': {
+        name: 'Dev Tutor',
+        role: 'tutor',
+        defaultRole: 'tutor',
+        userRoles: []
+    },
+    'tutorAdmin@kings.edu.au': {
+        name: 'Dev Admin Tutor',
+        role: 'tutor',
+        defaultRole: 'tutor',
+        userRoles: ['admin']
+    },
+    'teacher@kings.edu.au': {
+        name: 'Dev Teacher',
+        role: 'teacher',
+        defaultRole: 'teacher',
+        userRoles: []
+    },
+    'coach@kings.edu.au': {
+        name: 'Dev Coach',
+        role: 'coach',
+        defaultRole: 'coach',
+        userRoles: ['tutor']
+    }
+};
 
 /**
  * Server-side: Create or fetch user role from Firestore on sign in
  */
 async function handleSignIn({ user, account, profile }) {
+    // Dev bypass for configured test users (development only)
+    if (process.env.NODE_ENV === 'development' && DEV_BYPASS_USERS[user.email]) {
+        const devUser = DEV_BYPASS_USERS[user.email];
+        user.role = devUser.role;
+        user.defaultRole = devUser.defaultRole;
+        user.userRoles = devUser.userRoles;
+        user.calendarFeedToken = 'dev-bypass-token';
+        console.log(`🔧 Dev bypass activated for ${user.email} (${devUser.defaultRole})`);
+        return true;
+    }
+
     return authFirebaseSignIn({ user });
 }
 
@@ -84,6 +130,23 @@ async function handleSession({ session, token }) {
  */
 export const authOptions = {
     providers: [
+        // Dev bypass users - only enabled in development
+        ...(process.env.NODE_ENV === 'development' ?
+            Object.entries(DEV_BYPASS_USERS).map(([email, config]) =>
+                Credentials({
+                    id: `dev-${email.split('@')[0]}`,
+                    name: config.name,
+                    credentials: {},
+                    async authorize() {
+                        return {
+                            id: email,
+                            email: email,
+                            name: config.name,
+                        };
+                    }
+                })
+            )
+        : []),
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,

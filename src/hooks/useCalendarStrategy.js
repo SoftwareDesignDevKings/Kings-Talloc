@@ -1,31 +1,23 @@
 import { teacherCalendarStrategy, tutorCalendarStrategy, coachCalendarStrategy, studentCalendarStrategy, adminCalendarStrategy} from "@/strategy/calendarStrategy";
 
-
+/**
+ * Simple role-based calendar strategy
+ * Uses defaultRole only - additional roles (admin, coach, etc.) can be implemented later
+ */
 const useCalendarStrategy = (userEmail, defaultUserRole, userRoles) => {
-    console.log("userRoles: ", userRoles)
+    console.log("defaultUserRole: ", defaultUserRole)
 
-    if (defaultUserRole === "admin" || (userRoles && userRoles.includes("admin"))) {
-        console.log("ADMIN")
+    if (defaultUserRole === "admin") {
         return adminCalendarStrategy();
-    }
-
-    if (defaultUserRole === "teacher") {
-        console.log("TEACHER")
+    } else if (defaultUserRole === "teacher") {
         return teacherCalendarStrategy();
     } else if (defaultUserRole === "tutor") {
-        console.log("TUTOR")
-
         return tutorCalendarStrategy(userEmail);
-    } else if (defaultUserRole === "student") {
-        console.log("STUDENT")
-
-        return studentCalendarStrategy(userEmail);
     } else if (defaultUserRole === "coach") {
-        console.log("COACH")
-
         return coachCalendarStrategy(userEmail);
+    } else if (defaultUserRole === "student") {
+        return studentCalendarStrategy(userEmail);
     } else {
-        console.log("defaultUserRole: ", defaultUserRole)
         throw new Error(`Unknown calendar role: ${defaultUserRole}`)
     }
 };
