@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { startOfWeek, endOfWeek  } from 'date-fns';
 import {
     firestoreFetchShifts,
     firestoreFetchAvailabilities,
@@ -31,10 +32,16 @@ export const CalendarDataProvider = ({ children }) => {
     const [tutors, setTutors] = useState([]);
     const [classes, setClasses] = useState([]);
 
+    const [calendarDateRange, setCalendarDateRange] = useState({
+        start: startOfWeek(new Date(), { weekStartsOn: 1 }), // 1 = Monday
+        end: endOfWeek(new Date(), { weekStartsOn: 1 })
+    });
+
+    // only rerun the fetches once RBC week changes
     useEffect(() => {
-        const unsubShifts = firestoreFetchShifts(setCalendarShifts)
-        const unsubAvailabilities = firestoreFetchAvailabilities(setCalendarAvailabilities)
-        const unsubtStudenRequests = firestoreFetchStudentRequests(setCalendarStudentRequests)
+        const unsubShifts = firestoreFetchShifts(setCalendarShifts, calendarDateRange)
+        const unsubAvailabilities = firestoreFetchAvailabilities(setCalendarAvailabilities, calendarDateRange)
+        const unsubtStudenRequests = firestoreFetchStudentRequests(setCalendarStudentRequests, calendarDateRange)
 
         firestoreFetchTutors(setTutors)
         firestoreFetchClasses(setClasses)
@@ -47,7 +54,7 @@ export const CalendarDataProvider = ({ children }) => {
             unsubAvailabilities()
             unsubtStudenRequests()
         }
-    }, [])
+    }, [calendarDateRange])
 
 
     const contextValues = useMemo(() => ({
@@ -64,6 +71,9 @@ export const CalendarDataProvider = ({ children }) => {
         subjects,
         tutors,
         students,
+
+        // date range
+        setCalendarDateRange
     }), [
         calendarShifts,
         calendarAvailabilities,

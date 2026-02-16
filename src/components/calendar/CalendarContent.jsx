@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
+import { format, parse, startOfWeek, endOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
@@ -67,6 +67,7 @@ const CalendarContent = () => {
         setCalendarAvailabilities,
         calendarStudentRequests,
         setCalendarStudentRequests,
+        setCalendarDateRange,
     } = useCalendarData();
 
     /* ----------------------------------------------------------- */
@@ -80,6 +81,30 @@ const CalendarContent = () => {
     /* ----------------------------------------------------------- */
     const minTime = parse('04:00', 'HH:mm', new Date());
     const maxTime = parse('22:00', 'HH:mm', new Date());
+
+    /**
+     * RBC 'Next', 'Prev', or changes views - sync with setCalendarDateRange to update DataContext useEffect dependency
+     * and will make firebase db fetch with the RBC calendar range
+    **/
+    const handleCalendarRangeChange = (range) => {
+        let calendarStart, calendarEnd;
+
+        // RBC returns an array for Week/Day view and an Object for Month view
+        if (Array.isArray(range)) {
+            calendarStart = range[0];
+            calendarEnd = range[range.length - 1];
+        } else {
+            calendarStart = range.start;
+            calendarEnd = range.end;
+        }
+
+        // Update the global range state to trigger the optimized Firestore listeners
+        setCalendarDateRange({ 
+            start: calendarStart, 
+            end: calendarEnd 
+        });
+    };
+    
 
     /* ----------------------------------------------------------- */
     /* Permissions                                                 */
@@ -378,6 +403,8 @@ const CalendarContent = () => {
                         resizableAccessor={canResizeEvent}
                         onEventDrop={handleEventDrop}
                         onEventResize={handleEventResize}
+
+                        onRangeChange={handleCalendarRangeChange}
 
                         selectable
                         popup
