@@ -184,16 +184,31 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
                     )}
 
                     {calendarScope.canToggleTutorAvailabilities && (
-                        <div className="mb-3">
-                            <label className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={visibility.showTutorInitials}
-                                    onChange={(e) => actions.setShowTutorInitials(e.target.checked)}
-                                />
-                                <span>Show Tutor Availabilities</span>
-                            </label>
-                        </div>
+                        <>
+                            <div className="mb-3">
+                                <label className={styles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={visibility.showTutorInitials}
+                                        onChange={(e) => actions.setShowTutorInitials(e.target.checked)}
+                                    />
+                                    <span>Show Tutor Availabilities</span>
+                                </label>
+                            </div>
+
+                            {userRole === 'tutor' && visibility.showTutorInitials && (
+                                <div className={`${styles.checkboxIndented} mb-3`}>
+                                    <label className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={visibility.hideOwnAvailabilities}
+                                            onChange={(e) => actions.setHideOwnAvailabilities(e.target.checked)}
+                                        />
+                                        <span>Hide My Availabilities</span>
+                                    </label>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {calendarScope.canToggleDeniedStudentRequests && (

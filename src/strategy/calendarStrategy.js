@@ -140,7 +140,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
     firestoreConstraints: {
         shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
         studentRequests: () => null,  // tutors don't see student requests
-        availabilities:  () => [{ fbField: 'tutor', fbOperation: '==', fbValue: userEmail }],
+        availabilities:  () => [],   // fetch all for overlay; own filtered in CalendarUIProvider
     },
 
     permissions: {
@@ -153,7 +153,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
         includeInCalendar: (event) =>
             event.entityType === CalendarEntityType.SHIFT ||
             event.entityType === CalendarEntityType.AVAILABILITY,
-        showAvailabilitySlots: false,
+        showAvailabilitySlots: true,
     },
 
     // panel filters

@@ -3,6 +3,7 @@ import AzureAD from 'next-auth/providers/azure-ad';
 import Credentials from 'next-auth/providers/credentials';
 import { authFirebaseSignIn, authFirebaseGenerateToken } from './firebaseAuth';
 import { authMsStoreTokens, authMsRefreshToken } from './msAuth';
+import { adminDb } from '@/firestore/firestoreAdmin';
 
 // Dev bypass users configuration (development only)
 const DEV_BYPASS_USERS = {
@@ -13,13 +14,13 @@ const DEV_BYPASS_USERS = {
         userRoles: ['admin']
     },
     'tutor@kings.edu.au': {
-        name: 'Dev Tutor',
+        name: 'Viraj Patel',
         role: 'tutor',
         defaultRole: 'tutor',
         userRoles: []
     },
     'tutorAdmin@kings.edu.au': {
-        name: 'Dev Admin Tutor',
+        name: 'Martin Madrid',
         role: 'tutor',
         defaultRole: 'tutor',
         userRoles: ['admin']
@@ -37,6 +38,20 @@ const DEV_BYPASS_USERS = {
         userRoles: ['tutor']
     }
 };
+
+// Seed dev bypass users into Firestore on startup so they appear in /userRoles
+if (process.env.NODE_ENV === 'development') {
+    for (const [email, config] of Object.entries(DEV_BYPASS_USERS)) {
+        adminDb.collection('users').doc(email).set({
+            email,
+            name: config.name,
+            role: config.role,
+            defaultRole: config.defaultRole,
+            userRoles: config.userRoles,
+            calendarFeedToken: 'dev-bypass-token',
+        }, { merge: true }).catch(console.error);
+    }
+}
 
 /**
  * Server-side: Create or fetch user role from Firestore on sign in

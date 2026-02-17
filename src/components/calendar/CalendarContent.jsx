@@ -68,6 +68,7 @@ const CalendarContent = () => {
         calendarStudentRequests,
         setCalendarStudentRequests,
         setCalendarDateRange,
+        tutors,
     } = useCalendarData();
 
     /* ----------------------------------------------------------- */
@@ -361,6 +362,7 @@ const CalendarContent = () => {
                 {...rest}
                 slotStartValue={value}
                 slotAvailabilities={overlayAvailabilities}
+                slotTutors={tutors}
                 slotWeekStart={weekStart}
                 slotWeekEnd={weekEnd}
             >

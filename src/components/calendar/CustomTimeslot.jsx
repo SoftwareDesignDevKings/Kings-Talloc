@@ -10,17 +10,33 @@ const computeAvailabilityHeatColor = (slotTutorCount, weeklyTutorCapacity) => {
     return `rgba(144, 238, 144, ${opacity})`;
 };
 
+const getInitialsFromName = (name) => {
+    if (!name) {
+        return "??"
+    }
+    return name.split(' ').map(w => w[0]).join('').toUpperCase();
+};
+
 const CustomTimeslot = ({
     children,
     slotStartValue,
     slotAvailabilities = [],
+    slotTutors = [],
     slotTutorFilter = [],
     slotWeekStart,
-    slotWeekEnd,
+    slotWeekEnd
 }) => {
+
     const slotStartTime = useMemo(() => new Date(slotStartValue), [slotStartValue]);
     const slotEndTime = useMemo(() => addMinutes(slotStartTime, 30), [slotStartTime]);
-
+    const tutorNameMap = useMemo(() => {
+        const map = {};
+        for (const t of slotTutors) {
+            map[t.email] = t.name;
+        }
+        return map;
+    }, [slotTutors]);
+    
     /* --------------------------------------------------------- */
     /* Filter availabilities by selected tutors                  */
     /* --------------------------------------------------------- */
@@ -60,14 +76,13 @@ const CustomTimeslot = ({
                 availabilityEndTime >= slotEndTime;
 
             if (fullyCoversSlot) {
-                tutorInitialsCoveringThisSlot.push(
-                    availability.tutor.substring(0, 2).toUpperCase(),
-                );
+                const name = tutorNameMap[availability.tutor];
+                tutorInitialsCoveringThisSlot.push(getInitialsFromName(name));
             }
         }
 
         return Array.from(new Set(tutorInitialsCoveringThisSlot)).sort();
-    }, [availabilitiesRelevantToSlot, slotStartTime, slotEndTime]);
+    }, [availabilitiesRelevantToSlot, slotStartTime, slotEndTime, tutorNameMap]);
 
     /* --------------------------------------------------------- */
     /* Weekly tutor capacity (for heat scaling)                  */

@@ -7,6 +7,24 @@ import { CalendarEntityType } from "@/strategy/calendarStrategy"
 import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
 
 /**
+ * Returns true if an availability's workType matches the selected filter.
+ * 'tutoringOrWork' availabilities are included when filtering by 'tutoring' or 'work',
+ * and vice-versa.
+ */
+const matchesWorkTypeFilter = (availWorkType, filterWorkType) => {
+    if (filterWorkType === 'tutoringOrWork') {
+        return availWorkType === 'tutoring' || availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+    }
+    if (filterWorkType === 'tutoring') {
+        return availWorkType === 'tutoring' || availWorkType === 'tutoringOrWork';
+    }
+    if (filterWorkType === 'work') {
+        return availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+    }
+    return availWorkType === filterWorkType;
+};
+
+/**
  * UI Provider to persist on re-renders across different page.jsx
  */
 export const CalendarUIProvider = ({ children }) => {
@@ -90,17 +108,14 @@ export const CalendarUIProvider = ({ children }) => {
     const calendarEntities = useMemo(
         () => [
             ...calendarShifts,
-            ...calendarAvailabilities,
             ...calendarStudentRequests,
         ],
-        [calendarShifts, calendarAvailabilities, calendarStudentRequests],
+        [calendarShifts, calendarStudentRequests],
     );
 
     // Filter RBC events by panel controls
     const filteredEvents = useMemo(() => {
-        let filtered = calendarEntities.filter((calEvent) =>
-            calendarStrategy.visibility.includeInCalendar(calEvent)
-        );
+        let filtered = [...calendarEntities];
 
         // apply "Show All Events" toggle
         if (!showAllEvents) {
@@ -141,24 +156,18 @@ export const CalendarUIProvider = ({ children }) => {
             );
         }
 
-        // for tutors: split their availabilities (already included via strategy) around their shifts
-        if (userRole === 'tutor') {
-            const shifts = filtered.filter(e => e.entityType !== CalendarEntityType.AVAILABILITY);
-            let availabilities = filtered.filter(e => e.entityType === CalendarEntityType.AVAILABILITY);
-
-            if (hideOwnAvailabilities) {
-                filtered = shifts;
-            } else {
-                if (filterAvailabilityByWorkType) {
-                    availabilities = availabilities.filter(a => a.workType === filterAvailabilityByWorkType.value);
-                }
-                const splitAvailabilities = calendarAvailabilitySplit(availabilities, shifts);
-                filtered = [...shifts, ...splitAvailabilities];
+        // for tutors: split own availabilities around shifts as RBC events (never other tutors')
+        if (userRole === 'tutor' && showTutorInitials && !hideOwnAvailabilities) {
+            let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
+            if (filterAvailabilityByWorkType) {
+                availabilities = availabilities.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
             }
+            const splitAvailabilities = calendarAvailabilitySplit(availabilities, filtered);
+            filtered = [...filtered, ...splitAvailabilities];
         }
 
         return filtered;
-    }, [calendarEntities, calendarStrategy.visibility, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, hideOwnAvailabilities, calendarAvailabilities, userEmail, filterAvailabilityByWorkType]);
+    }, [calendarEntities, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, showTutorInitials, hideOwnAvailabilities, calendarAvailabilities, filterAvailabilityByWorkType]);
 
     // ─────────────────────────────────────
     // Filter availabilities by panel controls
@@ -208,8 +217,7 @@ export const CalendarUIProvider = ({ children }) => {
 
         // filter by availability work type from CalendarUIProvider
         if (filterAvailabilityByWorkType) {
-            const workType = filterAvailabilityByWorkType.value;
-            filtered = filtered.filter(a => a.workType === workType);
+            filtered = filtered.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
         }
 
         // Split availabilities around clashing shifts (always use actual shifts, not filtered)

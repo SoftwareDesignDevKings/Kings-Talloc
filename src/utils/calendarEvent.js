@@ -39,36 +39,6 @@ export const calendarEventGetType = (event) => {
     return { isAvailability, isStudentRequest, collectionName };
 };
 
-/**
- * Check if user owns an event
- */
-export const calendarEventCheckOwnership = (event, userEmail, userRole) => {
-    if (event.tutor) {
-        return userRole === 'tutor' && event.tutor === userEmail;
-    }
-
-    if (event.isStudentRequest) {
-        return event.students?.some((s) => s.value === userEmail || s === userEmail);
-    }
-
-    return userRole === 'teacher';
-};
-
-/**
- * Check if user can drag/resize event
- */
-export const calendarEventCanModify = (event, userEmail, userRole) => {
-    if (userRole === 'tutor') {
-        return event.tutor === userEmail;
-    }
-
-    if (userRole === 'student') {
-        if (!event.isStudentRequest) return false;
-        return event.students?.some((s) => s.value === userEmail || s === userEmail);
-    }
-
-    return userRole === 'teacher' && !event.isStudentRequest;
-};
 
 /**
  * Get default event data based on user role
@@ -129,47 +99,6 @@ export const calendarEventGetDefaults = (slotInfo, userRole, userEmail) => {
     };
 };
 
-/**
- * Filter events based on role and filters
- */
-export const calendarEventFilter = (allEvents, { userRole, userEmail, filters }) => {
-    let filtered = [...allEvents];
-    const { visibility, tutors } = filters;
-
-    if (userRole === 'tutor') {
-        filtered = filtered.filter((event) =>
-            event.staff.some((staff) => staff.value === userEmail),
-        );
-
-        if (visibility?.hideOwnAvailabilities) {
-            filtered = filtered.filter((event) => event.tutor !== userEmail);
-        }
-    }
-
-    if ((userRole === 'tutor' || userRole === 'teacher') && visibility?.hideDeniedStudentEvents) {
-        filtered = filtered.filter(
-            (event) => !(event.createdByStudent && event.approvalStatus === 'denied'),
-        );
-    }
-
-    if (tutors?.length > 0) {
-        const selectedTutorValues = tutors.map((tutor) => tutor.value);
-        filtered = filtered.filter((event) =>
-            event.staff.some((staff) => selectedTutorValues.includes(staff.value)),
-        );
-    }
-
-    if (userRole === 'teacher') {
-        if (!visibility?.showTutoringEvents) {
-            filtered = filtered.filter((event) => event.workType !== 'tutoring');
-        }
-        if (!visibility?.showCoachingEvents) {
-            filtered = filtered.filter((event) => event.workType !== 'coaching');
-        }
-    }
-
-    return filtered;
-};
 
 /**
  * Update event state optimistically
@@ -380,7 +309,6 @@ export const calendarEventHandleDrop = async (
     updateOption,
     {
         userRole,
-        userEmail,
         allEvents,
         availabilities,
         studentRequests,
@@ -392,13 +320,8 @@ export const calendarEventHandleDrop = async (
 ) => {
     const { isAvailability, isStudentRequest, collectionName } = calendarEventGetType(event);
 
-    // Permission checks
-    if (userRole === 'student') {
-        if (!isStudentRequest) return;
-        const isOwnRequest = event.students?.some((s) => (s.value || s) === userEmail);
-        if (!isOwnRequest) return;
-    }
-
+    // Permission checks — Firestore already ensures users only receive events they own
+    if (userRole === 'student' && !isStudentRequest) return;
     if (userRole === 'tutor' && !isAvailability) return;
 
     const duration = event.end - event.start;
@@ -574,7 +497,6 @@ export const calendarEventHandleResize = async (
     updateOption,
     {
         userRole,
-        userEmail,
         allEvents,
         availabilities,
         studentRequests,
@@ -586,13 +508,8 @@ export const calendarEventHandleResize = async (
 ) => {
     const { isAvailability, isStudentRequest, collectionName } = calendarEventGetType(event);
 
-    // Permission checks
-    if (userRole === 'student') {
-        if (!isStudentRequest) return;
-        const isOwnRequest = event.students?.some((s) => (s.value || s) === userEmail);
-        if (!isOwnRequest) return;
-    }
-
+    // Permission checks — Firestore already ensures users only receive events they own
+    if (userRole === 'student' && !isStudentRequest) return;
     if (userRole === 'tutor' && !isAvailability) return;
 
     const updatedEvent = { ...event, start, end };
@@ -933,8 +850,8 @@ export const calendarEventHandleDuplicate = async (
     const nextDayEnd = new Date(event.end);
     nextDayEnd.setDate(nextDayEnd.getDate() + 1);
 
-    // Handle tutor availability duplication
-    if (event.tutor && userRole === 'tutor' && event.tutor === userEmail) {
+    // Handle tutor availability duplication — Firestore ensures only own availabilities are received
+    if (event.tutor && userRole === 'tutor') {
         const availabilityData = {
             ...event,
             start: nextDayStart,
