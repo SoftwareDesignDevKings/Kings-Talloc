@@ -31,7 +31,6 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             nonRecurringEventsSnapshot,
             recurringEventsSnapshot,
             pendingRequestsSnapshot,
-            tutorsSnapshot,
             weeklyAvailabilitiesSnapshot
         ] = await Promise.all([
             // Non-recurring events this week
@@ -50,24 +49,22 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
                     where('recurring', 'in', ['weekly', 'fortnightly'])
                 )
             ),
-                // Only pending requests
-                getDocs(
-                    query(
-                        collection(db, 'studentEventRequests'),
-                        where('approvalStatus', '==', 'pending'),
-                    ),
+            // Only pending requests
+            getDocs(
+                query(
+                    collection(db, 'studentEventRequests'),
+                    where('approvalStatus', '==', 'pending'),
                 ),
-                // All tutors (cached by Firestore SDK)
-                getDocs(query(collection(db, 'users'), where('role', '==', 'tutor'))),
-                // Weekly availabilities
-                getDocs(
-                    query(
-                        collection(db, 'tutorAvailabilities'),
-                        where('start', '>=', Timestamp.fromDate(weekStart)),
-                        where('start', '<', Timestamp.fromDate(weekEnd)),
-                    ),
+            ),
+            // Weekly availabilities
+            getDocs(
+                query(
+                    collection(db, 'tutorAvailabilities'),
+                    where('start', '>=', Timestamp.fromDate(weekStart)),
+                    where('start', '<', Timestamp.fromDate(weekEnd)),
                 ),
-            ]);
+            ),
+        ]);
 
         // OPTIMIZATION 2: Process non-recurring events
         let weeklyEvents = nonRecurringEventsSnapshot.docs.map((doc) => {
@@ -103,7 +100,6 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
         weeklyEvents = [...weeklyEvents, ...recurringEvents];
 
         // OPTIMIZATION 3: Pre-allocate data structures for O(1) operations
-        const activeTutorEmails = new Set(); // O(1) add/lookup
         const subjectCounts = new Map(); // O(1) add/lookup (faster than {})
         const todayEvents = [];
         const upcomingEvents = [];
@@ -111,6 +107,7 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
         let completedEvents = 0;
         let tutoringHours = 0;
         let coachingHours = 0;
+        let uncompletedTodayEvents = 0;
 
         // OPTIMIZATION 4: Single-pass O(n) processing instead of multiple O(n) loops
         for (const event of weeklyEvents) {
@@ -124,17 +121,13 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             // Categorize events
             if (isTodayEvent) {
                 todayEvents.push(event);
+                if (event.workStatus !== 'completed') {
+                    uncompletedTodayEvents++;
+                }
             }
             // Only add to upcoming if it's not today (avoid duplicates)
             if (isUpcomingEvent && !isTodayEvent && upcomingEvents.length < 5) {
                 upcomingEvents.push(event);
-            }
-
-            // Track active tutors - O(1) per staff member
-            if (event.staff) {
-                for (let i = 0; i < event.staff.length; i++) {
-                    activeTutorEmails.add(event.staff[i].value);
-                }
             }
 
             // Subject distribution - O(1) per event
@@ -202,8 +195,7 @@ export const fetchDashboardFirestoreDataTeacher = async (now = new Date()) => {
             completedEvents,
             unapprovedStudentRequests: pendingRequests.length,
             pendingRequestsData: pendingRequests,
-            activeTutors: activeTutorEmails.size,
-            totalTutors: tutorsSnapshot.size,
+            uncompletedTodayEvents,
             weeklyUtilization,
             topSubjects,
             weeklyHours: {

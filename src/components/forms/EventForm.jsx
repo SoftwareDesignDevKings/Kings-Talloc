@@ -114,8 +114,16 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
         // Validate recurring event has occurrence number
         if (newEvent.recurring && !isEditing) {
-            if (!newEvent.occurenceNum || newEvent.occurenceNum < 1) {
-                addAlert('error', 'Number of occurrences must be provided for recurring events.');
+            const count = Number(newEvent.occurenceNum);
+            const maxOccurrences = newEvent.recurring === 'fortnightly' ? 5 : 10;
+
+            if (!count || count < 2) {
+                addAlert('error', 'Recurring events must have at least 2 occurrences.');
+                return false;
+            }
+
+            if (count > maxOccurrences) {
+                addAlert('error', `Recurring shifts are capped at 10 weeks (max ${maxOccurrences} occurrences for ${newEvent.recurring} recurrence).`);
                 return false;
             }
         }

@@ -34,7 +34,7 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
                 getDocs(
                     query(
                         collection(db, 'shifts'),
-                        where('staff', 'array-contains', { value: userEmail, label: userEmail }),
+                        where('emailsList', 'array-contains', userEmail),
                         where('start', '>=', Timestamp.fromDate(weekStart)),
                         where('recurring', '==', null),
                     ),
@@ -43,7 +43,7 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
                 getDocs(
                     query(
                         collection(db, 'shifts'),
-                        where('staff', 'array-contains', { value: userEmail, label: userEmail }),
+                        where('emailsList', 'array-contains', userEmail),
                         where('recurring', 'in', ['weekly', 'fortnightly']),
                     ),
                 ),
@@ -51,7 +51,7 @@ export const fetchDashboardFirestoreDataTutor = async (userEmail, now = new Date
                 getDocs(
                     query(
                         collection(db, 'shifts'),
-                        where('staff', 'array-contains', { value: userEmail, label: userEmail }),
+                        where('emailsList', 'array-contains', userEmail),
                         where('confirmationRequired', '==', true),
                     ),
                 ),

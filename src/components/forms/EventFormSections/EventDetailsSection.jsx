@@ -246,7 +246,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                                 disabled={readOnly}
                                                 aria-label="Number of Occurrences"
                                                 aria-required="true"
-                                                min="1"
+                                                min="2"
                                                 placeholder="Enter number"
                                             />
                                         </>

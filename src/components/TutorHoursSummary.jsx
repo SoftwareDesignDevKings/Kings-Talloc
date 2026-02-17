@@ -60,7 +60,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         return sunday;
     });
     const [tutorHours, setTutorHours] = useState([]);
-    const [excludedShiftsInfo, setExcludedShiftsInfo] = useState(null);
 
     const fetchTutorHours = useCallback(async () => {
         // Query 1: Non-recurring shifts in the date range
@@ -191,37 +190,11 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-
-                // Check if this is a manual intervention error (scattered shifts below threshold)
-                if (errorData.error && errorData.error.includes('Manual intervention required')) {
-                    setExcludedShiftsInfo({
-                        tutorName: errorData.tutorName,
-                        roleType,
-                        excludedShifts: errorData.excludedShifts,
-                        weekTotal: errorData.weekTotal,
-                        isManualIntervention: true,
-                    });
-                    addAlert('error', 'Timesheet generation requires manual intervention for scattered shifts below payroll threshold');
-                    return;
-                }
-
-                // Store excluded shifts info for display in UI (appended shifts case)
-                if (errorData.excludedShifts && Object.keys(errorData.excludedShifts).length > 0) {
-                    setExcludedShiftsInfo({
-                        tutorName,
-                        roleType,
-                        excludedShifts: errorData.excludedShifts,
-                        weekTotal: errorData.weekTotal,
-                        isManualIntervention: false,
-                    });
-                }
-
                 addAlert('error', errorData.error || 'Failed to generate timesheet');
                 return;
             }
 
-            // Clear excluded shifts info on success
-            setExcludedShiftsInfo(null);
+            const overflowHours = parseFloat(response.headers.get('X-Overflow-Hours') || '0');
 
             // Download the file
             const blob = await response.blob();
@@ -234,6 +207,10 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
             const roleLabel = roleType === 'coach' ? 'Coach' : 'Tutor';
             addAlert('success', `${roleLabel} timesheet generated and downloaded successfully`);
+
+            if (overflowHours > 0) {
+                addAlert('info', `${overflowHours}hrs exceeded for "${tutorName}" — will need to be carried over to the next pay period.`);
+            }
         } catch (error) {
             console.error('Error generating timesheet:', error);
             addAlert('error', `Error: ${error.message}`);
@@ -287,81 +264,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                     </p>
                 </div>
             </div>
-
-            {excludedShiftsInfo && !excludedShiftsInfo.isManualIntervention && (
-                <div className="mb-3 p-3 border border-primary bg-primary bg-opacity-10 rounded">
-                    <h6 className="text-primary fw-semibold mb-2">
-                        Shifts Appended to Existing Shifts for {excludedShiftsInfo.tutorName} ({excludedShiftsInfo.roleType === 'coach' ? 'Coach' : 'Tutor'})
-                    </h6>
-                    <div className="small text-primary">
-                        <p className="mb-2">
-                            The following shifts have been added to existing shifts on their respective days:
-                        </p>
-                        {Object.entries(excludedShiftsInfo.excludedShifts).map(([day, shifts]) => (
-                            <div key={day} className="mb-2">
-                                <strong>{day}:</strong>
-                                <ul className="mb-0 ms-3">
-                                    {shifts.map((shift, idx) => (
-                                        <li key={idx}>
-                                            {shift.start} - {shift.end} ({shift.duration} hrs)
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                        <p className="mb-0 mt-2">
-                            <strong>Total week hours: {excludedShiftsInfo.weekTotal} hrs</strong>
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => setExcludedShiftsInfo(null)}
-                        className="btn btn-sm btn-primary mt-2"
-                    >
-                        Dismiss
-                    </button>
-                </div>
-            )}
-
-            {excludedShiftsInfo && excludedShiftsInfo.isManualIntervention && (
-                <div className="mb-3 p-3 border border-danger bg-danger bg-opacity-10 rounded">
-                    <h5 className="text-danger fw-bold mb-2">Excluded Hours Below Payroll Threshold</h5>
-                    <p className="fw-bold mb-2 text-danger">
-                        TUTOR: {excludedShiftsInfo.tutorName} ({excludedShiftsInfo.roleType === 'coach' ? 'Coach' : 'Tutor'})
-                    </p>
-                    <p className="fw-semibold fst-italic mb-3 text-danger">
-                        Manual intervention required - cannot aggregate or append these scattered shifts
-                    </p>
-                    <div className="small text-danger">
-                        <p className="mb-2">
-                            The following shifts could not be included in the timesheet:
-                        </p>
-                        {Object.entries(excludedShiftsInfo.excludedShifts).map(([day, shifts]) => (
-                            <div key={day} className="mb-2">
-                                <strong>{day}:</strong>
-                                <ul className="mb-0 ms-3">
-                                    {shifts.map((shift, idx) => (
-                                        <li key={idx}>
-                                            {shift.start} - {shift.end} ({shift.duration} hrs)
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                        <p className="mb-0 mt-2">
-                            <strong>Total excluded hours: {excludedShiftsInfo.weekTotal} hrs</strong>
-                        </p>
-                        <p className="mb-0 mt-2 fst-italic">
-                            These shifts cannot be appended to existing shifts (would exceed 8hr limit) and cannot be aggregated into a 3hr+ shift. Please manually adjust the schedule or create additional shifts.
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => setExcludedShiftsInfo(null)}
-                        className="btn btn-sm btn-danger mt-2"
-                    >
-                        Dismiss
-                    </button>
-                </div>
-            )}
 
             <div className="flex-grow-1 overflow-auto">
                 <div className="table-responsive">

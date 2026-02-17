@@ -5,7 +5,6 @@ import useAuthSession from '@/hooks/useAuthSession';
 import { fetchDashboardFirestoreDataTeacher } from '@/firestore/firestoreDashboardTeacher';
 import { fetchDashboardFirestoreDataTutor } from '@/firestore/firestoreDashboardTutor';
 import { fetchDashboardFirestoreDataStudent } from '@/firestore/firestoreDashboardStudent';
-import { auth } from '@/firestore/firestoreClient';
 import StatsCards from '@/components/dashboard/StatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
 import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
@@ -22,8 +21,7 @@ const DashboardOverview = () => {
         unapprovedStudentRequests: 0,
         completedEvents: 0,
         pendingRequestsData: [],
-        activeTutors: 0,
-        totalTutors: 0,
+        uncompletedTodayEvents: 0,
         weeklyUtilization: 0,
         topSubjects: [],
         weeklyHours: { tutoring: 0, coaching: 0 },
