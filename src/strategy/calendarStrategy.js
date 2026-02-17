@@ -21,6 +21,13 @@ export const CalendarEntityType = Object.freeze({
 });
 
 export const adminCalendarStrategy = () => ({
+    // Firestore query constraints - null means skip that collection entirely
+    firestoreConstraints: {
+        shifts:          () => [],   // fetch all
+        studentRequests: () => [],   // fetch all
+        availabilities:  () => [],   // fetch all
+    },
+
     permissions: {
         canEdit: (event) =>
             event.entityType === CalendarEntityType.SHIFT,
@@ -46,7 +53,7 @@ export const adminCalendarStrategy = () => ({
         canFilterByAvailabilityType: true,
     },
 
-    // teacher can see all tutor availabilities, but UI view is initials not CustomEvent. 
+    // teacher can see all tutor availabilities, but UI view is initials not CustomEvent.
     // CustomEvent UI not defined in calStrategy
     calendarScope: {
         canToggleDeniedStudentRequests: true,
@@ -129,32 +136,23 @@ export const teacherCalendarStrategy = () => adminCalendarStrategy();
 export const coachCalendarStrategy = (userEmail) => tutorCalendarStrategy(userEmail)
 
 export const tutorCalendarStrategy = (userEmail) => ({
+    // Firestore query constraints - null means skip that collection entirely
+    firestoreConstraints: {
+        shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
+        studentRequests: () => null,  // tutors don't see student requests
+        availabilities:  () => [{ fbField: 'tutor', fbOperation: '==', fbValue: userEmail }],
+    },
+
     permissions: {
-        canEdit: (event) =>
-            event.entityType === CalendarEntityType.AVAILABILITY &&
-            event.tutor === userEmail,
-
-        canDrag: (event) =>
-            event.entityType === CalendarEntityType.AVAILABILITY &&
-            event.tutor === userEmail,
-
-        canResize: (event) =>
-            event.entityType === CalendarEntityType.AVAILABILITY &&
-            event.tutor === userEmail,
+        canEdit: (event) => event.entityType === CalendarEntityType.AVAILABILITY,
+        canDrag: (event) => event.entityType === CalendarEntityType.AVAILABILITY,
+        canResize: (event) => event.entityType === CalendarEntityType.AVAILABILITY,
     },
 
     visibility: {
-        includeInCalendar: (event) => {
-            if (event.entityType === CalendarEntityType.AVAILABILITY) {
-                return event.tutor === userEmail;
-            }
-
-            if (event.entityType === CalendarEntityType.SHIFT) {
-                return event.staff?.some((s) => s.value === userEmail);
-            }
-
-            return false;
-        },
+        includeInCalendar: (event) =>
+            event.entityType === CalendarEntityType.SHIFT ||
+            event.entityType === CalendarEntityType.AVAILABILITY,
         showAvailabilitySlots: false,
     },
 
@@ -195,32 +193,23 @@ export const tutorCalendarStrategy = (userEmail) => ({
 });
 
 export const studentCalendarStrategy = (userEmail) => ({
+    // Firestore query constraints - null means skip that collection entirely
+    firestoreConstraints: {
+        shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
+        studentRequests: () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
+        availabilities:  () => [],  // fetch all (for overlay initials)
+    },
+
     permissions: {
-        canEdit: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            (event.students?.some((s) => s.value === userEmail) || event.isStudentRequest),
-
-        canDrag: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            (event.students?.some((s) => s.value === userEmail) || event.isStudentRequest),
-
-        canResize: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            (event.students?.some((s) => s.value === userEmail) || event.isStudentRequest),
+        canEdit: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+        canDrag: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+        canResize: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
     },
 
     visibility: {
-        includeInCalendar: (event) => {
-            if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return event.students?.some((s) => s.value === userEmail) || event.isStudentRequest;
-            }
-
-            if (event.entityType === CalendarEntityType.SHIFT) {
-                return event.students?.some((s) => s.value === userEmail);
-            }
-
-            return false;
-        },
+        includeInCalendar: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST ||
+            event.entityType === CalendarEntityType.SHIFT,
 
         showAvailabilitySlots: true,
     },
@@ -245,9 +234,8 @@ export const studentCalendarStrategy = (userEmail) => ({
     actions: {
         canCreateEvent: (event) => 
             event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canModifyEvent: (event) => 
-            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            (event.students?.includes(userEmail) || event.isStudentRequest),
+        canModifyEvent: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST,
         
         canDuplicateEvent: (event) => {
             if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {

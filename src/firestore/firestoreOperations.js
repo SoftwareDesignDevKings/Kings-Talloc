@@ -99,6 +99,14 @@ export const removeEventFromQueue = async (id) => {
  */
 export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts') => {
     const eventDoc = doc(db, collectionName, eventId);
+
+    // Rebuild emailsList if staff or students are being updated
+    if (eventData.staff !== undefined || eventData.students !== undefined) {
+        const staffEmails = (eventData.staff || []).map(s => typeof s === 'object' ? s.value : s);
+        const studentEmails = (eventData.students || []).map(s => typeof s === 'object' ? s.value : s);
+        eventData.emailsList = [...new Set([...staffEmails, ...studentEmails])];
+    }
+
     await updateDoc(eventDoc, eventData);
 };
 
@@ -109,7 +117,14 @@ export const updateEventInFirestore = async (eventId, eventData, collectionName 
  * @returns {Promise<string>} The ID of the created document
  */
 export const createEventInFirestore = async (eventData, collectionName = 'shifts') => {
-    const docRef = await addDoc(collection(db, collectionName), eventData);
+    const staffEmails = (eventData.staff || []).map(s => typeof s === 'object' ? s.value : s);
+    const studentEmails = (eventData.students || []).map(s => typeof s === 'object' ? s.value : s);
+    const emailsList = [...new Set([...staffEmails, ...studentEmails])];
+
+    const docRef = await addDoc(collection(db, collectionName), {
+        ...eventData,
+        emailsList,
+    });
     return docRef.id;
 };
 

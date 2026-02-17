@@ -11,6 +11,8 @@ import {
     firestoreFetchSubjects,
     firestoreFetchStudents
 } from '@/firestore/firestoreFetch';
+import useAuthSession from '@/hooks/useAuthSession';
+import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 
 import CalendarDataContext from '@/contexts/CalendarDataContext';
 export { useCalendarData } from '@/contexts/CalendarDataContext';
@@ -23,6 +25,10 @@ export { useCalendarData } from '@/contexts/CalendarDataContext';
  * Keeps data separate from UI state to minimize re-renders.
  */
 export const CalendarDataProvider = ({ children }) => {
+    const { session, userRole, userRoles } = useAuthSession();
+    const userEmail = session?.user?.email;
+    const calendarStrategy = useCalendarStrategy(userEmail, userRole, userRoles);
+
     const [calendarShifts, setCalendarShifts] = useState([])
     const [calendarAvailabilities, setCalendarAvailabilities] = useState([])
     const [calendarStudentRequests, setCalendarStudentRequests] = useState([])
@@ -37,11 +43,15 @@ export const CalendarDataProvider = ({ children }) => {
         end: endOfWeek(new Date(), { weekStartsOn: 1 })
     });
 
-    // only rerun the fetches once RBC week changes
+    // only rerun the fetches once RBC week changes or user/strategy changes
     useEffect(() => {
-        const unsubShifts = firestoreFetchShifts(setCalendarShifts, calendarDateRange)
-        const unsubAvailabilities = firestoreFetchAvailabilities(setCalendarAvailabilities, calendarDateRange)
-        const unsubtStudenRequests = firestoreFetchStudentRequests(setCalendarStudentRequests, calendarDateRange)
+        if (!userEmail || !calendarStrategy.firestoreConstraints) return;
+
+        const { firestoreConstraints } = calendarStrategy;
+
+        const unsubShifts = firestoreFetchShifts(setCalendarShifts, calendarDateRange, firestoreConstraints.shifts())
+        const unsubAvailabilities = firestoreFetchAvailabilities(setCalendarAvailabilities, calendarDateRange, firestoreConstraints.availabilities())
+        const unsubtStudenRequests = firestoreFetchStudentRequests(setCalendarStudentRequests, calendarDateRange, firestoreConstraints.studentRequests())
 
         firestoreFetchTutors(setTutors)
         firestoreFetchClasses(setClasses)
@@ -54,7 +64,8 @@ export const CalendarDataProvider = ({ children }) => {
             unsubAvailabilities()
             unsubtStudenRequests()
         }
-    }, [calendarDateRange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [calendarDateRange, userEmail, userRole])
 
 
     const contextValues = useMemo(() => ({

@@ -98,18 +98,9 @@ export const CalendarUIProvider = ({ children }) => {
 
     // Filter RBC events by panel controls
     const filteredEvents = useMemo(() => {
-        let filtered = calendarEntities.filter((calEvent) => {
-            // skip availabilities for tutors and students - shown as overlays only
-            if (calEvent.entityType === CalendarEntityType.AVAILABILITY) {
-                // Only tutors can see their own availabilities as RBC events (added back later)
-                if (userRole !== 'tutor') {
-                    return false;
-                }
-                // for tutors, we'll handle them separately
-                return false;
-            }
-            return calendarStrategy.visibility.includeInCalendar(calEvent);
-        });
+        let filtered = calendarEntities.filter((calEvent) =>
+            calendarStrategy.visibility.includeInCalendar(calEvent)
+        );
 
         // apply "Show All Events" toggle
         if (!showAllEvents) {
@@ -150,18 +141,20 @@ export const CalendarUIProvider = ({ children }) => {
             );
         }
 
-        // for tutors: include their own availabilities as RBC events (unless hidden)
-        if (userRole === 'tutor' && !hideOwnAvailabilities) {
-            let tutorOwnAvailabilities = calendarAvailabilities.filter((avail) => avail.tutor === userEmail);
+        // for tutors: split their availabilities (already included via strategy) around their shifts
+        if (userRole === 'tutor') {
+            const shifts = filtered.filter(e => e.entityType !== CalendarEntityType.AVAILABILITY);
+            let availabilities = filtered.filter(e => e.entityType === CalendarEntityType.AVAILABILITY);
 
-            if (filterAvailabilityByWorkType) {
-                tutorOwnAvailabilities = tutorOwnAvailabilities.filter(
-                    (a) => a.workType === filterAvailabilityByWorkType.value
-                );
+            if (hideOwnAvailabilities) {
+                filtered = shifts;
+            } else {
+                if (filterAvailabilityByWorkType) {
+                    availabilities = availabilities.filter(a => a.workType === filterAvailabilityByWorkType.value);
+                }
+                const splitAvailabilities = calendarAvailabilitySplit(availabilities, shifts);
+                filtered = [...shifts, ...splitAvailabilities];
             }
-            // split tutor's own availabilities around their shifts 
-            const splitTutorAvailabilities = calendarAvailabilitySplit(tutorOwnAvailabilities, filtered);
-            filtered = [...filtered, ...splitTutorAvailabilities];
         }
 
         return filtered;
