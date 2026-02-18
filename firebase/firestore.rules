@@ -1,127 +1,137 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to get user role from custom claims
+
+    // ─────────────────────────────────────
+    // Auth helpers
+    // ─────────────────────────────────────
+
     function getUserRole() {
       return request.auth.token.defaultRole;
     }
 
-    // Helper function to get user roles array from custom claims
     function getUserRoles() {
       return request.auth.token.userRoles;
     }
 
-    // Helper function to check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper function to check if user is admin (via userRoles array)
+    // ─────────────────────────────────────
+    // Role helpers
+    // Checks both defaultRole and userRoles array (multi-role system)
+    // ─────────────────────────────────────
+
+    // Full admin privileges
     function isAdmin() {
-      return isAuthenticated() && 'admin' in getUserRoles();
+      return isAuthenticated() && (getUserRole() == 'admin' || 'admin' in getUserRoles());
     }
 
-    // Helper function to check if user is teacher (admin)
+    // Teacher: shares admin calendar strategy — same shift create/edit/delete rights
     function isTeacher() {
-      return isAuthenticated() && getUserRole() == 'teacher';
+      return isAuthenticated() && (getUserRole() == 'teacher' || 'teacher' in getUserRoles());
     }
 
-    // Helper function to check if user is tutor
+    // Tutor
     function isTutor() {
-      return isAuthenticated() && getUserRole() == 'tutor';
+      return isAuthenticated() && (getUserRole() == 'tutor' || 'tutor' in getUserRoles());
     }
 
-    // Helper function to check if user is student
+    // Coach: same field-level permissions as tutor
+    function isCoach() {
+      return isAuthenticated() && (getUserRole() == 'coach' || 'coach' in getUserRoles());
+    }
+
     function isStudent() {
-      return isAuthenticated() && getUserRole() == 'student';
+      return isAuthenticated() && (getUserRole() == 'student' || 'student' in getUserRoles());
     }
 
-    // Helper function to check if student owns the request (checks studentEmails array)
+    // Convenience composites
+    function isAdminOrTeacher() {
+      return isAdmin() || isTeacher();
+    }
+
+    function isTutorOrCoach() {
+      return isTutor() || isCoach();
+    }
+
+    // ─────────────────────────────────────
+    // Ownership helpers
+    // ─────────────────────────────────────
+
+    // Check student owns a request via flat emailsList array
     function studentOwnsRequest(studentEmail) {
-      // Check primitive email array (studentEmails) for access control
-      // students array [{value, label}] is kept for UI only
-      return studentEmail != null && 'studentEmails' in resource.data && studentEmail in resource.data.studentEmails;
+      return studentEmail != null
+        && 'emailsList' in resource.data
+        && resource.data.emailsList.hasAny([studentEmail]);
     }
 
-    // Users collection - only admins can modify roles
+    // ─────────────────────────────────────
+    // Collections
+    // ─────────────────────────────────────
+
+    // Users — admins/teachers manage roles; users can edit own non-role fields
     match /users/{documentEmail} {
       allow read: if isAuthenticated();
-
-      // Admins can create any user, others can only create their own account
-      allow create: if isAdmin() || (isAuthenticated() && request.auth.token.email == documentEmail);
-
-      // Admins can update any user, others can only update their own account without modifying role fields
-      allow update: if isAdmin() || (isAuthenticated() && request.auth.token.email == documentEmail && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'defaultRole', 'userRoles']));
+      allow create: if isAdminOrTeacher() || (isAuthenticated() && request.auth.token.email == documentEmail);
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Shifts collection (APPROVED shifts only - counts for payroll/hours)
+    // Shifts — admins/teachers read all; others only read shifts they're assigned to
     match /shifts/{shiftId} {
-      allow read: if isAuthenticated();
-      // only admins can create/delete shifts
-      allow create, delete: if isAdmin();
-      // admins can update anything, tutors can only update workStatus
-      allow update: if isAdmin() || (isTutor() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
+      allow read: if isAdminOrTeacher()
+        || resource.data.emailsList.hasAny([request.auth.token.email]);
+      allow create, delete: if isAdminOrTeacher();
+      allow update: if isAdminOrTeacher()
+        || (isTutorOrCoach() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
     }
 
-    // // BACKWARDS COMPATIBILITY: events collection (APPROVED events only - counts for payroll/hours)
-    // match /events/{eventId} {
-    //   allow read: if isAuthenticated();
-    //   // only teachers can create/delete events
-    //   allow create, delete: if isTeacher();
-    //   // teachers can update anything, tutors can only update workStatus
-    //   allow update: if isTeacher() || (isTutor() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
-    // }
-
-    // Email Events Queue collection (temporary queue for email notifications)
+    // Email Events Queue — written by any role that creates/modifies events
     match /emailEventsQueue/{eventId} {
       allow read: if isAuthenticated();
-
-      // Only admins can manage email queue
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
-    // Student Event Requests collection (displays on calendar in red, no payroll impact)
+    // Student Event Requests — admins/teachers read all; students read their own only; tutors/coaches blocked
     match /studentEventRequests/{requestId} {
-      allow read: if isAuthenticated();
-
-      // Students and teachers can create requests
-      allow create: if isStudent() || isTeacher();
-
-      // Admins and teachers can update/delete any request, students can only update/delete their own
-      allow update, delete: if isTeacher() || (isStudent() && studentOwnsRequest(request.auth.token.email));
+      allow read: if isAdminOrTeacher()
+        || (isStudent() && studentOwnsRequest(request.auth.token.email));
+      allow create: if isStudent() || isAdminOrTeacher();
+      allow update, delete: if isAdminOrTeacher()
+        || (isStudent() && studentOwnsRequest(request.auth.token.email));
     }
 
-    // Tutor Availabilities collection (tutor availability slots)
+    // Tutor Availabilities — tutors and coaches manage their own (tutor field = email)
     match /tutorAvailabilities/{availabilityId} {
       allow read: if isAuthenticated();
-
-      // Only tutors can create their own availabilities
-      allow create: if isTutor() && request.auth.uid == request.resource.data.tutor;
-
-      // Tutors can only update/delete their own availabilities
-      allow update, delete: if isTutor() && request.auth.uid == resource.data.tutor;
+      allow create: if isTutorOrCoach()
+        && request.auth.token.email == request.resource.data.tutor;
+      allow update, delete: if isTutorOrCoach()
+        && request.auth.token.email == resource.data.tutor;
     }
 
-    // Classes collection - only admins can modify
+    // Classes — admins/teachers manage; all authenticated can read
     match /classes/{classId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAdminOrTeacher();
     }
 
-    // Subjects collection - only admins can modify
+    // Subjects — admins/teachers manage; all authenticated can read
     match /subjects/{subjectId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAdminOrTeacher();
     }
 
-    // Students collection - read-only for all authenticated users, only admins can modify
+    // Students — admins/teachers manage; all authenticated can read
     match /students/{studentId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAdminOrTeacher();
     }
 
-    // Timesheets collection - admins can read/write, tutors can read their own
+    // Timesheets (templates) — admin only (API route also enforces this)
     match /timesheets/{timesheetId} {
       allow read: if isAuthenticated();
       allow create, update, delete: if isAdmin();

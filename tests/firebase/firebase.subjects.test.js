@@ -52,7 +52,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('authenticated users CAN read subjects', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -71,7 +72,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('teacher CAN create subjects', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -88,7 +90,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('tutor CANNOT create subjects', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -103,7 +106,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('student CANNOT create subjects', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -135,7 +139,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('teacher CAN update subjects', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -150,7 +155,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('tutor CANNOT update subjects', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -164,7 +170,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('student CANNOT update subjects', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -194,7 +201,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('teacher CAN delete subjects', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -204,7 +212,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('tutor CANNOT delete subjects', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -214,7 +223,8 @@ describe('Firebase Security Rules - Subjects Collection', () => {
         test('student CANNOT delete subjects', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 

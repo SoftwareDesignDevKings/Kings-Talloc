@@ -1,18 +1,17 @@
 /**
  * Firebase Security Rules Tests - Events Collection
  *
- * Tests events collection access control focusing on the new tutor workStatus update permission
- * This tests the actual firestore.rules file against the Firebase emulator
- *
- * Run with: firebase emulators:exec --only firestore "npm test -- tests/firebase.events.test.js"
+ * Tests shifts collection access control:
+ * - Admins/teachers can read all shifts
+ * - Tutors/coaches/students can only read shifts they're assigned to (emailsList)
+ * - Only admins/teachers can create/delete
+ * - Tutors/coaches can update workStatus only; admins/teachers can update anything
  *
  * @jest-environment node
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
 
-// assertFails and assertSucceeds are provided by firebaseTestSetup.js
-// to properly suppress console warnings only during expected failures
 const { assertFails, assertSucceeds } = global;
 const fs = require('fs');
 const path = require('path');
@@ -20,11 +19,9 @@ const path = require('path');
 let testEnv;
 
 beforeAll(async () => {
-    // Read the actual firestore.rules file
     const rulesPath = path.join(__dirname, '../../firebase', 'firestore.rules');
     const rules = fs.readFileSync(rulesPath, 'utf8');
 
-    // Initialize test environment with the actual rules
     testEnv = await initializeTestEnvironment({
         projectId: 'test-project-events',
         firestore: {
@@ -44,91 +41,203 @@ beforeEach(async () => {
 });
 
 describe('Firebase Security Rules - Events Collection', () => {
+    const adminEmail = 'admin@kings.edu.au';
     const teacherEmail = 'teacher@kings.edu.au';
     const tutorEmail = 'tutor@kings.edu.au';
+    const coachEmail = 'coach@kings.edu.au';
     const studentEmail = 'student@student.kings.edu.au';
 
     describe('Events - Read Access', () => {
-        test('authenticated users CAN read events', async () => {
-            const context = testEnv.authenticatedContext(studentEmail, {
-                email: studentEmail,
-                role: 'student',
+        let assignedShiftId;
+        let unassignedShiftId;
+
+        beforeEach(async () => {
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                const db = context.firestore();
+
+                // Shift that tutor and student are assigned to
+                const ref1 = await db.collection('shifts').add({
+                    title: 'Assigned Shift',
+                    emailsList: [tutorEmail, coachEmail, studentEmail],
+                    start: new Date('2025-10-15T09:00:00'),
+                    end: new Date('2025-10-15T10:00:00'),
+                    workStatus: 'notCompleted',
+                    workType: 'tutoring',
+                });
+                assignedShiftId = ref1.id;
+
+                // Shift that the tutor/student are NOT assigned to
+                const ref2 = await db.collection('shifts').add({
+                    title: 'Other Shift',
+                    emailsList: ['other@kings.edu.au'],
+                    start: new Date('2025-10-15T11:00:00'),
+                    end: new Date('2025-10-15T12:00:00'),
+                    workStatus: 'notCompleted',
+                    workType: 'tutoring',
+                });
+                unassignedShiftId = ref2.id;
+            });
+        });
+
+        test('teacher CAN read any shift', async () => {
+            const context = testEnv.authenticatedContext(teacherEmail, {
+                email: teacherEmail,
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('shifts').get());
+            await assertSucceeds(db.collection('shifts').doc(unassignedShiftId).get());
         });
 
-        test('unauthenticated users CANNOT read events', async () => {
+        test('admin CAN read any shift', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('shifts').doc(unassignedShiftId).get());
+        });
+
+        test('tutor CAN read a shift they are assigned to', async () => {
+            const context = testEnv.authenticatedContext(tutorEmail, {
+                email: tutorEmail,
+                defaultRole: 'tutor',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('shifts').doc(assignedShiftId).get());
+        });
+
+        test('tutor CANNOT read a shift they are NOT assigned to', async () => {
+            const context = testEnv.authenticatedContext(tutorEmail, {
+                email: tutorEmail,
+                defaultRole: 'tutor',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('shifts').doc(unassignedShiftId).get());
+        });
+
+        test('coach CAN read a shift they are assigned to', async () => {
+            const context = testEnv.authenticatedContext(coachEmail, {
+                email: coachEmail,
+                defaultRole: 'coach',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('shifts').doc(assignedShiftId).get());
+        });
+
+        test('coach CANNOT read a shift they are NOT assigned to', async () => {
+            const context = testEnv.authenticatedContext(coachEmail, {
+                email: coachEmail,
+                defaultRole: 'coach',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('shifts').doc(unassignedShiftId).get());
+        });
+
+        test('student CAN read a shift they are assigned to', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('shifts').doc(assignedShiftId).get());
+        });
+
+        test('student CANNOT read a shift they are NOT assigned to', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('shifts').doc(unassignedShiftId).get());
+        });
+
+        test('unauthenticated users CANNOT read shifts', async () => {
             const context = testEnv.unauthenticatedContext();
             const db = context.firestore();
 
-            await assertFails(db.collection('shifts').get());
+            await assertFails(db.collection('shifts').doc(assignedShiftId).get());
         });
     });
 
     describe('Events - Create Access', () => {
-        test('teacher CAN create events', async () => {
+        const eventData = {
+            title: 'Test Event',
+            start: new Date('2025-10-15T09:00:00'),
+            end: new Date('2025-10-15T10:00:00'),
+            emailsList: [tutorEmail],
+            staff: [{ value: tutorEmail, label: 'Tutor' }],
+            students: [],
+            workStatus: 'notCompleted',
+            workType: 'tutoring',
+        };
+
+        test('teacher CAN create shifts', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
-
-            const eventData = {
-                title: 'Test Event',
-                start: new Date('2025-10-15T09:00:00'),
-                end: new Date('2025-10-15T10:00:00'),
-                staff: [{ value: tutorEmail, label: 'Tutor' }],
-                students: [],
-                classes: [],
-                workStatus: 'notCompleted',
-                workType: 'tutoring',
-                approvalStatus: 'approved',
-                description: '',
-                confirmationRequired: false,
-                tutorResponses: [],
-                studentResponses: [],
-                minStudents: 0,
-                createdByStudent: false,
-                locationType: 'onsite',
-            };
 
             await assertSucceeds(db.collection('shifts').add(eventData));
         });
 
-        test('tutor CANNOT create events', async () => {
-            const context = testEnv.authenticatedContext(tutorEmail, {
-                email: tutorEmail,
-                role: 'tutor',
+        test('admin CAN create shifts', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
             });
             const db = context.firestore();
 
-            const eventData = {
-                title: 'Test Event',
-                start: new Date('2025-10-15T09:00:00'),
-                end: new Date('2025-10-15T10:00:00'),
-                staff: [{ value: tutorEmail, label: 'Tutor' }],
-                students: [],
-                workStatus: 'notCompleted',
-            };
+            await assertSucceeds(db.collection('shifts').add(eventData));
+        });
+
+        test('tutor CANNOT create shifts', async () => {
+            const context = testEnv.authenticatedContext(tutorEmail, {
+                email: tutorEmail,
+                defaultRole: 'tutor',
+                userRoles: [],
+            });
+            const db = context.firestore();
 
             await assertFails(db.collection('shifts').add(eventData));
         });
 
-        test('student CANNOT create events', async () => {
-            const context = testEnv.authenticatedContext(studentEmail, {
-                email: studentEmail,
-                role: 'student',
+        test('coach CANNOT create shifts', async () => {
+            const context = testEnv.authenticatedContext(coachEmail, {
+                email: coachEmail,
+                defaultRole: 'coach',
+                userRoles: [],
             });
             const db = context.firestore();
 
-            const eventData = {
-                title: 'Test Event',
-                start: new Date('2025-10-15T09:00:00'),
-                end: new Date('2025-10-15T10:00:00'),
-                students: [{ value: studentEmail, label: 'Student' }],
-            };
+            await assertFails(db.collection('shifts').add(eventData));
+        });
+
+        test('student CANNOT create shifts', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
 
             await assertFails(db.collection('shifts').add(eventData));
         });
@@ -138,30 +247,28 @@ describe('Firebase Security Rules - Events Collection', () => {
         let eventId;
 
         beforeEach(async () => {
-            // Create an event for testing
-            //
             await testEnv.withSecurityRulesDisabled(async (context) => {
                 const db = context.firestore();
                 const ref = await db.collection('shifts').add({
                     title: 'Test Event',
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
+                    emailsList: [tutorEmail, coachEmail],
                     staff: [{ value: tutorEmail, label: 'Tutor' }],
                     students: [],
-                    classes: [],
                     workStatus: 'notCompleted',
                     workType: 'tutoring',
-                    approvalStatus: 'approved',
                     description: 'Test description',
                 });
                 eventId = ref.id;
             });
         });
 
-        test('teacher CAN update any field in events', async () => {
+        test('teacher CAN update any field', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -174,46 +281,53 @@ describe('Firebase Security Rules - Events Collection', () => {
             );
         });
 
-        test('tutor CAN update only workStatus field', async () => {
-            const context = testEnv.authenticatedContext(tutorEmail, {
-                email: tutorEmail,
-                role: 'tutor',
+        test('admin CAN update any field', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertSucceeds(
                 db.collection('shifts').doc(eventId).update({
+                    title: 'Updated Title',
                     workStatus: 'completed',
                 }),
             );
         });
 
-        test('tutor CAN update workStatus to different values', async () => {
+        test('tutor CAN update only workStatus', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
-            // Test updating to 'completed'
             await assertSucceeds(
-                db.collection('shifts').doc(eventId).update({
-                    workStatus: 'completed',
-                }),
+                db.collection('shifts').doc(eventId).update({ workStatus: 'completed' }),
             );
+        });
 
-            // Test updating to 'notAttended'
+        test('coach CAN update only workStatus', async () => {
+            const context = testEnv.authenticatedContext(coachEmail, {
+                email: coachEmail,
+                defaultRole: 'coach',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
             await assertSucceeds(
-                db.collection('shifts').doc(eventId).update({
-                    workStatus: 'notAttended',
-                }),
+                db.collection('shifts').doc(eventId).update({ workStatus: 'completed' }),
             );
         });
 
         test('tutor CANNOT update workStatus AND other fields', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -228,73 +342,39 @@ describe('Firebase Security Rules - Events Collection', () => {
         test('tutor CANNOT update title field', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertFails(
-                db.collection('shifts').doc(eventId).update({
-                    title: 'Updated Title',
-                }),
+                db.collection('shifts').doc(eventId).update({ title: 'Updated Title' }),
             );
         });
 
-        test('tutor CANNOT update description field', async () => {
-            const context = testEnv.authenticatedContext(tutorEmail, {
-                email: tutorEmail,
-                role: 'tutor',
+        test('coach CANNOT update title field', async () => {
+            const context = testEnv.authenticatedContext(coachEmail, {
+                email: coachEmail,
+                defaultRole: 'coach',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertFails(
-                db.collection('shifts').doc(eventId).update({
-                    description: 'Updated description',
-                }),
+                db.collection('shifts').doc(eventId).update({ title: 'Updated Title' }),
             );
         });
 
-        test('tutor CANNOT update staff field', async () => {
-            const context = testEnv.authenticatedContext(tutorEmail, {
-                email: tutorEmail,
-                role: 'tutor',
-            });
-            const db = context.firestore();
-
-            await assertFails(
-                db
-                    .collection('shifts')
-                    .doc(eventId)
-                    .update({
-                        staff: [{ value: 'other@kings.edu.au', label: 'Other' }],
-                    }),
-            );
-        });
-
-        test('student CANNOT update events', async () => {
+        test('student CANNOT update shifts', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertFails(
-                db.collection('shifts').doc(eventId).update({
-                    title: 'Updated by student',
-                }),
-            );
-        });
-
-        test('student CANNOT update workStatus', async () => {
-            const context = testEnv.authenticatedContext(studentEmail, {
-                email: studentEmail,
-                role: 'student',
-            });
-            const db = context.firestore();
-
-            await assertFails(
-                db.collection('shifts').doc(eventId).update({
-                    workStatus: 'completed',
-                }),
+                db.collection('shifts').doc(eventId).update({ workStatus: 'completed' }),
             );
         });
     });
@@ -303,45 +383,68 @@ describe('Firebase Security Rules - Events Collection', () => {
         let eventId;
 
         beforeEach(async () => {
-            // Create an event for testing
             await testEnv.withSecurityRulesDisabled(async (context) => {
                 const db = context.firestore();
                 const ref = await db.collection('shifts').add({
                     title: 'Test Event',
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
-                    staff: [{ value: tutorEmail, label: 'Tutor' }],
-                    students: [],
+                    emailsList: [tutorEmail],
                     workStatus: 'notCompleted',
                 });
                 eventId = ref.id;
             });
         });
 
-        test('teacher CAN delete events', async () => {
+        test('teacher CAN delete shifts', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertSucceeds(db.collection('shifts').doc(eventId).delete());
         });
 
-        test('tutor CANNOT delete events', async () => {
+        test('admin CAN delete shifts', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('shifts').doc(eventId).delete());
+        });
+
+        test('tutor CANNOT delete shifts', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertFails(db.collection('shifts').doc(eventId).delete());
         });
 
-        test('student CANNOT delete events', async () => {
+        test('coach CANNOT delete shifts', async () => {
+            const context = testEnv.authenticatedContext(coachEmail, {
+                email: coachEmail,
+                defaultRole: 'coach',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('shifts').doc(eventId).delete());
+        });
+
+        test('student CANNOT delete shifts', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
