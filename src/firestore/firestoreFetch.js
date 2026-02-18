@@ -1,94 +1,87 @@
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
-import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
-/**
- * Optimized Shift Fetching
- * Uses two queries:
- *   1. Non-recurring shifts within the viewed date range
- *   2. ALL recurring shifts (no date filter) — expanded in memory so navigating
- *      to a future/past week still shows occurrences whose base event is outside
- *      the current view window.
- */
-export const firestoreFetchShifts = (setCalendarShifts, calendarDateRange, strategyFbFilters) => {
-    if (strategyFbFilters === null) {
-        setCalendarShifts([]);
-        return () => {};
-    }
+// ---------------------------------------------------------------------------
+// Module-level cache for rarely-changing reference data (tutors, subjects, etc.)
+// Survives re-renders and re-mounts for the lifetime of the browser session.
+// ---------------------------------------------------------------------------
+const STATIC_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const staticCache = new Map(); 
+// key → { data, fetchedAt }
 
-    const shiftsRef = collection(db, 'shifts');
-    const MAX_OCCURRENCES = 10;
-    const accessFilters = strategyFbFilters.map(({ fbField, fbOperation, fbValue }) =>
+const getCachedOrFetch = async (key, fetchFn) => {
+    const entry = staticCache.get(key);
+    if (entry && Date.now() - entry.fetchedAt < STATIC_CACHE_TTL_MS) {
+        return entry.data;
+    }
+    const data = await fetchFn();
+    staticCache.set(key, { data, fetchedAt: Date.now() });
+    return data;
+};
+
+const deserializeShift = (doc) => {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        ...data,
+        start: data.start.toDate(),
+        end: data.end.toDate(),
+        ...(data.until && { until: data.until.toDate() }),
+        entityType: CalendarEntityType.SHIFT,
+    };
+};
+
+const buildAccessFilters = (strategyFbFilters) =>
+    strategyFbFilters.map(({ fbField, fbOperation, fbValue }) =>
         where(fbField, fbOperation, fbValue)
     );
 
-    // pending buckets — null signals "listener hasn't fired yet"
-    let oneOffShifts = null;
-    let recurringBaseShifts = null;
+/**
+ * One-off shifts within the viewed date range.
+ * Re-subscribes on every week navigation.
+ */
+export const firestoreFetchOneOffShifts = (setOneOffShifts, calendarDateRange, strategyFbFilters) => {
+    if (strategyFbFilters === null) {
+        setOneOffShifts([]);
+        return () => {};
+    }
 
-    const publishShifts = () => {
-        if (oneOffShifts === null || recurringBaseShifts === null) return;
-        const expanded = recurringCalendarExpand([...oneOffShifts, ...recurringBaseShifts], {
-            rangeStart: calendarDateRange.start,
-            rangeEnd: calendarDateRange.end,
-            maxOccurrences: MAX_OCCURRENCES,
-        });
-
-        setCalendarShifts(expanded);
-    };
-
-    const deserializeShift = (doc) => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            start: data.start.toDate(),
-            end: data.end.toDate(),
-            ...(data.until && { until: data.until.toDate() }),
-            entityType: CalendarEntityType.SHIFT,
-        };
-    };
-
-    // Query 1: currWeek shifts within the viewed date range
-    const currWeekQuery = query(
-        shiftsRef,
+    const q = query(
+        collection(db, 'shifts'),
         where('start', '>=', Timestamp.fromDate(calendarDateRange.start)),
         where('start', '<=', Timestamp.fromDate(calendarDateRange.end)),
         where('recurring', '==', null),
-        ...accessFilters
+        ...buildAccessFilters(strategyFbFilters)
     );
 
-    // Query 2: ALL recurring base shifts — no date filter so occurrences whose
-    // base event falls outside the current view are still expanded in memory
-    const recurringQuery = query(
-        shiftsRef,
+    return onSnapshot(q,
+        (snapshot) => setOneOffShifts(snapshot.docs.map(deserializeShift)),
+        (error) => { console.error('Firestore Shifts (one-off) Error:', error); setOneOffShifts([]); }
+    );
+};
+
+/**
+ * ALL recurring base shifts — no date filter.
+ * Only re-subscribes when user/role changes, not on week navigation.
+ * Expansion into concrete occurrences happens in CalendarDataProvider.
+ */
+export const firestoreFetchRecurringShifts = (setRecurringBaseShifts, strategyFbFilters) => {
+    if (strategyFbFilters === null) {
+        setRecurringBaseShifts([]);
+        return () => {};
+    }
+
+    const q = query(
+        collection(db, 'shifts'),
         where('recurring', 'in', ['weekly', 'fortnightly']),
-        ...accessFilters
+        ...buildAccessFilters(strategyFbFilters)
     );
 
-    const unsubscribeOneOff = onSnapshot(currWeekQuery, (snapshot) => {
-        oneOffShifts = snapshot.docs.map(deserializeShift);
-        publishShifts();
-    }, (error) => {
-        console.error("Firestore Shifts (one-off) Error:", error);
-        oneOffShifts = [];
-        publishShifts();
-    });
-
-    const unsubscribeRecurring = onSnapshot(recurringQuery, (snapshot) => {
-        recurringBaseShifts = snapshot.docs.map(deserializeShift);
-        publishShifts();
-    }, (error) => {
-        console.error("Firestore Shifts (recurring) Error:", error);
-        recurringBaseShifts = [];
-        publishShifts();
-    });
-
-    return () => {
-        unsubscribeOneOff();
-        unsubscribeRecurring();
-    };
+    return onSnapshot(q,
+        (snapshot) => setRecurringBaseShifts(snapshot.docs.map(deserializeShift)),
+        (error) => { console.error('Firestore Shifts (recurring) Error:', error); setRecurringBaseShifts([]); }
+    );
 };
 
 /**
@@ -161,108 +154,35 @@ export const firestoreFetchStudentRequests = (setCalendarStudentRequests, calend
     });
 };
 
-/**
- * Fetch tutors for dropdowns (one-time)
- */
-export const firestoreFetchTutors = async (setTutors) => {
-    try {
-        const usersRef = collection(db, 'users');
-        const tutorsQuery = query(usersRef, where('role', '==', 'tutor'));
-        const snapshot = await getDocs(tutorsQuery);
-
-        let tutors = [];
-        tutors = snapshot.docs.map((doc) => {
-            const data = doc.data();
-
-            return {
-                email: data.email,
-                name: data.name || data.email,  // Use name field if available, fallback to email
-            };
+export const fetchCacheTutors = () =>
+    getCachedOrFetch('tutors', async () => {
+        const snapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'tutor')));
+        return snapshot.docs.map((doc) => {
+            const { email, name } = doc.data();
+            return { email, name: name || email };
         });
+    });
 
-        setTutors(tutors);
-    } catch (error) {
-        console.error('Error fetching tutors:', error);
-        setTutors([]);
-    }
-};
-
-
-/**
- * Fetch subjects with associated tutors (one-time)
- */
-export const firestoreFetchSubjects = async (setSubjects) => {
-    try {
-        const subjectsRef = collection(db, 'subjects');
-        const snapshot = await getDocs(subjectsRef);
-
-        let subjects = [];
-
-        subjects = snapshot.docs.map((doc) => {
+export const fetchCacheSubjects = () =>
+    getCachedOrFetch('subjects', async () => {
+        const snapshot = await getDocs(collection(db, 'subjects'));
+        return snapshot.docs.map((doc) => {
             const data = doc.data();
-
-            return {
-                id: doc.id,
-                name: data.name,
-                tutors: data.tutors || [],
-            };
+            return { id: doc.id, name: data.name, tutors: data.tutors || [] };
         });
+    });
 
-        setSubjects(subjects);
-    } catch (error) {
-        console.error('Error fetching subjects:', error);
-        setSubjects([]);
-    }
-};
+export const fetchCacheClasses = () =>
+    getCachedOrFetch('classes', async () => {
+        const snapshot = await getDocs(collection(db, 'classes'));
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    });
 
-/**
- * Fetch classes for dropdowns / visibility logic (one-time)
- * @param {Function} setClasses
- */
-export const firestoreFetchClasses = async (setClasses) => {
-    try {
-        const classesRef = collection(db, 'classes');
-        const snapshot = await getDocs(classesRef);
-
-        let classes = [];
-
-        classes = snapshot.docs.map((doc) => {
-            const data = doc.data();
-
-            return {
-                id: doc.id,
-                ...data,
-            };
+export const fetchCacheStudents = () =>
+    getCachedOrFetch('students', async () => {
+        const snapshot = await getDocs(collection(db, 'students'));
+        return snapshot.docs.map((doc) => {
+            const { email, name } = doc.data();
+            return { email, name: name || email };
         });
-
-        setClasses(classes);
-    } catch (error) {
-        console.error('Error fetching classes:', error);
-        setClasses([]);
-    }
-};
-
-/**
- * Fetch students for dropdowns (one-time)
- * @param {Function} setStudents
- */
-export const firestoreFetchStudents = async (setStudents) => {
-    try {
-        const studentsRef = collection(db, 'students');
-        const snapshot = await getDocs(studentsRef);
-
-        const students = snapshot.docs.map((doc) => {
-            const data = doc.data();
-
-            return {
-                email: data.email,
-                name: data.name || data.email,
-            };
-        });
-
-        setStudents(students);
-    } catch (error) {
-        console.error('Error fetching students:', error);
-        setStudents([]);
-    }
-};
+    });
