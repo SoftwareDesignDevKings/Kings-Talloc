@@ -5,7 +5,11 @@ import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 /**
  * Optimized Shift Fetching
- * Uses 'range' to limit reads to the currently viewed week/month.
+ * Uses two queries:
+ *   1. Non-recurring shifts within the viewed date range
+ *   2. ALL recurring shifts (no date filter) — expanded in memory so navigating
+ *      to a future/past week still shows occurrences whose base event is outside
+ *      the current view window.
  */
 export const firestoreFetchShifts = (setCalendarShifts, calendarDateRange, strategyFbFilters) => {
     if (strategyFbFilters === null) {
@@ -14,39 +18,77 @@ export const firestoreFetchShifts = (setCalendarShifts, calendarDateRange, strat
     }
 
     const shiftsRef = collection(db, 'shifts');
-    const q = query(
+    const MAX_OCCURRENCES = 10;
+    const accessFilters = strategyFbFilters.map(({ fbField, fbOperation, fbValue }) =>
+        where(fbField, fbOperation, fbValue)
+    );
+
+    // pending buckets — null signals "listener hasn't fired yet"
+    let oneOffShifts = null;
+    let recurringBaseShifts = null;
+
+    const publishShifts = () => {
+        if (oneOffShifts === null || recurringBaseShifts === null) return;
+        const expanded = recurringCalendarExpand([...oneOffShifts, ...recurringBaseShifts], {
+            rangeStart: calendarDateRange.start,
+            rangeEnd: calendarDateRange.end,
+            maxOccurrences: MAX_OCCURRENCES,
+        });
+
+        setCalendarShifts(expanded);
+    };
+
+    const deserializeShift = (doc) => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            start: data.start.toDate(),
+            end: data.end.toDate(),
+            ...(data.until && { until: data.until.toDate() }),
+            entityType: CalendarEntityType.SHIFT,
+        };
+    };
+
+    // Query 1: currWeek shifts within the viewed date range
+    const currWeekQuery = query(
         shiftsRef,
         where('start', '>=', Timestamp.fromDate(calendarDateRange.start)),
         where('start', '<=', Timestamp.fromDate(calendarDateRange.end)),
-        ...strategyFbFilters.map(({ fbField, fbOperation, fbValue }) => where(fbField, fbOperation, fbValue))
+        where('recurring', '==', null),
+        ...accessFilters
     );
 
-    return onSnapshot(q, (snapshot) => {
-        let shifts = snapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-                ...(data.until && { until: data.until.toDate() }),
-                entityType: CalendarEntityType.SHIFT,
-            };
-        });
+    // Query 2: ALL recurring base shifts — no date filter so occurrences whose
+    // base event falls outside the current view are still expanded in memory
+    const recurringQuery = query(
+        shiftsRef,
+        where('recurring', 'in', ['weekly', 'fortnightly']),
+        ...accessFilters
+    );
 
-        // Expand recurring events only within the current view calendarDateRange
-        const RECURRING_MAX = 10
-        shifts = recurringCalendarExpand(shifts, {
-            rangeStart: calendarDateRange.start,
-            rangeEnd: calendarDateRange.end,
-            maxOccurrences: RECURRING_MAX, 
-        });
-
-        setCalendarShifts(shifts);
+    const unsubscribeOneOff = onSnapshot(currWeekQuery, (snapshot) => {
+        oneOffShifts = snapshot.docs.map(deserializeShift);
+        publishShifts();
     }, (error) => {
-        console.error("Firestore Shifts Error:", error);
-        setCalendarShifts([]);
+        console.error("Firestore Shifts (one-off) Error:", error);
+        oneOffShifts = [];
+        publishShifts();
     });
+
+    const unsubscribeRecurring = onSnapshot(recurringQuery, (snapshot) => {
+        recurringBaseShifts = snapshot.docs.map(deserializeShift);
+        publishShifts();
+    }, (error) => {
+        console.error("Firestore Shifts (recurring) Error:", error);
+        recurringBaseShifts = [];
+        publishShifts();
+    });
+
+    return () => {
+        unsubscribeOneOff();
+        unsubscribeRecurring();
+    };
 };
 
 /**

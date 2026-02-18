@@ -42,6 +42,10 @@ export async function GET(_req, { params }) {
             .setZone('Australia/Sydney')
             .toLocaleString(DateTime.DATETIME_MED);
 
+        const recurringLabel = event.recurring
+            ? ` (recurring ${event.recurring} for ${event.occurenceNum} sessions)`
+            : '';
+
         return `<tr>
       <td style="padding-bottom: ${index < totalEvents - 1 ? '12px' : '0'};">
         <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #dee2e6; border-left: 4px solid #0d6efd; border-radius: 4px;">
@@ -55,7 +59,7 @@ export async function GET(_req, { params }) {
                     <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
                   </svg>
                 </span>
-                ${formattedDate}
+                ${formattedDate}${recurringLabel}
               </p>
             </td>
           </tr>
