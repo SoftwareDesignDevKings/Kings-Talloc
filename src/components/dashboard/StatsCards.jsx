@@ -379,7 +379,7 @@ const StudentStats = ({ data }) => (
 const StatsCards = ({ userRole, data, onUpdate }) => {
     return (
         <div className="row g-4 mb-4">
-            {userRole === 'teacher' && <TeacherStats data={data} onUpdate={onUpdate} />}
+            {(userRole === 'teacher' || userRole === 'admin') && <TeacherStats data={data} onUpdate={onUpdate} />}
             {userRole === 'tutor' && <TutorStats data={data} />}
             {userRole === 'student' && <StudentStats data={data} />}
         </div>

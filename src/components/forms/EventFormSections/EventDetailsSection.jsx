@@ -4,6 +4,15 @@ import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons'
 
 const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing }) => {
     const [isRecurring, setIsRecurring] = useState(!!newEvent.recurring)
+    const [initialOccurenceNum, setInitialOccurenceNum] = useState(newEvent.occurenceNum);
+
+    // Capture the occurenceNum once when it first arrives from the parent (async hydration)
+    // so typing a new value doesn't collapse the input back to static text
+    useEffect(() => {
+        if (newEvent.occurenceNum && !initialOccurenceNum) {
+            setInitialOccurenceNum(newEvent.occurenceNum);
+        }
+    }, [newEvent.occurenceNum, initialOccurenceNum]);
 
     // Sync isRecurring state with newEvent.recurring changes
     useEffect(() => {
@@ -11,6 +20,11 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
     }, [newEvent.recurring])
 
     const handleOccurenceNumChange = useCallback((e) => {
+        // Store raw string while typing so "10" isn't truncated to "1"
+        setNewEvent((prev) => ({ ...prev, occurenceNum: e.target.value }));
+    }, [setNewEvent]);
+
+    const handleOccurenceNumBlur = useCallback((e) => {
         const value = parseInt(e.target.value, 10) || 0;
         setNewEvent((prev) => ({ ...prev, occurenceNum: value }));
     }, [setNewEvent]);
@@ -225,7 +239,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
 
                             {isRecurring && !newEvent.isRecurringInstance && (
                                 <div className="mt-2">
-                                    {isEditing && newEvent.occurenceNum ? (
+                                    {isEditing && initialOccurenceNum ? (
                                         <small className="text-muted d-block">
                                             <strong>Occurrences:</strong> {newEvent.eventExceptions && newEvent.eventExceptions.length > 0
                                                 ? newEvent.occurenceNum - newEvent.eventExceptions.length
@@ -243,6 +257,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                                 id="occurenceNum"
                                                 value={newEvent.occurenceNum || ''}
                                                 onChange={handleOccurenceNumChange}
+                                                onBlur={handleOccurenceNumBlur}
                                                 disabled={readOnly}
                                                 aria-label="Number of Occurrences"
                                                 aria-required="true"

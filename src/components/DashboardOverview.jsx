@@ -12,7 +12,8 @@ import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
 import useAlert from '@/hooks/useAlert';
 
 const DashboardOverview = () => {
-    const { session, userRole } = useAuthSession();
+    const { session, userRole, userRoles } = useAuthSession();
+    const isAdmin = userRole === 'admin' || userRoles?.includes('admin');
     const { addAlert } = useAlert();
     const [dashboardData, setDashboardData] = useState({
         upcomingEvents: [],
@@ -41,6 +42,7 @@ const DashboardOverview = () => {
 
         try {
             const fetchByRole = {
+                admin: () => fetchDashboardFirestoreDataTeacher(new Date()),
                 teacher: () => fetchDashboardFirestoreDataTeacher(new Date()),
                 tutor: () => fetchDashboardFirestoreDataTutor(session.user.email, new Date()),
                 student: () => fetchDashboardFirestoreDataStudent(session.user.email, new Date()),
@@ -107,8 +109,8 @@ const DashboardOverview = () => {
                 onHide={() => setShowCalendarModal(false)}
             />
 
-            {/* Email Shift Notifications Button (Teachers Only) */}
-            {userRole === 'teacher' && (
+            {/* Email Shift Notifications Button (Admins Only) */}
+            {isAdmin && (
                 <div className="row mb-3">
                     <div className="col-12">
                         <button
