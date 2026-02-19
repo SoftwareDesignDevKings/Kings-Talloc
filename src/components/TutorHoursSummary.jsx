@@ -63,7 +63,10 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     const fetchTutorHours = useCallback(async () => {
         const isTutorOrCoach = userRole === 'tutor' || userRole === 'coach';
-        const accessFilter = isTutorOrCoach ? [where('emailsList', 'array-contains', userEmail)] : [];
+        let accessFilter = [];
+        if (isTutorOrCoach) {
+            accessFilter = [where('emailsList', 'array-contains', userEmail)];
+        }
 
         // Query 1: Non-recurring shifts in the date range
         const nonRecurringQuery = query(
