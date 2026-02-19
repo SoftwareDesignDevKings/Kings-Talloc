@@ -25,7 +25,7 @@ export async function middleware(req) {
         throw new Error('NEXTAUTH_SECRET is not defined');
     }
 
-    if (pathname === '/login' || pathname === '/' || pathname.startsWith('/api/auth')) {
+    if (pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth')) {
         return NextResponse.next();
     }
 
