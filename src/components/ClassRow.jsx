@@ -9,16 +9,23 @@ const ClassRow = ({
     confirmRemoveStudent,
     handleEditClass,
     subjects,
+    teachers,
 }) => {
     const getSubjectName = (subjectId) => {
         const subject = subjects.find((subject) => subject.id === subjectId);
         return subject ? subject.name : 'No Subject';
     };
 
+    const getTeacherName = (teacherId) => {
+        const teacher = teachers.find((teacher) => teacher.id === teacherId);
+        return teacher ? teacher.name : 'No Teacher';
+    };
+
     return (
         <tr>
             <td>{cls.name}</td>
             <td>{getSubjectName(cls.subject)}</td>
+            <td>{getTeacherName(cls.teacher)}</td>
             <td>
                 <div className="d-flex gap-2">
                     <button
