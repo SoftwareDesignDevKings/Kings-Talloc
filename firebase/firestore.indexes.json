@@ -33,6 +33,38 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "shifts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "emailsList",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "shifts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
                     "fieldPath": "emailsList",
                     "arrayConfig": "CONTAINS"
                 },
