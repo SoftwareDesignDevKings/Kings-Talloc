@@ -1,6 +1,5 @@
 import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
-import { CalendarEntityType } from '@/strategy/calendarStrategy';
 /**
  * Adds or updates an event in the email events queue
  * Only sends notifications when event times change

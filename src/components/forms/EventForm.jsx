@@ -10,7 +10,7 @@ import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
 import SettingsSection from './EventFormSections/SettingsSection.jsx';
 import StudentRequestSection from './EventFormSections/StudentRequestSection.jsx';
 import { useEventFormData } from './useEventFormData';
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useAppData } from '@/providers/AppDataProvider';
 import {
     calendarEventHandleDelete,
     calendarEventCreateTeamsMeeting,
@@ -31,10 +31,14 @@ import useAlert from '@/hooks/useAlert';
 
 const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
     const {
-        setCalendarShifts: setAllEvents,
-        setCalendarAvailabilities: setAvailabilities,
-        setCalendarStudentRequests: setStudentRequests,
-    } = useCalendarData();
+        setCalendarShifts,
+        setCalendarAvailabilities,
+        setCalendarStudentRequests,
+        subjects,
+        classes,
+        tutors,
+        students
+    } = useAppData();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -268,9 +272,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         } else {
             // Delete non-recurring event directly
             calendarEventHandleDelete(eventToEdit, 'this', {
-                setAllEvents,
-                setAvailabilities,
-                setStudentRequests,
+                setAllEvents: setCalendarShifts,
+                setAvailabilities: setCalendarAvailabilities,
+                setStudentRequests: setCalendarStudentRequests,
                 addAlert,
             });
             setShowModal(false);
@@ -279,9 +283,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const handleConfirmDelete = (deleteOption) => {
         calendarEventHandleDelete(eventToEdit, deleteOption, {
-            setAllEvents,
-            setAvailabilities,
-            setStudentRequests,
+            setAllEvents: setCalendarShifts,
+            setAvailabilities: setCalendarAvailabilities,
+            setStudentRequests: setCalendarStudentRequests,
             addAlert,
         });
         setShowDeleteConfirm(false);

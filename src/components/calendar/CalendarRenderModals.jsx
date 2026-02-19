@@ -46,7 +46,6 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
     }
 
     const { Modal, mode, dataProp } = modalActionStrategy;
-    const updateFormState = (updates) => updateCalendarTarget(updates);
 
     const modalProps = {
         mode,
@@ -59,9 +58,9 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
     };
 
     if (dataProp === 'newEvent') {
-        modalProps.setNewEvent = updateFormState;
+        modalProps.setNewEvent = updateCalendarTarget;
     } else {
-        modalProps.setNewAvailability = updateFormState;
+        modalProps.setNewAvailability = updateCalendarTarget;
     }
 
     return <Modal {...modalProps} />;

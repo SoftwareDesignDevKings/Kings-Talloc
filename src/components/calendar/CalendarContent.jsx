@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, endOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useAppData } from '@/providers/AppDataProvider';
 
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
@@ -69,7 +69,7 @@ const CalendarContent = () => {
         setCalendarStudentRequests,
         setCalendarDateRange,
         tutors,
-    } = useCalendarData();
+    } = useAppData();
 
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIProvider */
@@ -129,10 +129,10 @@ const CalendarContent = () => {
 
     /**
      * Update specific fields in the draft event/target
-     * @param {Object|Function} fieldUpdates - object with field names as keys (e.g. { title: "Math", staff: [...] }) 
+     * @param {Object|Function} fieldUpdates - object with field names as keys (e.g. { title: "Math", staff: [...] })
      * or a function that receives previous state
      */
-    const updateCalendarTarget = (fieldUpdates) => {
+    const updateCalendarTarget = useCallback((fieldUpdates) => {
         setCalendarTarget((prevTarget) => {
             let updates;
             if (typeof fieldUpdates === 'function') {
@@ -145,7 +145,7 @@ const CalendarContent = () => {
                 ...updates
             }
         });
-    };
+    }, []);
 
 
     /* ----------------------------------------------------------- */

@@ -11,7 +11,8 @@ const DEV_BYPASS_USERS = [
     { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: '👨‍🏫 Tutor', variant: 'primary' },
     { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: '👨‍🏫 Tutor + Admin', variant: 'info' },
     { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: '📚 Teacher', variant: 'warning' },
-    { id: 'dev-coach', email: 'coach@kings.edu.au', label: '⚽ Coach + Tutor', variant: 'secondary' }
+    { id: 'dev-coach', email: 'coach@kings.edu.au', label: '⚽ Coach + Tutor', variant: 'secondary' },
+    { id: 'dev-student', email: 'student@kings.edu.au', label: '🎓 Student', variant: 'danger' }
 ];
 
 export default function Login() {

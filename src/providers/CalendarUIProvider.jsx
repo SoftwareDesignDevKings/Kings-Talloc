@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import CalendarUIContext from "@contexts/CalendarUIContext"
-import { useCalendarData } from "@/providers/CalendarDataProvider"
+import { useAppData } from "@/providers/AppDataProvider"
 import { CalendarEntityType } from "@/strategy/calendarStrategy"
 import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
 
@@ -32,7 +32,7 @@ export const CalendarUIProvider = ({ children }) => {
     const userEmail = session.user.email;
 
     // Get calendar data
-    const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useCalendarData();
+    const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useAppData();
 
     // cal strategy for filters and scope
     const calendarStrategy = useCalendarStrategy(userEmail, userRole, userRoles);
@@ -167,7 +167,7 @@ export const CalendarUIProvider = ({ children }) => {
         }
 
         return filtered;
-    }, [calendarEntities, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, showTutorInitials, hideOwnAvailabilities, calendarAvailabilities, filterAvailabilityByWorkType]);
+    }, [calendarEntities, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, showTutorInitials, hideOwnAvailabilities, calendarAvailabilities, filterAvailabilityByWorkType, userEmail]);
 
     // ─────────────────────────────────────
     // Filter availabilities by panel controls

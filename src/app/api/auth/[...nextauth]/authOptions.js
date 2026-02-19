@@ -36,6 +36,12 @@ const DEV_BYPASS_USERS = {
         role: 'coach',
         defaultRole: 'coach',
         userRoles: ['tutor']
+    },
+    'student@kings.edu.au': {
+        name: 'Dev Student',
+        role: 'student',
+        defaultRole: 'student',
+        userRoles: []
     }
 };
 

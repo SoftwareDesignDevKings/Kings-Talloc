@@ -62,9 +62,12 @@ export const firestoreFetchOneOffShifts = (setOneOffShifts, calendarDateRange, s
 };
 
 /**
- * ALL recurring base shifts — no date filter.
- * Only re-subscribes when user/role changes, not on week navigation.
- * Expansion into concrete occurrences happens in CalendarDataProvider.
+ * Active recurring base shifts only — excludes expired series.
+ * Two listeners are needed because Firestore can't OR across different field predicates:
+ *   1. Open-ended series  (until == null — no end date set)
+ *   2. Still-active series (until >= now — haven't expired yet)
+ * Results are merged before being set, so the provider sees a single array.
+ * Requires a composite index on shifts: (recurring ASC, until ASC).
  */
 export const firestoreFetchRecurringShifts = (setRecurringBaseShifts, strategyFbFilters) => {
     if (strategyFbFilters === null) {
@@ -72,16 +75,43 @@ export const firestoreFetchRecurringShifts = (setRecurringBaseShifts, strategyFb
         return () => {};
     }
 
-    const q = query(
+    const now = Timestamp.now();
+    const accessFilters = buildAccessFilters(strategyFbFilters);
+
+    // Open-ended recurring shifts (no until date)
+    const openEndedQuery = query(
         collection(db, 'shifts'),
         where('recurring', 'in', ['weekly', 'fortnightly']),
-        ...buildAccessFilters(strategyFbFilters)
+        where('until', '==', null),
+        ...accessFilters
     );
 
-    return onSnapshot(q,
-        (snapshot) => setRecurringBaseShifts(snapshot.docs.map(deserializeShift)),
-        (error) => { console.error('Firestore Shifts (recurring) Error:', error); setRecurringBaseShifts([]); }
+    // Still-active recurring shifts (until date is in the future)
+    const activeQuery = query(
+        collection(db, 'shifts'),
+        where('recurring', 'in', ['weekly', 'fortnightly']),
+        where('until', '>=', now),
+        ...accessFilters
     );
+
+    let openEndedShifts = [];
+    let activeShifts = [];
+
+    const merge = () => setRecurringBaseShifts([...openEndedShifts, ...activeShifts]);
+
+    const unsubOpenEnded = onSnapshot(
+        openEndedQuery,
+        (snapshot) => { openEndedShifts = snapshot.docs.map(deserializeShift); merge(); },
+        (error) => console.error('Firestore Recurring Shifts (open-ended) Error:', error)
+    );
+
+    const unsubActive = onSnapshot(
+        activeQuery,
+        (snapshot) => { activeShifts = snapshot.docs.map(deserializeShift); merge(); },
+        (error) => console.error('Firestore Recurring Shifts (active) Error:', error)
+    );
+
+    return () => { unsubOpenEnded(); unsubActive(); };
 };
 
 /**

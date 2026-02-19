@@ -283,10 +283,10 @@ const TeacherStats = ({ data, onUpdate }) => {
             </div>
 
             <StatCard
-                icon={FiAlertCircle}
-                iconBgColor="bg-warning"
-                title="Uncompleted Today"
-                value={data.uncompletedTodayEvents ?? 0}
+                icon={FiUsers}
+                iconBgColor="bg-info"
+                title="Tutors In Today"
+                value={data.tutorsScheduledToday}
             />
             <StatCard
                 icon={FiActivity}
@@ -366,12 +366,6 @@ const StudentStats = ({ data }) => (
             iconBgColor="bg-success"
             title="Approved Requests"
             value={data.approvedRequests}
-        />
-        <StatCard
-            icon={FiUsers}
-            iconBgColor="bg-info"
-            title="Available Tutors"
-            value={data.availableTutors}
         />
     </>
 );

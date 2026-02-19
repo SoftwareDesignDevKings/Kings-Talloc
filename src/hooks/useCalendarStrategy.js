@@ -5,8 +5,6 @@ import { teacherCalendarStrategy, tutorCalendarStrategy, coachCalendarStrategy, 
  * Uses defaultRole only - additional roles (admin, coach, etc.) can be implemented later
  */
 const useCalendarStrategy = (userEmail, defaultUserRole, userRoles) => {
-    console.log("defaultUserRole: ", defaultUserRole)
-
     if (defaultUserRole === "admin") {
         return adminCalendarStrategy();
     } else if (defaultUserRole === "teacher") {

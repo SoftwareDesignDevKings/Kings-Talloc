@@ -1,76 +1,170 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import useAuthSession from '@/hooks/useAuthSession';
-import { fetchDashboardFirestoreDataTeacher } from '@/firestore/firestoreDashboardTeacher';
-import { fetchDashboardFirestoreDataTutor } from '@/firestore/firestoreDashboardTutor';
-import { fetchDashboardFirestoreDataStudent } from '@/firestore/firestoreDashboardStudent';
 import StatsCards from '@/components/dashboard/StatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
 import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
 import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
 import useAlert from '@/hooks/useAlert';
+import { useAppData } from '@/providers/AppDataProvider';
+import { startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 
 const DashboardOverview = () => {
     const { session, userRole, userRoles } = useAuthSession();
     const isAdmin = userRole === 'admin' || userRoles?.includes('admin');
     const { addAlert } = useAlert();
-    const [dashboardData, setDashboardData] = useState({
-        upcomingEvents: [],
-        todayEvents: [],
-        upcomingEventsCount: 0,
-        unapprovedStudentRequests: 0,
-        completedEvents: 0,
-        pendingRequestsData: [],
-        uncompletedTodayEvents: 0,
-        weeklyUtilization: 0,
-        topSubjects: [],
-        weeklyHours: { tutoring: 0, coaching: 0 },
-        needsCompletion: 0,
-        needsConfirmation: 0,
-        uniqueStudents: 0,
-        pendingRequests: 0,
-        approvedRequests: 0,
-        rejectedRequests: 0,
-        availableTutors: 0,
-    });
+    const {
+        calendarShifts,
+        calendarStudentRequests,
+        calendarAvailabilities,
+        setCalendarDateRange,
+    } = useAppData();
+
     const [showCalendarModal, setShowCalendarModal] = useState(false);
 
-    // fetch data from diff roles - memoise to optimise JSX re-render unless the email or role changes
-    const fetchDashboardData = useCallback(async () => {
-        if (!session?.user?.email) return;
+    // Ensure we are viewing the current week when on the dashboard
+    useEffect(() => {
+        const now = new Date();
+        setCalendarDateRange({
+            start: startOfWeek(now, { weekStartsOn: 1 }),
+            end: endOfWeek(now, { weekStartsOn: 1 }),
+        });
+    }, [setCalendarDateRange]);
 
-        try {
-            const fetchByRole = {
-                admin: () => fetchDashboardFirestoreDataTeacher(new Date()),
-                teacher: () => fetchDashboardFirestoreDataTeacher(new Date()),
-                tutor: () => fetchDashboardFirestoreDataTutor(session.user.email, new Date()),
-                student: () => fetchDashboardFirestoreDataStudent(session.user.email, new Date()),
-            };
+    // Compute Dashboard Statistics from AppData (Client-Side)
+    const dashboardData = useMemo(() => {
+        const now = new Date();
+        const startOfToday = new Date(now);
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(now);
+        endOfToday.setHours(23, 59, 59, 999);
 
-            const data = await fetchByRole[userRole]?.();
-            
-            if (data) {
-                setDashboardData(data);
+        // Filter events
+        const todayEvents = [];
+        const upcomingEvents = [];
+        let completedEvents = 0;
+        let uncompletedTodayEvents = 0;
+        let needsCompletion = 0;
+        let tutoringHours = 0;
+        let coachingHours = 0;
+        let needsConfirmation = 0;
+        const uniqueStudentEmails = new Set();
+        const uniqueTutorEmailsToday = new Set();
+        const subjectCounts = new Map();
+
+        // Pending Requests
+        // Note: AppDataProvider only fetches requests for the current view range. 
+        // If we need ALL pending requests globally, we might need a separate fetch or adjust the provider.
+        // For now, we use what's in the current week view which covers most immediate concerns.
+        const pendingRequestsData = calendarStudentRequests.filter(req => req.approvalStatus === 'pending');
+
+        calendarShifts.forEach(event => {
+            const start = new Date(event.start);
+            const end = new Date(event.end);
+            const isToday = start >= startOfToday && start <= endOfToday;
+            const isFuture = start > now;
+            const hours = (end - start) / 3600000;
+
+            // 1. Today's Events
+            if (isToday) {
+                todayEvents.push(event);
+                if (event.workStatus !== 'completed') {
+                    uncompletedTodayEvents++;
+                }
             }
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-        }
-    }, [session.user.email, userRole]);
 
-    // fetch initial state variables
-    useEffect(() => {
-        fetchDashboardData();
-    }, [session.user.email, userRole, fetchDashboardData]);
+            // 2. Upcoming Events (Limit 5)
+            if (isFuture && upcomingEvents.length < 5) {
+                upcomingEvents.push(event);
+            }
 
-    // fetch only if window is refocused
-    useEffect(() => {
-        const handleFocus = () => {
-            fetchDashboardData();
+            // 3. Completed & Hours
+            if (event.workStatus === 'completed') {
+                if (end < now) completedEvents++; // Only count if actually passed
+                
+                if (event.workType === 'coaching') {
+                    coachingHours += hours;
+                } else {
+                    tutoringHours += hours;
+                }
+            } else if (end < now && event.workStatus !== 'completed') {
+                 needsCompletion++;
+            }
+
+            // 4. Unique Students (for Tutor View)
+            event.students?.forEach(s => uniqueStudentEmails.add(s.value));
+
+            // 5. Tutors scheduled today
+            if (isToday) {
+                event.staff?.forEach(s => uniqueTutorEmailsToday.add(s.value || s));
+            }
+
+            // 6. Needs Confirmation (for Tutor View)
+            if (userRole === 'tutor' && event.confirmationRequired) {
+                 const hasResponse = event.tutorResponses?.some(
+                    (resp) => resp.email === session?.user?.email && resp.response
+                );
+                if (!hasResponse) needsConfirmation++;
+            }
+
+            // 7. Subject Counts (for Teacher View)
+            if (event.subject) {
+                const subjectName = typeof event.subject === 'string' 
+                    ? event.subject 
+                    : event.subject.label || event.subject.value || 'Unknown';
+                subjectCounts.set(subjectName, (subjectCounts.get(subjectName) || 0) + 1);
+            }
+        });
+
+        // Top Subjects
+        const topSubjects = Array.from(subjectCounts.entries())
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 3);
+
+        // Weekly Utilization (Teacher View)
+        let totalAvailableHours = 0;
+        calendarAvailabilities.forEach(avail => {
+            const start = new Date(avail.start);
+            const end = new Date(avail.end);
+            totalAvailableHours += (end - start) / 3600000;
+        });
+        
+        // Total booked hours (regardless of completion, for utilization)
+        const totalBookedHours = calendarShifts.reduce((acc, event) => {
+             return acc + ((new Date(event.end) - new Date(event.start)) / 3600000);
+        }, 0);
+
+        const weeklyUtilization = totalAvailableHours > 0 
+            ? Math.round((totalBookedHours / totalAvailableHours) * 100) 
+            : 0;
+
+        return {
+            todayEvents: todayEvents.sort((a, b) => a.start - b.start),
+            upcomingEvents: upcomingEvents.sort((a, b) => a.start - b.start),
+            upcomingEventsCount: upcomingEvents.length,
+            unapprovedStudentRequests: pendingRequestsData.length,
+            pendingRequestsData: pendingRequestsData,
+            completedEvents,
+            uncompletedTodayEvents,
+            weeklyUtilization,
+            topSubjects,
+            weeklyHours: {
+                tutoring: Math.round(tutoringHours * 10) / 10,
+                coaching: Math.round(coachingHours * 10) / 10,
+            },
+            needsCompletion,
+            needsConfirmation,
+            uniqueStudents: uniqueStudentEmails.size,
+            pendingRequests: pendingRequestsData.length,
+            approvedRequests: 0, // Not tracking approved count historically in this view
+            rejectedRequests: 0, // Not tracking rejected count in this view
+            tutorsScheduledToday: uniqueTutorEmailsToday.size,
         };
-        window.addEventListener('focus', handleFocus);
-        return () => window.removeEventListener('focus', handleFocus);
-    }, [fetchDashboardData]);
+
+    }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, userRole]);
+
 
     // Handle sending email notifications
     const handleSendEmailNotifications = async () => {
@@ -93,16 +187,8 @@ const DashboardOverview = () => {
         <div className="container-fluid p-0">
 
             {/* Stats Cards */}
-            <StatsCards userRole={userRole} data={dashboardData} onUpdate={fetchDashboardData} />
-
-            {/* <div className="d-flex justify-content-start mb-3">
-                <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={() => setShowCalendarModal(true)}
-                >
-                    Sync Calendar
-                </button>
-            </div> */}
+            {/* We don't need onUpdate anymore because the AppDataProvider updates automatically via listeners */}
+            <StatsCards userRole={userRole} data={dashboardData} />
 
             <PersonalCalendarModal
                 show={showCalendarModal}
