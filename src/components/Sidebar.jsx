@@ -15,7 +15,7 @@ import {
 } from '@/components/icons';
 import Image from 'next/image';
 import { signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from '@/styles/sidebar.module.css';
 import useAuthSession from '@/hooks/useAuthSession';
 
@@ -31,9 +31,9 @@ const Sidebar = ({ user }) => {
     const { userRole, availableRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
-    const router = useRouter();
 
-    const isAdmin = userRole === 'admin' || userRole === 'teacher';
+    const isAdmin = userRole === 'admin';
+    const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher';
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -72,54 +72,48 @@ const Sidebar = ({ user }) => {
                 </div>
                 <div className="flex-grow-1">
                     <ul className={styles.navList}>
-                        <li
-                            className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                            onClick={() => router.push('/dashboard')}
-                        >
-                            <FiHome className={styles.navIcon} />
-                            {!isCollapsed && <span>Dashboard</span>}
+                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                            <Link href="/dashboard" className={styles.navLink}>
+                                <FiHome className={styles.navIcon} />
+                                {!isCollapsed && <span>Dashboard</span>}
+                            </Link>
                         </li>
-                        <li
-                            className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                            onClick={() => router.push('/calendar')}
-                        >
-                            <FiCalendar className={styles.navIcon} />
-                            {!isCollapsed && <span>Calendar</span>}
+                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                            <Link href="/calendar" className={styles.navLink}>
+                                <FiCalendar className={styles.navIcon} />
+                                {!isCollapsed && <span>Calendar</span>}
+                            </Link>
                         </li>
                         {isAdmin && (
-                            <>
-                                <li
-                                    className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                    onClick={() => router.push('/userRoles')}
-                                >
+                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                <Link href="/userRoles" className={styles.navLink}>
                                     <FiUsers className={styles.navIcon} />
                                     {!isCollapsed && <span>User Roles</span>}
+                                </Link>
+                            </li>
+                        )}
+                        {isAdminOrTeacher && (
+                            <>
+                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                    <Link href="/classes" className={styles.navLink}>
+                                        <FiBook className={styles.navIcon} />
+                                        {!isCollapsed && <span>Manage Classes</span>}
+                                    </Link>
                                 </li>
-                                <li
-                                    className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                    onClick={() => router.push('/classes')}
-                                >
-                                    <FiBook className={styles.navIcon} />
-                                    {!isCollapsed && <span>Manage Classes</span>}
+                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                    <Link href="/subjects" className={styles.navLink}>
+                                        <FiBookOpen className={styles.navIcon} />
+                                        {!isCollapsed && <span>Manage Subjects</span>}
+                                    </Link>
                                 </li>
                             </>
                         )}
-                        {isAdmin && (
-                            <li
-                                className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                onClick={() => router.push('/subjects')}
-                            >
-                                <FiBookOpen className={styles.navIcon} />
-                                {!isCollapsed && <span>Manage Subjects</span>}
-                            </li>
-                        )}
-                        {userRole !== 'student' && (
-                            <li
-                                className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                onClick={() => router.push('/tutorHours')}
-                            >
-                                <FiClock className={styles.navIcon} />
-                                {!isCollapsed && <span>Tutor Hours</span>}
+                        {['admin', 'tutor', 'coach'].includes(userRole) && (
+                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                <Link href="/tutorHours" className={styles.navLink}>
+                                    <FiClock className={styles.navIcon} />
+                                    {!isCollapsed && <span>Tutor Hours</span>}
+                                </Link>
                             </li>
                         )}
                     </ul>

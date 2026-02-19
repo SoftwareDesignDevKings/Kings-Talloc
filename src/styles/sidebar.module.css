@@ -61,10 +61,6 @@
 
 /* Navigation List Items */
 .navItem {
-    padding: 0.5rem 1.5rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
     transition: background-color 150ms ease-in-out;
 }
 
@@ -72,11 +68,20 @@
     background-color: rgba(111, 165, 204, 0.15);
 }
 
-.navItemCollapsed {
+.navLink {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1.5rem;
+    width: 100%;
+    color: inherit;
+    text-decoration: none;
+}
+
+.navItemCollapsed .navLink {
     justify-content: center;
 }
 
-.navItemExpanded {
+.navItemExpanded .navLink {
     gap: 0.5rem;
 }
 
