@@ -62,18 +62,23 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
 
     const fetchTutorHours = useCallback(async () => {
+        const isTutorOrCoach = userRole === 'tutor' || userRole === 'coach';
+        const accessFilter = isTutorOrCoach ? [where('emailsList', 'array-contains', userEmail)] : [];
+
         // Query 1: Non-recurring shifts in the date range
         const nonRecurringQuery = query(
             collection(db, 'shifts'),
             where('start', '>=', startDate),
             where('start', '<=', endDate),
-            where('recurring', '==', null)
+            where('recurring', '==', null),
+            ...accessFilter
         );
 
         // Query 2: ALL recurring shifts (no date filter)
         const recurringQuery = query(
             collection(db, 'shifts'),
-            where('recurring', 'in', ['weekly', 'fortnightly'])
+            where('recurring', 'in', ['weekly', 'fortnightly']),
+            ...accessFilter
         );
 
         const [nonRecurringSnapshot, recurringSnapshot] = await Promise.all([
