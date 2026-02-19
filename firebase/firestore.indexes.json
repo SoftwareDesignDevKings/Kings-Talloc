@@ -19,7 +19,7 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
-                    "fieldPath": "students",
+                    "fieldPath": "emailsList",
                     "arrayConfig": "CONTAINS"
                 },
                 {
@@ -33,11 +33,61 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
-                    "fieldPath": "staff",
-                    "arrayConfig": "CONTAINS"
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
                 },
                 {
                     "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "shifts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "emailsList",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "shifts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "emailsList",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "until",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "shifts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "until",
                     "order": "ASCENDING"
                 }
             ]
