@@ -4,7 +4,7 @@ import { getToken } from 'next-auth/jwt';
 // ===== MAINTENANCE MODE =====
 // Set to true to enable maintenance mode (redirects all users to /maintenance)
 // Set to false to disable (normal operation)
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 // ============================
 
 export async function middleware(req) {

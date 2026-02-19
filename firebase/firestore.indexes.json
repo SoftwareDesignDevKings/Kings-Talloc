@@ -19,7 +19,7 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
-                    "fieldPath": "students",
+                    "fieldPath": "emailsList",
                     "arrayConfig": "CONTAINS"
                 },
                 {
@@ -33,11 +33,29 @@
             "queryScope": "COLLECTION",
             "fields": [
                 {
-                    "fieldPath": "staff",
+                    "fieldPath": "emailsList",
                     "arrayConfig": "CONTAINS"
                 },
                 {
-                    "fieldPath": "start",
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "until",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "shifts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "until",
                     "order": "ASCENDING"
                 }
             ]
