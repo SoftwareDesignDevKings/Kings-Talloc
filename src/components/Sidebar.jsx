@@ -17,11 +17,23 @@ import Image from 'next/image';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import styles from '@/styles/sidebar.module.css';
+import useAuthSession from '@/hooks/useAuthSession';
 
-const Sidebar = ({ userRole, user }) => {
+const ROLE_LABELS = {
+    admin: 'Admin',
+    teacher: 'Teacher',
+    tutor: 'Tutor',
+    coach: 'Coach',
+    student: 'Student',
+};
+
+const Sidebar = ({ user }) => {
+    const { userRole, availableRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const router = useRouter();
+
+    const isAdmin = userRole === 'admin' || userRole === 'teacher';
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -74,7 +86,7 @@ const Sidebar = ({ userRole, user }) => {
                             <FiCalendar className={styles.navIcon} />
                             {!isCollapsed && <span>Calendar</span>}
                         </li>
-                        {(userRole === 'teacher' || userRole === 'admin') && (
+                        {isAdmin && (
                             <>
                                 <li
                                     className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
@@ -92,7 +104,7 @@ const Sidebar = ({ userRole, user }) => {
                                 </li>
                             </>
                         )}
-                        {(userRole === 'teacher' || userRole === 'admin') && (
+                        {isAdmin && (
                             <li
                                 className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
                                 onClick={() => router.push('/subjects')}
@@ -138,6 +150,19 @@ const Sidebar = ({ userRole, user }) => {
                     <div
                         className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded}`}
                     >
+                        {availableRoles.length > 1 && (
+                            <div className="d-flex gap-1 flex-wrap mb-2">
+                                {availableRoles.map((role) => (
+                                    <button
+                                        key={role}
+                                        onClick={() => switchRole(role)}
+                                        className={`btn btn-sm ${userRole === role ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                    >
+                                        {ROLE_LABELS[role] || role}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         <button
                             onClick={() => signOut({ callbackUrl: '/login' })}
                             className="btn btn-danger w-100"

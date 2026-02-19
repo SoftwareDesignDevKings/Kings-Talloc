@@ -3,7 +3,7 @@
 import LoadingPage from '@/components/LoadingPage.jsx';
 import Login from '@/components/Login.jsx';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { signInWithCustomToken, signOut, connectAuthEmulator } from 'firebase/auth';
 import { auth } from '@/firestore/firestoreClient';
 import { usePathname } from 'next/navigation';
@@ -114,15 +114,29 @@ const AuthProvider = ({ children }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Roles the user can switch between (defaultRole + any secondary roles)
+    const availableRoles = useMemo(() => {
+        const defaultRole = session?.user?.defaultRole || session?.user?.role;
+        return [...new Set([defaultRole, ...userRoles])].filter(Boolean);
+    }, [session, userRoles]);
+
+    const switchRole = useCallback((newRole) => {
+        if (availableRoles.includes(newRole)) {
+            setUserRole(newRole);
+        }
+    }, [availableRoles]);
+
     // memoize context value to prevent unnecessary re-renders
     const authCtxValues = useMemo(() => ({
         session,
         status,
         userRole,
         userRoles,
+        availableRoles,
+        switchRole,
         loading: isLoading,
         device
-    }), [session, status, userRole, isLoading, device, userRoles]);
+    }), [session, status, userRole, isLoading, device, userRoles, availableRoles, switchRole]);
 
     // Allow public routes to render without auth
     if (isPublicRoute) {
