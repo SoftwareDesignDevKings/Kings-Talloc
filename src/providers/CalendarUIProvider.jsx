@@ -2,22 +2,40 @@ import { useState, useMemo, useCallback } from "react";
 import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import CalendarUIContext from "@contexts/CalendarUIContext"
-import { useCalendarData } from "@/providers/CalendarDataProvider"
+import { useAppData } from "@/providers/AppDataProvider"
 import { CalendarEntityType } from "@/strategy/calendarStrategy"
 import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
+
+/**
+ * Returns true if an availability's workType matches the selected filter.
+ * 'tutoringOrWork' availabilities are included when filtering by 'tutoring' or 'work',
+ * and vice-versa.
+ */
+const matchesWorkTypeFilter = (availWorkType, filterWorkType) => {
+    if (filterWorkType === 'tutoringOrWork') {
+        return availWorkType === 'tutoring' || availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+    }
+    if (filterWorkType === 'tutoring') {
+        return availWorkType === 'tutoring' || availWorkType === 'tutoringOrWork';
+    }
+    if (filterWorkType === 'work') {
+        return availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+    }
+    return availWorkType === filterWorkType;
+};
 
 /**
  * UI Provider to persist on re-renders across different page.jsx
  */
 export const CalendarUIProvider = ({ children }) => {
-    const { session, userRole } = useAuthSession();
-    const userEmail = session?.user?.email;
+    const { session, userRole, userRoles } = useAuthSession();
+    const userEmail = session.user.email;
 
     // Get calendar data
-    const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useCalendarData();
+    const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useAppData();
 
     // cal strategy for filters and scope
-    const calendarStrategy = useCalendarStrategy(userEmail, userRole);
+    const calendarStrategy = useCalendarStrategy(userEmail, userRole, userRoles);
     const { calendarFilters, calendarScope } = calendarStrategy;
 
     // Visibility toggles (defaults from strategy)
@@ -90,26 +108,14 @@ export const CalendarUIProvider = ({ children }) => {
     const calendarEntities = useMemo(
         () => [
             ...calendarShifts,
-            ...calendarAvailabilities,
             ...calendarStudentRequests,
         ],
-        [calendarShifts, calendarAvailabilities, calendarStudentRequests],
+        [calendarShifts, calendarStudentRequests],
     );
 
     // Filter RBC events by panel controls
     const filteredEvents = useMemo(() => {
-        let filtered = calendarEntities.filter((calEvent) => {
-            // skip availabilities for tutors and students - shown as overlays only
-            if (calEvent.entityType === CalendarEntityType.AVAILABILITY) {
-                // Only tutors can see their own availabilities as RBC events (added back later)
-                if (userRole !== 'tutor') {
-                    return false;
-                }
-                // for tutors, we'll handle them separately
-                return false;
-            }
-            return calendarStrategy.visibility.includeInCalendar(calEvent);
-        });
+        let filtered = [...calendarEntities];
 
         // apply "Show All Events" toggle
         if (!showAllEvents) {
@@ -150,22 +156,18 @@ export const CalendarUIProvider = ({ children }) => {
             );
         }
 
-        // for tutors: include their own availabilities as RBC events (unless hidden)
-        if (userRole === 'tutor' && !hideOwnAvailabilities) {
-            let tutorOwnAvailabilities = calendarAvailabilities.filter((avail) => avail.tutor === userEmail);
-
+        // for tutors: split own availabilities around shifts as RBC events (never other tutors')
+        if (userRole === 'tutor' && showTutorInitials && !hideOwnAvailabilities) {
+            let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
             if (filterAvailabilityByWorkType) {
-                tutorOwnAvailabilities = tutorOwnAvailabilities.filter(
-                    (a) => a.workType === filterAvailabilityByWorkType.value
-                );
+                availabilities = availabilities.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
             }
-            // split tutor's own availabilities around their shifts 
-            const splitTutorAvailabilities = calendarAvailabilitySplit(tutorOwnAvailabilities, filtered);
-            filtered = [...filtered, ...splitTutorAvailabilities];
+            const splitAvailabilities = calendarAvailabilitySplit(availabilities, filtered);
+            filtered = [...filtered, ...splitAvailabilities];
         }
 
         return filtered;
-    }, [calendarEntities, calendarStrategy.visibility, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, hideOwnAvailabilities, calendarAvailabilities, userEmail, filterAvailabilityByWorkType]);
+    }, [calendarEntities, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, showTutorInitials, hideOwnAvailabilities, calendarAvailabilities, filterAvailabilityByWorkType, userEmail]);
 
     // ─────────────────────────────────────
     // Filter availabilities by panel controls
@@ -215,8 +217,7 @@ export const CalendarUIProvider = ({ children }) => {
 
         // filter by availability work type from CalendarUIProvider
         if (filterAvailabilityByWorkType) {
-            const workType = filterAvailabilityByWorkType.value;
-            filtered = filtered.filter(a => a.workType === workType);
+            filtered = filtered.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
         }
 
         // Split availabilities around clashing shifts (always use actual shifts, not filtered)

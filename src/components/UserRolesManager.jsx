@@ -11,12 +11,15 @@ const UserRolesManager = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
-    const [role, setRole] = useState('student');
+    const [role, setRole] = useState('student'); // This maps to defaultRole in Firestore
+    const [userRoles, setUserRoles] = useState([]); // Additional roles array
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [uploadingTimesheets, setUploadingTimesheets] = useState({});
     const { addAlert } = useAlert();
     const modalRef = useRef(null);
+
+    const availableRoles = ['admin', 'teacher', 'tutor', 'coach', 'student'];
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -24,8 +27,10 @@ const UserRolesManager = () => {
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
             const sortedUsers = usersList.sort((a, b) => {
-                const roleOrder = { teacher: 1, tutor: 2, student: 3 };
-                return (roleOrder[a.role] || 4) - (roleOrder[b.role] || 4);
+                const roleOrder = { admin: 1, teacher: 2, tutor: 3, coach: 4, student: 5 };
+                const aRole = a.defaultRole || a.role;
+                const bRole = b.defaultRole || b.role;
+                return (roleOrder[aRole] || 6) - (roleOrder[bRole] || 6);
             });
 
             setUsers(sortedUsers);
@@ -40,7 +45,9 @@ const UserRolesManager = () => {
             (user) =>
                 user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.role?.toLowerCase().includes(searchTerm.toLowerCase()),
+                user.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.defaultRole?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.userRoles?.some(r => r.toLowerCase().includes(searchTerm.toLowerCase())),
         );
         setFilteredUsers(results);
     }, [searchTerm, users]);
@@ -61,6 +68,7 @@ const UserRolesManager = () => {
                 setEmail('');
                 setName('');
                 setRole('student');
+                setUserRoles([]);
                 setIsEditing(false);
             };
 
@@ -98,7 +106,13 @@ const UserRolesManager = () => {
                 }
             }
 
-            await setDoc(userRef, { email, name, role }, { merge: true });
+            await setDoc(userRef, {
+                email,
+                name,
+                role, // Keep for backward compatibility
+                defaultRole: role,
+                userRoles
+            }, { merge: true });
 
             addAlert('success', `Role of ${role} assigned to ${email}`);
 
@@ -114,14 +128,17 @@ const UserRolesManager = () => {
                 setEmail('');
                 setName('');
                 setRole('student');
+                setUserRoles([]);
                 setIsEditing(false);
             }
 
             const querySnapshot = await getDocs(collection(db, 'users'));
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
             const sortedUsers = usersList.sort((a, b) => {
-                const roleOrder = { teacher: 1, tutor: 2, student: 3 };
-                return (roleOrder[a.role] || 4) - (roleOrder[b.role] || 4);
+                const roleOrder = { admin: 1, teacher: 2, tutor: 3, coach: 4, student: 5 };
+                const aRole = a.defaultRole || a.role;
+                const bRole = b.defaultRole || b.role;
+                return (roleOrder[aRole] || 6) - (roleOrder[bRole] || 6);
             });
             setUsers(sortedUsers);
             setFilteredUsers(sortedUsers);
@@ -151,7 +168,8 @@ const UserRolesManager = () => {
     const handleEdit = (user) => {
         setEmail(user.email);
         setName(user.name);
-        setRole(user.role);
+        setRole(user.defaultRole || user.role); // Use defaultRole if available, fallback to role
+        setUserRoles(user.userRoles || []); // Load existing userRoles or empty array
         setIsEditing(true);
         setShowModal(true);
     };
@@ -221,6 +239,7 @@ const UserRolesManager = () => {
                         setEmail('');
                         setName('');
                         setRole('student');
+                        setUserRoles([]);
                     }}
                     className="btn btn-primary text-nowrap"
                 >
@@ -236,13 +255,6 @@ const UserRolesManager = () => {
                 >
                     Tutor Timesheet Template
                 </a>
-                <a
-                    href="/api/download-template?type=coach"
-                    download="Coach_Timesheet_Template.docx"
-                    className="btn btn-outline-secondary btn-sm"
-                >
-                    Coach Timesheet Template
-                </a>
             </div>
             <div className="table-responsive" style={{ height: 'calc(100% - 8rem)', overflowY: 'auto' }}>
                 <table className="table table-hover table-text-sm">
@@ -250,7 +262,7 @@ const UserRolesManager = () => {
                         <tr>
                             <th scope="col">Email</th>
                             <th scope="col">Name</th>
-                            <th scope="col">Role</th>
+                            <th scope="col">Default Role</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -259,7 +271,14 @@ const UserRolesManager = () => {
                             <tr key={user.id}>
                                 <td>{user.email}</td>
                                 <td>{user.name}</td>
-                                <td>{user.role.toUpperCase()}</td>
+                                <td>
+                                    <div>{(user.defaultRole || user.role).toUpperCase()}</div>
+                                    {user.userRoles && user.userRoles.length > 0 && (
+                                        <small className="text-muted">
+                                            {user.userRoles.map(r => r.toUpperCase()).join(', ')}
+                                        </small>
+                                    )}
+                                </td>
                                 <td>
                                     <div className="d-flex gap-2 align-items-center">
                                         <button
@@ -274,7 +293,7 @@ const UserRolesManager = () => {
                                         >
                                             Delete
                                         </button>
-                                        {user.role === 'tutor' && (
+                                        {((user.defaultRole || user.role) === 'tutor' || user.userRoles?.includes('tutor')) && (
                                             <>
                                                 <input
                                                     type="file"
@@ -369,19 +388,46 @@ const UserRolesManager = () => {
                                     </div>
                                     <div className="mb-3">
                                         <label htmlFor="userRole" className="form-label">
-                                            Role
+                                            Default Role
                                         </label>
                                         <select
                                             className="form-select"
                                             id="userRole"
                                             value={role}
                                             onChange={(e) => setRole(e.target.value)}
-                                            aria-label="Select user role"
+                                            aria-label="Select default role"
                                         >
                                             <option value="student">Student</option>
                                             <option value="tutor">Tutor</option>
+                                            <option value="coach">Coach</option>
                                             <option value="teacher">Teacher</option>
+                                            <option value="admin">Admin</option>
                                         </select>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label">Additional Roles</label>
+                                        <div className="d-flex flex-wrap gap-2">
+                                            {availableRoles.map((roleOption) => {
+                                                const isSelected = userRoles.includes(roleOption);
+                                                return (
+                                                    <span
+                                                        key={roleOption}
+                                                        className={`badge ${isSelected ? 'bg-primary' : 'bg-secondary'}`}
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setUserRoles(userRoles.filter(r => r !== roleOption));
+                                                            } else {
+                                                                setUserRoles([...userRoles, roleOption]);
+                                                            }
+                                                        }}
+                                                        style={{ cursor: 'pointer', fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                                                    >
+                                                        {roleOption}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                        <small className="text-muted">Click to toggle additional roles</small>
                                     </div>
                                 </div>
                                 <div className="modal-footer">

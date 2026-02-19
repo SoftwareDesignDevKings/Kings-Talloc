@@ -5,7 +5,11 @@ import path from 'path';
 
 export async function GET(req) {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'teacher') {
+    const userRole = session?.user?.defaultRole || session?.user?.role;
+    const userRoles = session?.user?.userRoles || [];
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!session || !isAdmin) {
         return new Response(JSON.stringify({ error: 'Unauthorised' }), {
             status: 401,
             headers: { 'Content-Type': 'application/json' },

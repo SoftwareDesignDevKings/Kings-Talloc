@@ -35,19 +35,20 @@ export async function middleware(req) {
         return NextResponse.redirect(new URL('/login', req.url));
     }
 
-    const userRole = token.role;
+    const userRole = token.defaultRole || token.role;
+    const userRoles = token.userRoles || [];
 
-    // teacher-only routes
-    const teacherOnlyRoutes = ['/userRoles', '/classes', '/subjects'];
-    const isTeacherOnlyRoute = teacherOnlyRoutes.some(route => pathname.startsWith(route));
-    if (isTeacherOnlyRoute && userRole !== 'teacher') {
+    // admin-only routes (routes)
+    const adminOnlyRoutes = ['/userRoles', '/classes', '/subjects'];
+    const isAdminOnlyRoute = adminOnlyRoutes.some(route => pathname.startsWith(route));
+    if (isAdminOnlyRoute && userRole !== 'admin' && !userRoles.includes('admin')) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
-    // routes accessible by teachers and tutors (not students)
-    const teacherTutorRoutes = ['/tutorHours'];
-    const isTeacherTutorRoute = teacherTutorRoutes.some(route => pathname.startsWith(route));
-    if (isTeacherTutorRoute && userRole === 'student') {
+    // routes accessible by admins, teachers, tutors, coaches (not students)
+    const nonStudentRoutes = ['/tutorHours'];
+    const isNonStudentRoute = nonStudentRoutes.some(route => pathname.startsWith(route));
+    if (isNonStudentRoute && userRole === 'student' && !userRoles.some(r => ['admin', 'teacher', 'tutor', 'coach'].includes(r))) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 

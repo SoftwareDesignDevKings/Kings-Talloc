@@ -7,7 +7,7 @@ import { FiChevronDown, FiChevronUp } from '@/components/icons';
  * Simple calendar legend showing color meanings for students
  */
 const CalendarLegend = () => {
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(false);
 
     return (
         <div className="bg-white rounded shadow-sm border" style={{ fontSize: '0.85rem' }}>

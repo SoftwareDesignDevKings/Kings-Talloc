@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import AppSessionProvider from '@/providers/AppSessionProvider';
+import { AppDataProvider } from '@/providers/AppDataProvider';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import LoadingPage from '@/components/LoadingPage';
@@ -32,9 +33,11 @@ export default function RootLayout({ children }) {
                 <VersionGuard />
         
                 <AppSessionProvider>
-                    <Suspense fallback={<LoadingPage />}>
-                        {children}
-                    </Suspense>
+                    <AppDataProvider>
+                        <Suspense fallback={<LoadingPage />}>
+                            {children}
+                        </Suspense>
+                    </AppDataProvider>
                 </AppSessionProvider>
                 <Script
                     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"

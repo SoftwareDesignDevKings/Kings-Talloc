@@ -85,7 +85,7 @@ const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOrigi
                             Only this occurrence
                         </label>
                     </div>
-                    <div className="form-check">
+                    <div className="form-check mb-3">
                         <input
                             className="form-check-input"
                             type="radio"
@@ -98,6 +98,11 @@ const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOrigi
                         <label className="form-check-label" htmlFor="deleteThisAndFuture">
                             This and all future occurrences
                         </label>
+                    </div>
+                    <div className="alert alert-warning mb-0" role="alert">
+                        <small className="text-danger">
+                            <strong>Note:</strong> Deletes only non-modified allocated shifts into the future. All modified occurrences will need to be deleted separately.
+                        </small>
                     </div>
                 </>
             ) : (

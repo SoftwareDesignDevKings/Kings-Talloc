@@ -285,8 +285,8 @@ const TeacherStats = ({ data, onUpdate }) => {
             <StatCard
                 icon={FiUsers}
                 iconBgColor="bg-info"
-                title="Active Tutors"
-                value={`${data.activeTutors}/${data.totalTutors}`}
+                title="Tutors In Today"
+                value={data.tutorsScheduledToday}
             />
             <StatCard
                 icon={FiActivity}
@@ -367,19 +367,13 @@ const StudentStats = ({ data }) => (
             title="Approved Requests"
             value={data.approvedRequests}
         />
-        <StatCard
-            icon={FiUsers}
-            iconBgColor="bg-info"
-            title="Available Tutors"
-            value={data.availableTutors}
-        />
     </>
 );
 
 const StatsCards = ({ userRole, data, onUpdate }) => {
     return (
         <div className="row g-4 mb-4">
-            {userRole === 'teacher' && <TeacherStats data={data} onUpdate={onUpdate} />}
+            {(userRole === 'teacher' || userRole === 'admin') && <TeacherStats data={data} onUpdate={onUpdate} />}
             {userRole === 'tutor' && <TutorStats data={data} />}
             {userRole === 'student' && <StudentStats data={data} />}
         </div>

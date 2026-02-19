@@ -74,7 +74,7 @@ const Sidebar = ({ userRole, user }) => {
                             <FiCalendar className={styles.navIcon} />
                             {!isCollapsed && <span>Calendar</span>}
                         </li>
-                        {userRole === 'teacher' && (
+                        {(userRole === 'teacher' || userRole === 'admin') && (
                             <>
                                 <li
                                     className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
@@ -92,7 +92,7 @@ const Sidebar = ({ userRole, user }) => {
                                 </li>
                             </>
                         )}
-                        {userRole === 'teacher' && (
+                        {(userRole === 'teacher' || userRole === 'admin') && (
                             <li
                                 className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
                                 onClick={() => router.push('/subjects')}

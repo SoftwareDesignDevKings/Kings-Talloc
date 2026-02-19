@@ -3,8 +3,6 @@
 import React from 'react';
 import Image from 'next/image';
 
-
-
 export default function Maintenance() {
     return (
         <div className="d-flex align-items-center justify-content-center min-vh-100 gradient-background">

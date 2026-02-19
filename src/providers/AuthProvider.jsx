@@ -21,6 +21,8 @@ const AuthProvider = ({ children }) => {
     const { data: session, status, update } = useSession();
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState('student');
+    const [userRoles, setUserRoles] = useState([]);
+
     const [device, setDevice] = useState("desktop")
 
     const pathname = usePathname();
@@ -35,7 +37,8 @@ const AuthProvider = ({ children }) => {
         const syncAuth = async () => {
             try {
                 if (status === 'authenticated' && session.user) {
-                    setUserRole(session.user.role);
+                    setUserRole(session.user.defaultRole || session.user.role);
+                    setUserRoles(session.user.userRoles || []);
 
                     if (!session.user.firebaseToken) {
                         setIsLoading(false);
@@ -116,9 +119,10 @@ const AuthProvider = ({ children }) => {
         session,
         status,
         userRole,
+        userRoles,
         loading: isLoading,
         device
-    }), [session, status, userRole, isLoading, device]);
+    }), [session, status, userRole, isLoading, device, userRoles]);
 
     // Allow public routes to render without auth
     if (isPublicRoute) {

@@ -7,7 +7,7 @@ const TutorHoursPage = async () => {
     return (
         <div className="overflow-y-auto overflow-x-hidden h-100">
             <TutorHoursSummary
-                userRole={session.user.role}
+                userRole={session.user.defaultRole || session.user.role}
                 userEmail={session.user.email}
             />
         </div>

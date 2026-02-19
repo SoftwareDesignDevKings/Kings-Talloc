@@ -4,14 +4,9 @@ import React, { useMemo, useEffect } from 'react';
 import useModalActionStrategy from '@/hooks/useModalActionStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 
-const CalendarRenderModals = ({
-    calendarAction,
-    calendarTarget,
-    onClose,
-    updateCalendarTarget,
-}) => {
+const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTarget, onClose }) => {
     const modalActionStrategy = useModalActionStrategy(calendarAction);
-    const { session } = useAuthSession();
+    const { session, userRole } = useAuthSession();
     const userEmail = session.user.email;
 
     // memoise the modal data so it doesn't recreate on every render
@@ -33,7 +28,7 @@ const CalendarRenderModals = ({
 
         return createDraft({
             ...calendarTarget,
-            userEmail: userEmail,
+            userEmail: userEmail
         });
     }, [modalActionStrategy, calendarTarget, userEmail]);
 
@@ -51,7 +46,6 @@ const CalendarRenderModals = ({
     }
 
     const { Modal, mode, dataProp } = modalActionStrategy;
-    const updateFormState = (updates) => updateCalendarTarget(updates);
 
     const modalProps = {
         mode,
@@ -60,12 +54,13 @@ const CalendarRenderModals = ({
         setShowModal: onClose,
         setShowStudentModal: onClose,
         userEmail,
+        userRole,
     };
 
     if (dataProp === 'newEvent') {
-        modalProps.setNewEvent = updateFormState;
+        modalProps.setNewEvent = updateCalendarTarget;
     } else {
-        modalProps.setNewAvailability = updateFormState;
+        modalProps.setNewAvailability = updateCalendarTarget;
     }
 
     return <Modal {...modalProps} />;

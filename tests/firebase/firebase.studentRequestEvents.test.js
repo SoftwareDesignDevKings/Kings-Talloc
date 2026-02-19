@@ -1,18 +1,18 @@
 /**
  * Firebase Security Rules Tests - Student Event Requests Collection
  *
- * Tests studentEventRequests collection access control
- * This tests the actual firestore.rules file against the Firebase emulator
- *
- * Run with: firebase emulators:exec --only firestore "npm test -- tests/firebase.studentRequestEvents.test.js"
+ * Tests studentEventRequests collection access control:
+ * - Admins/teachers can read all requests
+ * - Students can only read requests they're in (emailsList)
+ * - Tutors/coaches cannot read any requests
+ * - Students and admins/teachers can create; tutors/coaches cannot
+ * - Students can update/delete their own; admins/teachers can update/delete all
  *
  * @jest-environment node
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
 
-// assertFails and assertSucceeds are provided by firebaseTestSetup.js
-// to properly suppress console warnings only during expected failures
 const { assertFails, assertSucceeds } = global;
 const fs = require('fs');
 const path = require('path');
@@ -20,11 +20,9 @@ const path = require('path');
 let testEnv;
 
 beforeAll(async () => {
-    // Read the actual firestore.rules file
     const rulesPath = path.join(__dirname, '../../firebase', 'firestore.rules');
     const rules = fs.readFileSync(rulesPath, 'utf8');
 
-    // Initialize test environment with the actual rules
     testEnv = await initializeTestEnvironment({
         projectId: 'test-project-student-requests',
         firestore: {
@@ -44,82 +42,156 @@ beforeEach(async () => {
 });
 
 describe('Firebase Security Rules - Student Event Requests Collection', () => {
+    const adminEmail = 'admin@kings.edu.au';
     const teacherEmail = 'teacher@kings.edu.au';
     const tutorEmail = 'tutor@kings.edu.au';
     const studentEmail = 'student@student.kings.edu.au';
     const otherStudentEmail = 'otherstudent@student.kings.edu.au';
 
     describe('Student Event Requests - Read Access', () => {
-        test('authenticated users CAN read student event requests', async () => {
-            const context = testEnv.authenticatedContext(studentEmail, {
-                email: studentEmail,
-                role: 'student',
+        let ownRequestId;
+        let otherRequestId;
+
+        beforeEach(async () => {
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                const db = context.firestore();
+
+                // Request that studentEmail is in
+                const ref1 = await db.collection('studentEventRequests').add({
+                    title: 'Help with Math',
+                    emailsList: [studentEmail],
+                    start: new Date('2025-10-15T09:00:00'),
+                    end: new Date('2025-10-15T10:00:00'),
+                    approvalStatus: 'pending',
+                });
+                ownRequestId = ref1.id;
+
+                // Request that studentEmail is NOT in
+                const ref2 = await db.collection('studentEventRequests').add({
+                    title: 'Help with Physics',
+                    emailsList: [otherStudentEmail],
+                    start: new Date('2025-10-15T11:00:00'),
+                    end: new Date('2025-10-15T12:00:00'),
+                    approvalStatus: 'pending',
+                });
+                otherRequestId = ref2.id;
+            });
+        });
+
+        test('teacher CAN read any request', async () => {
+            const context = testEnv.authenticatedContext(teacherEmail, {
+                email: teacherEmail,
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('studentEventRequests').get());
+            await assertSucceeds(db.collection('studentEventRequests').doc(otherRequestId).get());
+        });
+
+        test('admin CAN read any request', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('studentEventRequests').doc(otherRequestId).get());
+        });
+
+        test('student CAN read a request they are in', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('studentEventRequests').doc(ownRequestId).get());
+        });
+
+        test('student CANNOT read a request they are NOT in', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('studentEventRequests').doc(otherRequestId).get());
+        });
+
+        test('tutor CANNOT read any student request', async () => {
+            const context = testEnv.authenticatedContext(tutorEmail, {
+                email: tutorEmail,
+                defaultRole: 'tutor',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('studentEventRequests').doc(ownRequestId).get());
         });
 
         test('unauthenticated users CANNOT read student event requests', async () => {
             const context = testEnv.unauthenticatedContext();
             const db = context.firestore();
 
-            await assertFails(db.collection('studentEventRequests').get());
+            await assertFails(db.collection('studentEventRequests').doc(ownRequestId).get());
         });
     });
 
     describe('Student Event Requests - Create Access', () => {
+        const requestData = {
+            title: 'Help with Math',
+            start: new Date('2025-10-15T09:00:00'),
+            end: new Date('2025-10-15T10:00:00'),
+            emailsList: [studentEmail],
+            students: [{ value: studentEmail, label: 'Student Name' }],
+            subject: 'Mathematics',
+            approvalStatus: 'pending',
+        };
+
         test('student CAN create their own event request', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
-
-            const requestData = {
-                title: 'Help with Math',
-                start: new Date('2025-10-15T09:00:00'),
-                end: new Date('2025-10-15T10:00:00'),
-                students: [{ value: studentEmail, label: 'Student Name' }],
-                studentEmails: [studentEmail],
-                subject: 'Mathematics',
-                description: 'Need help with calculus',
-                status: 'pending',
-            };
 
             await assertSucceeds(db.collection('studentEventRequests').add(requestData));
         });
 
-        test('teacher CANNOT create student event requests', async () => {
+        test('teacher CAN create student event requests', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
-            const requestData = {
-                title: 'Help with Math',
-                start: new Date('2025-10-15T09:00:00'),
-                end: new Date('2025-10-15T10:00:00'),
-                students: [{ value: studentEmail, label: 'Student' }],
-            };
+            await assertSucceeds(db.collection('studentEventRequests').add(requestData));
+        });
 
-            await assertFails(db.collection('studentEventRequests').add(requestData));
+        test('admin CAN create student event requests', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('studentEventRequests').add(requestData));
         });
 
         test('tutor CANNOT create student event requests', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
-
-            const requestData = {
-                title: 'Help with Math',
-                start: new Date('2025-10-15T09:00:00'),
-                end: new Date('2025-10-15T10:00:00'),
-                students: [{ value: studentEmail, label: 'Student' }],
-            };
 
             await assertFails(db.collection('studentEventRequests').add(requestData));
         });
@@ -129,17 +201,16 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         let requestId;
 
         beforeEach(async () => {
-            // Create a student request for testing
             await testEnv.withSecurityRulesDisabled(async (context) => {
                 const db = context.firestore();
                 const ref = await db.collection('studentEventRequests').add({
                     title: 'Help with Math',
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
+                    emailsList: [studentEmail],
                     students: [{ value: studentEmail, label: 'Student Name' }],
-                    studentEmails: [studentEmail],
                     subject: 'Mathematics',
-                    status: 'pending',
+                    approvalStatus: 'pending',
                 });
                 requestId = ref.id;
             });
@@ -148,14 +219,29 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test('teacher CAN update any student event request', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertSucceeds(
                 db.collection('studentEventRequests').doc(requestId).update({
-                    status: 'approved',
-                    assignedTutor: tutorEmail,
+                    approvalStatus: 'approved',
+                }),
+            );
+        });
+
+        test('admin CAN update any student event request', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(
+                db.collection('studentEventRequests').doc(requestId).update({
+                    approvalStatus: 'approved',
                 }),
             );
         });
@@ -163,13 +249,13 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test('student CAN update their own event request', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertSucceeds(
                 db.collection('studentEventRequests').doc(requestId).update({
-                    description: 'Updated description',
                     subject: 'Physics',
                 }),
             );
@@ -178,13 +264,14 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test("student CANNOT update another student's event request", async () => {
             const context = testEnv.authenticatedContext(otherStudentEmail, {
                 email: otherStudentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertFails(
                 db.collection('studentEventRequests').doc(requestId).update({
-                    description: 'Hacked description',
+                    subject: 'Hacked',
                 }),
             );
         });
@@ -192,13 +279,14 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test('tutor CANNOT update student event requests', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 
             await assertFails(
                 db.collection('studentEventRequests').doc(requestId).update({
-                    status: 'approved',
+                    approvalStatus: 'approved',
                 }),
             );
         });
@@ -208,16 +296,14 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         let requestId;
 
         beforeEach(async () => {
-            // Create a student request for testing
             await testEnv.withSecurityRulesDisabled(async (context) => {
                 const db = context.firestore();
                 const ref = await db.collection('studentEventRequests').add({
                     title: 'Help with Math',
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
-                    students: [{ value: studentEmail, label: 'Student Name' }],
-                    studentEmails: [studentEmail],
-                    status: 'pending',
+                    emailsList: [studentEmail],
+                    approvalStatus: 'pending',
                 });
                 requestId = ref.id;
             });
@@ -226,7 +312,19 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test('teacher CAN delete any student event request', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
-                role: 'teacher',
+                defaultRole: 'teacher',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('studentEventRequests').doc(requestId).delete());
+        });
+
+        test('admin CAN delete any student event request', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -236,7 +334,8 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test('student CAN delete their own event request', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -246,7 +345,8 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test("student CANNOT delete another student's event request", async () => {
             const context = testEnv.authenticatedContext(otherStudentEmail, {
                 email: otherStudentEmail,
-                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
             });
             const db = context.firestore();
 
@@ -256,7 +356,8 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
         test('tutor CANNOT delete student event requests', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
-                role: 'tutor',
+                defaultRole: 'tutor',
+                userRoles: [],
             });
             const db = context.firestore();
 

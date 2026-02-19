@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useAppData } from '@/providers/AppDataProvider';
 import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
@@ -18,12 +18,13 @@ const StudentEventForm = ({
     setShowStudentModal,
     studentEmail,
 }) => {
-    const { calendarStudentRequests,
+    const {
         setCalendarStudentRequests,
+        calendarStudentRequests,
         calendarAvailabilities,
         tutors,
         subjects
-    } = useCalendarData();
+    } = useAppData();
     
     // derive mode flags
     const isView = mode === 'view';

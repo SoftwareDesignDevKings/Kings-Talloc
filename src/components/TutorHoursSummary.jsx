@@ -28,8 +28,6 @@ const calculateBreakTime = (totalHours) => {
     return 0;
 };
 
-// checks if shift is valid
-// reject shifts that are not approved yet by Ienna, or shifts not completed by the tutor
 const isShiftValid = (shift) => {
     if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
         return false;
@@ -62,7 +60,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         return sunday;
     });
     const [tutorHours, setTutorHours] = useState([]);
-    const [excludedShifts, setExcludedShifts] = useState(null);
 
     const fetchTutorHours = useCallback(async () => {
         // Query 1: Non-recurring shifts in the date range
@@ -138,10 +135,8 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                     };
                 }
 
-                // Calculate event duration in hours
-                let shiftDuration = (shift.end - shift.start) / 3600000; // milliseconds to hours
-                const shiftBreakTime = calculateBreakTime(shiftDuration);
-                shiftDuration -= shiftBreakTime;
+                // Calculate event duration in hours (full duration, no break deduction for payment)
+                const shiftDuration = (shift.end - shift.start) / 3600000; // milliseconds to hours
 
                 // Add to appropriate category based on workType
                 if (shift.workType === 'coaching') {
@@ -171,210 +166,13 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const csvData = tutorHours.map((tutor) => ({
         Email: tutor.email,
         Name: tutor.name,
-        'Tutoring Hours': tutor.tutoringHours.toFixed(2),
+        'Tutor / Work Hours': tutor.tutoringHours.toFixed(2),
         'Coaching Hours': tutor.coachingHours.toFixed(2),
         'Total Hours': (tutor.tutoringHours + tutor.coachingHours).toFixed(2),
     }));
 
-    const fetchTimesheetEvents = async (tutorEmail) => {
-        // Query 1: Non-recurring events in the date range
-        const nonRecurringQuery = query(
-            collection(db, 'shifts'),
-            where('start', '>=', startDate),
-            where('start', '<=', endDate),
-            where('recurring', '==', null)
-        );
-
-        // Query 2: ALL recurring events
-        const recurringQuery = query(
-            collection(db, 'shifts'),
-            where('recurring', 'in', ['weekly', 'fortnightly'])
-        );
-
-        const [nonRecurringSnapshot, recurringSnapshot] = await Promise.all([
-            getDocs(nonRecurringQuery),
-            getDocs(recurringQuery)
-        ]);
-
-        // Process non-recurring events
-        let events = nonRecurringSnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-            };
-        });
-
-        // process recurring events
-        let recurringEvents = recurringSnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-                ...(data.until && { until: data.until.toDate() }),
-            };
-        });
-
-        // Expand recurring events
-        recurringEvents = recurringCalendarExpand(recurringEvents, {
-            rangeStart: startDate,
-            rangeEnd: endDate,
-            maxOccurrences: 52,
-        }).filter(event => event.start >= startDate && event.start <= endDate);
-
-        // Combine events
-        events = [...events, ...recurringEvents];
-
-        // Filter for this tutor
-        return events.filter((event) => {
-            if (!isShiftValid(event)) return false;
-
-            const isStaffMember = event.staff.some((staff) => staff.value === tutorEmail);
-            if (!isStaffMember) return false;
-
-            return isTutorConfirmed(event, tutorEmail);
-        });
-    };
-
-    const buildDayData = (events, minShiftHours = 3) => {
-        const dayData = {};
-        const excludedEvents = {};
-
-        // Group events by day and categorize them
-        for (const event of events) {
-            const eventStartDate = event.start;
-            const eventEndDate = event.end;
-            const dayName = eventStartDate.toLocaleDateString('en-US', { weekday: 'long' });
-            const eventDuration = (event.end - event.start) / 3600000; // milliseconds to hours
-
-            if (!dayData[dayName]) {
-                dayData[dayName] = {
-                    date: eventStartDate.toLocaleDateString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: 'numeric',
-                    }),
-                    mainShifts: [],
-                    shortEvents: [],
-                    totalDuration: 0,
-                };
-            }
-
-            if (eventDuration >= minShiftHours) {
-                dayData[dayName].mainShifts.push({
-                    start: eventStartDate,
-                    end: eventEndDate,
-                    duration: eventDuration,
-                });
-            } else {
-                dayData[dayName].shortEvents.push({
-                    start: eventStartDate,
-                    end: eventEndDate,
-                    duration: eventDuration,
-                });
-            }
-        }
-
-        // Calculate times and totals for each day
-        for (const dayName in dayData) {
-            const data = dayData[dayName];
-
-            if (data.mainShifts.length > 0) {
-                // Has main shifts - use earliest and latest
-                data.mainShifts.sort((a, b) => a.start - b.start);
-                data.earliestStart = data.mainShifts[0].start;
-
-                let shortEventsTotal = 0;
-                for (const event of data.shortEvents) {
-                    shortEventsTotal += event.duration;
-                }
-
-                let mainShiftsTotal = 0;
-                for (const shift of data.mainShifts) {
-                    mainShiftsTotal += shift.duration;
-                }
-
-                const lastShiftEnd = data.mainShifts[data.mainShifts.length - 1].end;
-                data.latestEnd = new Date(lastShiftEnd.getTime() + shortEventsTotal * 3600 * 1000);
-                data.totalDuration = mainShiftsTotal + shortEventsTotal;
-            } else {
-                // Only short events
-                let shortEventsTotal = 0;
-                for (const event of data.shortEvents) {
-                    shortEventsTotal += event.duration;
-                }
-
-                if (shortEventsTotal >= minShiftHours) {
-                    data.shortEvents.sort((a, b) => a.start - b.start);
-                    data.earliestStart = data.shortEvents[0].start;
-                    data.latestEnd = new Date(
-                        data.shortEvents[0].start.getTime() + shortEventsTotal * 3600 * 1000,
-                    );
-                    data.totalDuration = shortEventsTotal;
-                } else {
-                    // Exclude this day
-                    excludedEvents[dayName] = data.shortEvents;
-                    delete dayData[dayName];
-                }
-            }
-        }
-
-        return { dayData, excludedEvents };
-    };
-
-    const processDayData = (dayData) => {
-        const hoursData = {
-            Monday: { date: '', commenced: '', finished: '', break: '', total: 0 },
-            Tuesday: { date: '', commenced: '', finished: '', break: '', total: 0 },
-            Wednesday: { date: '', commenced: '', finished: '', break: '', total: 0 },
-            Thursday: { date: '', commenced: '', finished: '', break: '', total: 0 },
-            Friday: { date: '', commenced: '', finished: '', break: '', total: 0 },
-        };
-
-        for (const dayName in dayData) {
-            const data = dayData[dayName];
-            const totalHours = (data.latestEnd - data.earliestStart) / (1000 * 60 * 60);
-            const breakTime = calculateBreakTime(totalHours);
-
-            hoursData[dayName] = {
-                date: data.date,
-                commenced: data.earliestStart.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false,
-                }),
-                finished: data.latestEnd.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false,
-                }),
-                break: breakTime > 0 ? breakTime.toFixed(1) : '',
-                total: totalHours.toFixed(2),
-            };
-        }
-
-        return hoursData;
-    };
-
-    const handleGenerateTimesheet = async (tutorEmail, tutorName, role = 'Academic Tutor') => {
+    const handleGenerateTimesheet = async (tutorEmail, tutorName, roleType) => {
         try {
-            // Fetch events for this tutor
-            const events = await fetchTimesheetEvents(tutorEmail);
-            const { dayData, excludedEvents } = buildDayData(events);
-            const hoursData = processDayData(dayData);
-            setExcludedShifts(Object.keys(excludedEvents).length > 0 ? { tutorName, events: excludedEvents } : null);
-
-            // Calculate total hours from excluded events
-            let excludedHoursTotal = 0;
-            for (const dayName in excludedEvents) {
-                const dayEvents = excludedEvents[dayName];
-                for (const event of dayEvents) {
-                    excludedHoursTotal += event.duration;
-                }
-            }
-
             // Send data to API route
             const response = await fetch('/api/timesheet', {
                 method: 'POST',
@@ -384,9 +182,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 body: JSON.stringify({
                     tutorEmail,
                     tutorName,
-                    hoursData,
-                    excludedHoursTotal,
-                    role,
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                    roleType, // 'tutor' or 'coach'
                 }),
             });
 
@@ -396,16 +194,23 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 return;
             }
 
+            const overflowHours = parseFloat(response.headers.get('X-Overflow-Hours') || '0');
+
             // Download the file
             const blob = await response.blob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${tutorName}_${role.toLowerCase()}_timesheet_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.docx`;
+            link.download = `${tutorName}_${roleType}_timesheet_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.docx`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            addAlert('success', `${role} timesheet generated and downloaded successfully`);
+            const roleLabel = roleType === 'coach' ? 'Coach' : 'Tutor';
+            addAlert('success', `${roleLabel} timesheet generated and downloaded successfully`);
+
+            if (overflowHours > 0) {
+                addAlert('info', `${overflowHours}hrs exceeded for "${tutorName}" — will need to be carried over to the next pay period.`);
+            }
         } catch (error) {
             console.error('Error generating timesheet:', error);
             addAlert('error', `Error: ${error.message}`);
@@ -440,7 +245,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 </div>
                 <CSVLink
                     data={csvData}
-                    filename={`tutor_hours_${startDate.toLocaleDateString()}_to_${endDate.toLocaleDateString()}.csv`}
+                    filename={`tutor_hours_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.csv`}
                 >
                     <button className="btn btn-primary btn-sm">
                         Export as CSV
@@ -455,57 +260,19 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                         discrepancies, report them to Michael Ienna.
                     </p>
                     <p className="mb-0">
-                        Any given hours that are between 3 (exclusive) and 6 (inclusive) hours
-                        account for a 30-minute break. Any given hours that are greater than 6
-                        (exclusive) account for a 1-hour break.
+                        Any given hours that are between 3 (exclusive) and 6 (inclusive) hours account for a 30-minute break. Any given hours that are greater than 6 (exclusive) account for a 1-hour break.
                     </p>
                 </div>
             </div>
+
             <div className="flex-grow-1 overflow-auto">
-                {excludedShifts && (
-                    <div className="mb-3 p-3 border border-info bg-info-subtle rounded d-flex align-items-start gap-2">
-                        <FaInfoCircle className="text-info mt-1 flex-shrink-0" style={{ fontSize: '1.25rem' }} />
-                        <div className="small text-dark">
-                            <h5 className="fw-bold mb-2">Excluded Hours Below Payroll Threshold</h5>
-                            <p className="fw-bold mb-2">
-                                TUTOR: {excludedShifts.tutorName}
-                            </p>
-                            <p className="fw-semibold fst-italic mb-1">
-                                Short shifts (&lt;3 hours) excluded as they are below the minimum shift threshold. Add the following shift hours manually:
-                            </p>
-                            {Object.entries(excludedShifts.events).map(([day, events]) => (
-                                <div key={day} className="mt-2">
-                                    <p className="fw-medium mb-1">{day}:</p>
-                                    <ul className="list-unstyled ms-3">
-                                        {events.map((e, idx) => (
-                                            <li key={idx} className="mb-1">
-                                                • {e.start.toLocaleTimeString('en-US', {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                    hour12: false,
-                                                })}{' '}
-                                                -{' '}
-                                                {e.end.toLocaleTimeString('en-US', {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                    hour12: false,
-                                                })}{' '}
-                                                ({e.duration.toFixed(2)} hrs)
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
                 <div className="table-responsive">
                     <table className="table table-sm table-hover bg-white">
                         <thead className="sticky-top bg-light" style={{ zIndex: 1 }}>
                         <tr>
                             <th className="small fw-medium text-secondary">Email</th>
                             <th className="small fw-medium text-secondary">Name</th>
-                            <th className="small fw-medium text-secondary">Tutoring</th>
+                            <th className="small fw-medium text-secondary">Tutor / Work</th>
                             <th className="small fw-medium text-secondary">Coaching</th>
                             <th className="small fw-medium text-secondary">Total</th>
                             {userRole === 'teacher' && (
@@ -531,7 +298,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                                     handleGenerateTimesheet(
                                                         tutor.email,
                                                         tutor.name,
-                                                        'Academic Tutor',
+                                                        'tutor',
                                                     )
                                                 }
                                                 className="btn btn-success btn-sm"
@@ -544,12 +311,12 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                                         handleGenerateTimesheet(
                                                             tutor.email,
                                                             tutor.name,
-                                                            'Coach',
+                                                            'coach',
                                                         )
                                                     }
-                                                    className="btn btn-success btn-sm"
+                                                    className="btn btn-secondary btn-sm"
                                                 >
-                                                    Generate Coaching Timesheet
+                                                    Generate Coach Timesheet
                                                 </button>
                                             )}
                                         </div>

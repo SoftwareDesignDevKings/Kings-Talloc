@@ -10,12 +10,11 @@ import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
 import SettingsSection from './EventFormSections/SettingsSection.jsx';
 import StudentRequestSection from './EventFormSections/StudentRequestSection.jsx';
 import { useEventFormData } from './useEventFormData';
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useAppData } from '@/providers/AppDataProvider';
 import {
     calendarEventHandleDelete,
     calendarEventCreateTeamsMeeting,
     calendarEventHandleTeamsMeetingUpdate,
-    calendarEventGetType,
 } from '@/utils/calendarEvent';
 import {
     getTeamsMeetingOccurrenceId,
@@ -26,21 +25,27 @@ import {
     createEventInFirestore,
     addOrUpdateEventInQueue,
     deleteEventFromFirestore,
-    addEventException,
 } from '@/firestore/firestoreOperations';
+import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
-import { CalendarEntityType } from '@/strategy/calendarStrategy.js';
 
-const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail }) => {
+const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
     const {
-        setCalendarShifts: setAllEvents,
-        setCalendarAvailabilities: setAvailabilities,
-        setCalendarStudentRequests: setStudentRequests,
-    } = useCalendarData();
+        setCalendarShifts,
+        setCalendarAvailabilities,
+        setCalendarStudentRequests,
+        subjects,
+        classes,
+        tutors,
+        students
+    } = useAppData();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView; // for backward compat with existing logic
+
+    // Tutors can edit workStatus even in view mode
+    const isTutorPartialEdit = isView && userRole === 'tutor';
 
     const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
@@ -105,10 +110,24 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             }
         }
 
+        // Validate cannot make completed events recurring
+        if (newEvent.recurring && newEvent.workStatus === 'completed') {
+            addAlert('error', 'Cannot make completed events recurring.');
+            return false;
+        }
+
         // Validate recurring event has occurrence number
         if (newEvent.recurring && !isEditing) {
-            if (!newEvent.occurenceNum || newEvent.occurenceNum < 1) {
-                addAlert('error', 'Number of occurrences must be provided for recurring events.');
+            const count = Number(newEvent.occurenceNum);
+            const maxOccurrences = newEvent.recurring === 'fortnightly' ? 5 : 10;
+
+            if (!count || count < 2) {
+                addAlert('error', 'Recurring events must have at least 2 occurrences.');
+                return false;
+            }
+
+            if (count > maxOccurrences) {
+                addAlert('error', `Recurring shifts are capped at 10 weeks (max ${maxOccurrences} occurrences for ${newEvent.recurring} recurrence).`);
                 return false;
             }
         }
@@ -125,6 +144,16 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             addAlert('error', 'Title is required');
             return;
         }
+
+        // Debug: Check if recurring instance flag is preserved
+        console.log('EventForm onSubmit - eventToEdit:', {
+            id: eventToEdit?.id,
+            isRecurringInstance: eventToEdit?.isRecurringInstance,
+            recurringEventId: eventToEdit?.recurringEventId,
+            occurrenceIndex: eventToEdit?.occurrenceIndex,
+            recurring: eventToEdit?.recurring,
+            workStatus: eventToEdit?.workStatus,
+        });
 
         const eventData = {
             title: newEvent.title || '',
@@ -177,25 +206,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     setShowModal(false);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
-                    const { collectionName } = calendarEventGetType(eventToEdit);
-                    await addEventException(
-                        eventToEdit.recurringEventId,
-                        eventToEdit.occurrenceIndex,
-                        collectionName,
-                    );
-                    const {
-                        id,
-                        recurringEventId,
-                        isRecurringInstance,
-                        occurrenceIndex,
-                        recurring,
-                        eventExceptions,
-                        until,
-                        ...standaloneEventData
-                    } = { ...eventToEdit, ...eventData };
-
-                    const newDocId = await createEventInFirestore(standaloneEventData, collectionName);
-                    await addOrUpdateEventInQueue({ ...standaloneEventData, id: newDocId }, 'store', userEmail);
+                    const newDocId = await detachRecurringInstance(eventToEdit, eventData);
+                    await addOrUpdateEventInQueue({ ...eventData, id: newDocId }, 'store', userEmail);
                     setShowModal(false);
 
                     if (standaloneEventData.teamsEventId) {
@@ -260,9 +272,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         } else {
             // Delete non-recurring event directly
             calendarEventHandleDelete(eventToEdit, 'this', {
-                setAllEvents,
-                setAvailabilities,
-                setStudentRequests,
+                setAllEvents: setCalendarShifts,
+                setAvailabilities: setCalendarAvailabilities,
+                setStudentRequests: setCalendarStudentRequests,
                 addAlert,
             });
             setShowModal(false);
@@ -271,9 +283,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const handleConfirmDelete = (deleteOption) => {
         calendarEventHandleDelete(eventToEdit, deleteOption, {
-            setAllEvents,
-            setAvailabilities,
-            setStudentRequests,
+            setAllEvents: setCalendarShifts,
+            setAvailabilities: setCalendarAvailabilities,
+            setStudentRequests: setCalendarStudentRequests,
             addAlert,
         });
         setShowDeleteConfirm(false);
@@ -335,8 +347,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 onHide={() => setShowModal(false)}
                 title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
                 size="lg"
-                onSubmit={isView ? undefined : onSubmit}
-                submitText={isEdit ? 'Save Changes' : 'Add Event'}
+                onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
+                submitText={isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
                 deleteButton={
                     isEdit
                         ? {
@@ -346,7 +358,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                           }
                         : null
                 }
-                showFooter={!isView}
+                showFooter={!isView || isTutorPartialEdit}
             >
                 <div className="accordion" id="eventFormAccordion">
                     <EventDetailsSection
@@ -354,7 +366,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         setNewEvent={setNewEvent}
                         handleInputChange={handleInputChange}
                         readOnly={isView}
-                        addAlert={addAlert}
+                        isEditing={isEditing}
                     />
 
                     <ParticipantsSection
@@ -379,6 +391,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         workTypeOptions={workTypeOptions}
                         workStatusOptions={workStatusOptions}
                         readOnly={isView}
+                        userRole={userRole}
                     />
 
                     <StudentRequestSection

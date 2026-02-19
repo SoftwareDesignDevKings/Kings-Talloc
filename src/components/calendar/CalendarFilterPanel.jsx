@@ -4,17 +4,16 @@ import { FiChevronLeft, FiChevronRight, FaInfoCircle } from '@/components/icons'
 import styles from '@/styles/filterPanel.module.css';
 import { useState } from 'react';
 import { useCalendarUI } from '@contexts/CalendarUIContext';
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useAppData } from '@/providers/AppDataProvider';
 import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
+import useAuthSession from '@/hooks/useAuthSession';
 
-const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
-    const { calendarFilters, calendarScope } = calendarStrategy;
-    const [isOpen, setIsOpen] = useState(device !== 'mobile');
+const CalendarFilterPanel = () => {
+    const { userRole } = useAuthSession();
+    const { tutors, subjects } = useAppData();
+    const { filters, visibility, actions, calendarFilters, calendarScope } = useCalendarUI();
+    const [isOpen, setIsOpen] = useState(true);
     const [showHowToModal, setShowHowToModal] = useState(false);
-
-    // Get filter state and actions from CalendarUIProvider
-    const { tutors, subjects } = useCalendarData();
-    const { filters, visibility, actions } = useCalendarUI();
 
     // Memoise subject options transformation
     const subjectOptions = useMemo(() =>
@@ -184,16 +183,31 @@ const CalendarFilterPanel = ({ calendarStrategy, device, userRole }) => {
                     )}
 
                     {calendarScope.canToggleTutorAvailabilities && (
-                        <div className="mb-3">
-                            <label className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={visibility.showTutorInitials}
-                                    onChange={(e) => actions.setShowTutorInitials(e.target.checked)}
-                                />
-                                <span>Show Tutor Availabilities</span>
-                            </label>
-                        </div>
+                        <>
+                            <div className="mb-3">
+                                <label className={styles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={visibility.showTutorInitials}
+                                        onChange={(e) => actions.setShowTutorInitials(e.target.checked)}
+                                    />
+                                    <span>Show Tutor Availabilities</span>
+                                </label>
+                            </div>
+
+                            {userRole === 'tutor' && visibility.showTutorInitials && (
+                                <div className={`${styles.checkboxIndented} mb-3`}>
+                                    <label className={styles.checkboxLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={visibility.hideOwnAvailabilities}
+                                            onChange={(e) => actions.setHideOwnAvailabilities(e.target.checked)}
+                                        />
+                                        <span>Hide My Availabilities</span>
+                                    </label>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {calendarScope.canToggleDeniedStudentRequests && (

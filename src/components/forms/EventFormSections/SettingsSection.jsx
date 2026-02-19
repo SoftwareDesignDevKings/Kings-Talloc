@@ -9,6 +9,7 @@ const SettingsSection = ({
     workTypeOptions,
     workStatusOptions,
     readOnly,
+    userRole,
 }) => {
     // memoised handlers for Select components
     const handleWorkTypeChange = useCallback((selectedOption) => {
@@ -118,7 +119,7 @@ const SettingsSection = ({
                                 (option) =>
                                     option.value === (newEvent.workStatus || 'notCompleted'),
                             )}
-                            isDisabled={readOnly}
+                            isDisabled={readOnly && userRole !== 'tutor'}
                             aria-label="Event work status"
                             inputId="workStatus"
                         />

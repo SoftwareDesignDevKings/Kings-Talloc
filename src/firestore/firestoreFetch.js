@@ -1,53 +1,139 @@
 import { db } from '@/firestore/firestoreClient';
-import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
-import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
-import { addWeeks } from 'date-fns';
+import { collection, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
-export const firestoreFetchShifts = (setCalendarShifts) => {
-    const shiftsRef = collection(db, 'shifts');
+// ---------------------------------------------------------------------------
+// Module-level cache for rarely-changing reference data (tutors, subjects, etc.)
+// Survives re-renders and re-mounts for the lifetime of the browser session.
+// ---------------------------------------------------------------------------
+const STATIC_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const staticCache = new Map(); 
+// key → { data, fetchedAt }
 
-    return onSnapshot(shiftsRef, (snapshot) => {
-        let shifts = [];
-
-        // normalise firebase docs into memory for CalendarEntityType.SHIFT
-        shifts = snapshot.docs.map((doc) => {
-            const data = doc.data();
-
-            return {
-                id: doc.id,
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-                ...(data.until && { until: data.until.toDate() }),
-                entityType: CalendarEntityType.SHIFT,
-            };
-        });
-
-        // add recurring events into memory
-        shifts = recurringCalendarExpand(shifts, {
-            rangeStart: new Date(),
-            rangeEnd: addWeeks(new Date(), 52),
-            maxOccurrences: 52,
-        });
-
-        setCalendarShifts(shifts);
-    }, () => {
-        setCalendarShifts([]);
-    });
+const getCachedOrFetch = async (key, fetchFn) => {
+    const entry = staticCache.get(key);
+    if (entry && Date.now() - entry.fetchedAt < STATIC_CACHE_TTL_MS) {
+        return entry.data;
+    }
+    const data = await fetchFn();
+    staticCache.set(key, { data, fetchedAt: Date.now() });
+    return data;
 };
 
+const deserializeShift = (doc) => {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        ...data,
+        start: data.start.toDate(),
+        end: data.end.toDate(),
+        ...(data.until && { until: data.until.toDate() }),
+        entityType: CalendarEntityType.SHIFT,
+    };
+};
 
-export const firestoreFetchAvailabilities = (setCalendarAvailabilities) => {
+const buildAccessFilters = (strategyFbFilters) =>
+    strategyFbFilters.map(({ fbField, fbOperation, fbValue }) =>
+        where(fbField, fbOperation, fbValue)
+    );
+
+/**
+ * One-off shifts within the viewed date range.
+ * Re-subscribes on every week navigation.
+ */
+export const firestoreFetchOneOffShifts = (setOneOffShifts, calendarDateRange, strategyFbFilters) => {
+    if (strategyFbFilters === null) {
+        setOneOffShifts([]);
+        return () => {};
+    }
+
+    const q = query(
+        collection(db, 'shifts'),
+        where('start', '>=', Timestamp.fromDate(calendarDateRange.start)),
+        where('start', '<=', Timestamp.fromDate(calendarDateRange.end)),
+        where('recurring', '==', null),
+        ...buildAccessFilters(strategyFbFilters)
+    );
+
+    return onSnapshot(q,
+        (snapshot) => setOneOffShifts(snapshot.docs.map(deserializeShift)),
+        (error) => { console.error('Firestore Shifts (one-off) Error:', error); setOneOffShifts([]); }
+    );
+};
+
+/**
+ * Active recurring base shifts only — excludes expired series.
+ * Two listeners are needed because Firestore can't OR across different field predicates:
+ *   1. Open-ended series  (until == null — no end date set)
+ *   2. Still-active series (until >= now — haven't expired yet)
+ * Results are merged before being set, so the provider sees a single array.
+ * Requires a composite index on shifts: (recurring ASC, until ASC).
+ */
+export const firestoreFetchRecurringShifts = (setRecurringBaseShifts, strategyFbFilters) => {
+    if (strategyFbFilters === null) {
+        setRecurringBaseShifts([]);
+        return () => {};
+    }
+
+    const now = Timestamp.now();
+    const accessFilters = buildAccessFilters(strategyFbFilters);
+
+    // Open-ended recurring shifts (no until date)
+    const openEndedQuery = query(
+        collection(db, 'shifts'),
+        where('recurring', 'in', ['weekly', 'fortnightly']),
+        where('until', '==', null),
+        ...accessFilters
+    );
+
+    // Still-active recurring shifts (until date is in the future)
+    const activeQuery = query(
+        collection(db, 'shifts'),
+        where('recurring', 'in', ['weekly', 'fortnightly']),
+        where('until', '>=', now),
+        ...accessFilters
+    );
+
+    let openEndedShifts = [];
+    let activeShifts = [];
+
+    const merge = () => setRecurringBaseShifts([...openEndedShifts, ...activeShifts]);
+
+    const unsubOpenEnded = onSnapshot(
+        openEndedQuery,
+        (snapshot) => { openEndedShifts = snapshot.docs.map(deserializeShift); merge(); },
+        (error) => console.error('Firestore Recurring Shifts (open-ended) Error:', error)
+    );
+
+    const unsubActive = onSnapshot(
+        activeQuery,
+        (snapshot) => { activeShifts = snapshot.docs.map(deserializeShift); merge(); },
+        (error) => console.error('Firestore Recurring Shifts (active) Error:', error)
+    );
+
+    return () => { unsubOpenEnded(); unsubActive(); };
+};
+
+/**
+ * Optimized Availabilities Fetching
+ */
+export const firestoreFetchAvailabilities = (setCalendarAvailabilities, calendarDateRange, strategyFbFilters) => {
+    if (strategyFbFilters === null) {
+        setCalendarAvailabilities([]);
+        return () => {};
+    }
+
     const availabilitiesRef = collection(db, 'tutorAvailabilities');
+    const q = query(
+        availabilitiesRef,
+        where('start', '>=', Timestamp.fromDate(calendarDateRange.start)),
+        where('start', '<=', Timestamp.fromDate(calendarDateRange.end)),
+        ...strategyFbFilters.map(({ fbField, fbOperation, fbValue }) => where(fbField, fbOperation, fbValue))
+    );
 
-    return onSnapshot(availabilitiesRef, (snapshot) => {
-        let availabilities = [];
-
-        // normalise firebase docs into memory for CalendarEntityType.AVAILABILITY
-        availabilities = snapshot.docs.map((doc) => {
+    return onSnapshot(q, (snapshot) => {
+        const availabilities = snapshot.docs.map((doc) => {
             const data = doc.data();
-
             return {
                 id: doc.id,
                 ...data,
@@ -56,24 +142,33 @@ export const firestoreFetchAvailabilities = (setCalendarAvailabilities) => {
                 entityType: CalendarEntityType.AVAILABILITY,
             };
         });
-
         setCalendarAvailabilities(availabilities);
-    }, () => {
+    }, (error) => {
+        console.error("Firestore Availabilities Error:", error);
         setCalendarAvailabilities([]);
     });
 };
 
+/**
+ * Optimized Student Requests Fetching
+ */
+export const firestoreFetchStudentRequests = (setCalendarStudentRequests, calendarDateRange, strategyFbFilters) => {
+    if (strategyFbFilters === null) {
+        setCalendarStudentRequests([]);
+        return () => {};
+    }
 
-export const firestoreFetchStudentRequests = (setCalendarStudentRequests) => {
     const requestsRef = collection(db, 'studentEventRequests');
+    const q = query(
+        requestsRef,
+        where('start', '>=', Timestamp.fromDate(calendarDateRange.start)),
+        where('start', '<=', Timestamp.fromDate(calendarDateRange.end)),
+        ...strategyFbFilters.map(({ fbField, fbOperation, fbValue }) => where(fbField, fbOperation, fbValue))
+    );
 
-    return onSnapshot(requestsRef, (snapshot) => {
-        let requests = [];
-
-        // normalise firebase docs into memory for CalendarEntityType.STUDENT_REQUEST
-        requests = snapshot.docs.map((doc) => {
+    return onSnapshot(q, (snapshot) => {
+        const requests = snapshot.docs.map((doc) => {
             const data = doc.data();
-
             return {
                 id: doc.id,
                 ...data,
@@ -82,114 +177,42 @@ export const firestoreFetchStudentRequests = (setCalendarStudentRequests) => {
                 entityType: CalendarEntityType.STUDENT_REQUEST,
             };
         });
-
         setCalendarStudentRequests(requests);
-    }, () => {
+    }, (error) => {
+        console.error("Firestore Requests Error:", error);
         setCalendarStudentRequests([]);
     });
 };
 
-/**
- * Fetch tutors for dropdowns (one-time)
- */
-export const firestoreFetchTutors = async (setTutors) => {
-    try {
-        const usersRef = collection(db, 'users');
-        const tutorsQuery = query(usersRef, where('role', '==', 'tutor'));
-        const snapshot = await getDocs(tutorsQuery);
-
-        let tutors = [];
-        tutors = snapshot.docs.map((doc) => {
-            const data = doc.data();
-
-            return {
-                email: data.email,
-                name: data.name || data.email,  // Use name field if available, fallback to email
-            };
+export const fetchCacheTutors = () =>
+    getCachedOrFetch('tutors', async () => {
+        const snapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'tutor')));
+        return snapshot.docs.map((doc) => {
+            const { email, name } = doc.data();
+            return { email, name: name || email };
         });
+    });
 
-        setTutors(tutors);
-    } catch (error) {
-        console.error('Error fetching tutors:', error);
-        setTutors([]);
-    }
-};
-
-/**
- * Fetch subjects with associated tutors (one-time)
- */
-export const firestoreFetchSubjects = async (setSubjects) => {
-    try {
-        const subjectsRef = collection(db, 'subjects');
-        const snapshot = await getDocs(subjectsRef);
-
-        let subjects = [];
-
-        subjects = snapshot.docs.map((doc) => {
+export const fetchCacheSubjects = () =>
+    getCachedOrFetch('subjects', async () => {
+        const snapshot = await getDocs(collection(db, 'subjects'));
+        return snapshot.docs.map((doc) => {
             const data = doc.data();
-
-            return {
-                id: doc.id,
-                name: data.name,
-                tutors: data.tutors || [],
-            };
+            return { id: doc.id, name: data.name, tutors: data.tutors || [] };
         });
+    });
 
-        setSubjects(subjects);
-    } catch (error) {
-        console.error('Error fetching subjects:', error);
-        setSubjects([]);
-    }
-};
+export const fetchCacheClasses = () =>
+    getCachedOrFetch('classes', async () => {
+        const snapshot = await getDocs(collection(db, 'classes'));
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    });
 
-/**
- * Fetch classes for dropdowns / visibility logic (one-time)
- * @param {Function} setClasses
- */
-export const firestoreFetchClasses = async (setClasses) => {
-    try {
-        const classesRef = collection(db, 'classes');
-        const snapshot = await getDocs(classesRef);
-
-        let classes = [];
-
-        classes = snapshot.docs.map((doc) => {
-            const data = doc.data();
-
-            return {
-                id: doc.id,
-                ...data,
-            };
+export const fetchCacheStudents = () =>
+    getCachedOrFetch('students', async () => {
+        const snapshot = await getDocs(collection(db, 'students'));
+        return snapshot.docs.map((doc) => {
+            const { email, name } = doc.data();
+            return { email, name: name || email };
         });
-
-        setClasses(classes);
-    } catch (error) {
-        console.error('Error fetching classes:', error);
-        setClasses([]);
-    }
-};
-
-/**
- * Fetch students for dropdowns (one-time)
- * @param {Function} setStudents
- */
-export const firestoreFetchStudents = async (setStudents) => {
-    try {
-        const studentsRef = collection(db, 'students');
-        const snapshot = await getDocs(studentsRef);
-
-        const students = snapshot.docs.map((doc) => {
-            const data = doc.data();
-
-            return {
-                email: data.email,
-                name: data.name || data.email,
-            };
-        });
-
-        setStudents(students);
-    } catch (error) {
-        console.error('Error fetching students:', error);
-        setStudents([]);
-    }
-};
+    });

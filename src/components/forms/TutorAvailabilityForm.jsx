@@ -5,7 +5,7 @@ import { isAfter, add, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useAppData } from '@/providers/AppDataProvider';
 import {
     updateEventInFirestore,
     createEventInFirestore,
@@ -20,7 +20,7 @@ const TutorAvailabilityForm = ({
     eventToEdit,
     setShowModal,
 }) => {
-    const { calendarAvailabilities, setCalendarAvailabilities } = useCalendarData();
+    const { calendarAvailabilities, setCalendarAvailabilities } = useAppData();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';

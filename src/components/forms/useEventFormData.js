@@ -1,108 +1,47 @@
-import { useState, useEffect, useRef } from 'react';
-import { db } from '@/firestore/firestoreClient.js';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { useMemo } from 'react';
+import { useAppData } from '@/providers/AppDataProvider';
 
 /**
- * Hook to fetch and manage event form data (staff, classes, students)
- * This is a real hook because it has side effects (data fetching)
- * Now includes debouncing to prevent excessive queries on rapid date changes
+ * Derives event form options from data already loaded in AppDataProvider.
+ * No Firestore reads — tutors, classes, students, and availabilities are
+ * fetched/cached globally; this hook just reshapes them for the form selects.
  */
 export const useEventFormData = (newEvent) => {
-    const [staffOptions, setStaffOptions] = useState([]);
-    const [classOptions, setClassOptions] = useState([]);
-    const [studentOptions, setStudentOptions] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const debounceTimerRef = useRef(null);
+    const { tutors, classes, students, calendarAvailabilities } = useAppData();
 
-    useEffect(() => {
-        const fetchStaff = async () => {
-            const q = query(collection(db, 'users'), where('role', '==', 'tutor'));
-            const querySnapshot = await getDocs(q);
-            const staffList = await Promise.all(
-                querySnapshot.docs.map(async (docSnap) => {
-                    const tutorData = docSnap.data();
-                    const availabilityQuery = query(
-                        collection(db, 'tutorAvailabilities'),
-                        where('tutor', '==', tutorData.email),
-                    );
-                    const availabilitySnapshot = await getDocs(availabilityQuery);
-                    let availabilityStatus = 'unavailable';
+    // For each tutor, check already-loaded availabilities to determine availability status
+    const staffOptions = useMemo(() => {
+        const eventStart = new Date(newEvent.start);
+        const eventEnd = new Date(newEvent.end);
 
-                    if (!availabilitySnapshot.empty) {
-                        const matchingAvailability = availabilitySnapshot.docs.find((availabilityDoc) => {
-                            const availabilityData = availabilityDoc.data();
-                            const availabilityStart = availabilityData.start.toDate();
-                            const availabilityEnd = availabilityData.end.toDate();
-                            const eventStart = new Date(newEvent.start);
-                            const eventEnd = new Date(newEvent.end);
-
-                            return eventStart >= availabilityStart && eventEnd <= availabilityEnd;
-                        });
-
-                        if (matchingAvailability) {
-                            const locationType = matchingAvailability.data().locationType;
-                            availabilityStatus = locationType || 'onsite';
-                        }
-                    }
-
-                    return {
-                        value: docSnap.id,
-                        label: tutorData.name || tutorData.email,
-                        locationType: availabilityStatus,
-                    };
-                }),
+        return tutors.map((tutor) => {
+            const matchingAvailability = calendarAvailabilities.find((avail) =>
+                avail.tutor === tutor.email &&
+                new Date(avail.start) <= eventStart &&
+                new Date(avail.end) >= eventEnd
             );
 
-            setStaffOptions(staffList);
-        };
+            return {
+                value: tutor.email,
+                label: tutor.name,
+                locationType: matchingAvailability
+                    ? (matchingAvailability.locationType || 'onsite')
+                    : 'unavailable',
+            };
+        });
+    }, [tutors, calendarAvailabilities, newEvent.start, newEvent.end]);
 
-        const fetchClasses = async () => {
-            const querySnapshot = await getDocs(collection(db, 'classes'));
-            const classList = querySnapshot.docs.map((docSnap) => ({
-                value: docSnap.id,
-                label: docSnap.data().name,
-            }));
-            setClassOptions(classList);
-        };
+    const classOptions = useMemo(() =>
+        classes.map((cls) => ({ value: cls.id, label: cls.name })),
+        [classes]
+    );
 
-        const fetchStudents = async () => {
-            const q = query(collection(db, 'users'), where('role', '==', 'student'));
-            const querySnapshot = await getDocs(q);
-            const studentList = querySnapshot.docs.map((docSnap) => ({
-                value: docSnap.id,
-                label: docSnap.data().name || docSnap.data().email,
-            }));
-            setStudentOptions(studentList);
-        };
+    const studentOptions = useMemo(() =>
+        students.map((student) => ({ value: student.email, label: student.name })),
+        [students]
+    );
 
-        const fetchAll = async () => {
-            setIsLoading(true);
-            await Promise.all([fetchStaff(), fetchClasses(), fetchStudents()]);
-            setIsLoading(false);
-        };
+    const isLoading = !tutors.length && !classes.length && !students.length;
 
-        // Clear any existing timer
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-        }
-
-        // Set new timer - only fetch after 500ms of no changes
-        debounceTimerRef.current = setTimeout(() => {
-            fetchAll();
-        }, 500);
-
-        // Cleanup function
-        return () => {
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current);
-            }
-        };
-    }, [newEvent.start, newEvent.end]);
-
-    return {
-        staffOptions,
-        classOptions,
-        studentOptions,
-        isLoading,
-    };
+    return { staffOptions, classOptions, studentOptions, isLoading };
 };

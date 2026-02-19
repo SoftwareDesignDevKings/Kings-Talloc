@@ -1,4 +1,41 @@
 import { addWeeks, isBefore } from 'date-fns';
+import { addEventException, createEventInFirestore } from '@/firestore/firestoreOperations';
+import { calendarEventGetType } from '@/utils/calendarEvent';
+
+/**
+ * Detaches a recurring instance from its series and creates a standalone event
+ * @param {Object} recurringInstance - The recurring event instance to detach
+ * @param {Object} updatedFields - Fields to update in the new standalone event (e.g., { start, end })
+ * @returns {Promise<string>} The new document ID of the standalone event
+ */
+export const detachRecurringInstance = async (recurringInstance, updatedFields = {}) => {
+    const { collectionName } = calendarEventGetType(recurringInstance);
+
+    // Add exception to the original recurring event
+    await addEventException(
+        recurringInstance.recurringEventId,
+        recurringInstance.occurrenceIndex,
+        collectionName
+    );
+
+    // Strip recurring-related fields and apply updates
+    const {
+        id,
+        recurringEventId,
+        isRecurringInstance,
+        occurrenceIndex,
+        recurring,
+        eventExceptions,
+        until,
+        occurenceNum,
+        ...standaloneEventData
+    } = { ...recurringInstance, ...updatedFields };
+
+    // Create new standalone event
+    const newDocId = await createEventInFirestore(standaloneEventData, collectionName);
+
+    return newDocId;
+};
 
 /**
  * Expands recurring events into individual event instances in memory
@@ -25,9 +62,6 @@ export const recurringCalendarExpand = (events, options = {}) => {
             continue;
         }
 
-        // Add the original recurring event
-        expandedEvents.push(event);
-
         // Calculate recurring event parameters
         const { recurring, start, end, eventExceptions = [], until, occurenceNum } = event;
         const eventDuration = end.getTime() - start.getTime();
@@ -47,8 +81,8 @@ export const recurringCalendarExpand = (events, options = {}) => {
 
         const untilDate = until || null;
 
-        // Generate recurring event instances (start at i=1 since original event is already added)
-        for (let i = 1; i < maxLimit; i++) {
+        // Generate recurring event instances (start at i=0 to include first occurrence as instance)
+        for (let i = 0; i < maxLimit; i++) {
             // Skip if this occurrence is in the exceptions list
             if (eventExceptions.includes(i)) {
                 continue;

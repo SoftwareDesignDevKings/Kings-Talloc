@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
-import enUS from 'date-fns/locale/en-US';
+import { format, parse, startOfWeek, endOfWeek, getDay, addDays } from 'date-fns';
+import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
-import { useCalendarData } from '@/providers/CalendarDataProvider';
+import { useAppData } from '@/providers/AppDataProvider';
 
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 import useAlert from '@/hooks/useAlert';
 import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
 import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
+import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
 import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
@@ -31,7 +32,7 @@ const { memo } = React;
 /* RBC setup                                                     */
 /* ───────────────────────────────────────────────────────────── */
 
-const locales = { 'en-US': enUS };
+const locales = { 'en-AU': enAU };
 
 const localizer = dateFnsLocalizer({
     format,
@@ -51,8 +52,8 @@ const MemoisedCalendarTimeSlot = memo(CustomTimeslot);
 /* ───────────────────────────────────────────────────────────── */
 
 const CalendarContent = () => {
-    const { session, userRole, device } = useAuthSession();
-    const strategy = useCalendarStrategy(session.user.email, userRole);
+    const { session, userRole, userRoles, device } = useAuthSession();
+    const strategy = useCalendarStrategy(session.user.email, userRole, userRoles);
     const { addAlert } = useAlert();
 
     // get pre-filtered data from CalendarUIProvider
@@ -66,7 +67,9 @@ const CalendarContent = () => {
         setCalendarAvailabilities,
         calendarStudentRequests,
         setCalendarStudentRequests,
-    } = useCalendarData();
+        setCalendarDateRange,
+        tutors,
+    } = useAppData();
 
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIProvider */
@@ -79,6 +82,30 @@ const CalendarContent = () => {
     /* ----------------------------------------------------------- */
     const minTime = parse('04:00', 'HH:mm', new Date());
     const maxTime = parse('22:00', 'HH:mm', new Date());
+
+    /**
+     * RBC 'Next', 'Prev', or changes views - sync with setCalendarDateRange to update DataContext useEffect dependency
+     * and will make firebase db fetch with the RBC calendar range
+    **/
+    const handleCalendarRangeChange = (range) => {
+        let calendarStart, calendarEnd;
+
+        // RBC returns an array for Week/Day view and an Object for Month view
+        if (Array.isArray(range)) {
+            calendarStart = range[0];
+            calendarEnd = range[range.length - 1];
+        } else {
+            calendarStart = range.start;
+            calendarEnd = range.end;
+        }
+
+        // Update the global range state to trigger the optimized Firestore listeners
+        setCalendarDateRange({ 
+            start: calendarStart, 
+            end: calendarEnd 
+        });
+    };
+    
 
     /* ----------------------------------------------------------- */
     /* Permissions                                                 */
@@ -102,10 +129,10 @@ const CalendarContent = () => {
 
     /**
      * Update specific fields in the draft event/target
-     * @param {Object|Function} fieldUpdates - object with field names as keys (e.g. { title: "Math", staff: [...] }) 
+     * @param {Object|Function} fieldUpdates - object with field names as keys (e.g. { title: "Math", staff: [...] })
      * or a function that receives previous state
      */
-    const updateCalendarTarget = (fieldUpdates) => {
+    const updateCalendarTarget = useCallback((fieldUpdates) => {
         setCalendarTarget((prevTarget) => {
             let updates;
             if (typeof fieldUpdates === 'function') {
@@ -118,7 +145,7 @@ const CalendarContent = () => {
                 ...updates
             }
         });
-    };
+    }, []);
 
 
     /* ----------------------------------------------------------- */
@@ -163,6 +190,10 @@ const CalendarContent = () => {
                 ...eventData,
                 start: newStart,
                 end: newEnd,
+                recurring: null,  // Explicitly set to null (not missing) so it matches the non-recurring query
+                until: null,
+                isRecurringInstance: false,
+                recurringEventId: null,
             };
 
             // determine collection name based on entity type
@@ -229,6 +260,27 @@ const CalendarContent = () => {
         };
     };
 
+    // handle drag/drop or resize for recurring instances
+    const handleRecurringInstanceUpdate = async (event, start, end, actionLabel) => {
+        const { setStateFn } = getCalendarEntityHandlers(event.entityType);
+
+        if (!setStateFn) return;
+
+        try {
+            // Detach from series and create standalone event with new times
+            await detachRecurringInstance(event, { start, end });
+
+            // Remove the recurring instance from state (Firestore listener will add the new standalone event)
+            setStateFn(prev => prev.filter(e => e.id !== event.id));
+
+            addAlert('success', `Event detached and ${actionLabel}d successfully`);
+
+        } catch (error) {
+            addAlert('error', `Failed to ${actionLabel} recurring event: ${error.message}`);
+            console.error(`Failed to ${actionLabel} recurring event:`, error);
+        }
+    };
+
     // shared handler for event updates with instant UI state update and rollback
     const updateEventWithRollback = async (event, start, end, actionLabel) => {
         const originalStart = event.start;
@@ -250,7 +302,7 @@ const CalendarContent = () => {
             if (event.entityType === CalendarEntityType.SHIFT && event.createTeamsMeeting === true && event.teamsEventId) {
                 const isAvailability = event.entityType === CalendarEntityType.AVAILABILITY;
                 const isStudentRequest = event.entityType === CalendarEntityType.STUDENT_REQUEST;
-                
+
                 await calendarEventUpdateTeamsMeeting(event, start, end, isAvailability, isStudentRequest, { addAlert });
             }
 
@@ -270,15 +322,27 @@ const CalendarContent = () => {
         if (!strategy.permissions.canDrag(event)) {
             return;
         }
-        await updateEventWithRollback(event, start, end, 'move');
+
+        // Check if this is a recurring instance - if so, detach it
+        if (event.isRecurringInstance) {
+            await handleRecurringInstanceUpdate(event, start, end, 'move');
+        } else {
+            await updateEventWithRollback(event, start, end, 'move');
+        }
     };
-    
+
     // handle RBC event resize
     const handleEventResize = async ({ event, start, end }) => {
         if (!strategy.permissions.canResize(event)) {
             return;
-        }        
-        await updateEventWithRollback(event, start, end, 'resize');
+        }
+
+        // Check if this is a recurring instance - if so, detach it
+        if (event.isRecurringInstance) {
+            await handleRecurringInstanceUpdate(event, start, end, 'resize');
+        } else {
+            await updateEventWithRollback(event, start, end, 'resize');
+        }
     };
 
     // render RBC time-slots
@@ -298,6 +362,7 @@ const CalendarContent = () => {
                 {...rest}
                 slotStartValue={value}
                 slotAvailabilities={overlayAvailabilities}
+                slotTutors={tutors}
                 slotWeekStart={weekStart}
                 slotWeekEnd={weekEnd}
             >
@@ -324,6 +389,7 @@ const CalendarContent = () => {
             <div className="flex-grow-1 p-3 calendar-scroll-container position-relative">
                 <div className="h-100">
                     <DnDCalendar
+                        culture="en-AU"
                         localizer={localizer}
                         events={rbcEvents}
                         startAccessor="start"
@@ -339,6 +405,8 @@ const CalendarContent = () => {
                         resizableAccessor={canResizeEvent}
                         onEventDrop={handleEventDrop}
                         onEventResize={handleEventResize}
+
+                        onRangeChange={handleCalendarRangeChange}
 
                         selectable
                         popup

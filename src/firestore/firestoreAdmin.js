@@ -1,5 +1,11 @@
 import admin from 'firebase-admin';
 
+// Connect to emulators in development mode (must be set BEFORE initializing)
+if (process.env.NODE_ENV === 'development') {
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+}
+
 // initialise Firebase Admin SDK
 if (!admin.apps.length) {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -13,6 +19,7 @@ if (!admin.apps.length) {
 
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
         });
     }
 }
