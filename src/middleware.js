@@ -4,29 +4,30 @@ import { getToken } from 'next-auth/jwt';
 // ===== MAINTENANCE MODE =====
 // Set to true to enable maintenance mode (redirects all users to /maintenance)
 // Set to false to disable (normal operation)
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 // ============================
 
 export async function middleware(req) {
     const { pathname } = req.nextUrl;
 
-    // Maintenance mode enabled - redirect everyone to /maintenance
+    // Maintenance mode ENABLED - redirect everyone to /maintenance
     if (MAINTENANCE_MODE && pathname !== '/maintenance') {
         return NextResponse.redirect(new URL('/maintenance', req.url));
     }
 
-    // Maintenance mode disabled - prevent accidental access to /maintenance
+    // Maintenance mode DISABLED - prevent accidental access to /maintenance
     if (!MAINTENANCE_MODE && pathname === '/maintenance') {
         return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+
+    // IF PUBLIC ENDPOINT (or redirect on login, no security checks)
+    if (pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth')) {
+        return NextResponse.next();
     }
 
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
         throw new Error('NEXTAUTH_SECRET is not defined');
-    }
-
-    if (pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth')) {
-        return NextResponse.next();
     }
 
     // retrieve the token from the request, no token redirect to login page
