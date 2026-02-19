@@ -177,12 +177,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             recurring: newEvent.recurring || null,
             createTeamsMeeting: newEvent.createTeamsMeeting || false,
             occurenceNum: newEvent.occurenceNum || null,
+            until: newEvent.until || null,
         };
-
-        // Add 'until' date if recurring (for editing existing recurring events)
-        if (eventData.recurring && isEditing && newEvent.until) {
-            eventData.until = newEvent.until;
-        }
 
         try {
             if (isEditing) {
