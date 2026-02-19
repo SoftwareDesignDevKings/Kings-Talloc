@@ -94,6 +94,12 @@ const CalendarContent = () => {
         if (Array.isArray(range)) {
             calendarStart = range[0];
             calendarEnd = range[range.length - 1];
+            // Day view returns a single-element array — end of that date is midnight (00:00:00),
+            // so shift it to end of day to include all shifts on that day
+            if (range.length === 1) {
+                calendarEnd = new Date(calendarEnd);
+                calendarEnd.setHours(23, 59, 59, 999);
+            }
         } else {
             calendarStart = range.start;
             calendarEnd = range.end;

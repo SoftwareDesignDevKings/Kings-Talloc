@@ -43,14 +43,19 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                 >
                                     {/* Time column */}
                                     <div
-                                        className="flex-shrink-0 d-flex align-items-center justify-content-end px-3 py-3"
-                                        style={{ minWidth: '72px' }}
+                                        className="flex-shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
+                                        style={{ width: '80px' }}
                                     >
                                         <span className="text-muted" style={{ fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                                             {isToday
                                                 ? format(new Date(event.start), 'h:mm a')
                                                 : format(new Date(event.start), 'd MMM')}
                                         </span>
+                                        {isToday && (
+                                            <span className="text-muted" style={{ fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', opacity: 0.6 }}>
+                                                {format(new Date(event.end), 'h:mm a')}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Accent bar */}
