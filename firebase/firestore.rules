@@ -88,10 +88,9 @@ service cloud.firestore {
         || (isTutorOrCoach() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
     }
 
-    // Email Events Queue — written by any role that creates/modifies events
+    // Email Events Queue — only admins/teachers can read or write; only admins can delete
     match /emailEventsQueue/{eventId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
+      allow read, create, update: if isAdminOrTeacher();
       allow delete: if isAdmin();
     }
 
