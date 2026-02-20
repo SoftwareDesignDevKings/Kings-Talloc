@@ -32,9 +32,6 @@ const isShiftValid = (shift) => {
     if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
         return false;
     }
-    if (shift.workStatus !== 'completed') {
-        return false;
-    }
     return true;
 };
 
@@ -62,18 +59,26 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
 
     const fetchTutorHours = useCallback(async () => {
+        const isTutorOrCoach = userRole === 'tutor' || userRole === 'coach';
+        let accessFilter = [];
+        if (isTutorOrCoach) {
+            accessFilter = [where('emailsList', 'array-contains', userEmail)];
+        }
+
         // Query 1: Non-recurring shifts in the date range
         const nonRecurringQuery = query(
             collection(db, 'shifts'),
             where('start', '>=', startDate),
             where('start', '<=', endDate),
-            where('recurring', '==', null)
+            where('recurring', '==', null),
+            ...accessFilter
         );
 
         // Query 2: ALL recurring shifts (no date filter)
         const recurringQuery = query(
             collection(db, 'shifts'),
-            where('recurring', 'in', ['weekly', 'fortnightly'])
+            where('recurring', 'in', ['weekly', 'fortnightly']),
+            ...accessFilter
         );
 
         const [nonRecurringSnapshot, recurringSnapshot] = await Promise.all([
