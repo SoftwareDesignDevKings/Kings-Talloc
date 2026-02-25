@@ -16,8 +16,8 @@ const ClassRow = ({
         return subject ? subject.name : 'No Subject';
     };
 
-    const getTeacherName = (teacherId) => {
-        const teacher = teachers.find((teacher) => teacher.id === teacherId);
+    const getTeacherName = (teacherEmail) => {
+        const teacher = teachers.find((teacher) => teacher.email === teacherEmail);
         return teacher ? teacher.name : 'No Teacher';
     };
 
@@ -25,7 +25,7 @@ const ClassRow = ({
         <tr>
             <td>{cls.name}</td>
             <td>{getSubjectName(cls.subject)}</td>
-            <td>{getTeacherName(cls.teacher)}</td>
+            <td>{getTeacherName(cls.teacherEmail)}</td>
             <td>
                 <div className="d-flex gap-2">
                     <button

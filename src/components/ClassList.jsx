@@ -57,7 +57,7 @@ const ClassList = () => {
         const querySnapshot = await getDocs(collection(db, 'users'));
         const teachersList = querySnapshot.docs
             .map((doc) => ({
-                id: doc.id,
+                email: doc.id,
                 ...doc.data(),
             }))
             .filter(
@@ -97,7 +97,7 @@ const ClassList = () => {
             await updateDoc(classRef, {
                 name: className,
                 subject: selectedSubject.id,
-                teacher: selectedTeacher.id,
+                teacherEmail: selectedTeacher.email,
             });
             setClasses(
                 classes.map((cls) =>
@@ -106,7 +106,7 @@ const ClassList = () => {
                               ...cls,
                               name: className,
                               subject: selectedSubject.id,
-                              teacher: selectedTeacher.id,
+                              teacherEmail: selectedTeacher.email,
                           }
                         : cls,
                 ),
@@ -116,7 +116,7 @@ const ClassList = () => {
             await addDoc(collection(db, 'classes'), {
                 name: className,
                 subject: selectedSubject.id,
-                teacher: selectedTeacher.id,
+                teacherEmail: selectedTeacher.email,
             });
         }
         setClassName('');
@@ -131,7 +131,7 @@ const ClassList = () => {
         setSelectedClass(cls);
         setClassName(cls.name);
         setSelectedSubject(subjects.find((subject) => subject.id === cls.subject));
-        setSelectedTeacher(teachers.find((teacher) => teacher.id === cls.teacher));
+        setSelectedTeacher(teachers.find((teacher) => teacher.email === cls.teacherEmail));
         setIsEditing(true);
         setShowModal(true);
     };

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, endOfWeek, getDay, addDays } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
@@ -67,9 +67,18 @@ const CalendarContent = () => {
         setCalendarAvailabilities,
         calendarStudentRequests,
         setCalendarStudentRequests,
+        calendarDateRange,
         setCalendarDateRange,
         tutors,
     } = useAppData();
+
+    // track the calendar's displayed date to keep it in sync with the data provider
+    const [calendarDate, setCalendarDate] = useState(() => calendarDateRange.start);
+
+    // sync calendar date with data provider's date range on mount/navigation
+    useEffect(() => {
+        setCalendarDate(calendarDateRange.start);
+    }, [calendarDateRange.start]);
 
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIProvider */
@@ -106,10 +115,18 @@ const CalendarContent = () => {
         }
 
         // Update the global range state to trigger the optimized Firestore listeners
-        setCalendarDateRange({ 
-            start: calendarStart, 
-            end: calendarEnd 
+        setCalendarDateRange({
+            start: calendarStart,
+            end: calendarEnd
         });
+    };
+
+    /**
+     * Handle calendar navigation (prev/next/today buttons)
+     * Update the displayed date and sync with data provider
+     */
+    const handleNavigate = (newDate) => {
+        setCalendarDate(newDate);
     };
     
 
@@ -404,6 +421,8 @@ const CalendarContent = () => {
                         max={maxTime}
                         style={{ height: '100%' }}
 
+                        date={calendarDate}
+                        onNavigate={handleNavigate}
                         defaultView={defaultView}
                         views={rbcViews}
 

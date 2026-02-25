@@ -65,10 +65,10 @@ const ClassModal = ({
                 <label className="form-label">Teacher</label>
                 <Select
                     options={teachers}
-                    value={teachers.find((teacher) => teacher.id === selectedTeacher?.id)}
+                    value={teachers.find((teacher) => teacher.email === selectedTeacher?.email)}
                     onChange={setSelectedTeacher}
                     getOptionLabel={(option) => option.name}
-                    getOptionValue={(option) => option.id}
+                    getOptionValue={(option) => option.email}
                     className="w-100 mb-4"
                     classNamePrefix="select"
                     placeholder="Select a teacher"
