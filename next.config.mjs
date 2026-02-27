@@ -26,8 +26,6 @@ const nextConfig = {
         optimizePackageImports: [
             'react-bootstrap',
             'react-big-calendar',
-            'firebase/firestore',
-            'firebase/auth',
             'react-select',
         ],
     },

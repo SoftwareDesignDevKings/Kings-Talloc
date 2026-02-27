@@ -32,6 +32,9 @@ const isShiftValid = (shift) => {
     if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
         return false;
     }
+    if (shift.workStatus !== 'completed') {
+        return false;
+    }
     return true;
 };
 
