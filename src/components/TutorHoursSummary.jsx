@@ -178,7 +178,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     const handleGenerateTimesheet = async (tutorEmail, tutorName, roleType) => {
         try {
-            // Send data to API route - use Sydney timezone, en-CA gives YYYY-MM-DD format
+            // Send data to API route - send ISO timestamps to avoid timezone parsing issues
             const response = await fetch('/api/timesheet', {
                 method: 'POST',
                 headers: {
@@ -187,8 +187,8 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 body: JSON.stringify({
                     tutorEmail,
                     tutorName,
-                    startDate: startDate.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }),
-                    endDate: endDate.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }),
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
                     roleType, // 'tutor' or 'coach'
                 }),
             });

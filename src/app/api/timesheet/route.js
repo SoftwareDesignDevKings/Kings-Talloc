@@ -272,9 +272,9 @@ export async function POST(req) {
     try {
         const { tutorEmail, tutorName, startDate: startDateStr, endDate: endDateStr, roleType } = await req.json();
 
-        // parse dates in local timezone to avoid timezone shifts
-        const startDate = new Date(startDateStr + 'T00:00:00');
-        const endDate = new Date(endDateStr + 'T23:59:59');
+        // Parse ISO timestamps directly - no timezone conversion needed
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
         const isCoach = roleType === 'coach';
 
         const result = isCoach
