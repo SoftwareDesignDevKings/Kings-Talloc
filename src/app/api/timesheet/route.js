@@ -136,9 +136,10 @@ async function generateTutorTimesheet(tutorEmail, tutorName, startDate, endDate)
 
     const weekDates = getWeekDates(startDate);
 
-    // Week ending = Friday of the selected week
-    const friday = weekDates[4].date;
-    const weekEnding = friday.toLocaleDateString('en-AU');
+    // week ending = Sunday (ie. 6 days after Monday)
+    const sunday = new Date(startDate);
+    sunday.setDate(startDate.getDate() + 6);
+    const weekEnding = sunday.toLocaleDateString('en-AU');
 
     const spread = spreadHoursAcrossWeek(totalHours, weekDates);
 
@@ -189,8 +190,9 @@ async function generateCoachTimesheet(tutorEmail, tutorName, startDate, endDate)
     const allShifts = await fetchShiftsForTutor(tutorEmail, startDate, endDate, true);
 
     const rawTotal = allShifts.reduce((sum, s) => sum + (s.end - s.start) / 3600000, 0);
-    if (rawTotal < MIN_THRESHOLD) {
-        return { error: `Not enough coaching hours for ${tutorName} in this period (${rawTotal.toFixed(2)}hrs total — minimum 3hrs required).`, status: 400 };
+    const COACH_MIN_THRESHOLD = 2;
+    if (rawTotal < COACH_MIN_THRESHOLD) {
+        return { error: `Not enough coaching hours for ${tutorName} in this period (${rawTotal.toFixed(2)}hrs total — minimum 2hrs required).`, status: 400 };
     }
 
     // Group shifts by day: track earliest start, latest end, sum of durations
@@ -222,10 +224,10 @@ async function generateCoachTimesheet(tutorEmail, tutorName, startDate, endDate)
     }
     overflow = parseFloat(overflow.toFixed(2));
 
-    // weekEnding = Friday of the selected week
-    const weekDates = getWeekDates(startDate);
-    const friday = weekDates[4].date;
-    const weekEnding = friday.toLocaleDateString('en-AU');
+    // weekEnding - sunday (ie. 6 days after Monday)
+    const sunday = new Date(startDate);
+    sunday.setDate(startDate.getDate() + 6);
+    const weekEnding = sunday.toLocaleDateString('en-AU');
 
     const templateData = {
         name: tutorName,
@@ -269,8 +271,10 @@ export async function POST(req) {
 
     try {
         const { tutorEmail, tutorName, startDate: startDateStr, endDate: endDateStr, roleType } = await req.json();
-        const startDate = new Date(startDateStr);
-        const endDate = new Date(endDateStr);
+
+        // parse dates in local timezone to avoid timezone shifts
+        const startDate = new Date(startDateStr + 'T00:00:00');
+        const endDate = new Date(endDateStr + 'T23:59:59');
         const isCoach = roleType === 'coach';
 
         const result = isCoach
