@@ -3,12 +3,11 @@
 import LoadingPage from '@/components/LoadingPage.jsx';
 import Login from '@/components/Login.jsx';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { signInWithCustomToken, signOut, connectAuthEmulator } from 'firebase/auth';
-import { auth } from '@/firestore/firestoreClient';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import AuthContext from '@/contexts/AuthContext';
 import AppLayout from '@/components/AppLayout';
+import { syncNextFbAuth, startTokenRefresh, stopTokenRefresh } from '@/auth';
 
 /**
  * Authentication provider to wrap around components that require authentication.
@@ -26,7 +25,6 @@ const AuthProvider = ({ children }) => {
     const [device, setDevice] = useState("desktop")
 
     const pathname = usePathname();
-    const tokenRefreshInterval = useRef(null);
 
     // public routes that don't require auth
     const publicRoutes = ['/', '/login', '/maintenance'];
@@ -34,68 +32,18 @@ const AuthProvider = ({ children }) => {
 
     // sync Firebase Auth with NextAuth session
     useEffect(() => {
-        const syncAuth = async () => {
-            try {
-                if (status === 'authenticated' && session.user) {
-                    setUserRole(session.user.defaultRole || session.user.role);
-                    setUserRoles(session.user.userRoles || []);
-
-                    if (!session.user.firebaseToken) {
-                        setIsLoading(false);
-                        return;
-                    }
-
-                    // signin AND force token refresh so custom claims are updated
-                    await signInWithCustomToken(auth, session.user.firebaseToken);
-
-                    // firebaseToken has claims (role, email) set in authOptions.js, but never fully refreshed on client side
-                    // force refresh to ensure claims are applied in every firebase request
-                    await auth.currentUser.getIdToken(true);
-                    setIsLoading(false);
-                }
-
-                if (status === 'unauthenticated') {
-                    await signOut(auth).catch(() => {});
-                    setIsLoading(false);
-                }
-            } catch (err) {
-                console.error('Error in syncing auth: ', err);
-                console.error('Error code:', err.code);
-                console.error('Error message:', err.message);
-                setIsLoading(false);
-            }
-        };
-
-        syncAuth();
+        syncNextFbAuth(session, status).then(({ isLoading, userRole, userRoles }) => {
+            setIsLoading(isLoading);
+            if (userRole) setUserRole(userRole);
+            if (userRoles) setUserRoles(userRoles);
+        });
     }, [status, session]);
 
     // Auto-refresh Firebase token every 50 minutes
     useEffect(() => {
         if (status === 'authenticated' && !isPublicRoute) {
-            if (tokenRefreshInterval.current) {
-                clearInterval(tokenRefreshInterval.current);
-            }
-
-            // refresh interval (50 minutes) - skip in development
-            const FIFTY_MINUTES = 50 * 60 * 1000;
-            tokenRefreshInterval.current = setInterval(async () => {
-                try {
-                    const updatedSession = await update();
-                    if (updatedSession?.user?.firebaseToken) {
-                        await signInWithCustomToken(auth, updatedSession.user.firebaseToken);
-                        await auth.currentUser.getIdToken(true);
-                    }
-                } catch (error) {
-                    console.error('Error refreshing Firebase token:', error);
-                }
-            }, FIFTY_MINUTES);
-
-            // Cleanup interval on unmount
-            return () => {
-                if (tokenRefreshInterval.current) {
-                    clearInterval(tokenRefreshInterval.current);
-                }
-            };
+            startTokenRefresh(update);
+            return () => stopTokenRefresh();
         }
     }, [status, isPublicRoute, update]);
 

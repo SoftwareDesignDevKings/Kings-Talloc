@@ -14,10 +14,10 @@ import {
     FiHome,
 } from '@/components/icons';
 import Image from 'next/image';
-import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import styles from '@/styles/sidebar.module.css';
 import useAuthSession from '@/hooks/useAuthSession';
+import { AppLogout } from '@/auth';
 
 const ROLE_LABELS = {
     admin: 'Admin',
@@ -158,7 +158,7 @@ const Sidebar = ({ user }) => {
                             </div>
                         )}
                         <button
-                            onClick={() => signOut({ callbackUrl: '/login' })}
+                            onClick={AppLogout}
                             className="btn btn-danger w-100"
                         >
                             Logout

@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { FcGoogle, SiMicrosoft } from '@/components/icons';
+import { AppLogin } from '@/auth';
 
 // Dev bypass users (matches authOptions.js)
 const DEV_BYPASS_USERS = [
@@ -56,7 +56,7 @@ export default function Login() {
                                 {DEV_BYPASS_USERS.map(user => (
                                     <button
                                         key={user.id}
-                                        onClick={() => signIn(user.id, { callbackUrl: '/dashboard' })}
+                                        onClick={() => AppLogin(user.id)}
                                         className={`btn btn-${user.variant} btn-sm`}
                                     >
                                         {user.label}
@@ -67,14 +67,14 @@ export default function Login() {
                         </div>
                     )}
                     <button
-                        onClick={() => signIn('azure-ad', { callbackUrl: '/dashboard' })}
+                        onClick={() => AppLogin('AZURE')}
                         className="btn btn-dark w-100 d-flex align-items-center justify-content-center"
                     >
                         <SiMicrosoft className="me-2" />
                         Sign in with Microsoft SSO
                     </button>
                     <button
-                        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                        onClick={() => AppLogin('GOOGLE')}
                         className="btn w-100 d-flex align-items-center justify-content-center mt-2"
                         style={{ backgroundColor: 'white', color: '#202124', border: '1px solid #dadce0' }}
                     >
