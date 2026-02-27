@@ -32,6 +32,9 @@ const isShiftValid = (shift) => {
     if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
         return false;
     }
+    if (shift.workStatus !== 'completed') {
+        return false;
+    }
     return true;
 };
 
@@ -178,7 +181,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
 
     const handleGenerateTimesheet = async (tutorEmail, tutorName, roleType) => {
         try {
-            // Send data to API route
+            // Send data to API route - send ISO timestamps to avoid timezone parsing issues
             const response = await fetch('/api/timesheet', {
                 method: 'POST',
                 headers: {
