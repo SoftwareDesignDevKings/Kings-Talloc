@@ -1,0 +1,2 @@
+# Allow version.json to be deployed even though it's in .gitignore
+!public/version.json
