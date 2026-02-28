@@ -135,7 +135,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
     firestoreConstraints: {
         shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
         studentRequests: () => null,  // tutors don't see student requests
-        availabilities:  () => [],   // fetch all for overlay; own filtered in CalendarUIProvider
+        availabilities:  () => [],   // fetch all for overlay; own filtered in CalendarUIContextProvider
     },
 
     permissions: {

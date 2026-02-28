@@ -1,12 +1,12 @@
-import { CalendarUIProvider } from "@/providers/CalendarUIProvider";
+import { CalendarUIContextProvider } from "@/contexts/CalendarUIContext";
 import CalendarContent from "./CalendarContent";
 
 const CalendarWrapper = () => {
     return (
         <div className="h-100 w-100">
-            <CalendarUIProvider>
+            <CalendarUIContextProvider>
                 <CalendarContent />
-            </CalendarUIProvider>
+            </CalendarUIContextProvider>
         </div>
     );
 };

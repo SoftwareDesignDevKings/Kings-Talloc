@@ -4,7 +4,7 @@ import { FiChevronLeft, FiChevronRight, FaInfoCircle } from '@/components/icons'
 import styles from '@/styles/filterPanel.module.css';
 import { useState } from 'react';
 import { useCalendarUI } from '@contexts/CalendarUIContext';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
 import useAuthSession from '@/hooks/useAuthSession';
 

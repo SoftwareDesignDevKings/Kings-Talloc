@@ -5,7 +5,7 @@ import { isAfter, add, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 import {
     updateEventInFirestore,
     createEventInFirestore,

@@ -7,7 +7,7 @@ import EventsList from '@/components/dashboard/EventsList.jsx';
 import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
 import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
 import useAlert from '@/hooks/useAlert';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 import { startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 
 const DashboardOverview = () => {

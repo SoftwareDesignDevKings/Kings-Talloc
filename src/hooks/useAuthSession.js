@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import AuthContext from '@/contexts/AuthContext';
+import { AuthContext } from '@/contexts/AuthContext';
 
 // /**
 //  * Custom hook to access AuthContext Provider values (session, userRole, loading state)

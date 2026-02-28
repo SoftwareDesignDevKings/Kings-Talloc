@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 
 /**
  * Derives event form options from data already loaded in AppDataProvider.

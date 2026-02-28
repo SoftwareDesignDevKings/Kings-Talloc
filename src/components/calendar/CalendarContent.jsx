@@ -7,7 +7,7 @@ import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
@@ -56,7 +56,7 @@ const CalendarContent = () => {
     const strategy = useCalendarStrategy(session.user.email, userRole, userRoles);
     const { addAlert } = useAlert();
 
-    // get pre-filtered data from CalendarUIProvider
+    // get pre-filtered data from CalendarUIContextProvider
     const { filteredEvents, filteredAvailabilities } = useCalendarUI();
 
     // get state setters from CalendarDataProvider
@@ -81,7 +81,7 @@ const CalendarContent = () => {
     }, [calendarDateRange.start]);
 
     /* ----------------------------------------------------------- */
-    /* Events and Availabilities - Pre-filtered by CalendarUIProvider */
+    /* Events and Availabilities - Pre-filtered by CalendarUIContextProvider */
     /* ----------------------------------------------------------- */
     const rbcEvents = filteredEvents;
     const overlayAvailabilities = filteredAvailabilities;
