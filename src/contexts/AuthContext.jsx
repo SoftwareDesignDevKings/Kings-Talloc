@@ -35,8 +35,15 @@ export const AuthContextProvider = ({ children }) => {
     useEffect(() => {
         syncNextFbAuth(session, status).then(({ isLoading, userRole, userRoles }) => {
             setIsLoading(isLoading);
-            if (userRole) setUserRole(userRole);
             if (userRoles) setUserRoles(userRoles);
+
+            // use persisted role from sessionStorage, fallback to default
+            const persistedRole = sessionStorage.getItem('selectedUserRole');
+            if (persistedRole) {
+                setUserRole(persistedRole);
+            } else {
+                setUserRole(userRole)
+            }
         });
     }, [status, session]);
 
@@ -71,6 +78,7 @@ export const AuthContextProvider = ({ children }) => {
 
     const switchRole = useCallback((newRole) => {
         if (availableRoles.includes(newRole)) {
+            sessionStorage.setItem('selectedUserRole', newRole);
             setUserRole(newRole);
         }
     }, [availableRoles]);
