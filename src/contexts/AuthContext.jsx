@@ -41,8 +41,8 @@ export const AuthContextProvider = ({ children }) => {
             const persistedRole = sessionStorage.getItem('selectedUserRole');
             if (persistedRole) {
                 setUserRole(persistedRole);
-            } else {
-                setUserRole(userRole)
+            } else if (userRole) {
+                setUserRole(userRole);
             }
         });
     }, [status, session]);
