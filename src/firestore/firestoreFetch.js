@@ -186,11 +186,20 @@ export const firestoreFetchStudentRequests = (setCalendarStudentRequests, calend
 
 export const fetchCacheTutors = () =>
     getCachedOrFetch('tutors', async () => {
-        const snapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'tutor')));
-        return snapshot.docs.map((doc) => {
+        const roleSnapshot = await getDocs(
+            query(collection(db, 'users'), where('role', 'in', ['tutor', 'coach']))
+        );
+        const rolesListSnapshot = await getDocs(
+            query(collection(db, 'users'), where('rolesList', 'array-contains-any', ['tutor', 'coach']))
+        );
+
+        const usersMap = new Map();
+        [...roleSnapshot.docs, ...rolesListSnapshot.docs].forEach((doc) => {
             const { email, name } = doc.data();
-            return { email, name: name || email };
+            usersMap.set(email, name);
         });
+
+        return [...usersMap.entries()].map(([email, name]) => ({ email, name }));
     });
 
 export const fetchCacheSubjects = () =>
