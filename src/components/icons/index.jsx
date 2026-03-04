@@ -286,5 +286,5 @@ export const SiMicrosoft = (props) => (
 );
 
 export const SiMicrosoftTeams = (props) => (
-    <Image src="teams.svg" width={16} height={16} alt="Microsoft Teams"></Image>
+    <Image src="teams.svg" width={16} height={16} alt="Microsoft Teams" unoptimized></Image>
 );

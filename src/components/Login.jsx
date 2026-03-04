@@ -26,6 +26,8 @@ export default function Login() {
                         width={275}
                         height={275}
                         className="rounded"
+                        priority
+                        unoptimized
                     />
                 </div>
                 <div className="text-center">
