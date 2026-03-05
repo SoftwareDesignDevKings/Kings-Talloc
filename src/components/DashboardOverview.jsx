@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import useAuthSession from '@/hooks/useAuthSession';
-import StatsCards from '@/components/dashboard/StatsCards.jsx';
+import DashboardStatsCards from '@/components/dashboard/DashboardStatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
 import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
 import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
@@ -188,7 +188,7 @@ const DashboardOverview = () => {
 
             {/* Stats Cards */}
             {/* We don't need onUpdate anymore because the AppDataProvider updates automatically via listeners */}
-            <StatsCards userRole={userRole} data={dashboardData} />
+            <DashboardStatsCards userRole={userRole} data={dashboardData} />
 
             <PersonalCalendarModal
                 show={showCalendarModal}

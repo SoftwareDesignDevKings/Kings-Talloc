@@ -64,12 +64,15 @@ const CalendarFilterPanel = () => {
             <button
                 className={styles.toggleButton}
                 onClick={() => setIsOpen((v) => !v)}
+                data-bs-toggle="collapse"
+                data-bs-target="#filterPanelCollapse"
+                aria-expanded={isOpen}
+                aria-controls="filterPanelCollapse"
             >
                 {isOpen ? <FiChevronRight /> : <FiChevronLeft />}
             </button>
 
-            {isOpen && (
-                <div className={styles.filterContent}>
+            <div className={`${styles.filterContent} collapse${isOpen ? ' show' : ''}`} id="filterPanelCollapse">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <h3 className={styles.filterTitle} style={{ margin: 0 }}>Filters</h3>
                         {userRole === 'student' && (
@@ -223,7 +226,6 @@ const CalendarFilterPanel = () => {
                         </div>
                     )}
                 </div>
-            )}
 
             <CalendarHowToModal
                 show={showHowToModal}

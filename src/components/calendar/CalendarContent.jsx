@@ -240,7 +240,7 @@ const CalendarContent = () => {
                 return;
             }
 
-            // save to Firestore and update a new RBC event 
+            // save to Firestore and update a new RBC event
             const docId = await createEventInFirestore(duplicatedEvent, collectionName);
             const newEvent = {
                 ...duplicatedEvent,

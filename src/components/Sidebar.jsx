@@ -119,10 +119,13 @@ const Sidebar = ({ user }) => {
                     </ul>
                 </div>
             </div>
-            <div className={styles.profileSection}>
+            <div className={`${styles.profileSection} dropdown dropup`}>
                 <div
                     className={`${styles.profileContainer} ${isCollapsed ? styles.profileContainerCollapsed : styles.profileContainerExpanded}`}
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    data-bs-toggle="dropdown"
+                    aria-expanded={showProfileMenu}
+                    role="button"
                 >
                     {user?.image ? (
                         <Image
@@ -131,6 +134,7 @@ const Sidebar = ({ user }) => {
                             width={32}
                             height={32}
                             className={styles.profileImage}
+                            unoptimized
                         />
                     ) : (
                         <div className={styles.profilePlaceholder}>
@@ -140,23 +144,23 @@ const Sidebar = ({ user }) => {
                     {!isCollapsed && <span>{user.name}</span>}
                     {!isCollapsed && <FiSettings className={styles.navIcon} />}
                 </div>
-                {showProfileMenu && (
-                    <div
-                        className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded}`}
-                    >
-                        {availableRoles.length > 1 && (
-                            <div className="d-flex gap-1 flex-wrap mb-2">
-                                {availableRoles.map((role) => (
-                                    <button
-                                        key={role}
-                                        onClick={() => switchRole(role)}
-                                        className={`btn btn-sm ${userRole === role ? 'btn-primary' : 'btn-outline-secondary'}`}
-                                    >
-                                        {ROLE_LABELS[role] || role}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                <div
+                    className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded} dropdown-menu${showProfileMenu ? ' show' : ''}`}
+                >
+                    {availableRoles.length > 1 && (
+                        <div className="d-flex gap-1 flex-wrap mb-2 px-3 pt-3">
+                            {availableRoles.map((role) => (
+                                <button
+                                    key={role}
+                                    onClick={() => switchRole(role)}
+                                    className={`btn btn-sm ${userRole === role ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                >
+                                    {ROLE_LABELS[role] || role}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    <div className="px-3 pb-3">
                         <button
                             onClick={AppLogout}
                             className="btn btn-danger w-100"
@@ -164,7 +168,7 @@ const Sidebar = ({ user }) => {
                             Logout
                         </button>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
