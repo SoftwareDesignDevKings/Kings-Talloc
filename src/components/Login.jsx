@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { FcGoogle, SiMicrosoft } from '@/components/icons';
-import { AppLogin } from '@/auth';
+import { AppLogin } from '@lib/security/auth';
 
 // Dev bypass users (matches authOptions.js)
 const DEV_BYPASS_USERS = [

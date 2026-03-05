@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useMemo, useCallback } from "react
 import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
-import { CalendarEntityType } from "@/strategy/calendarStrategy"
+import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
 import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
 
 /**

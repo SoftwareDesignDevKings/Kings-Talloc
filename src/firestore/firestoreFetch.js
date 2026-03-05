@@ -1,6 +1,6 @@
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
-import { CalendarEntityType } from '@/strategy/calendarStrategy';
+import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 // ---------------------------------------------------------------------------
 // Module-level cache for rarely-changing reference data (tutors, subjects, etc.)

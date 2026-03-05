@@ -16,7 +16,7 @@ import { updateEventInFirestore, createEventInFirestore } from '@/firestore/fire
 import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
-import { CalendarEntityType } from '@/strategy/calendarStrategy';
+import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent from './CustomEvent.jsx';

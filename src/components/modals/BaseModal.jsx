@@ -31,31 +31,34 @@ const BaseModal = ({
     const modalRef = useRef(null);
     const bsModalRef = useRef(null);
     const isClosing = useRef(false);
-    const pendingCallback = useRef(null);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (onSubmit && !disabled && !loading) {
-            // Mark as closing to prevent useEffect interference
-            isClosing.current = true;
-            // Store callback to execute after animation
-            pendingCallback.current = () => onSubmit(e);
-            // Start close animation
-            if (bsModalRef.current) {
-                bsModalRef.current.hide();
+            // Execute callback first
+            const result = await onSubmit(e);
+
+            // Only close if callback succeeded (returned true or nothing)
+            if (result !== false) {
+                isClosing.current = true;
+                if (bsModalRef.current) {
+                    bsModalRef.current.hide();
+                }
             }
         }
     };
 
-    const handleDeleteClick = () => {
+    const handleDeleteClick = async () => {
         if (deleteButton?.onClick) {
-            // Mark as closing to prevent useEffect interference
-            isClosing.current = true;
-            // Store callback to execute after animation
-            pendingCallback.current = deleteButton.onClick;
-            // Start close animation
-            if (bsModalRef.current) {
-                bsModalRef.current.hide();
+            // Execute callback first
+            const result = await deleteButton.onClick();
+
+            // Only close if callback succeeded (returned true or nothing)
+            if (result !== false) {
+                isClosing.current = true;
+                if (bsModalRef.current) {
+                    bsModalRef.current.hide();
+                }
             }
         }
     };
@@ -81,12 +84,6 @@ const BaseModal = ({
 
                 // Listen for Bootstrap modal hidden event (after animation completes)
                 modalRef.current.addEventListener('hidden.bs.modal', () => {
-                    // Execute pending callback if there is one
-                    if (pendingCallback.current) {
-                        const callback = pendingCallback.current;
-                        pendingCallback.current = null;
-                        callback();
-                    }
                     isClosing.current = false; // Reset closing flag
                     if (onHide) onHide();
                 });

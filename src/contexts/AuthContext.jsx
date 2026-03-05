@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import LoadingPage from '@/components/LoadingPage.jsx';
 import Login from '@/components/Login.jsx';
 import AppLayout from '@/components/AppLayout';
-import { syncNextFbAuth, startTokenRefresh, stopTokenRefresh } from '@/auth';
+import { syncNextFbAuth, startTokenRefresh, stopTokenRefresh } from '@lib/security/auth';
 
 export const AuthContext = createContext();
 

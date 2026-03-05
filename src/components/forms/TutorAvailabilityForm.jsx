@@ -11,7 +11,8 @@ import {
     createEventInFirestore,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
-import { CalendarEntityType } from '@/strategy/calendarStrategy';
+import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
+import useAlert from '@/hooks/useAlert';
 
 const TutorAvailabilityForm = ({
     mode,
@@ -21,12 +22,11 @@ const TutorAvailabilityForm = ({
     setShowModal,
 }) => {
     const { calendarAvailabilities, setCalendarAvailabilities } = useAppData();
+    const { addAlert } = useAlert();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView; // for backward compat with existing logic
-
-    const [error, setError] = useState('');
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -50,11 +50,10 @@ const TutorAvailabilityForm = ({
         const start = new Date(newAvailability.start);
         const end = new Date(newAvailability.end);
         if (!isAfter(end, start)) {
-            setError('End date must be after the start date.');
-            return false;
+            addAlert('error', 'End date must be after the start date.');
+            return false; // Validation failed
         }
-        setError('');
-        return true;
+        return true; // Validation passed
     };
 
     const setHours = (hours) => {
@@ -62,7 +61,7 @@ const TutorAvailabilityForm = ({
             const newEnd = add(new Date(newAvailability.start), { hours });
             setNewAvailability({ ...newAvailability, end: newEnd.toISOString() });
         } else {
-            setError('Invalid hours');
+            addAlert('error', 'Invalid hours');
         }
     };
 
@@ -106,10 +105,11 @@ const TutorAvailabilityForm = ({
                     },
                 ]);
             }
-            setShowModal(false);
+            return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to submit availability:', error);
-            setError('Failed to submit availability');
+            addAlert('error', 'Failed to submit availability');
+            return false; // Error - don't close modal
         }
     };
 
@@ -121,18 +121,20 @@ const TutorAvailabilityForm = ({
                     (availability) => availability.id !== eventToEdit.id,
                 ),
             );
-            setShowModal(false);
+            return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to delete availability:', error);
-            setError('Failed to delete availability');
+            addAlert('error', 'Failed to delete availability');
+            return false; // Error - don't close modal
         }
     };
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (validateDates()) {
-            await handleSubmit(e);
+        if (!validateDates()) {
+            return false; // Validation failed - don't close modal
         }
+        return await handleSubmit(e); // Pass through the result
     };
 
     const handleLocationChange = (selectedOption) => {
@@ -180,8 +182,6 @@ const TutorAvailabilityForm = ({
             }
             showFooter={!isView}
         >
-            {error && <div className="alert alert-danger mb-3 py-2" role="alert" aria-live="polite">{error}</div>}
-
             {/* Time Selection Card */}
             <div className="card mb-3" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
                 <div className="card-body p-3">

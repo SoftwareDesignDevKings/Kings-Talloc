@@ -1,4 +1,4 @@
-import { teacherCalendarStrategy, tutorCalendarStrategy, coachCalendarStrategy, studentCalendarStrategy, adminCalendarStrategy} from "@/strategy/calendarStrategy";
+import { teacherCalendarStrategy, tutorCalendarStrategy, coachCalendarStrategy, studentCalendarStrategy, adminCalendarStrategy} from "@lib/patterns/calendarStrategy";
 
 /**
  * Simple role-based calendar strategy

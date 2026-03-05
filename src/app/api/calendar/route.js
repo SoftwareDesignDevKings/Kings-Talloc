@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-// import { authOptions } from "@/auth";
+// import { authOptions } from "@lib/security/auth";
 // import { adminDb } from "@/firestore/adminFirebase";
 import { adminDb } from "@/firestore/firestoreAdmin";
 import { authOptions } from "../auth/[...nextauth]/authOptions";
