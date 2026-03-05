@@ -64,22 +64,28 @@ const contentSecurityPolicy = {
  * Build CSP string with nonce
  */
 export const buildCsp = (nonce) => {
+    const isDev = process.env.NODE_ENV === 'development';
     let cspString = "";
 
     for (const directive in contentSecurityPolicy) {
+        // skip upgrade-insecure-requests in dev (breaks localhost in Safari)
+        if (directive === "upgrade-insecure-requests" && isDev) {
+            continue;
+        }
+
         const values = [...contentSecurityPolicy[directive]];
 
         // scripts - add a nonce
         if (directive === "script-src") {
             values.push(`'nonce-${nonce}'`);
             // Dev: Next.js HMR needs unsafe-eval
-            if (process.env.NODE_ENV === 'development') {
+            if (isDev) {
                 values.push("'unsafe-eval'");
             }
         }
 
         // development: add localhost/websocket for Next.js HMR & Firebase emulators
-        if (process.env.NODE_ENV === 'development' && directive === "connect-src") {
+        if (isDev && directive === "connect-src") {
             values.push(
                 "ws://localhost:*",
                 "wss://localhost:*",
