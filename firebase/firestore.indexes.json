@@ -133,6 +133,32 @@
                     "order": "ASCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "shifts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "emailsList",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "recurring",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "workStatus",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "workType",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

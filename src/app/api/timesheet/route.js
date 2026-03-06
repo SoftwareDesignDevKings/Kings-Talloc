@@ -18,19 +18,22 @@ async function fetchUserShifts(userEmail, startDateSyd, endDateSyd, timesheetTyp
     // Syd -> UTC (firebase shifts are stored as UTC)
     const startDateUTC = startDateSyd.toJSDate();
     const endDateUTC = endDateSyd.toJSDate();
-    
-    let query = adminDb.collection('shifts')
-        .where('start', '>=', startDateUTC)
-        .where('start', '<=', endDateUTC)
-        .where('recurring', '==', null)
-        .where('workStatus', '==', 'completed')
-        .where('emailsList', 'array-contains', userEmail);
 
+    let query = adminDb.collection('shifts');
+
+    query = query.where('recurring', '==', null)
+                 .where('workStatus', '==', 'completed');
+
+    query = query.where('emailsList', 'array-contains', userEmail);
     if (timesheetType == "coach") {
         query = query.where('workType', '==', 'coaching');
     } else {
+        // Because this is '!=', it MUST be defined before 'start' range filters
         query = query.where('workType', '!=', 'coaching');
     }
+
+    query = query.where('start', '>=', startDateUTC)
+                 .where('start', '<=', endDateUTC);
 
     const snap = await query.get();
     console.log(`Found ${snap.docs.length} shifts for ${userEmail} (${timesheetType})`);
@@ -168,7 +171,7 @@ const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDate
 
     const templateData = {
         name: tutorName,
-        role: 'Academic Tutor',
+        role: timesheetType === 'coach' ? 'Coach' : 'Academic Tutor',
         weekEnding,
         totalHours: parseFloat(totalHours.toFixed(2)),
     };
