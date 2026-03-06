@@ -3,64 +3,56 @@ import Docxtemplater from 'docxtemplater';
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/authOptions';
-import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
-
-// ============================================================
-// HELPER FUNCTIONS
-// ============================================================
-
-const calculateBreakTime = (totalHours) => {
-    // 30 min break for 3-6 hours, 1 hour break for > 6 hours
-    if (totalHours > 3 && totalHours <= 6) return 0.5;
-    if (totalHours > 6) return 1;
-    return 0;
-};
-
-const isShiftValid = (shift) => {
-    if (shift.createdByStudent && shift.approvalStatus !== 'approved') return false;
-    return shift.workStatus === 'completed';
-};
-
-const isTutorConfirmed = (event, tutorEmail) => {
-    if (!event.confirmationRequired) return true;
-    return event.tutorResponses?.some((r) => r.email === tutorEmail && r.response) || false;
-};
+import { DateTime } from 'luxon';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const MAX_DAILY_HOURS = 8;
-const MIN_THRESHOLD = 3;
+const MAX_WEEKLY_HOURS = 40;
+const SYDNEY_ZONE = 'Australia/Sydney';
 
 /**
  * Fetch and expand all shifts for a tutor within a date range.
  */
-async function fetchShiftsForTutor(tutorEmail, startDate, endDate, isCoachTimesheet) {
-    const [nonRecSnap, recSnap] = await Promise.all([
-        adminDb.collection('shifts').where('start', '>=', startDate).where('start', '<=', endDate).where('recurring', '==', null).get(),
-        adminDb.collection('shifts').where('recurring', 'in', ['weekly', 'fortnightly']).get()
-    ]);
+async function fetchUserShifts(userEmail, startDateSyd, endDateSyd, timesheetType) {
 
-    const rawShifts = nonRecSnap.docs.map(doc => ({
-        ...doc.data(),
-        start: doc.data().start.toDate(),
-        end: doc.data().end.toDate()
-    }));
+    // Syd -> UTC (firebase shifts are stored as UTC)
+    const startDateUTC = startDateSyd.toJSDate();
+    const endDateUTC = endDateSyd.toJSDate();
+    
+    let query = adminDb.collection('shifts')
+        .where('start', '>=', startDateUTC)
+        .where('start', '<=', endDateUTC)
+        .where('recurring', '==', null)
+        .where('workStatus', '==', 'completed')
+        .where('emailsList', 'array-contains', userEmail);
 
-    const recShifts = recSnap.docs.map(doc => ({
-        ...doc.data(),
-        start: doc.data().start.toDate(),
-        end: doc.data().end.toDate(),
-        ...(doc.data().until && { until: doc.data().until.toDate() })
-    }));
+    if (timesheetType == "coach") {
+        query = query.where('workType', '==', 'coaching');
+    } else {
+        query = query.where('workType', '!=', 'coaching');
+    }
 
-    const expandedRec = recurringCalendarExpand(recShifts, { rangeStart: startDate, rangeEnd: endDate, maxOccurrences: 52 })
-        .filter(s => s.start >= startDate && s.start <= endDate);
+    const snap = await query.get();
+    console.log(`Found ${snap.docs.length} shifts for ${userEmail} (${timesheetType})`);
 
-    return [...rawShifts, ...expandedRec].filter(shift => {
-        if (!isShiftValid(shift)) return false;
-        const typeMatch = isCoachTimesheet ? shift.workType === 'coaching' : shift.workType !== 'coaching';
-        const isAssigned = shift.staff?.some(s => s.value === tutorEmail);
-        return typeMatch && isAssigned && isTutorConfirmed(shift, tutorEmail);
+    const shifts = snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            id: doc.id,
+            start: DateTime.fromJSDate(data.start.toDate(), { zone: SYDNEY_ZONE }),
+            end: DateTime.fromJSDate(data.end.toDate(), { zone: SYDNEY_ZONE })
+        };
     });
+
+    console.log('Shifts:', shifts.map(s => ({
+        start: s.start.toISO(),
+        end: s.end.toISO(),
+        workType: s.workType,
+        workStatus: s.workStatus
+    })));
+
+    return shifts;
 }
 
 /**
@@ -68,7 +60,9 @@ async function fetchShiftsForTutor(tutorEmail, startDate, endDate, isCoachTimesh
  */
 async function fetchTemplate(tutorEmail) {
     const doc = await adminDb.collection('timesheets').doc(tutorEmail).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+        return null;
+    }
     return doc.data().fileData;
 }
 
@@ -90,58 +84,87 @@ function renderDocx(fileData, templateData) {
  * Get Mon–Fri Date objects starting from a given Monday.
  * startDate is assumed to be Monday (as sent by the UI date picker).
  */
-function getWeekDates(startDate) {
+function getWeekDates(startDateSyd) {
     return DAYS_OF_WEEK.map((day, i) => {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + i);
-        return { day, date: d };
-    });
+        const dateLuxon = startDateSyd.plus({ days: i });
+        return {
+            day,
+            dateLuxon,
+            date: dateLuxon.toFormat('dd/MM/yyyy')
+        };
+    })
 }
-
 /**
  * Spread total hours greedily across Mon–Fri.
  * Each day gets up to MAX_DAILY_HOURS (8hrs).
  * Days with 0 allocated hours are left blank.
  */
-function spreadHoursAcrossWeek(totalHours, weekDates) {
-    const spread = {};
-    let remaining = parseFloat(totalHours.toFixed(2));
+const distributeHours = (totalHours, weekDates) => {
+    const dailyAllocationObj = {};
+
+    let totalHoursToAllocate = parseFloat(totalHours.toFixed(2));
 
     for (const { day, date } of weekDates) {
-        if (remaining <= 0) break;
-        const hours = parseFloat(Math.min(remaining, MAX_DAILY_HOURS).toFixed(2));
-        spread[day] = {
-            date: date.toLocaleDateString('en-AU', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-            hours,
+        if (totalHoursToAllocate <= 0) {
+            break;
+        }
+
+        const hoursForThisDay = parseFloat(Math.min(totalHoursToAllocate, MAX_DAILY_HOURS).toFixed(2));
+        dailyAllocationObj[day] = {
+            date,
+            hoursForThisDay,
         };
-        remaining = parseFloat((remaining - hours).toFixed(2));
+
+        totalHoursToAllocate = parseFloat((totalHoursToAllocate - hoursForThisDay).toFixed(2));
     }
 
-    return spread;
+    return dailyAllocationObj;
 }
 
-async function generateTutorTimesheet(tutorEmail, tutorName, startDate, endDate) {
-    const allShifts = await fetchShiftsForTutor(tutorEmail, startDate, endDate, false);
 
-    const rawTotal = allShifts.reduce((sum, s) => sum + (s.end - s.start) / 3600000, 0);
+// 30 min break for 3-6 hours, 1 hour break for > 6 hours
+const calculateBreakTime = (totalHours) => {
+    if (totalHours > 3 && totalHours <= 6) {
+        return 0.5;
+    }
+    if (totalHours > 6) {
+        return 1;
+    }
+    return 0;
+};
 
-    const MAX_WEEKLY_HOURS = MAX_DAILY_HOURS * DAYS_OF_WEEK.length; // 40hrs
-
-    if (rawTotal < MIN_THRESHOLD) {
-        return { error: `Not enough tutor hours for ${tutorName} in this period (${rawTotal.toFixed(2)}hrs total — minimum 3hrs required).`, status: 400 };
+// adding this general function - just in case more roles get created in the future 
+const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDateSyd, endDateSyd) => {
+    const fileData = await fetchTemplate(tutorEmail); 
+    if (!fileData) {
+        return { error: 'Template missing in /users.', status: 404 };
+    } 
+    
+    let shifts;
+    if (timesheetType == "tutor") {    
+        shifts = await fetchUserShifts(tutorEmail, startDateSyd, endDateSyd, "tutor");
+    } else {
+        shifts = await fetchUserShifts(tutorEmail, startDateSyd, endDateSyd, "coach");
     }
 
-    const overflow = parseFloat(Math.max(0, rawTotal - MAX_WEEKLY_HOURS).toFixed(2));
-    const totalHours = Math.min(rawTotal, MAX_WEEKLY_HOURS);
+    const rawTotalHours = shifts.reduce((sum, s) => {
+        return sum + s.end.diff(s.start, 'hours').hours;
+    }, 0);
 
-    const weekDates = getWeekDates(startDate);
+    const TUTOR_MIN_THRESHOLD = 3;
+    const COACH_MIN_THRESHOLD = 2;
+    if (timesheetType == "tutor" && rawTotalHours < TUTOR_MIN_THRESHOLD) { 
+        return { error: `Not enough tutor hours for ${tutorName} — minimum 3hrs required).`, status: 400 };
+    } else if (timesheetType == "coach" && rawTotalHours < COACH_MIN_THRESHOLD) {
+        return { error: `Not enough coach hours for ${tutorName} — minimum 2hrs required).`, status: 400 };
+    }
 
-    // week ending = Sunday (ie. 6 days after Monday)
-    const sunday = new Date(startDate);
-    sunday.setDate(startDate.getDate() + 6);
-    const weekEnding = sunday.toLocaleDateString('en-AU');
+    const overflowHours = parseFloat(Math.max(0, rawTotalHours - MAX_WEEKLY_HOURS).toFixed(2));
+    const totalHours = Math.min(rawTotalHours, MAX_WEEKLY_HOURS);
 
-    const spread = spreadHoursAcrossWeek(totalHours, weekDates);
+    const weekDates = getWeekDates(startDateSyd);
+    const weekEnding = startDateSyd.plus({ days: 6 }).toFormat('dd/MM/yyyy');
+    const dailyAllocation = distributeHours(totalHours, weekDates);
 
     const templateData = {
         name: tutorName,
@@ -150,21 +173,20 @@ async function generateTutorTimesheet(tutorEmail, tutorName, startDate, endDate)
         totalHours: parseFloat(totalHours.toFixed(2)),
     };
 
-    for (const { day, date } of weekDates) {
+    for (const { day, dateLuxon } of weekDates) {
         const key = day.toLowerCase();
-        const data = spread[day];
+        const data = dailyAllocation[day];
         let commenced = '', finished = '', breakHours = '';
 
         if (data) {
-            const totalHours = data.hours;
+            const totalHours = data.hoursForThisDay;
             const breakTime = calculateBreakTime(totalHours);
 
-            const start = new Date(date);
-            start.setHours(8, 0, 0, 0);
-            const end = new Date(start.getTime() + (totalHours + breakTime) * 3600000);
+            const start = dateLuxon.set({ hour: 8, minute: 0, second: 0 });
+            const end = start.plus({ hours: totalHours + breakTime });
 
-            commenced = start.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false });
-            finished = end.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false });
+            commenced = start.toFormat('HH:mm');
+            finished = end.toFormat('HH:mm');
             breakHours = breakTime || '';
         }
 
@@ -172,88 +194,14 @@ async function generateTutorTimesheet(tutorEmail, tutorName, startDate, endDate)
         templateData[`${key}Commenced`] = commenced;
         templateData[`${key}Finished`] = finished;
         templateData[`${key}Break`] = breakHours;
-        templateData[`${key}Total`] = data ? data.hours.toFixed(2) : '';
-    }
 
-    const fileData = await fetchTemplate(tutorEmail);
-    if (!fileData) return { error: 'Template missing', status: 404 };
+        templateData[`${key}Total`] = data ? data.hoursForThisDay.toFixed(2) : '';
+    }
 
     const buffer = renderDocx(fileData, templateData);
-    return { buffer, overflow };
+    return { buffer, overflowHours };
 }
 
-// ============================================================
-// COACH TIMESHEET — exact times from shift data
-// ============================================================
-
-async function generateCoachTimesheet(tutorEmail, tutorName, startDate, endDate) {
-    const allShifts = await fetchShiftsForTutor(tutorEmail, startDate, endDate, true);
-
-    const rawTotal = allShifts.reduce((sum, s) => sum + (s.end - s.start) / 3600000, 0);
-    const COACH_MIN_THRESHOLD = 2;
-    if (rawTotal < COACH_MIN_THRESHOLD) {
-        return { error: `Not enough coaching hours for ${tutorName} in this period (${rawTotal.toFixed(2)}hrs total — minimum 2hrs required).`, status: 400 };
-    }
-
-    // Group shifts by day: track earliest start, latest end, sum of durations
-    const dayData = {};
-    for (const shift of allShifts) {
-        const dayName = shift.start.toLocaleDateString('en-AU', { weekday: 'long' });
-        const duration = (shift.end - shift.start) / 3600000;
-        if (!dayData[dayName]) {
-            dayData[dayName] = {
-                date: shift.start.toLocaleDateString('en-AU', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-                earliestStart: shift.start,
-                latestEnd: shift.end,
-                totalDuration: 0,
-            };
-        }
-        dayData[dayName].totalDuration += duration;
-        if (shift.start < dayData[dayName].earliestStart) dayData[dayName].earliestStart = shift.start;
-        if (shift.end > dayData[dayName].latestEnd) dayData[dayName].latestEnd = shift.end;
-    }
-
-    // Cap each day at MAX_DAILY_HOURS; overflow hours are reported back
-    let overflow = 0;
-    for (const day of Object.keys(dayData)) {
-        if (dayData[day].totalDuration > MAX_DAILY_HOURS) {
-            overflow += parseFloat((dayData[day].totalDuration - MAX_DAILY_HOURS).toFixed(2));
-            dayData[day].totalDuration = MAX_DAILY_HOURS;
-            dayData[day].latestEnd = new Date(dayData[day].earliestStart.getTime() + MAX_DAILY_HOURS * 3600000);
-        }
-    }
-    overflow = parseFloat(overflow.toFixed(2));
-
-    // weekEnding - sunday (ie. 6 days after Monday)
-    const sunday = new Date(startDate);
-    sunday.setDate(startDate.getDate() + 6);
-    const weekEnding = sunday.toLocaleDateString('en-AU');
-
-    const templateData = {
-        name: tutorName,
-        role: 'Coach',
-        weekEnding,
-        totalHours: 0,
-    };
-
-    for (const day of DAYS_OF_WEEK) {
-        const data = dayData[day];
-        const key = day.toLowerCase();
-        templateData[`${key}Date`] = data?.date || '';
-        templateData[`${key}Commenced`] = data ? data.earliestStart.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-        templateData[`${key}Finished`] = data ? data.latestEnd.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-        templateData[`${key}Break`] = data ? (calculateBreakTime(data.totalDuration) || '') : '';
-        templateData[`${key}Total`] = data ? data.totalDuration.toFixed(2) : '';
-        templateData.totalHours += data ? data.totalDuration : 0;
-    }
-    templateData.totalHours = parseFloat(templateData.totalHours).toFixed(2);
-
-    const fileData = await fetchTemplate(tutorEmail);
-    if (!fileData) return { error: 'Template missing', status: 404 };
-
-    const buffer = renderDocx(fileData, templateData);
-    return { buffer, overflow };
-}
 
 // ============================================================
 // API ENDPOINT
@@ -261,6 +209,7 @@ async function generateCoachTimesheet(tutorEmail, tutorName, startDate, endDate)
 
 export async function POST(req) {
     const session = await getServerSession(authOptions);
+    
     const userRole = session?.user?.defaultRole || session?.user?.role;
     const userRoles = session?.user?.userRoles || [];
 
@@ -270,30 +219,26 @@ export async function POST(req) {
     }
 
     try {
-        const { tutorEmail, tutorName, startDate: startDateStr, endDate: endDateStr, roleType } = await req.json();
+        const { tutorEmail, tutorName, startDateUTC, endDateUTC, timesheetType } = await req.json();
 
-        // Parse ISO timestamps directly - no timezone conversion needed
-        const startDate = new Date(startDateStr);
-        const endDate = new Date(endDateStr);
-        const isCoach = roleType === 'coach';
+        // Parse ISO dates and convert to Sydney time
+        const startDateSyd = DateTime.fromISO(startDateUTC).setZone(SYDNEY_ZONE).startOf('day');
+        const endDateSyd = DateTime.fromISO(endDateUTC).setZone(SYDNEY_ZONE).endOf('day');
 
-        const result = isCoach
-            ? await generateCoachTimesheet(tutorEmail, tutorName, startDate, endDate)
-            : await generateTutorTimesheet(tutorEmail, tutorName, startDate, endDate);
-
-        if (result.error) {
-            return new Response(JSON.stringify(result.data ?? { error: result.error }), { status: result.status ?? 500 });
+        let timesheet = await generateTimeSheet(timesheetType, tutorEmail, tutorName, startDateSyd, endDateSyd)
+        if (timesheet.error) {
+            return new Response(JSON.stringify(timesheet.data ?? { error: timesheet.error }), { status: timesheet.status ?? 500 });
         }
 
         const headers = {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'Content-Disposition': `attachment; filename="${tutorName}_${roleType}_timesheet.docx"`,
+            'Content-Disposition': `attachment; filename="${tutorName}_${timesheetType}_timesheet.docx"`,
         };
-        if (result.overflow > 0) {
-            headers['X-Overflow-Hours'] = String(result.overflow);
+        if (timesheet.overflowHours > 0) {
+            headers['X-Overflow-Hours'] = String(timesheet.overflowHours);
         }
 
-        return new Response(result.buffer, { status: 200, headers });
+        return new Response(timesheet.buffer, { status: 200, headers });
 
     } catch (error) {
         console.error(error);
