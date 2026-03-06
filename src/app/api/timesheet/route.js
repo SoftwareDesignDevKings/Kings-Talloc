@@ -28,8 +28,7 @@ async function fetchUserShifts(userEmail, startDateSyd, endDateSyd, timesheetTyp
     if (timesheetType == "coach") {
         query = query.where('workType', '==', 'coaching');
     } else {
-        // Because this is '!=', it MUST be defined before 'start' range filters
-        query = query.where('workType', '!=', 'coaching');
+        query = query.where('workType', '==', 'tutoring');
     }
 
     query = query.where('start', '>=', startDateUTC)
