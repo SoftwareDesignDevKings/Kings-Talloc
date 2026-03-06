@@ -190,9 +190,9 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 body: JSON.stringify({
                     tutorEmail,
                     tutorName,
-                    startDate: startDate.toISOString(),
-                    endDate: endDate.toISOString(),
-                    roleType, // 'tutor' or 'coach'
+                    startDateUTC: startDate.toISOString(),
+                    endDateUTC: endDate.toISOString(),
+                    timesheetType: roleType, // 'tutor' or 'coach'
                 }),
             });
 
