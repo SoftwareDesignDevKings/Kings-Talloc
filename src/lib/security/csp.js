@@ -1,5 +1,5 @@
 /**
- * App's CSP
+ * App Content Security Policy (CSP)
  */
 const contentSecurityPolicy = {
     "default-src": ["'self'"],
@@ -64,12 +64,11 @@ const contentSecurityPolicy = {
  * Build CSP string with nonce
  */
 export const buildCsp = (nonce) => {
-    const isDev = process.env.NODE_ENV === 'development';
     let cspString = "";
 
     for (const directive in contentSecurityPolicy) {
         // skip upgrade-insecure-requests in dev (breaks localhost in Safari)
-        if (directive === "upgrade-insecure-requests" && isDev) {
+        if (directive === "upgrade-insecure-requests" && process.env.NODE_ENV === 'development') {
             continue;
         }
 
@@ -79,13 +78,13 @@ export const buildCsp = (nonce) => {
         if (directive === "script-src") {
             values.push(`'nonce-${nonce}'`);
             // Dev: Next.js HMR needs unsafe-eval
-            if (isDev) {
+            if (process.env.NODE_ENV === 'development') {
                 values.push("'unsafe-eval'");
             }
         }
 
         // development: add localhost/websocket for Next.js HMR & Firebase emulators
-        if (isDev && directive === "connect-src") {
+        if (process.env.NODE_ENV === 'development' && directive === "connect-src") {
             values.push(
                 "ws://localhost:*",
                 "wss://localhost:*",
