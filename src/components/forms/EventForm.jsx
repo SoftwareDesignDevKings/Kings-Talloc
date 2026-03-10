@@ -110,8 +110,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             }
         }
 
-        // Validate cannot make completed events recurring
-        if (newEvent.recurring && newEvent.workStatus === 'completed') {
+        // Validate cannot make completed events recurring (but allow completing recurring instances since they get detached)
+        if (newEvent.recurring && newEvent.workStatus === 'completed' && !eventToEdit?.isRecurringInstance) {
             addAlert('error', 'Cannot make completed events recurring.');
             return false;
         }
@@ -180,6 +180,16 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             until: newEvent.until || null,
         };
 
+        // Add 'until' date for recurring events
+        if (eventData.recurring) {
+            if (isEditing && newEvent.until) {
+                eventData.until = newEvent.until;
+            } else if (!isEditing) {
+                // For new recurring events, explicitly set until to null
+                eventData.until = null;
+            }
+        }
+
         try {
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
@@ -202,21 +212,21 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     const newDocId = await detachRecurringInstance(eventToEdit, eventData);
                     await addOrUpdateEventInQueue({ ...eventData, id: newDocId }, 'store', userEmail);
 
-                    if (standaloneEventData.teamsEventId) {
+                    if (eventData.teamsEventId) {
                         try {
-                            const attendeesEmailArr = [...(standaloneEventData.students || []), ...(standaloneEventData.staff || [])].map(
+                            const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
                                 (p) => p.value || p,
                             );
                             const occurrenceId = await getTeamsMeetingOccurrenceId(
-                                standaloneEventData.teamsEventId,
+                                eventData.teamsEventId,
                                 eventToEdit.start,
                             );
                             await updateTeamsMeetingOccurrence(
                                 occurrenceId,
-                                standaloneEventData.title,
-                                standaloneEventData.description,
-                                new Date(standaloneEventData.start).toISOString(),
-                                new Date(standaloneEventData.end).toISOString(),
+                                eventData.title,
+                                eventData.description,
+                                new Date(eventData.start).toISOString(),
+                                new Date(eventData.end).toISOString(),
                                 attendeesEmailArr,
                             );
                             addAlert('success', 'Event updated and Teams occurrence updated');
