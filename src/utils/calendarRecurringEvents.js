@@ -31,7 +31,10 @@ export const detachRecurringInstance = async (recurringInstance, updatedFields =
         ...standaloneEventData
     } = { ...recurringInstance, ...updatedFields };
 
-    // Create new standalone event
+    // explicitly set recurring to null so Firestore queries can find it
+    standaloneEventData.recurring = null;
+
+    // create new standalone event
     const newDocId = await createEventInFirestore(standaloneEventData, collectionName);
 
     return newDocId;
