@@ -4,58 +4,22 @@ import Credentials from 'next-auth/providers/credentials';
 import { authFirebaseSignIn, authFirebaseGenerateToken } from './firebaseAuth';
 import { authMsStoreTokens, authMsRefreshToken } from './msAuth';
 import { adminDb } from '@/firestore/firestoreAdmin';
+import { TEST_USERS as DEV_USERS} from '@/lib/security/testUsers';
 
-// Dev bypass users configuration (development only)
-const DEV_BYPASS_USERS = {
-    'computing@kings.edu.au': {
-        name: 'Computing Admin',
-        role: 'admin',
-        defaultRole: 'teacher',
-        userRoles: ['admin']
-    },
-    'tutor@kings.edu.au': {
-        name: 'Viraj Patel',
-        role: 'tutor',
-        defaultRole: 'tutor',
-        userRoles: []
-    },
-    'tutorAdmin@kings.edu.au': {
-        name: 'Martin Madrid',
-        role: 'tutor',
-        defaultRole: 'tutor',
-        userRoles: ['admin']
-    },
-    'teacher@kings.edu.au': {
-        name: 'Dev Teacher',
-        role: 'teacher',
-        defaultRole: 'teacher',
-        userRoles: []
-    },
-    'coach@kings.edu.au': {
-        name: 'Dev Coach',
-        role: 'coach',
-        defaultRole: 'coach',
-        userRoles: ['tutor']
-    },
-    'student@kings.edu.au': {
-        name: 'Dev Student',
-        role: 'student',
-        defaultRole: 'student',
-        userRoles: []
-    }
-};
-
-// Seed dev bypass users into Firestore on startup so they appear in /userRoles
+// seed dev bypass users into Firestore on startup so they appear in /userRoles
 if (process.env.NODE_ENV === 'development') {
-    for (const [email, config] of Object.entries(DEV_BYPASS_USERS)) {
-        adminDb.collection('users').doc(email).set({
-            email,
-            name: config.name,
-            role: config.role,
-            defaultRole: config.defaultRole,
-            userRoles: config.userRoles,
-            calendarFeedToken: 'dev-bypass-token',
-        }, { merge: true }).catch(console.error);
+    for (const emailKey in DEV_USERS) {
+        const user = DEV_USERS[emailKey];
+        if (user && user.name) {
+            adminDb.collection('users').doc(emailKey).set({
+                email: emailKey,
+                name: user.name,
+                role: user.role,
+                defaultRole: user.defaultRole,
+                userRoles: user.userRoles,
+                calendarFeedToken: 'dev-bypass-token',
+            }, { merge: true }).catch(console.error);
+        }
     }
 }
 
@@ -64,8 +28,8 @@ if (process.env.NODE_ENV === 'development') {
  */
 async function handleSignIn({ user, account, profile }) {
     // Dev bypass for configured test users (development only)
-    if (process.env.NODE_ENV === 'development' && DEV_BYPASS_USERS[user.email]) {
-        const devUser = DEV_BYPASS_USERS[user.email];
+    if (process.env.NODE_ENV === 'development' && DEV_USERS[user.email]) {
+        const devUser = DEV_USERS[user.email];
         user.role = devUser.role;
         user.defaultRole = devUser.defaultRole;
         user.userRoles = devUser.userRoles;
@@ -146,28 +110,30 @@ async function handleSession({ session, token }) {
     return session;
 }
 
+const devProviders = [];
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    for (const emailKey in DEV_USERS) {
+        const user = DEV_USERS[emailKey];
+
+        if (user) {
+            const provider = Credentials({
+                id: `dev-${emailKey.split('@')[0]}`,
+                name: `Dev Login: ${user.name}`,
+                credentials: {},
+                async authorize() {
+                    return { id: emailKey, email: emailKey, name: user.name };
+                }
+            });
+            devProviders.push(provider);
+        }
+    }
+}
 /**
  * Authentication options for Google, Azure login for NextAuth
  */
 export const authOptions = {
     providers: [
-        // Dev bypass users - only enabled in development
-        ...(process.env.NODE_ENV === 'development' ?
-            Object.entries(DEV_BYPASS_USERS).map(([email, config]) =>
-                Credentials({
-                    id: `dev-${email.split('@')[0]}`,
-                    name: config.name,
-                    credentials: {},
-                    async authorize() {
-                        return {
-                            id: email,
-                            email: email,
-                            name: config.name,
-                        };
-                    }
-                })
-            )
-        : []),
+        ... devProviders,
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
