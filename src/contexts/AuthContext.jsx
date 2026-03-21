@@ -19,10 +19,11 @@ export const AuthContext = createContext();
  */
 export const AuthContextProvider = ({ children }) => {
     const { data: session, status, update } = useSession();
+
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState('student');
     const [userRoles, setUserRoles] = useState([]);
-
+    
     const [device, setDevice] = useState("desktop")
 
     const pathname = usePathname();
