@@ -12,8 +12,6 @@ import Sidebar from '@/components/Sidebar';
  */
 const AppLayout = ({ session, userRole, children }) => {
     let dashboardTitle;
-    
-    console.log("userRole: ", userRole)
     if (userRole === 'student') {
         dashboardTitle = 'Student Dashboard';
     } else if (userRole === 'teacher') {

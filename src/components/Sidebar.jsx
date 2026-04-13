@@ -15,25 +15,12 @@ import {
 } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 import styles from '@/styles/sidebar.module.css';
-import useAuthSession from '@/hooks/useAuthSession';
-import { AppLogout } from '@/lib/security/clientAuth';
 
-const ROLE_LABELS = {
-    admin: 'Admin',
-    teacher: 'Teacher',
-    tutor: 'Tutor',
-    coach: 'Coach',
-    student: 'Student',
-};
-
-const Sidebar = ({ user }) => {
-    const { userRole, availableRoles, switchRole } = useAuthSession();
+const Sidebar = ({ userRole, user }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-    const isAdmin = userRole === 'admin';
-    const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher';
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -61,7 +48,11 @@ const Sidebar = ({ user }) => {
                                 Menu
                             </h4>
                         )}
-                        <button onClick={toggleSidebar} className={styles.toggleButton}>
+                        <button
+                            onClick={toggleSidebar}
+                            className={styles.toggleButton}
+                            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        >
                             {isCollapsed ? (
                                 <FiChevronRight size={24} />
                             ) : (
@@ -72,45 +63,63 @@ const Sidebar = ({ user }) => {
                 </div>
                 <div className="flex-grow-1">
                     <ul className={styles.navList}>
-                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                            <Link href="/dashboard" className={styles.navLink}>
+                        <li className={styles.navItem}>
+                            <Link
+                                href="/dashboard"
+                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                            >
                                 <FiHome className={styles.navIcon} />
                                 {!isCollapsed && <span>Dashboard</span>}
                             </Link>
                         </li>
-                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                            <Link href="/calendar" className={styles.navLink}>
+                        <li className={styles.navItem}>
+                            <Link
+                                href="/calendar"
+                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                            >
                                 <FiCalendar className={styles.navIcon} />
                                 {!isCollapsed && <span>Calendar</span>}
                             </Link>
                         </li>
-                        {isAdmin && (
-                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                <Link href="/userRoles" className={styles.navLink}>
-                                    <FiUsers className={styles.navIcon} />
-                                    {!isCollapsed && <span>User Roles</span>}
-                                </Link>
-                            </li>
-                        )}
-                        {isAdminOrTeacher && (
+                        {(userRole === 'teacher' || userRole === 'admin') && (
                             <>
-                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                    <Link href="/classes" className={styles.navLink}>
+                                <li className={styles.navItem}>
+                                    <Link
+                                        href="/userRoles"
+                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                    >
+                                        <FiUsers className={styles.navIcon} />
+                                        {!isCollapsed && <span>User Roles</span>}
+                                    </Link>
+                                </li>
+                                <li className={styles.navItem}>
+                                    <Link
+                                        href="/classes"
+                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                    >
                                         <FiBook className={styles.navIcon} />
                                         {!isCollapsed && <span>Manage Classes</span>}
                                     </Link>
                                 </li>
-                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                    <Link href="/subjects" className={styles.navLink}>
-                                        <FiBookOpen className={styles.navIcon} />
-                                        {!isCollapsed && <span>Manage Subjects</span>}
-                                    </Link>
-                                </li>
                             </>
                         )}
-                        {['admin', 'tutor', 'coach'].includes(userRole) && (
-                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                <Link href="/tutorHours" className={styles.navLink}>
+                        {(userRole === 'teacher' || userRole === 'admin') && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/subjects"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                >
+                                    <FiBookOpen className={styles.navIcon} />
+                                    {!isCollapsed && <span>Manage Subjects</span>}
+                                </Link>
+                            </li>
+                        )}
+                        {userRole !== 'student' && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/tutorHours"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                >
                                     <FiClock className={styles.navIcon} />
                                     {!isCollapsed && <span>Tutor Hours</span>}
                                 </Link>
@@ -119,13 +128,13 @@ const Sidebar = ({ user }) => {
                     </ul>
                 </div>
             </div>
-            <div className={`${styles.profileSection} dropdown dropup`}>
-                <div
+            <div className={styles.profileSection}>
+                <button
+                    type="button"
                     className={`${styles.profileContainer} ${isCollapsed ? styles.profileContainerCollapsed : styles.profileContainerExpanded}`}
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    data-bs-toggle="dropdown"
                     aria-expanded={showProfileMenu}
-                    role="button"
+                    aria-label="Open profile menu"
                 >
                     {user?.image ? (
                         <Image
@@ -134,7 +143,6 @@ const Sidebar = ({ user }) => {
                             width={32}
                             height={32}
                             className={styles.profileImage}
-                            unoptimized
                         />
                     ) : (
                         <div className={styles.profilePlaceholder}>
@@ -143,32 +151,19 @@ const Sidebar = ({ user }) => {
                     )}
                     {!isCollapsed && <span>{user.name}</span>}
                     {!isCollapsed && <FiSettings className={styles.navIcon} />}
-                </div>
-                <div
-                    className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded} dropdown-menu${showProfileMenu ? ' show' : ''}`}
-                >
-                    {availableRoles.length > 1 && (
-                        <div className="d-flex gap-1 flex-wrap mb-2 px-3 pt-3">
-                            {availableRoles.map((role) => (
-                                <button
-                                    key={role}
-                                    onClick={() => switchRole(role)}
-                                    className={`btn btn-sm ${userRole === role ? 'btn-primary' : 'btn-outline-secondary'}`}
-                                >
-                                    {ROLE_LABELS[role] || role}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    <div className="px-3 pb-3">
+                </button>
+                {showProfileMenu && (
+                    <div
+                        className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded}`}
+                    >
                         <button
-                            onClick={AppLogout}
+                            onClick={() => signOut({ callbackUrl: '/login' })}
                             className="btn btn-danger w-100"
                         >
                             Logout
                         </button>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
