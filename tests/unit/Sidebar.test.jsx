@@ -1,26 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Sidebar from '../../src/components/Sidebar.jsx';
-import { useRouter } from 'next/navigation';
-
-// Mock useRouter from next/navigation globally or for this test file
-// The jest.setup.js file should already have a global mock for 'next/navigation'
-// We need to access the mocked push function.
-const mockRouter = {
-    push: jest.fn(),
-    replace: jest.fn(),
-    reload: jest.fn(),
-    back: jest.fn(),
-    forward: jest.fn(),
-    prefetch: jest.fn(),
-};
 
 jest.mock('next/navigation', () => ({
-    useRouter: () => mockRouter,
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
     usePathname: jest.fn(() => '/'),
     useSearchParams: jest.fn(() => new URLSearchParams()),
 }));
-
 
 const setup = (userRole = 'student', userOverrides = {}) => {
     const user = {
@@ -36,9 +22,6 @@ const setup = (userRole = 'student', userOverrides = {}) => {
 };
 
 describe('Sidebar', () => {
-    beforeEach(() => {
-        mockRouter.push.mockClear(); // Clear mock calls before each test
-    });
 
     it('renders calendar for all user roles', () => {
         setup('student');
