@@ -31,6 +31,7 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     // Default style
     let backgroundColor = 'lightblue';
     let borderColor = 'blue';
+    let className = '';
 
     // --- Student-created events ---
     if (isStudentEvent) {
@@ -81,6 +82,9 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     if (isAvailability) {
         backgroundColor = userRole === 'student' ? 'lightgrey' : 'mediumspringgreen';
         borderColor = userRole === 'student' ? 'grey' : 'springgreen';
+        
+        // Assign a specific class so we can stretch this event accurately in CSS
+        className = 'availability-block';
     }
 
     // --- Student responses ---
@@ -101,6 +105,7 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
             borderColor,
             color: 'black',
         },
+        className
     };
 };
 
