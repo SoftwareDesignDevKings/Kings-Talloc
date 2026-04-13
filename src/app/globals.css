@@ -50,6 +50,26 @@
     /* ── Calendar (references brand tokens) ─────────────────── */
     --calendar-bg: var(--tks-surface);
     --calendar-text: var(--tks-text-primary);
+
+    /* ── Typography ─────────────────────────────────────────── */
+    /* --font-body and --font-heading are injected by next/font on <html> */
+    /* Override Bootstrap's body font variable so all BS components inherit correctly */
+    --bs-body-font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+    --bs-body-font-size: 1rem;
+    --bs-body-line-height: 1.6;
+}
+
+/* Body picks up the UI font via Bootstrap's variable */
+body {
+    font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+}
+
+/* Headings get the display font — applied to elements and Bootstrap's utility classes */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: var(--font-heading, var(--font-body, system-ui, sans-serif));
+    letter-spacing: -0.01em;
+    line-height: 1.2;
 }
 
 .app-gradient-bg {
@@ -63,6 +83,8 @@
 .dashboard-title {
     font-size: 1.875rem;
     font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
     color: var(--tks-text-primary);
     margin-top: 1rem;
 }
