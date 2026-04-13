@@ -73,7 +73,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .app-gradient-bg {
-    background: linear-gradient(to right, var(--tks-primary), var(--tks-secondary));
+    background: var(--tks-secondary);
 }
 
 .table-text-sm td {
