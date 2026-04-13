@@ -15,12 +15,14 @@ import {
 } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import styles from '@/styles/sidebar.module.css';
 
 const Sidebar = ({ userRole, user }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const pathname = usePathname();
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -66,7 +68,7 @@ const Sidebar = ({ userRole, user }) => {
                         <li className={styles.navItem}>
                             <Link
                                 href="/dashboard"
-                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/dashboard') ? styles.activeNavLink : ''}`}
                             >
                                 <FiHome className={styles.navIcon} />
                                 {!isCollapsed && <span>Dashboard</span>}
@@ -75,7 +77,7 @@ const Sidebar = ({ userRole, user }) => {
                         <li className={styles.navItem}>
                             <Link
                                 href="/calendar"
-                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/calendar') ? styles.activeNavLink : ''}`}
                             >
                                 <FiCalendar className={styles.navIcon} />
                                 {!isCollapsed && <span>Calendar</span>}
@@ -86,7 +88,7 @@ const Sidebar = ({ userRole, user }) => {
                                 <li className={styles.navItem}>
                                     <Link
                                         href="/userRoles"
-                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/userRoles') ? styles.activeNavLink : ''}`}
                                     >
                                         <FiUsers className={styles.navIcon} />
                                         {!isCollapsed && <span>User Roles</span>}
@@ -95,7 +97,7 @@ const Sidebar = ({ userRole, user }) => {
                                 <li className={styles.navItem}>
                                     <Link
                                         href="/classes"
-                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
                                     >
                                         <FiBook className={styles.navIcon} />
                                         {!isCollapsed && <span>Manage Classes</span>}
@@ -107,7 +109,7 @@ const Sidebar = ({ userRole, user }) => {
                             <li className={styles.navItem}>
                                 <Link
                                     href="/subjects"
-                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/subjects') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiBookOpen className={styles.navIcon} />
                                     {!isCollapsed && <span>Manage Subjects</span>}
@@ -118,7 +120,7 @@ const Sidebar = ({ userRole, user }) => {
                             <li className={styles.navItem}>
                                 <Link
                                     href="/tutorHours"
-                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded}`}
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/tutorHours') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiClock className={styles.navIcon} />
                                     {!isCollapsed && <span>Tutor Hours</span>}

@@ -1,6 +1,7 @@
 'use client';
 
 import Sidebar from '@/components/Sidebar';
+import { usePathname } from 'next/navigation';
 
 /**
  * Main application layout for authenticated users
@@ -11,6 +12,7 @@ import Sidebar from '@/components/Sidebar';
  * @param {JSX} children - Page content
  */
 const AppLayout = ({ session, userRole, children }) => {
+    const pathname = usePathname();
     let dashboardTitle;
     if (userRole === 'student') {
         dashboardTitle = 'Student Dashboard';
@@ -41,7 +43,9 @@ const AppLayout = ({ session, userRole, children }) => {
 
                     {/* content area with scroll */}
                     <div className="flex-grow-1 overflow-hidden content-scroll-area">
-                        {children}
+                        <div key={pathname} className="fade-in h-100">
+                            {children}
+                        </div>
                     </div>
                 </div>
             </div>

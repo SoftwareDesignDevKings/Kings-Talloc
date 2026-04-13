@@ -47,6 +47,12 @@
     --tks-text-muted: #6b7280;                    /* labels, secondary text */
     --tks-text-subtle: #9ca3af;                   /* timestamps, meta */
 
+    /* ── Animations ────────────────────────────────────────── */
+    --transition-fast: 150ms cubic-bezier(0.25, 1, 0.5, 1);
+    --transition-normal: 300ms cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
     /* ── Calendar (references brand tokens) ─────────────────── */
     --calendar-bg: var(--tks-surface);
     --calendar-text: var(--tks-text-primary);
@@ -57,6 +63,59 @@
     --bs-body-font-family: var(--font-body, system-ui, -apple-system, sans-serif);
     --bs-body-font-size: 1rem;
     --bs-body-line-height: 1.6;
+}
+
+/* Global Transitions */
+button, 
+.btn, 
+.nav-link, 
+.dropdown-item,
+input,
+select,
+textarea {
+    transition: all var(--transition-fast) !important;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Page transitions */
+.fade-in {
+    animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal entrance */
+.modal.fade .modal-dialog {
+    transition: transform var(--transition-normal) !important;
+    transform: scale(0.95) translateY(-20px);
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1) translateY(0);
+}
+
+/* Table row hover */
+.table-hover tbody tr {
+    transition: background-color var(--transition-fast);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Body picks up the UI font via Bootstrap's variable */

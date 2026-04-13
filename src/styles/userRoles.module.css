@@ -100,15 +100,21 @@
     text-align: center;
     padding: 0.5rem;
     border: 2px solid transparent;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast, 150ms cubic-bezier(0.25, 1, 0.5, 1));
     user-select: none;
 }
 
 .selectableBadge:hover {
     border-color: #0d6efd;
+    transform: translateY(-1px);
+}
+
+.selectableBadge:active {
+    transform: scale(0.95);
 }
 
 .selectableBadgeSelected {
     background-color: #0d6efd !important;
     color: white;
+    box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.3);
 }

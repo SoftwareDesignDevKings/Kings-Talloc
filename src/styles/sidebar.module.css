@@ -81,8 +81,14 @@
     transition: background-color 150ms ease-in-out;
 }
 
-.navLink:hover {
+.navLink:hover, .activeNavLink {
     background-color: var(--tks-primary-subtle);
+    color: var(--tks-secondary);
+    font-weight: 600;
+}
+
+.activeNavLink .navIcon {
+    color: var(--tks-primary);
 }
 
 .navLink:focus {
