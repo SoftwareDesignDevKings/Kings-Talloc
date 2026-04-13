@@ -50,7 +50,7 @@ export async function GET(_req, { params }) {
 
         return `<tr>
       <td style="padding-bottom: ${index < totalEvents - 1 ? '12px' : '0'};">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #dee2e6; border-left: 4px solid #0d6efd; border-radius: 4px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #dee2e6; border-top: 3px solid #1A4D6F; border-radius: 4px;">
           <tr>
             <td style="padding: 16px;">
               <h3 style="margin: 0 0 8px 0; color: #212529; font-size: 16px; font-weight: 600;">${event.title}</h3>
