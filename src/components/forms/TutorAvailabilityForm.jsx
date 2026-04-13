@@ -5,14 +5,14 @@ import { isAfter, add, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
-import { useAppData } from '@/contexts/AppDataContext';
+import { useAppData } from '@/providers/AppDataProvider';
+import styles from '@/styles/availabilityForm.module.css';
 import {
     updateEventInFirestore,
     createEventInFirestore,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
-import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
-import useAlert from '@/hooks/useAlert';
+import { CalendarEntityType } from '@/strategy/calendarStrategy';
 
 const TutorAvailabilityForm = ({
     mode,
@@ -22,11 +22,12 @@ const TutorAvailabilityForm = ({
     setShowModal,
 }) => {
     const { calendarAvailabilities, setCalendarAvailabilities } = useAppData();
-    const { addAlert } = useAlert();
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView; // for backward compat with existing logic
+
+    const [error, setError] = useState('');
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -50,10 +51,11 @@ const TutorAvailabilityForm = ({
         const start = new Date(newAvailability.start);
         const end = new Date(newAvailability.end);
         if (!isAfter(end, start)) {
-            addAlert('error', 'End date must be after the start date.');
-            return false; // Validation failed
+            setError('End date must be after the start date.');
+            return false;
         }
-        return true; // Validation passed
+        setError('');
+        return true;
     };
 
     const setHours = (hours) => {
@@ -61,7 +63,7 @@ const TutorAvailabilityForm = ({
             const newEnd = add(new Date(newAvailability.start), { hours });
             setNewAvailability({ ...newAvailability, end: newEnd.toISOString() });
         } else {
-            addAlert('error', 'Invalid hours');
+            setError('Invalid hours');
         }
     };
 
@@ -105,11 +107,10 @@ const TutorAvailabilityForm = ({
                     },
                 ]);
             }
-            return true; // Success - allow modal to close
+            setShowModal(false);
         } catch (error) {
             console.error('Failed to submit availability:', error);
-            addAlert('error', 'Failed to submit availability');
-            return false; // Error - don't close modal
+            setError('Failed to submit availability');
         }
     };
 
@@ -121,20 +122,18 @@ const TutorAvailabilityForm = ({
                     (availability) => availability.id !== eventToEdit.id,
                 ),
             );
-            return true; // Success - allow modal to close
+            setShowModal(false);
         } catch (error) {
             console.error('Failed to delete availability:', error);
-            addAlert('error', 'Failed to delete availability');
-            return false; // Error - don't close modal
+            setError('Failed to delete availability');
         }
     };
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (!validateDates()) {
-            return false; // Validation failed - don't close modal
+        if (validateDates()) {
+            await handleSubmit(e);
         }
-        return await handleSubmit(e); // Pass through the result
     };
 
     const handleLocationChange = (selectedOption) => {
@@ -168,7 +167,7 @@ const TutorAvailabilityForm = ({
             show={true}
             onHide={() => setShowModal(false)}
             title={isView ? 'Availability Details' : (isEdit ? 'Edit Availability' : 'Add Availability')}
-            size="md"
+            size="lg"
             onSubmit={isView ? undefined : onSubmit}
             submitText={isEdit ? 'Save Changes' : 'Add Availability'}
             deleteButton={
@@ -182,92 +181,100 @@ const TutorAvailabilityForm = ({
             }
             showFooter={!isView}
         >
-            {/* Time Selection Card */}
-            <div className="card mb-3" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
-                <div className="card-body p-3">
-                    <div className="d-flex align-items-center mb-2">
-                        <MdAccessTime className="me-2 text-secondary" size={18} aria-hidden="true" />
-                        <small className="text-muted fw-semibold">Time Period</small>
+            <div className={styles.formContainer}>
+                {error && <div className="alert alert-danger py-2 mb-0" role="alert" aria-live="polite">{error}</div>}
+
+                {/* Time Selection Section */}
+                <div className={styles.section}>
+                    <div className={styles.sectionTitle}>
+                        <MdAccessTime size={18} className="text-primary" aria-hidden="true" />
+                        <span className="fw-bold">Time Period</span>
                     </div>
 
-                    <div className="mb-2">
-                        <label htmlFor="start" className="form-label small text-muted mb-1">
-                            Start Time
-                        </label>
-                        <input
-                            type="datetime-local"
-                            className="form-control"
-                            name="start"
-                            id="start"
-                            value={
-                                newAvailability.start && isValid(new Date(newAvailability.start))
-                                    ? format(new Date(newAvailability.start), "yyyy-MM-dd'T'HH:mm")
-                                    : ''
-                            }
-                            onChange={handleInputChange}
-                            required
-                            disabled={isView}
-                            aria-label="Availability start time"
-                            aria-required="true"
-                        />
+                    <div className={styles.timeGrid}>
+                        <div>
+                            <label htmlFor="start" className="form-label small fw-bold text-muted text-uppercase mb-1">
+                                Start Time
+                            </label>
+                            <input
+                                type="datetime-local"
+                                className={`form-control border-0 bg-light ${error && error.includes('date') ? styles.invalidInput : ''}`}
+                                name="start"
+                                id="start"
+                                value={
+                                    newAvailability.start && isValid(new Date(newAvailability.start))
+                                        ? format(new Date(newAvailability.start), "yyyy-MM-dd'T'HH:mm")
+                                        : ''
+                                }
+                                onChange={handleInputChange}
+                                required
+                                disabled={isView}
+                                aria-label="Availability start time"
+                                aria-required="true"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="end" className="form-label small fw-bold text-muted text-uppercase mb-1">
+                                End Time
+                            </label>
+                            <input
+                                type="datetime-local"
+                                className={`form-control border-0 bg-light ${error && error.includes('date') ? styles.invalidInput : ''}`}
+                                name="end"
+                                id="end"
+                                value={
+                                    newAvailability.end && isValid(new Date(newAvailability.end))
+                                        ? format(new Date(newAvailability.end), "yyyy-MM-dd'T'HH:mm")
+                                        : ''
+                                }
+                                onChange={handleInputChange}
+                                required
+                                disabled={isView}
+                                aria-label="Availability end time"
+                                aria-required="true"
+                            />
+                        </div>
                     </div>
 
-                    <div className="mb-2">
-                        <label htmlFor="end" className="form-label small text-muted mb-1">
-                            End Time
-                        </label>
-                        <input
-                            type="datetime-local"
-                            className="form-control"
-                            name="end"
-                            id="end"
-                            value={
-                                newAvailability.end && isValid(new Date(newAvailability.end))
-                                    ? format(new Date(newAvailability.end), "yyyy-MM-dd'T'HH:mm")
-                                    : ''
-                            }
-                            onChange={handleInputChange}
-                            required
-                            disabled={isView}
-                            aria-label="Availability end time"
-                            aria-required="true"
-                        />
-                    </div>
+                    {error && error.includes('date') && (
+                        <div className={styles.invalidFeedback}>
+                            {error}
+                        </div>
+                    )}
 
                     {!isView && (
-                        <div className="d-flex gap-2 align-items-center mt-3">
-                            <small className="text-muted" id="quick-duration-label">Quick:</small>
+                        <div className={styles.quickButtons}>
+                            <small className="text-muted fw-bold text-uppercase" id="quick-duration-label" style={{ fontSize: '0.65rem' }}>Duration:</small>
                             <div className="btn-group btn-group-sm" role="group" aria-labelledby="quick-duration-label">
                                 <button
                                     type="button"
-                                    className="btn btn-outline-primary"
+                                    className="btn btn-outline-primary px-3"
                                     onClick={() => setHours(6)}
                                     aria-label="Set duration to 6 hours"
                                 >
-                                    6hrs
+                                    6 Hours
                                 </button>
                                 <button
                                     type="button"
-                                    className="btn btn-outline-secondary"
+                                    className="btn btn-outline-secondary px-3"
                                     onClick={() => setHours(3)}
                                     aria-label="Set duration to 3 hours"
                                 >
-                                    3hrs
+                                    3 Hours
                                 </button>
                             </div>
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* Work Type & Location */}
-            <div className="row g-2">
-                <div className="col-6">
-                    <div className="card h-100" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
-                        <div className="card-body p-2">
-                            <div className="d-flex align-items-center mb-2">
-                                <MdWork className="me-1 text-secondary" size={16} aria-hidden="true" />
-                                <small className="text-muted fw-semibold">Type</small>
+                {/* Work Type & Location Section */}
+                <div className={styles.section}>
+                    <div className={styles.typeGrid}>
+                        <div>
+                            <div className={styles.sectionTitle}>
+                                <MdWork size={16} className="text-primary" aria-hidden="true" />
+                                <span className="fw-bold">Assignment Type</span>
                             </div>
                             <Select
                                 name="workType"
@@ -281,16 +288,21 @@ const TutorAvailabilityForm = ({
                                 isDisabled={isView}
                                 aria-label="Work type"
                                 inputId="workType"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: '#f8f9fa',
+                                        border: 'none',
+                                        padding: '4px',
+                                        borderRadius: '0.5rem',
+                                    }),
+                                }}
                             />
                         </div>
-                    </div>
-                </div>
-                <div className="col-6">
-                    <div className="card h-100" style={{ borderWidth: '2px', borderColor: '#dee2e6', borderStyle: 'solid' }}>
-                        <div className="card-body p-2">
-                            <div className="d-flex align-items-center mb-2">
-                                <MdLocationOn className="me-1 text-secondary" size={16} aria-hidden="true" />
-                                <small className="text-muted fw-semibold">Location</small>
+                        <div>
+                            <div className={styles.sectionTitle}>
+                                <MdLocationOn size={16} className="text-primary" aria-hidden="true" />
+                                <span className="fw-bold">Location Preference</span>
                             </div>
                             <Select
                                 name="locationType"
@@ -305,6 +317,15 @@ const TutorAvailabilityForm = ({
                                 isDisabled={isView}
                                 aria-label="Location type"
                                 inputId="locationType"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: '#f8f9fa',
+                                        border: 'none',
+                                        padding: '4px',
+                                        borderRadius: '0.5rem',
+                                    }),
+                                }}
                             />
                         </div>
                     </div>
