@@ -16,7 +16,7 @@ const Settings = ({
 
     return (
         <div 
-            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-50"
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50"
             style={{ zIndex: 1050 }}
         >
             <div className="bg-white p-4 rounded-3 shadow-lg" style={{ width: '33.333333%'}}>
