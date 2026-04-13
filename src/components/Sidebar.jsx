@@ -51,16 +51,15 @@ const Sidebar = ({ user }) => {
 
     return (
         <div
-            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : styles.sidebarExpanded} d-flex flex-column justify-content-between`}
+            style={{ '--sidebar-w': isCollapsed ? '5rem' : '16rem' }}
+            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : ''} d-flex flex-column justify-content-between`}
         >
             <div>
                 <div className="p-4">
                     <div className="d-flex justify-content-between align-items-center">
-                        {!isCollapsed && (
-                            <h4 className={`fs-3 fw-bold mb-0 ${styles.menuTitle}`}>
-                                Menu
-                            </h4>
-                        )}
+                        <h4 className={`fs-3 fw-bold mb-0 ${styles.menuTitle} ${styles.navLabel}`}>
+                            Menu
+                        </h4>
                         <button
                             onClick={toggleSidebar}
                             className={styles.toggleButton}
@@ -82,7 +81,7 @@ const Sidebar = ({ user }) => {
                                 className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/dashboard') ? styles.activeNavLink : ''}`}
                             >
                                 <FiHome className={styles.navIcon} />
-                                {!isCollapsed && <span>Dashboard</span>}
+                                <span className={styles.navLabel}>Dashboard</span>
                             </Link>
                         </li>
                         <li className={styles.navItem}>
@@ -91,7 +90,7 @@ const Sidebar = ({ user }) => {
                                 className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/calendar') ? styles.activeNavLink : ''}`}
                             >
                                 <FiCalendar className={styles.navIcon} />
-                                {!isCollapsed && <span>Calendar</span>}
+                                <span className={styles.navLabel}>Calendar</span>
                             </Link>
                         </li>
                         {(userRole === 'teacher' || userRole === 'admin') && (
@@ -102,7 +101,7 @@ const Sidebar = ({ user }) => {
                                         className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/userRoles') ? styles.activeNavLink : ''}`}
                                     >
                                         <FiUsers className={styles.navIcon} />
-                                        {!isCollapsed && <span>User Roles</span>}
+                                        <span className={styles.navLabel}>User Roles</span>
                                     </Link>
                                 </li>
                                 <li className={styles.navItem}>
@@ -111,7 +110,7 @@ const Sidebar = ({ user }) => {
                                         className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
                                     >
                                         <FiBook className={styles.navIcon} />
-                                        {!isCollapsed && <span>Manage Classes</span>}
+                                        <span className={styles.navLabel}>Manage Classes</span>
                                     </Link>
                                 </li>
                             </>
@@ -123,7 +122,7 @@ const Sidebar = ({ user }) => {
                                     className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/subjects') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiBookOpen className={styles.navIcon} />
-                                    {!isCollapsed && <span>Manage Subjects</span>}
+                                    <span className={styles.navLabel}>Manage Subjects</span>
                                 </Link>
                             </li>
                         )}
@@ -134,7 +133,7 @@ const Sidebar = ({ user }) => {
                                     className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/tutorHours') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiClock className={styles.navIcon} />
-                                    {!isCollapsed && <span>Tutor Hours</span>}
+                                    <span className={styles.navLabel}>Tutor Hours</span>
                                 </Link>
                             </li>
                         )}
@@ -163,8 +162,8 @@ const Sidebar = ({ user }) => {
                             <FiUser className={styles.navIcon} data-testid="fi-user-icon" />
                         </div>
                     )}
-                    {!isCollapsed && <span>{user.name}</span>}
-                    {!isCollapsed && <FiSettings className={styles.navIcon} />}
+                    <span className={styles.navLabel}>{user.name}</span>
+                    <FiSettings className={`${styles.navIcon} ${styles.navLabel}`} />
                 </button>
                 {showProfileMenu && (
                     <div

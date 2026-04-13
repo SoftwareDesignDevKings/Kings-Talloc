@@ -22,7 +22,6 @@ import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent from './CustomEvent.jsx';
 import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
-import CalendarLegend from './CalendarLegend.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
 
@@ -448,10 +447,6 @@ const CalendarContent = () => {
                 </div>
             </div>
         
-            <div className="position-absolute bottom-0 end-0 mb-3 me-3" style={{ zIndex: 10 }}>
-                <CalendarLegend />
-            </div>
-
             <CalendarFilterPanel calendarStrategy={strategy} device={device} userRole={userRole} />
             
             {/* render different modals depending on the target, action  */}
