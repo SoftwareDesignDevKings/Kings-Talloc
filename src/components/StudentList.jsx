@@ -3,7 +3,7 @@ import React from 'react';
 const StudentList = ({ cls, confirmRemoveStudent }) => {
     return (
         <div className="mt-4">
-            <h3 className="h5 text-purple fw-medium">Students</h3>
+            <h3 className="h5 text-tks-secondary fw-medium">Students</h3>
             {cls.students && cls.students.length > 0 ? (
                 <ul className="list-unstyled mt-3">
                     {cls.students.map((student) => (

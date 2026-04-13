@@ -38,7 +38,7 @@ const ClassRow = ({
                     </button>
                     <button
                         onClick={() => handleOpenStudentModal(cls)}
-                        className="btn btn-sm btn-dark-blue"
+                        className="btn btn-sm btn-success"
                     >
                         Add Students
                     </button>

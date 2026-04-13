@@ -159,7 +159,7 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                     style={{
                                         borderBottom:
                                             index < events.length - 1
-                                                ? '1px solid #f1f3f5'
+                                                ? '1px solid var(--tks-border-subtle)'
                                                 : 'none',
                                     }}
                                 >

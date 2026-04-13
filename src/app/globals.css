@@ -31,51 +31,39 @@
 @import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
 :root {
-    --calendar-bg: #ffffff;
-    --calendar-text: #000000;
+    /* ── Brand ─────────────────────────────────────────────── */
+    --tks-primary: #6FA5CC;                       /* sky blue */
+    --tks-primary-subtle: rgba(111, 165, 204, 0.15); /* hover bg on white */
+    --tks-secondary: #1A4D6F;                     /* navy */
+    --tks-secondary-hover: #1e5a80;               /* slightly lighter navy for hover */
 
-    /* Primary */
-    --tks-primary: #6FA5CC;
+    /* ── Surfaces & borders ─────────────────────────────────── */
+    --tks-surface: #ffffff;
+    --tks-border: #e5e7eb;                        /* dividers, card edges */
+    --tks-border-subtle: #f1f3f5;                 /* row separators in lists */
 
-    /* Secondary */
-    --tks-secondary: #1A4D6F;
+    /* ── Text scale ─────────────────────────────────────────── */
+    --tks-text-primary: #111827;                  /* headings, body */
+    --tks-text-muted: #6b7280;                    /* labels, secondary text */
+    --tks-text-subtle: #9ca3af;                   /* timestamps, meta */
+
+    /* ── Calendar (references brand tokens) ─────────────────── */
+    --calendar-bg: var(--tks-surface);
+    --calendar-text: var(--tks-text-primary);
 }
 
 .app-gradient-bg {
     background: linear-gradient(to right, var(--tks-primary), var(--tks-secondary));
 }
 
-.text-purple {
-    color: #6366f1 !important;
-}
-
 .table-text-sm td {
     font-size: 0.875rem;
-}
-
-.btn-dark-blue {
-    background-color: #198754 !important;
-    border-color: #198754 !important;
-    color: white !important;
-}
-
-.btn-dark-blue:hover {
-    background-color: #157347 !important;
-    border-color: #157347 !important;
-    color: white !important;
-}
-
-.btn-dark-blue:focus {
-    background-color: #157347 !important;
-    border-color: #157347 !important;
-    color: white !important;
-    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.5) !important;
 }
 
 .dashboard-title {
     font-size: 1.875rem;
     font-weight: 800;
-    color: #111827;
+    color: var(--tks-text-primary);
     margin-top: 1rem;
 }
 
