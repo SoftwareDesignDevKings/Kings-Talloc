@@ -26,17 +26,19 @@ const SettingsSection = ({
         }));
     }, [setNewEvent]);
     return (
-        <div className="accordion-item">
+        <div className="accordion-item border-0 border-bottom">
             <h2 className="accordion-header">
                 <button
-                    className="accordion-button collapsed"
+                    className="accordion-button collapsed shadow-none"
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#settings"
                     aria-expanded="false"
                     aria-controls="settings"
+                    style={{ background: 'transparent' }}
                 >
-                    <MdSettings className="me-2" aria-hidden="true" /> Settings & Status
+                    <MdSettings className="me-2 text-primary" size={20} aria-hidden="true" />
+                    <span className="fw-bold">Settings & Status</span>
                 </button>
             </h2>
             <div
@@ -44,85 +46,108 @@ const SettingsSection = ({
                 className="accordion-collapse collapse"
                 data-bs-parent="#eventFormAccordion"
             >
-                <div className="accordion-body">
-                    <div className="mb-3">
-                        <label
-                            htmlFor="minStudents"
-                            className="form-label small text-muted mb-1"
-                        >
-                            Minimum Students Required
-                        </label>
-                        <input
-                            type="number"
-                            className="form-control"
-                            name="minStudents"
-                            id="minStudents"
-                            value={newEvent.minStudents || 0}
-                            onChange={handleMinStudentsChange}
-                            disabled={readOnly}
-                            aria-label="Minimum number of students required"
-                            min="0"
-                        />
-                    </div>
-
-                    {newEvent.minStudents > 0 && (
-                        <div className="mb-3">
-                            <small className="text-muted d-block mb-2">Student Responses</small>
-                            {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                                <div className="d-flex flex-wrap gap-1">
-                                    {newEvent.studentResponses.map((response, index) => (
-                                        <span
-                                            key={index}
-                                            className={`badge bg-${response.response ? 'success' : 'danger'} fw-normal`}
-                                        >
-                                            {response.email}:{' '}
-                                            {response.response ? 'Accepted' : 'Declined'}
-                                        </span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-muted mb-0 small fst-italic">
-                                    No responses yet
-                                </p>
-                            )}
+                <div className="accordion-body p-4">
+                    <div className="row g-4">
+                        <div className="col-md-6">
+                            <label
+                                htmlFor="minStudents"
+                                className="form-label small fw-bold text-muted text-uppercase"
+                            >
+                                Min Students
+                            </label>
+                            <input
+                                type="number"
+                                className="form-control border-0 bg-light"
+                                name="minStudents"
+                                id="minStudents"
+                                value={newEvent.minStudents || 0}
+                                onChange={handleMinStudentsChange}
+                                disabled={readOnly}
+                                aria-label="Minimum number of students required"
+                                min="0"
+                            />
+                            <small className="text-muted mt-1 d-block" style={{ fontSize: '0.7rem' }}>
+                                Required for confirmation
+                            </small>
                         </div>
-                    )}
 
-                    <div className="mb-3">
-                        <label htmlFor="workType" className="form-label small text-muted mb-1">
-                            Work Type
-                        </label>
-                        <Select
-                            name="workType"
-                            options={workTypeOptions}
-                            onChange={handleWorkTypeChange}
-                            classNamePrefix="select"
-                            value={workTypeOptions.find(
-                                (option) => option.value === (newEvent.workType || 'work'),
-                            )}
-                            isDisabled={readOnly}
-                            aria-label="Event work type"
-                            inputId="workType"
-                        />
-                    </div>
+                        {newEvent.minStudents > 0 && (
+                            <div className="col-md-6">
+                                <label className="form-label small fw-bold text-muted text-uppercase mb-2">
+                                    Responses
+                                </label>
+                                {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
+                                    <div className="d-flex flex-wrap gap-1">
+                                        {newEvent.studentResponses.map((response, index) => (
+                                            <span
+                                                key={index}
+                                                className={`badge rounded-pill bg-${response.response ? 'success' : 'danger'} fw-normal`}
+                                                style={{ fontSize: '0.7rem' }}
+                                            >
+                                                {response.email.split('@')[0]}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-muted small fst-italic py-1">
+                                        No data yet
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                    <div className="mb-0">
-                        <label htmlFor="workStatus" className="form-label small text-muted mb-1">
-                            Work Status
-                        </label>
-                        <Select
-                            name="workStatus"
-                            options={workStatusOptions}
-                            onChange={handleWorkStatusChange}
-                            classNamePrefix="select"
-                            value={workStatusOptions.find(
-                                (option) =>
-                                    option.value === (newEvent.workStatus || 'notCompleted'),
-                            )}
-                            isDisabled={readOnly && userRole !== 'tutor'}
-                            aria-label="Event work status"
-                            inputId="workStatus"
-                        />
+                        <div className="col-md-6">
+                            <label htmlFor="workType" className="form-label small fw-bold text-muted text-uppercase">
+                                Work Type
+                            </label>
+                            <Select
+                                name="workType"
+                                options={workTypeOptions}
+                                onChange={handleWorkTypeChange}
+                                classNamePrefix="select"
+                                value={workTypeOptions.find(
+                                    (option) => option.value === (newEvent.workType || 'work'),
+                                )}
+                                isDisabled={readOnly}
+                                aria-label="Event work type"
+                                inputId="workType"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: '#f8f9fa',
+                                        border: 'none',
+                                        padding: '2px',
+                                    }),
+                                }}
+                            />
+                        </div>
+
+                        <div className="col-md-6">
+                            <label htmlFor="workStatus" className="form-label small fw-bold text-muted text-uppercase">
+                                Work Status
+                            </label>
+                            <Select
+                                name="workStatus"
+                                options={workStatusOptions}
+                                onChange={handleWorkStatusChange}
+                                classNamePrefix="select"
+                                value={workStatusOptions.find(
+                                    (option) =>
+                                        option.value === (newEvent.workStatus || 'notCompleted'),
+                                )}
+                                isDisabled={readOnly && userRole !== 'tutor'}
+                                aria-label="Event work status"
+                                inputId="workStatus"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: '#f8f9fa',
+                                        border: 'none',
+                                        padding: '2px',
+                                    }),
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
