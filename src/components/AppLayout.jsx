@@ -25,17 +25,16 @@ const AppLayout = ({ session, userRole, children }) => {
     }
 
     return (
-        <div className="d-flex app-gradient-bg app-shell">
+        <div className="d-flex app-shell">
             <Sidebar user={session.user} userRole={userRole} />
 
-            {/* main content area with outer padding */}
-            <div className="flex-grow-1 p-1 p-md-3 d-flex flex-column overflow-hidden">
-                {/* white card container */}
-                <div className="bg-white rounded-3 shadow-lg p-4 p-md-4 d-flex flex-column flex-grow-1 overflow-hidden">
+            {/* main content area */}
+            <div className="flex-grow-1 d-flex flex-column overflow-hidden bg-white">
+                <div className="p-4 p-md-4 d-flex flex-column flex-grow-1 overflow-hidden">
                     {/* Header section: responsive alignment */}
                     <div className="ps-1 text-center text-md-start ps-1">
                         <h1 className="dashboard-title ps-1 mt-2">{dashboardTitle}</h1>
-                        <p className="ps-1  mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
+                        <p className="ps-1 mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
                     </div>
 
                     {/* divider */}
