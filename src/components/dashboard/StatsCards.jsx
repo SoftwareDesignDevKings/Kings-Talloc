@@ -246,7 +246,7 @@ const TutorStats = ({ data }) => (
         </div>
         {data.needsConfirmation > 0 && (
             <div className="alert alert-warning mb-4 d-flex align-items-center gap-2">
-                <FiAlertCircle size={18} className="flex-shrink-0" />
+                <FiAlertCircle size={18} className="shrink-0" />
                 <span>
                     You have {data.needsConfirmation} event{data.needsConfirmation !== 1 ? 's' : ''} requiring your confirmation.
                 </span>

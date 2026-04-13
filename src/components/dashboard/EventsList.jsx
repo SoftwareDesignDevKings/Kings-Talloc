@@ -75,7 +75,7 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                 >
                                     {/* Time column */}
                                     <div
-                                        className="flex-shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
+                                        className="shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
                                         style={{ width: '80px' }}
                                     >
                                         <span
@@ -106,7 +106,7 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                     </div>
 
                                     {/* Content */}
-                                    <div className="flex-grow-1 px-3 py-3">
+                                    <div className="grow px-3 py-3">
                                         <div className="d-flex align-items-center gap-2 flex-wrap">
                                             <span
                                                 className="fw-semibold text-dark"
