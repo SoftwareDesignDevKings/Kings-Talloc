@@ -12,6 +12,7 @@ import {
     FiChevronRight,
     FiBookOpen,
     FiHome,
+    FiLogOut,
 } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -32,7 +33,6 @@ const ROLE_LABELS = {
 const Sidebar = ({ user }) => {
     const { userRole, availableRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [showProfileMenu, setShowProfileMenu] = useState(false);
     const pathname = usePathname();
 
     useEffect(() => {
@@ -141,12 +141,8 @@ const Sidebar = ({ user }) => {
                 </div>
             </div>
             <div className={styles.profileSection}>
-                <button
-                    type="button"
+                <div
                     className={`${styles.profileContainer} ${isCollapsed ? styles.profileContainerCollapsed : styles.profileContainerExpanded}`}
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    aria-expanded={showProfileMenu}
-                    aria-label="Open profile menu"
                 >
                     {user?.image ? (
                         <Image
@@ -162,21 +158,17 @@ const Sidebar = ({ user }) => {
                             <FiUser className={styles.navIcon} data-testid="fi-user-icon" />
                         </div>
                     )}
-                    <span className={styles.navLabel}>{user.name}</span>
-                    <FiSettings className={`${styles.navIcon} ${styles.navLabel}`} />
-                </button>
-                {showProfileMenu && (
-                    <div
-                        className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded}`}
-                    >
-                        <button
-                            onClick={AppLogout}
-                            className="btn btn-danger w-100"
-                        >
-                            Logout
-                        </button>
-                    </div>
+                    <span className={`${styles.navLabel} fw-semibold text-truncate`} style={{ maxWidth: '100px' }}>{user.name}</span>
                 </div>
+                
+                <button
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className={`${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
+                    title="Logout"
+                >
+                    <FiLogOut className={styles.navIcon} />
+                    <span className={styles.navLabel}>Logout</span>
+                </button>
             </div>
         </div>
     );

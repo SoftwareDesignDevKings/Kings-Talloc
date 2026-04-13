@@ -121,11 +121,11 @@ const StudentEventForm = ({
             return tutorAvailabilities.some((availability) => {
                 const availStart = new Date(availability.start);
                 const availEnd = new Date(availability.end);
+                const types = Array.isArray(availability.workType) ? availability.workType : [availability.workType];
                 return (
                     (availStart <= start || availStart.getTime() === start.getTime()) &&
                     (availEnd >= end || availEnd.getTime() === end.getTime()) &&
-                    (availability.workType === 'tutoring' ||
-                        availability.workType === 'tutoringOrWork' ||
+                    (types.some(t => t === 'tutoring' || t === 'tutoringOrWork') ||
                         availability.workType === undefined)
                 ); // undefined check for backwards compatibility
             });

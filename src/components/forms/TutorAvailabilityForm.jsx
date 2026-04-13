@@ -43,7 +43,6 @@ const TutorAvailabilityForm = ({
     const workTypeOptions = [
         { value: 'tutoring', label: 'Tutoring' },
         { value: 'coaching', label: 'Coaching' },
-        { value: 'tutoringOrWork', label: 'Tutoring Or Work' },
         { value: 'work', label: 'Work' },
     ];
 
@@ -65,7 +64,7 @@ const TutorAvailabilityForm = ({
             start: new Date(newAvailability.start),
             end: new Date(newAvailability.end),
             tutor: newAvailability.tutor,
-            workType: newAvailability.workType,
+            workType: Array.isArray(newAvailability.workType) ? newAvailability.workType : [newAvailability.workType || 'work'],
             locationType: newAvailability.locationType,
         };
 
@@ -133,19 +132,22 @@ const TutorAvailabilityForm = ({
         setNewAvailability({ ...newAvailability, locationType: selectedOption.value });
     };
 
-    const handleWorkTypeChange = async (selectedOption) => {
-        setNewAvailability({ ...newAvailability, workType: selectedOption.value });
+    const handleWorkTypeChange = (selectedOptions) => {
+        const values = selectedOptions ? selectedOptions.map(o => o.value) : [];
+        setNewAvailability({ ...newAvailability, workType: values });
     };
 
     const getWorkTypeBadge = () => {
-        const workType = newAvailability.workType;
+        const workTypes = Array.isArray(newAvailability.workType) 
+            ? newAvailability.workType 
+            : [newAvailability.workType];
+            
         const badges = {
-            tutoring: <span className="badge bg-primary me-1">Tutoring</span>,
-            coaching: <span className="badge bg-info me-1">Coaching</span>,
-            tutoringOrWork: <span className="badge bg-success me-1">Tutoring/Work</span>,
-            work: <span className="badge bg-secondary me-1">Work</span>,
+            tutoring: <span key="tutoring" className="badge bg-primary me-1">Tutoring</span>,
+            coaching: <span key="coaching" className="badge bg-info me-1">Coaching</span>,
+            work: <span key="work" className="badge bg-secondary me-1">Work</span>,
         };
-        return badges[workType] || null;
+        return workTypes.map(type => badges[type] || null);
     };
 
     const getLocationBadge = () => {
@@ -247,14 +249,17 @@ const TutorAvailabilityForm = ({
                                 <span className="fw-bold">Assignment Type</span>
                             </div>
                             <Select
+                                isMulti
                                 name="workType"
                                 options={workTypeOptions}
-                                value={workTypeOptions.find(
-                                    (option) => option.value === newAvailability.workType,
+                                value={workTypeOptions.filter((option) =>
+                                    Array.isArray(newAvailability.workType)
+                                        ? newAvailability.workType.includes(option.value)
+                                        : newAvailability.workType === option.value
                                 )}
                                 onChange={handleWorkTypeChange}
                                 classNamePrefix="select"
-                                placeholder="Select type..."
+                                placeholder="Select types..."
                                 isDisabled={isView}
                                 aria-label="Work type"
                                 inputId="workType"
