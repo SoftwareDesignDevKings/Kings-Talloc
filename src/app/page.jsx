@@ -18,7 +18,7 @@ const LandingPage = () => {
                 <div className="row row-cols-1 row-cols-md-2 g-4 mt-3 fade-in" style={{ animationDelay: '100ms' }}>
                     <div className="col">
                         <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
-                            <FiCalendar className="text-primary me-3 flex-shrink-0" size={32} />
+                            <FiCalendar className="text-primary me-3 shrink-0" size={32} />
                             <div>
                                 <h3 className="h6 fw-bold text-dark mb-2">
                                     Schedule Sessions
@@ -32,7 +32,7 @@ const LandingPage = () => {
                     </div>
                     <div className="col">
                         <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
-                            <FiUserCheck className="text-primary me-3 flex-shrink-0" size={32} />
+                            <FiUserCheck className="text-primary me-3 shrink-0" size={32} />
                             <div>
                                 <h3 className="h6 fw-bold text-dark mb-2">
                                     Assign Tutors
@@ -46,7 +46,7 @@ const LandingPage = () => {
                     </div>
                     <div className="col">
                         <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
-                            <FiClock className="text-primary me-3 flex-shrink-0" size={32} />
+                            <FiClock className="text-primary me-3 shrink-0" size={32} />
                             <div>
                                 <h3 className="h6 fw-bold text-dark mb-2">
                                     Tutor Availability
@@ -60,7 +60,7 @@ const LandingPage = () => {
                     </div>
                     <div className="col">
                         <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
-                            <FiBookOpen className="text-primary me-3 flex-shrink-0" size={32} />
+                            <FiBookOpen className="text-primary me-3 shrink-0" size={32} />
                             <div>
                                 <h3 className="h6 fw-bold text-dark mb-2">
                                     Manage Classes

@@ -267,7 +267,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 </CSVLink>
             </div>
             <div className="mb-3 p-3 border border-secondary-subtle bg-light rounded d-flex align-items-start gap-2">
-                <FaInfoCircle className="text-secondary mt-1 flex-shrink-0" style={{ fontSize: '1.25rem' }} />
+                <FaInfoCircle className="text-secondary mt-1 shrink-0" style={{ fontSize: '1.25rem' }} />
                 <div className="small text-secondary">
                     <p className="mb-2">
                         Please check if the hours are correct by Friday. If there are any
@@ -279,7 +279,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 </div>
             </div>
 
-            <div className="flex-grow-1 overflow-auto">
+            <div className="grow overflow-auto">
                 <div className="table-responsive">
                     <table className="table table-sm table-hover bg-white">
                         <thead className="sticky-top bg-light" style={{ zIndex: 1 }}>

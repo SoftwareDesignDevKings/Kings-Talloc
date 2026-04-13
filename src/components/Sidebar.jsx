@@ -73,7 +73,7 @@ const Sidebar = ({ user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="flex-grow-1">
+                <div className="grow">
                     <ul className={styles.navList}>
                         <li className={styles.navItem}>
                             <Link

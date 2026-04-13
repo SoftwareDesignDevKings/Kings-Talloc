@@ -29,8 +29,8 @@ const AppLayout = ({ session, userRole, children }) => {
             <Sidebar user={session.user} userRole={userRole} />
 
             {/* main content area */}
-            <div className="flex-grow-1 d-flex flex-column overflow-hidden bg-white">
-                <div className="p-4 p-md-4 d-flex flex-column flex-grow-1 overflow-hidden">
+            <div className="grow d-flex flex-column overflow-hidden bg-white">
+                <div className="p-4 p-md-4 d-flex flex-column grow overflow-hidden">
                     {/* Header section: responsive alignment */}
                     <div className="ps-1 text-center text-md-start ps-1">
                         <h1 className="dashboard-title ps-1 mt-2">{dashboardTitle}</h1>
@@ -41,7 +41,7 @@ const AppLayout = ({ session, userRole, children }) => {
                     <hr className="my-4 divider-offset"/>
 
                     {/* content area with scroll */}
-                    <div className="flex-grow-1 overflow-hidden content-scroll-area">
+                    <div className="grow overflow-hidden content-scroll-area">
                         <div key={pathname} className="fade-in h-100">
                             {children}
                         </div>
