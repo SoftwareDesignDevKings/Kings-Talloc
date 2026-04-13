@@ -15,19 +15,22 @@ const ParticipantsSection = ({
     handleStudentSelectChange,
     studentOptions,
     readOnly,
+    errors = {},
 }) => {
     return (
-        <div className="accordion-item">
+        <div className="accordion-item border-0 border-bottom">
             <h2 className="accordion-header">
                 <button
-                    className="accordion-button collapsed"
+                    className="accordion-button collapsed shadow-none"
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#participants"
                     aria-expanded="false"
                     aria-controls="participants"
+                    style={{ background: 'transparent' }}
                 >
-                    <MdPeople className="me-2" aria-hidden="true" /> Participants
+                    <MdPeople className="me-2 text-primary" size={20} aria-hidden="true" />
+                    <span className="fw-bold">Participants</span>
                 </button>
             </h2>
             <div
@@ -35,13 +38,13 @@ const ParticipantsSection = ({
                 className="accordion-collapse collapse"
                 data-bs-parent="#eventFormAccordion"
             >
-                <div className="accordion-body">
-                    <div className="mb-3">
+                <div className="accordion-body p-4">
+                    <div className="mb-4">
                         <label
                             htmlFor="staff"
-                            className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
+                            className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1"
                         >
-                            <FaChalkboardTeacher /> Assign Tutor
+                            <FaChalkboardTeacher /> Assign Tutors
                         </label>
                         <Select
                             isMulti
@@ -57,47 +60,78 @@ const ParticipantsSection = ({
                             isDisabled={readOnly}
                             aria-label="Assign tutors to event"
                             inputId="staff"
+                            styles={{
+                                control: (base) => ({
+                                    ...base,
+                                    borderColor: errors.staff ? '#dc3545' : '#dee2e6',
+                                    backgroundColor: '#f8f9fa',
+                                    border: 'none',
+                                    padding: '2px',
+                                    '&:hover': {
+                                        borderColor: errors.staff ? '#dc3545' : '#dee2e6',
+                                    },
+                                }),
+                            }}
                         />
+                        {errors.staff && <div className="text-danger small mt-1">{errors.staff}</div>}
                     </div>
 
-                    <div className="mb-3">
-                        <label
-                            htmlFor="classes"
-                            className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                        >
-                            <MdSchool /> Assign Classes
-                        </label>
-                        <Select
-                            isMulti
-                            name="classes"
-                            options={classOptions}
-                            value={selectedClasses}
-                            onChange={handleClassSelectChange}
-                            classNamePrefix="select"
-                            isDisabled={readOnly}
-                            aria-label="Assign classes to event"
-                            inputId="classes"
-                        />
-                    </div>
+                    <div className="row g-3">
+                        <div className="col-md-6">
+                            <label
+                                htmlFor="classes"
+                                className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1"
+                            >
+                                <MdSchool /> Classes
+                            </label>
+                            <Select
+                                isMulti
+                                name="classes"
+                                options={classOptions}
+                                value={selectedClasses}
+                                onChange={handleClassSelectChange}
+                                classNamePrefix="select"
+                                isDisabled={readOnly}
+                                aria-label="Assign classes to event"
+                                inputId="classes"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: '#f8f9fa',
+                                        border: 'none',
+                                        padding: '2px',
+                                    }),
+                                }}
+                            />
+                        </div>
 
-                    <div className="mb-0">
-                        <label
-                            htmlFor="students"
-                            className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                        >
-                            <FaUserGraduate /> Assign Students
-                        </label>
-                        <Select
-                            isMulti
-                            name="students"
-                            options={studentOptions}
-                            value={selectedStudents}
-                            onChange={handleStudentSelectChange}
-                            classNamePrefix="select"
-                            isDisabled={readOnly}
-                            aria-label="Assign students to event"
-                            inputId="students"
-                        />
+                        <div className="col-md-6">
+                            <label
+                                htmlFor="students"
+                                className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1"
+                            >
+                                <FaUserGraduate /> Students
+                            </label>
+                            <Select
+                                isMulti
+                                name="students"
+                                options={studentOptions}
+                                value={selectedStudents}
+                                onChange={handleStudentSelectChange}
+                                classNamePrefix="select"
+                                isDisabled={readOnly}
+                                aria-label="Assign students to event"
+                                inputId="students"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: '#f8f9fa',
+                                        border: 'none',
+                                        padding: '2px',
+                                    }),
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
