@@ -1,12 +1,13 @@
 import React from 'react';
 import Select from 'react-select';
-import { MdNoteAlt, MdMenuBook, MdFlag } from '@/components/icons';
+import { MdNoteAlt, MdMenuBook, MdFlag, MdSchool } from '@/components/icons';
 
 const StudentRequestSection = ({
     newEvent,
     handleApprovalChange,
     approvalOptions,
     readOnly,
+    errors = {},
 }) => {
     if (!newEvent.createdByStudent) return null;
 
@@ -14,17 +15,24 @@ const StudentRequestSection = ({
     const isExpanded = true;
 
     return (
-        <div className="accordion-item">
+        <div className="accordion-item border-0">
             <h2 className="accordion-header">
                 <button
-                    className={`accordion-button ${isExpanded ? '' : 'collapsed'}`}
+                    className={`accordion-button shadow-none ${isExpanded ? '' : 'collapsed'}`}
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#studentRequest"
                     aria-expanded={isExpanded}
                     aria-controls="studentRequest"
+                    style={{ background: 'transparent' }}
                 >
-                    <MdNoteAlt className="me-2" aria-hidden="true" /> Student Request
+                    <div className="d-flex align-items-center justify-content-between w-100 me-3">
+                        <div className="d-flex align-items-center">
+                            <MdNoteAlt className="me-2 text-primary" size={20} aria-hidden="true" />
+                            <span className="fw-bold">Student Request Details</span>
+                        </div>
+                        <span className="badge rounded-pill bg-info fw-normal" style={{ fontSize: '0.65rem' }}>STUDENT SUBMITTED</span>
+                    </div>
                 </button>
             </h2>
             <div
@@ -32,53 +40,72 @@ const StudentRequestSection = ({
                 className={`accordion-collapse collapse ${isExpanded ? 'show' : ''}`}
                 data-bs-parent="#eventFormAccordion"
             >
-                <div className="accordion-body">
-                    {newEvent.subject && (
-                        <div className="mb-2">
-                            <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
-                                <MdMenuBook /> Subject
-                            </small>
-                            <span className="badge bg-secondary fw-normal">
-                                {newEvent.subject.label || newEvent.subject}
-                            </span>
-                        </div>
-                    )}
+                <div className="accordion-body p-4">
+                    <div className="p-3 bg-light rounded mb-4">
+                        <div className="row g-3">
+                            {newEvent.subject && (
+                                <div className="col-6 border-end">
+                                    <label className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
+                                        <MdMenuBook /> Subject
+                                    </label>
+                                    <div className="fw-bold text-primary">
+                                        {newEvent.subject.label || newEvent.subject}
+                                    </div>
+                                </div>
+                            )}
 
-                    {newEvent.preference && (
-                        <div className="mb-3">
-                            <small className="text-muted d-block mb-1 d-flex align-items-center gap-1">
-                                <MdFlag /> Preference
-                            </small>
-                            <span className="badge bg-primary fw-normal">
-                                {newEvent.preference}
-                            </span>
+                            {newEvent.preference && (
+                                <div className="col-6">
+                                    <label className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
+                                        <MdFlag /> Preference
+                                    </label>
+                                    <div className="fw-bold text-dark">
+                                        {newEvent.preference}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
-
-                    <div className="mb-0">
-                        <label
-                            htmlFor="approvalStatus"
-                            className="form-label small text-muted mb-1"
-                        >
-                            Approval Status
-                        </label>
-                        <Select
-                            name="approvalStatus"
-                            options={approvalOptions}
-                            onChange={handleApprovalChange}
-                            classNamePrefix="select"
-                            defaultValue={
-                                newEvent.approvalStatus === 'approved'
-                                    ? { value: 'approved', label: 'Approve' }
-                                    : newEvent.approvalStatus === 'denied'
-                                      ? { value: 'denied', label: 'Deny' }
-                                      : null
-                            }
-                            isDisabled={readOnly}
-                            aria-label="Student request approval status"
-                            inputId="approvalStatus"
-                        />
                     </div>
+
+                    {!readOnly && (
+                        <div className="pt-3 border-top">
+                            <label
+                                htmlFor="approvalStatus"
+                                className="form-label small fw-bold text-muted text-uppercase mb-2"
+                            >
+                                Administrative Decision
+                            </label>
+                            <Select
+                                name="approvalStatus"
+                                options={approvalOptions}
+                                onChange={handleApprovalChange}
+                                classNamePrefix="select"
+                                defaultValue={
+                                    newEvent.approvalStatus === 'approved'
+                                        ? { value: 'approved', label: 'Approve' }
+                                        : newEvent.approvalStatus === 'denied'
+                                          ? { value: 'denied', label: 'Deny' }
+                                          : null
+                                }
+                                isDisabled={readOnly}
+                                aria-label="Student request approval status"
+                                inputId="approvalStatus"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: '#fff',
+                                        borderColor: '#dee2e6',
+                                        borderRadius: '0.5rem',
+                                        padding: '2px',
+                                    }),
+                                }}
+                            />
+                            <div className="mt-2 text-muted" style={{ fontSize: '0.75rem' }}>
+                                <MdSchool className="me-1" /> 
+                                Approving this request will automatically schedule the session and notify the student.
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
