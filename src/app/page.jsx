@@ -3,27 +3,27 @@ import { FiCalendar, FiUserCheck, FiClock, FiBookOpen } from '@/components/icons
 import '../../src/app/globals.css'
 const LandingPage = () => {
     return (
-        <div className="d-flex align-items-center justify-content-center min-vh-100 gradient-background">
-            <div className="mx-auto p-5 bg-white rounded-3 shadow-lg" style={{ maxWidth: '900px' }}>
-                <div className="text-center mb-3">
-                    <h4 className="mt-3 display-5 fw-bolder text-dark">
+        <div className="d-flex align-items-center justify-content-center min-vh-100 bg-white">
+            <div className="mx-auto p-4 p-md-5" style={{ maxWidth: '900px' }}>
+                <div className="text-center mb-5 fade-in">
+                    <h1 className="display-4 fw-bolder text-dark mb-3" style={{ letterSpacing: '-0.02em' }}>
                         Kings-Talloc
-                    </h4>
-                    <p className="mt-2 text-secondary">
+                    </h1>
+                    <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
                         Manage and schedule tutoring sessions effortlessly. Kings-Talloc helps
                         teachers, tutors, and students streamline the process of booking and
                         managing tutoring sessions.
                     </p>
                 </div>
-                <div className="row row-cols-1 row-cols-md-2 g-3 mt-3">
+                <div className="row row-cols-1 row-cols-md-2 g-4 mt-3 fade-in" style={{ animationDelay: '100ms' }}>
                     <div className="col">
-                        <div className="d-flex align-items-start">
-                            <FiCalendar className="text-primary me-3" size={48} />
+                        <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
+                            <FiCalendar className="text-primary me-3 flex-shrink-0" size={32} />
                             <div>
-                                <h3 className="h5 fw-bold text-dark">
+                                <h3 className="h6 fw-bold text-dark mb-2">
                                     Schedule Sessions
                                 </h3>
-                                <p className="mt-1 text-secondary">
+                                <p className="mb-0 text-muted small">
                                     Teachers can easily schedule and manage tutoring sessions for
                                     students.
                                 </p>
@@ -31,13 +31,13 @@ const LandingPage = () => {
                         </div>
                     </div>
                     <div className="col">
-                        <div className="d-flex align-items-start">
-                            <FiUserCheck className="text-primary me-3" size={48} />
+                        <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
+                            <FiUserCheck className="text-primary me-3 flex-shrink-0" size={32} />
                             <div>
-                                <h3 className="h5 fw-bold text-dark">
+                                <h3 className="h6 fw-bold text-dark mb-2">
                                     Assign Tutors
                                 </h3>
-                                <p className="mt-1 text-secondary">
+                                <p className="mb-0 text-muted small">
                                     Assign the best tutors for each session based on their availability
                                     and expertise.
                                 </p>
@@ -45,13 +45,13 @@ const LandingPage = () => {
                         </div>
                     </div>
                     <div className="col">
-                        <div className="d-flex align-items-start">
-                            <FiClock className="text-primary me-3" size={55} />
+                        <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
+                            <FiClock className="text-primary me-3 flex-shrink-0" size={32} />
                             <div>
-                                <h3 className="h5 fw-bold text-dark">
+                                <h3 className="h6 fw-bold text-dark mb-2">
                                     Tutor Availability
                                 </h3>
-                                <p className="mt-1 text-secondary">
+                                <p className="mb-0 text-muted small">
                                     Tutors can mark their availability to help teachers and students
                                     plan sessions effectively.
                                 </p>
@@ -59,22 +59,22 @@ const LandingPage = () => {
                         </div>
                     </div>
                     <div className="col">
-                        <div className="d-flex align-items-start">
-                            <FiBookOpen className="text-primary me-3" size={48} />
+                        <div className="d-flex align-items-start p-4 rounded-3 border bg-light h-100">
+                            <FiBookOpen className="text-primary me-3 flex-shrink-0" size={32} />
                             <div>
-                                <h3 className="h5 fw-bold text-dark">
+                                <h3 className="h6 fw-bold text-dark mb-2">
                                     Manage Classes
                                 </h3>
-                                <p className="mt-1 text-secondary">
+                                <p className="mb-0 text-muted small">
                                     Easily manage and organise classes and group sessions for students.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="text-center mt-3">
+                <div className="text-center mt-5 fade-in" style={{ animationDelay: '200ms' }}>
                     <a
-                        className="btn btn-primary btn-lg"
+                        className="btn btn-primary px-5 py-3 rounded-pill fw-medium"
                         href="/login"
                     >
                         Get Started
