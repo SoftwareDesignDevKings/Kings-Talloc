@@ -56,7 +56,7 @@ const Sidebar = ({ user }) => {
         >
             <div>
                 <div className="p-4">
-                    <div className="d-flex justify-content-between align-items-center">
+                    <div className={`d-flex align-items-center ${isCollapsed ? 'justify-content-center' : 'justify-content-between'}`}>
                         <h4 className={`fs-3 fw-bold mb-0 ${styles.menuTitle} ${styles.navLabel}`}>
                             Menu
                         </h4>
@@ -158,7 +158,7 @@ const Sidebar = ({ user }) => {
                             <FiUser className={styles.navIcon} data-testid="fi-user-icon" />
                         </div>
                     )}
-                    <span className={`${styles.navLabel} fw-semibold text-truncate`} style={{ maxWidth: '100px' }}>{user.name}</span>
+                    <span className={`${styles.navLabel} fw-semibold text-truncate`}>{user.name}</span>
                 </div>
                 
                 <button
