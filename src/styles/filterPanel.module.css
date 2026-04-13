@@ -40,9 +40,14 @@
 }
 
 .toggleButton:focus {
-    outline: none;
+    outline: none; /* suppress browser default on mouse click */
+}
+
+.toggleButton:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
     box-shadow:
-        0 0 0 3px rgba(129, 140, 248, 0.5), /* indigo-400 ring */
+        0 0 0 4px rgba(129, 140, 248, 0.6), /* visible ring on keyboard focus */
         0 4px 6px -1px rgba(0, 0, 0, 0.1),
         0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }

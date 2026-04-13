@@ -88,17 +88,11 @@ describe('Sidebar', () => {
     });
 
     it('renders navigation links with correct hrefs', () => {
-        setup('admin'); // Use admin to test all menu items
+        setup('teacher');
 
-        // Check that links have correct href attributes
-        const calendarLink = screen.getByText('Calendar').closest('a');
-        expect(calendarLink).toHaveAttribute('href', '/calendar');
-
-        const userRolesLink = screen.getByText('User Roles').closest('a');
-        expect(userRolesLink).toHaveAttribute('href', '/userRoles');
-
-        const manageClassesLink = screen.getByText('Manage Classes').closest('a');
-        expect(manageClassesLink).toHaveAttribute('href', '/classes');
+        expect(screen.getByRole('link', { name: /calendar/i })).toHaveAttribute('href', '/calendar');
+        expect(screen.getByRole('link', { name: /user roles/i })).toHaveAttribute('href', '/userRoles');
+        expect(screen.getByRole('link', { name: /manage classes/i })).toHaveAttribute('href', '/classes');
     });
 
     it('displays user name when provided', () => {
@@ -113,8 +107,8 @@ describe('Sidebar', () => {
         expect(screen.getByText('Menu')).toBeInTheDocument();
         expect(screen.getByText('Calendar')).toBeInTheDocument();
 
-        // Click collapse button (first button is the toggle)
-        const toggleButton = screen.getAllByRole('button')[0];
+        // Click collapse button (aria-label is "Collapse sidebar" when expanded)
+        const toggleButton = screen.getByRole('button', { name: 'Collapse sidebar' });
         fireEvent.click(toggleButton);
 
         // After collapse - "Menu" text should be hidden
@@ -125,14 +119,12 @@ describe('Sidebar', () => {
     it('expands sidebar when toggle button is clicked again', () => {
         setup('teacher');
 
-        const toggleButton = screen.getAllByRole('button')[0];
-
-        // Collapse first
-        fireEvent.click(toggleButton);
+        // Collapse first (button label is "Collapse sidebar" when expanded)
+        fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
         expect(screen.queryByText('Menu')).not.toBeInTheDocument();
 
-        // Expand again
-        fireEvent.click(toggleButton);
+        // Expand again (button label is "Expand sidebar" when collapsed)
+        fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
         expect(screen.getByText('Menu')).toBeInTheDocument();
         expect(screen.getByText('Calendar')).toBeInTheDocument();
     });
