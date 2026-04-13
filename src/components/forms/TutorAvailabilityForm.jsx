@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isAfter, add, format, isValid } from 'date-fns';
+import { isAfter, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
@@ -56,15 +56,6 @@ const TutorAvailabilityForm = ({
         }
         setError('');
         return true;
-    };
-
-    const setHours = (hours) => {
-        if (newAvailability.start) {
-            const newEnd = add(new Date(newAvailability.start), { hours });
-            setNewAvailability({ ...newAvailability, end: newEnd.toISOString() });
-        } else {
-            setError('Invalid hours');
-        }
     };
 
     const handleSubmit = async (e) => {
@@ -243,29 +234,6 @@ const TutorAvailabilityForm = ({
                         </div>
                     )}
 
-                    {!isView && (
-                        <div className={styles.quickButtons}>
-                            <small className="text-muted fw-bold text-uppercase" id="quick-duration-label" style={{ fontSize: '0.65rem' }}>Duration:</small>
-                            <div className="btn-group btn-group-sm" role="group" aria-labelledby="quick-duration-label">
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-primary px-3"
-                                    onClick={() => setHours(6)}
-                                    aria-label="Set duration to 6 hours"
-                                >
-                                    6 Hours
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-secondary px-3"
-                                    onClick={() => setHours(3)}
-                                    aria-label="Set duration to 3 hours"
-                                >
-                                    3 Hours
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Work Type & Location Section */}

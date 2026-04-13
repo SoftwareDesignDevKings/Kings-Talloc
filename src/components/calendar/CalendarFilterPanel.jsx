@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import Select from 'react-select';
 import { FiChevronLeft, FiChevronRight, FaInfoCircle } from '@/components/icons';
 import styles from '@/styles/filterPanel.module.css';
@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useCalendarUI } from '@contexts/CalendarUIContext';
 import { useAppData } from '@/contexts/AppDataContext';
 import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
+import CalendarLegend from './CalendarLegend.jsx';
 import useAuthSession from '@/hooks/useAuthSession';
 
 const CalendarFilterPanel = () => {
@@ -48,6 +49,13 @@ const CalendarFilterPanel = () => {
         { value: 'coaching', label: 'Coaching' },
         { value: 'tutoringOrWork', label: 'Tutoring or Work' },
     ];
+
+    // showAllEvents is a legacy master switch; individual type toggles now own visibility.
+    // Ensure it's always true so the type-level toggles are the sole gating mechanism.
+    useEffect(() => {
+        actions.setShowAllEvents(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Memoise subject change handler to prevent re-renders
     const handleSubjectChange = useCallback((newSubject) => {
@@ -130,101 +138,121 @@ const CalendarFilterPanel = () => {
                         </div>
                     )}
 
-                    {/* ───── Visibility / scope toggles ───── */}
+                    {/* ───── Visibility toggles ───── */}
 
                     {(calendarScope.canToggleTutoringShifts ||
                         calendarScope.canToggleCoachingShifts) && (
-                        <>
-                            <div className="mb-3">
-                                <label className={styles.checkboxLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={visibility.showAllEvents}
-                                        onChange={(e) => actions.setShowAllEvents(e.target.checked)}
-                                    />
-                                    <span>Show Events</span>
-                                </label>
+                        <div className="mb-3">
+                            <div className={`${styles.filterSectionLabel} mb-1`}>
+                                {userRole === 'student' ? 'Sessions' : 'Shifts'}
                             </div>
 
                             {calendarScope.canToggleTutoringShifts && (
-                                <div className={`${styles.checkboxIndented} mb-3`}>
-                                    <label className={styles.checkboxLabel}>
+                                <label className={styles.toggleRow}>
+                                    <span className={styles.toggleLabel}>Tutoring</span>
+                                    <span className={styles.toggle}>
                                         <input
                                             type="checkbox"
                                             checked={visibility.showTutoringEvents}
                                             onChange={(e) => actions.setShowTutoringEvents(e.target.checked)}
+                                            aria-label="Show tutoring shifts"
                                         />
-                                        <span>{userRole === 'student' ? 'Show Tutoring Event' : 'Show Tutoring Shifts'}</span>
-                                    </label>
-                                </div>
+                                        <span className={styles.toggleTrack} />
+                                    </span>
+                                </label>
                             )}
 
                             {calendarScope.canToggleCoachingShifts && (
-                                <div className={`${styles.checkboxIndented} mb-3`}>
-                                    <label className={styles.checkboxLabel}>
+                                <label className={styles.toggleRow}>
+                                    <span className={styles.toggleLabel}>Coaching</span>
+                                    <span className={styles.toggle}>
                                         <input
                                             type="checkbox"
                                             checked={visibility.showCoachingEvents}
                                             onChange={(e) => actions.setShowCoachingEvents(e.target.checked)}
+                                            aria-label="Show coaching shifts"
                                         />
-                                        <span>{userRole === 'student' ? 'Show Coaching Event' : 'Show Coaching Shifts'}</span>
-                                    </label>
-                                </div>
+                                        <span className={styles.toggleTrack} />
+                                    </span>
+                                </label>
                             )}
 
-                            <div className={`${styles.checkboxIndented} mb-3`}>
-                                <label className={styles.checkboxLabel}>
+                            <label className={styles.toggleRow}>
+                                <span className={styles.toggleLabel}>Work</span>
+                                <span className={styles.toggle}>
                                     <input
                                         type="checkbox"
                                         checked={visibility.showWorkEvents}
                                         onChange={(e) => actions.setShowWorkEvents(e.target.checked)}
+                                        aria-label="Show work shifts"
                                     />
-                                    <span>Show Work Shifts</span>
-                                </label>
-                            </div>
-                        </>
+                                    <span className={styles.toggleTrack} />
+                                </span>
+                            </label>
+                        </div>
                     )}
 
                     {calendarScope.canToggleTutorAvailabilities && (
                         <>
+                            <hr className={styles.filterDivider} />
                             <div className="mb-3">
-                                <label className={styles.checkboxLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={visibility.showTutorInitials}
-                                        onChange={(e) => actions.setShowTutorInitials(e.target.checked)}
-                                    />
-                                    <span>Show Tutor Availabilities</span>
-                                </label>
-                            </div>
-
-                            {userRole === 'tutor' && visibility.showTutorInitials && (
-                                <div className={`${styles.checkboxIndented} mb-3`}>
-                                    <label className={styles.checkboxLabel}>
+                                <div className={`${styles.filterSectionLabel} mb-1`}>Availability</div>
+                                <label className={styles.toggleRow}>
+                                    <span className={styles.toggleLabel}>Show tutor availability</span>
+                                    <span className={styles.toggle}>
                                         <input
                                             type="checkbox"
-                                            checked={visibility.hideOwnAvailabilities}
-                                            onChange={(e) => actions.setHideOwnAvailabilities(e.target.checked)}
+                                            checked={visibility.showTutorInitials}
+                                            onChange={(e) => actions.setShowTutorInitials(e.target.checked)}
+                                            aria-label="Show tutor availabilities"
                                         />
-                                        <span>Hide My Availabilities</span>
+                                        <span className={styles.toggleTrack} />
+                                    </span>
+                                </label>
+
+                                {userRole === 'tutor' && (
+                                    <label className={`${styles.subToggleRow} ${!visibility.showTutorInitials ? 'opacity-50' : ''}`}>
+                                        <span className={`${styles.toggleLabel} ${styles.toggleLabelMuted}`}>Hide my availability</span>
+                                        <span className={styles.toggle}>
+                                            <input
+                                                type="checkbox"
+                                                checked={visibility.hideOwnAvailabilities}
+                                                onChange={(e) => actions.setHideOwnAvailabilities(e.target.checked)}
+                                                disabled={!visibility.showTutorInitials}
+                                                aria-label="Hide my own availabilities"
+                                            />
+                                            <span className={styles.toggleTrack} />
+                                        </span>
                                     </label>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </>
                     )}
 
                     {calendarScope.canToggleDeniedStudentRequests && (
-                        <div className="mb-3">
-                            <label className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={visibility.hideDeniedStudentRequests}
-                                    onChange={(e) => actions.setHideDeniedStudentRequests(e.target.checked)}
-                                />
-                                <span>Hide Denied Student Events</span>
-                            </label>
-                        </div>
+                        <>
+                            <hr className={styles.filterDivider} />
+                            <div className="mb-3">
+                                <label className={styles.toggleRow}>
+                                    <span className={styles.toggleLabel}>Hide denied requests</span>
+                                    <span className={styles.toggle}>
+                                        <input
+                                            type="checkbox"
+                                            checked={visibility.hideDeniedStudentRequests}
+                                            onChange={(e) => actions.setHideDeniedStudentRequests(e.target.checked)}
+                                            aria-label="Hide denied student requests"
+                                        />
+                                        <span className={styles.toggleTrack} />
+                                    </span>
+                                </label>
+                            </div>
+                        </>
                     )}
+
+                    {/* ───── Legend ───── */}
+                    <div className={styles.legendSection}>
+                        <CalendarLegend />
+                    </div>
                 </div>
 
             <CalendarHowToModal

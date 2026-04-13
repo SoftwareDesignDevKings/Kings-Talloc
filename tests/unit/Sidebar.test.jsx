@@ -80,9 +80,9 @@ describe('Sidebar', () => {
         const toggleButton = screen.getByRole('button', { name: 'Collapse sidebar' });
         fireEvent.click(toggleButton);
 
-        // After collapse - "Menu" text should be hidden
-        expect(screen.queryByText('Menu')).not.toBeInTheDocument();
-        expect(screen.queryByText('Calendar')).not.toBeInTheDocument();
+        // After collapse - "Menu" text is still in DOM but visually hidden via CSS (navLabel class)
+        expect(screen.getByText('Menu')).toBeInTheDocument();
+        expect(screen.getByText('Calendar')).toBeInTheDocument();
     });
 
     it('expands sidebar when toggle button is clicked again', () => {
@@ -90,7 +90,8 @@ describe('Sidebar', () => {
 
         // Collapse first (button label is "Collapse sidebar" when expanded)
         fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
-        expect(screen.queryByText('Menu')).not.toBeInTheDocument();
+        // Text remains in DOM, hidden via CSS animation
+        expect(screen.getByText('Menu')).toBeInTheDocument();
 
         // Expand again (button label is "Expand sidebar" when collapsed)
         fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));

@@ -25,7 +25,7 @@ const AppLayout = ({ session, userRole, children }) => {
     }
 
     return (
-        <div className="d-flex min-vh-100 app-gradient-bg">
+        <div className="d-flex app-gradient-bg app-shell">
             <Sidebar user={session.user} userRole={userRole} />
 
             {/* main content area with outer padding */}
