@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
+import styles from '@/styles/userRoles.module.css';
 
 const UserRolesManager = () => {
     const [users, setUsers] = useState([]);
@@ -229,18 +230,20 @@ const UserRolesManager = () => {
     };
 
     return (
-        <div className="p-4 bg-white rounded shadow h-100">
-            <h2 className="h4 mb-4 fw-bold text-tks-secondary">
-                Manage User Roles
-            </h2>
-            <div className="d-flex gap-2 mb-3">
-                <input
-                    type="text"
-                    placeholder="Search by name, email, or role"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="form-control"
-                />
+        <div className={styles.managerContainer}>
+            <div className={styles.headerActions}>
+                <h2 className="h4 mb-0 fw-bold text-tks-secondary">
+                    Manage User Roles
+                </h2>
+                <div className={styles.searchWrapper}>
+                    <input
+                        type="text"
+                        placeholder="Search users..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="form-control"
+                    />
+                </div>
                 <button
                     onClick={() => {
                         setShowModal(true);
@@ -250,58 +253,49 @@ const UserRolesManager = () => {
                         setRole('student');
                         setUserRoles([]);
                     }}
-                    className="btn btn-primary text-nowrap"
+                    className="btn btn-primary"
                 >
                     Add User Role
                 </button>
             </div>
-            <hr className="my-3" />
+
             <div className="d-flex flex-wrap gap-2 mb-4">
                 <a
                     href="/api/download-template?type=tutor"
                     download="Tutor_Timesheet_Template.docx"
-                    className="btn btn-outline-secondary btn-sm"
+                    className="btn btn-outline-secondary btn-sm rounded-pill"
                 >
-                    Tutor Timesheet Template
+                    Tutor Template
                 </a>
             </div>
-            <div className="table-responsive" style={{ height: 'calc(100% - 8rem)', overflowY: 'auto' }}>
-                <table className="table table-hover table-text-sm">
-                    <thead className="sticky-top bg-light">
+            <div className={styles.tableContainer}>
+                <table className={`table table-hover mb-0 ${styles.roleTable}`}>
+                    <thead>
                         <tr>
-                            <th scope="col">Email</th>
-                            <th scope="col">Name</th>
-                            <th scope="col">Default Role</th>
-                            <th scope="col">Actions</th>
+                            <th scope="col">User</th>
+                            <th scope="col">Roles</th>
+                            <th scope="col" className="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.map((user) => (
                             <tr key={user.id}>
-                                <td>{user.email}</td>
-                                <td>{user.name}</td>
                                 <td>
-                                    <div>{(user.defaultRole || user.role).toUpperCase()}</div>
-                                    {user.userRoles && user.userRoles.length > 0 && (
-                                        <small className="text-muted">
-                                            {user.userRoles.map(r => r.toUpperCase()).join(', ')}
-                                        </small>
-                                    )}
+                                    <div className="fw-bold">{user.name}</div>
+                                    <div className="text-muted small">{user.email}</div>
                                 </td>
                                 <td>
-                                    <div className="d-flex gap-2 align-items-center">
-                                        <button
-                                            onClick={() => handleEdit(user)}
-                                            className="btn btn-sm btn-primary"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(user.email)}
-                                            className="btn btn-sm btn-danger"
-                                        >
-                                            Delete
-                                        </button>
+                                    <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
+                                        {(user.defaultRole || user.role).toUpperCase()}
+                                    </span>
+                                    {user.userRoles && user.userRoles.map(r => (
+                                        <span key={r} className={styles.roleBadge}>
+                                            {r.toUpperCase()}
+                                        </span>
+                                    ))}
+                                </td>
+                                <td>
+                                    <div className={styles.actionGroup}>
                                         {((user.defaultRole || user.role) === 'tutor' || user.userRoles?.includes('tutor')) && (
                                             <>
                                                 <input
@@ -323,19 +317,32 @@ const UserRolesManager = () => {
                                                 />
                                                 <label
                                                     htmlFor={`timesheet-upload-${user.email}`}
-                                                    className={`btn btn-sm mb-0 ${
+                                                    className={`btn btn-sm mb-0 ${styles.uploadLabel} ${
                                                         uploadingTimesheets[user.email]
                                                             ? 'btn-secondary disabled'
-                                                            : 'btn-success'
+                                                            : 'btn-outline-success'
                                                     }`}
-                                                    style={{ cursor: uploadingTimesheets[user.email] ? 'not-allowed' : 'pointer' }}
                                                 >
                                                     {uploadingTimesheets[user.email]
-                                                        ? 'Uploading...'
-                                                        : 'Upload Timesheet'}
+                                                        ? '...'
+                                                        : 'Upload'}
                                                 </label>
                                             </>
                                         )}
+                                        <button
+                                            onClick={() => handleEdit(user)}
+                                            className="btn btn-sm btn-outline-primary"
+                                            aria-label="Edit user"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(user.email)}
+                                            className="btn btn-sm btn-outline-danger"
+                                            aria-label="Delete user"
+                                        >
+                                            Delete
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -349,14 +356,12 @@ const UserRolesManager = () => {
                     ref={modalRef}
                     tabIndex="-1"
                     aria-labelledby="userRoleModalLabel"
-                    data-bs-backdrop="static"
-                    data-bs-keyboard="true"
                 >
                     <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title" id="userRoleModalLabel">
-                                    {isEditing ? 'Edit User Role' : 'Add User Role'}
+                        <div className="modal-content border-0 shadow-lg">
+                            <div className="modal-header border-bottom-0 pb-0">
+                                <h5 className="modal-title fw-bold" id="userRoleModalLabel">
+                                    {isEditing ? 'Edit User' : 'Add New User'}
                                 </h5>
                                 <button
                                     type="button"
@@ -366,51 +371,46 @@ const UserRolesManager = () => {
                                 ></button>
                             </div>
                             <form onSubmit={handleSubmit}>
-                                <div className="modal-body">
-                                    <div className="mb-3">
-                                        <label htmlFor="userEmail" className="form-label">
-                                            Email
-                                        </label>
-                                        <input
-                                            type="email"
-                                            className="form-control"
-                                            id="userEmail"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                            aria-required="true"
-                                        />
+                                <div className="modal-body pt-4">
+                                    <div className={styles.modalSection}>
+                                        <div className="mb-3">
+                                            <label htmlFor="userEmail" className="form-label small fw-bold text-muted">
+                                                Email Address
+                                            </label>
+                                            <input
+                                                type="email"
+                                                className="form-control"
+                                                id="userEmail"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                                disabled={isEditing}
+                                            />
+                                        </div>
+                                        <div className="mb-0">
+                                            <label htmlFor="userName" className="form-label small fw-bold text-muted">
+                                                Full Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="userName"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="mb-3">
-                                        <label htmlFor="name" className="form-label">
-                                            Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            id="userName"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            required
-                                            aria-required="true"
-                                        />
-                                    </div>
-                                    <div className="mb-3">
-                                        <label htmlFor="userRole" className="form-label">
-                                            Default Role
+
+                                    <div className={styles.modalSection}>
+                                        <label htmlFor="userRole" className="form-label small fw-bold text-muted">
+                                            Default Access Role
                                         </label>
                                         <select
                                             className="form-select"
                                             id="userRole"
                                             value={role}
-                                            onChange={(e) => {
-                                                const newDefault = e.target.value;
-                                                setRole(newDefault);
-                                                // strip any userRoles that aren't valid for the new defaultRole
-                                                const allowed = EXTRA_ROLES_BY_DEFAULT[newDefault] ?? [];
-                                                setUserRoles(prev => prev.filter(r => allowed.includes(r)));
-                                            }}
-                                            aria-label="Select default role"
+                                            onChange={(e) => setRole(e.target.value)}
                                         >
                                             <option value="student">Student</option>
                                             <option value="tutor">Tutor</option>
@@ -419,48 +419,43 @@ const UserRolesManager = () => {
                                             <option value="admin">Admin</option>
                                         </select>
                                     </div>
-                                    <div className="mb-3">
-                                        <label className="form-label">Additional Roles</label>
-                                        <div className="d-flex flex-wrap gap-2">
-                                            {extraRoleOptions.length === 0 ? (
-                                                <small className="text-muted fst-italic">No additional roles for this default role</small>
-                                            ) : (
-                                                extraRoleOptions.map((roleOption) => {
-                                                    const isSelected = userRoles.includes(roleOption);
-                                                    return (
-                                                        <button
-                                                            key={roleOption}
-                                                            type="button"
-                                                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-secondary'}`}
-                                                            onClick={() => {
-                                                                if (isSelected) {
-                                                                    setUserRoles(userRoles.filter(r => r !== roleOption));
-                                                                } else {
-                                                                    setUserRoles([...userRoles, roleOption]);
-                                                                }
-                                                            }}
-                                                        >
-                                                            {roleOption}
-                                                        </button>
-                                                    );
-                                                })
-                                            )}
+
+                                    <div>
+                                        <label className="form-label small fw-bold text-muted mb-0">
+                                            Additional Privileges
+                                        </label>
+                                        <div className={styles.rolesGrid}>
+                                            {availableRoles.map((roleOption) => {
+                                                const isSelected = userRoles.includes(roleOption);
+                                                return (
+                                                    <div
+                                                        key={roleOption}
+                                                        className={`badge rounded-pill ${styles.selectableBadge} ${isSelected ? styles.selectableBadgeSelected : 'bg-light text-dark'}`}
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setUserRoles(userRoles.filter(r => r !== roleOption));
+                                                            } else {
+                                                                setUserRoles([...userRoles, roleOption]);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {roleOption.toUpperCase()}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        {extraRoleOptions.length > 0 && (
-                                            <small className="text-muted">Click to toggle additional roles</small>
-                                        )}
                                     </div>
                                 </div>
-                                <div className="modal-footer">
+                                <div className="modal-footer border-top-0 pt-0">
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className="btn btn-link text-muted text-decoration-none"
                                         data-bs-dismiss="modal"
                                     >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn btn-primary">
-                                        {isEditing ? 'Save Changes' : 'Add Role'}
+                                    <button type="submit" className="btn btn-primary px-4">
+                                        {isEditing ? 'Save Changes' : 'Create User'}
                                     </button>
                                 </div>
                             </form>
