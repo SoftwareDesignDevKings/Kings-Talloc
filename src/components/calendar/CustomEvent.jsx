@@ -68,7 +68,7 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate }) => {
             onMouseEnter={() => setShowDuplicate(true)}
             onMouseLeave={() => setShowDuplicate(false)}
         >
-            <div>{event.title}</div>
+            <div className={styles.eventTitle}>{event.title}</div>
             {staffInitials && (
                 <div className={styles.staffInitials}>({staffInitials})</div>
             )}

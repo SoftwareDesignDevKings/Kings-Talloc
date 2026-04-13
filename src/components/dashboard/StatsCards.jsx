@@ -213,8 +213,8 @@ const TeacherStats = ({ data, onUpdate }) => {
             />
             <StatItem
                 label="Allocated Hours"
-                value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1) + 'h'}
-                sub={`Tutoring ${data.weeklyHours.tutoring}h · Coaching ${data.weeklyHours.coaching}h`}
+                value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1) + ' hours'}
+                sub={`Tutoring ${data.weeklyHours.tutoring} hours · Coaching ${data.weeklyHours.coaching} hours`}
             />
         </div>
     );
@@ -231,8 +231,8 @@ const TutorStats = ({ data }) => (
             />
             <StatItem
                 label="Hours This Week"
-                value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1) + 'h'}
-                sub={`Tutoring ${data.weeklyHours.tutoring}h · Coaching ${data.weeklyHours.coaching}h`}
+                value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1) + ' hours'}
+                sub={`Tutoring ${data.weeklyHours.tutoring} hours · Coaching ${data.weeklyHours.coaching} hours`}
             />
             <StatItem
                 label="Needs Completion"
@@ -265,7 +265,7 @@ const StudentStats = ({ data }) => (
         />
         <StatItem
             label="Hours This Week"
-            value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1) + 'h'}
+            value={(data.weeklyHours.tutoring + data.weeklyHours.coaching).toFixed(1) + ' hours'}
         />
         <StatItem
             label="Pending Requests"

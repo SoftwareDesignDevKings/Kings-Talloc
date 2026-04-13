@@ -223,7 +223,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             addAlert('success', `${roleLabel} timesheet generated and downloaded successfully`);
 
             if (overflowHours > 0) {
-                addAlert('info', `${overflowHours}hrs exceeded for "${tutorName}" — will need to be carried over to the next pay period.`);
+                addAlert('info', `${overflowHours} hours exceeded for "${tutorName}" — will need to be carried over to the next pay period.`);
             }
         } catch (error) {
             console.error('Error generating timesheet:', error);

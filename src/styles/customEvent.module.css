@@ -2,29 +2,54 @@
     position: relative;
     height: 100%;
     width: 100%;
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    line-height: 1.2;
+}
+
+.eventTitle {
+    font-weight: 600;
+    font-size: 0.85rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+}
+
+.staffInitials {
+    font-size: 0.7rem;
+    color: var(--tks-text-muted);
+    font-weight: 500;
+    margin-top: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.8;
 }
 
 .duplicateButton {
     position: absolute;
     top: 2px;
     right: 2px;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     padding: 3px;
-    background-color: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--tks-border);
     border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    transition: all var(--transition-fast);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.staffInitials {
-    font-size: 0.75em;
-    opacity: 0.9;
-    font-weight: normal;
-    margin-top: 4px;
+.duplicateButton:hover {
+    background-color: white;
+    transform: scale(1.1);
 }
