@@ -1,0 +1,108 @@
+/* Stats Strip — replaces the 4-card hero metric grid */
+
+.strip {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+/* Each stat cell */
+.item {
+    flex: 1 1 50%; /* 2 columns on mobile */
+    padding: 1rem 1.25rem;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    min-width: 0;
+    position: relative;
+}
+
+/* Mobile: no right border on every 2nd item */
+.item:nth-child(2n) {
+    border-right: none;
+}
+
+/* Mobile: no bottom border on the last row (last 2 items of 4) */
+.item:nth-last-child(-n+2) {
+    border-bottom: none;
+}
+
+/* Desktop: 4-column single row */
+@media (min-width: 768px) {
+    .item {
+        flex: 1 1 25%;
+        border-bottom: none;
+    }
+
+    /* Restore right border for all items on desktop */
+    .item:nth-child(2n) {
+        border-right: 1px solid #e5e7eb;
+    }
+
+    /* Last item never has a right border */
+    .item:last-child {
+        border-right: none;
+    }
+}
+
+/* Label (uppercase small caps above the number) */
+.label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    margin: 0 0 0.375rem 0;
+}
+
+/* The big number */
+.value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--tks-secondary);
+    margin: 0;
+}
+
+/* Small subtitle line beneath the number */
+.sub {
+    font-size: 0.6875rem;
+    color: #9ca3af;
+    margin: 0.25rem 0 0 0;
+}
+
+/* Interactive item (pending approvals) — the whole cell is a button */
+.itemButton {
+    background: none;
+    border: none;
+    padding: 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.itemButton:focus {
+    outline: none;
+}
+
+.itemButton:focus-visible {
+    outline: 2px solid var(--tks-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Chevron hint on interactive items */
+.chevron {
+    color: #9ca3af;
+    margin-left: auto;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-bottom: 0.25rem;
+}
