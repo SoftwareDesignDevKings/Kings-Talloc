@@ -44,10 +44,9 @@ const CalendarFilterPanel = () => {
 
     // prepare work type options for availabilities
     const availabilityWorkTypeOptions = [
-        { value: 'work', label: 'Work' },
         { value: 'tutoring', label: 'Tutoring' },
         { value: 'coaching', label: 'Coaching' },
-        { value: 'tutoringOrWork', label: 'Tutoring or Work' },
+        { value: 'work', label: 'Work' },
     ];
 
     // showAllEvents is a legacy master switch; individual type toggles now own visibility.
@@ -83,16 +82,25 @@ const CalendarFilterPanel = () => {
             <div className={`${styles.filterContent} collapse${isOpen ? ' show' : ''}`} id="filterPanelCollapse">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <h3 className={styles.filterTitle} style={{ margin: 0 }}>Filters</h3>
-                        {userRole === 'student' && (
+                        <div className="d-flex gap-2 align-items-center">
                             <button
-                                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                                onClick={() => setShowHowToModal(true)}
-                                title="How to use the calendar"
+                                className="btn btn-sm btn-link text-muted p-0 text-decoration-none"
+                                onClick={actions.clearFilters}
+                                style={{ fontSize: '0.75rem' }}
                             >
-                                <FaInfoCircle size={16} />
-                                <span className="d-none d-md-inline">Help</span>
+                                Clear All
                             </button>
-                        )}
+                            {userRole === 'student' && (
+                                <button
+                                    className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                    onClick={() => setShowHowToModal(true)}
+                                    title="How to use the calendar"
+                                >
+                                    <FaInfoCircle size={16} />
+                                    <span className="d-none d-md-inline">Help</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* ───── Dropdown filters ───── */}
@@ -128,6 +136,7 @@ const CalendarFilterPanel = () => {
                     {calendarFilters.canFilterByAvailabilityType && (
                         <div className="mb-3">
                             <Select
+                                isMulti
                                 placeholder="Filter availabilities"
                                 classNamePrefix="select"
                                 isClearable

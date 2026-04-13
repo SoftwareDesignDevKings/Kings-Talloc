@@ -7,24 +7,6 @@ import { CalendarEntityType } from "@/strategy/calendarStrategy"
 import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
 
 /**
- * Returns true if an availability's workType matches the selected filter.
- * 'tutoringOrWork' availabilities are included when filtering by 'tutoring' or 'work',
- * and vice-versa.
- */
-const matchesWorkTypeFilter = (availWorkType, filterWorkType) => {
-    if (filterWorkType === 'tutoringOrWork') {
-        return availWorkType === 'tutoring' || availWorkType === 'work' || availWorkType === 'tutoringOrWork';
-    }
-    if (filterWorkType === 'tutoring') {
-        return availWorkType === 'tutoring' || availWorkType === 'tutoringOrWork';
-    }
-    if (filterWorkType === 'work') {
-        return availWorkType === 'work' || availWorkType === 'tutoringOrWork';
-    }
-    return availWorkType === filterWorkType;
-};
-
-/**
  * UI Provider to persist on re-renders across different page.jsx
  */
 export const CalendarUIProvider = ({ children }) => {
@@ -159,8 +141,12 @@ export const CalendarUIProvider = ({ children }) => {
         // for tutors/coaches: split own availabilities around shifts as RBC events (never other tutors')
         if ((userRole === 'tutor' || userRole === 'coach') && showTutorInitials && !hideOwnAvailabilities) {
             let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
-            if (filterAvailabilityByWorkType) {
-                availabilities = availabilities.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
+            if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
+                const filterValues = filterAvailabilityByWorkType.map(f => f.value);
+                availabilities = availabilities.filter(a => {
+                    const types = Array.isArray(a.workType) ? a.workType : [a.workType];
+                    return types.some(t => filterValues.includes(t) || filterValues.includes('tutoringOrWork'));
+                });
             }
             const splitAvailabilities = calendarAvailabilitySplit(availabilities, filtered);
             filtered = [...filtered, ...splitAvailabilities];
@@ -202,11 +188,10 @@ export const CalendarUIProvider = ({ children }) => {
 
         // students: only show tutoring availabilities (exclude coaching and work)
         if (userRole === 'student') {
-            filtered = filtered.filter(a =>
-                a.workType === 'tutoring' ||
-                a.workType === 'tutoringOrWork' ||
-                a.workType === undefined
-            );
+            filtered = filtered.filter(a => {
+                const types = Array.isArray(a.workType) ? a.workType : [a.workType];
+                return types.some(t => t === 'tutoring' || t === 'tutoringOrWork') || a.workType === undefined;
+            });
         }
 
         // filter by selected tutors from CalendarUIProvider
@@ -216,8 +201,12 @@ export const CalendarUIProvider = ({ children }) => {
         }
 
         // filter by availability work type from CalendarUIProvider
-        if (filterAvailabilityByWorkType) {
-            filtered = filtered.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
+        if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
+            const filterValues = filterAvailabilityByWorkType.map(f => f.value);
+            filtered = filtered.filter(a => {
+                const types = Array.isArray(a.workType) ? a.workType : [a.workType];
+                return types.some(t => filterValues.includes(t) || filterValues.includes('tutoringOrWork'));
+            });
         }
 
         // Split availabilities around clashing shifts (always use actual shifts, not filtered)
@@ -225,6 +214,20 @@ export const CalendarUIProvider = ({ children }) => {
 
         return splitAvailabilities;
     }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
+
+    const clearFilters = useCallback(() => {
+        setFilterBySubject(null);
+        setFilterByTutor(null);
+        setFilterByWorkType(null);
+        setFilterAvailabilityByWorkType(null);
+        setShowAllEvents(true);
+        setShowTutorInitials(true);
+        setHideOwnAvailabilities(false);
+        setHideDeniedStudentRequests(false);
+        setShowTutoringEvents(true);
+        setShowCoachingEvents(true);
+        setShowWorkEvents(true);
+    }, []);
 
     // ─────────────────────────────────────
     // context values
@@ -268,6 +271,7 @@ export const CalendarUIProvider = ({ children }) => {
                 setShowTutoringEvents: handleShowTutoringEventsChange,
                 setShowCoachingEvents: handleShowCoachingEventsChange,
                 setShowWorkEvents: handleShowWorkEventsChange,
+                clearFilters,
             },
         }),
         [
@@ -290,6 +294,7 @@ export const CalendarUIProvider = ({ children }) => {
             handleShowTutoringEventsChange,
             handleShowCoachingEventsChange,
             handleShowWorkEventsChange,
+            clearFilters,
         ],
     );
 
