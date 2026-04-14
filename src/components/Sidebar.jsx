@@ -40,7 +40,7 @@ const Sidebar = ({ userRole, user }) => {
 
     return (
         <div
-            style={{ '--sidebar-w': isCollapsed ? '4rem' : '12rem' }}
+            style={{ '--sidebar-w': isCollapsed ? '5rem' : '16rem' }}
             className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : ''} d-flex flex-column justify-content-between`}
         >
             <div>
