@@ -103,16 +103,19 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         if (process.env.NODE_ENV !== 'development') {
             if (!newEvent.staff || newEvent.staff.length === 0) {
                 addAlert('error', 'At least one tutor must be assigned to the event.');
+                return false;
             }
         }
 
         if (!newEvent.title) {
             addAlert('error', 'Title is required');
+            return false;
         }
 
         // Validate cannot make completed events recurring (but allow completing recurring instances since they get detached)
         if (newEvent.recurring && newEvent.workStatus === 'completed' && !eventToEdit?.isRecurringInstance) {
             addAlert('error', 'Cannot make completed events recurring.');
+            return false;
         }
 
         // Validate recurring event has occurrence number
@@ -355,6 +358,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         : null
                 }
                 showFooter={!isView || isTutorPartialEdit}
+                noValidate
             >
                 <div className="accordion" id="eventFormAccordion">
                     <EventDetailsSection
