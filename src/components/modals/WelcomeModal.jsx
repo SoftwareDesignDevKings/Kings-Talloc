@@ -6,6 +6,7 @@ import BaseModal from './BaseModal';
 import { FiHome, FiCalendar, FaInfoCircle } from '@/components/icons';
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { CALENDAR_COLORS } from '@/constants/calendarColors';
 
 /**
  * Welcome modal for new students explaining the app functionality
@@ -93,7 +94,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
 
                 {/* Dashboard Section */}
                 <div className="text-start mb-4 p-3 bg-light rounded d-flex align-items-center">
-                    <div className="d-flex align-items-center justify-content-center me-3 flex-shrink-0" style={{ width: '40px' }}>
+                    <div className="d-flex align-items-center justify-content-center me-3 shrink-0" style={{ width: '40px' }}>
                         <FiHome size={24} className="text-primary" />
                     </div>
                     <div>
@@ -106,7 +107,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
 
                 {/* Calendar Section */}
                 <div className="text-start mb-4 p-3 bg-light rounded d-flex align-items-center">
-                    <div className="d-flex align-items-center justify-content-center me-3 flex-shrink-0" style={{ width: '40px' }}>
+                    <div className="d-flex align-items-center justify-content-center me-3 shrink-0" style={{ width: '40px' }}>
                         <FiCalendar size={24} className="text-primary" />
                     </div>
                     <div>
@@ -121,22 +122,17 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                 <div className="text-start mb-4 p-3 border rounded">
                     <h6 className="fw-bold mb-3">Calendar Color Guide</h6>
                     <div className="d-flex flex-column gap-2">
-                        <div className="d-flex align-items-center">
-                            <div className="me-2" style={{ width: '20px', height: '20px', backgroundColor: 'lightgreen', border: '1px solid green', borderRadius: '3px' }}></div>
-                            <small><strong>Green background:</strong> Tutor availabilities (darker = more tutors available)</small>
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <div className="me-2" style={{ width: '20px', height: '20px', backgroundColor: 'lightblue', border: '1px solid blue', borderRadius: '3px' }}></div>
-                            <small><strong>Light blue:</strong> Your confirmed tutoring sessions</small>
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <div className="me-2" style={{ width: '20px', height: '20px', backgroundColor: 'orange', border: '1px solid darkorange', borderRadius: '3px' }}></div>
-                            <small><strong>Orange:</strong> Pending booking requests (awaiting approval)</small>
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <div className="me-2" style={{ width: '20px', height: '20px', backgroundColor: 'red', border: '1px solid darkred', borderRadius: '3px' }}></div>
-                            <small><strong>Red:</strong> Requires your confirmation or denied requests</small>
-                        </div>
+                        {[
+                            { ...CALENDAR_COLORS.available, label: <><strong>Green background:</strong> Tutor availabilities (darker = more tutors available)</> },
+                            { ...CALENDAR_COLORS.confirmed,  label: <><strong>Light blue:</strong> Your confirmed tutoring sessions</> },
+                            { ...CALENDAR_COLORS.pending,    label: <><strong>Orange:</strong> Pending booking requests (awaiting approval)</> },
+                            { ...CALENDAR_COLORS.denied,     label: <><strong>Red:</strong> Requires your confirmation or denied requests</> },
+                        ].map(({ bg, border, label }, i) => (
+                            <div key={i} className="d-flex align-items-center gap-2">
+                                <div className="shrink-0" style={{ width: '20px', height: '20px', backgroundColor: bg, border: `1px solid ${border}`, borderRadius: '3px' }} />
+                                <small>{label}</small>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
