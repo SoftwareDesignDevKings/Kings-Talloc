@@ -3,7 +3,7 @@ import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
 import styles from '@/styles/availabilityForm.module.css';
 
-const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing, errors = {} }) => {
+const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing = {} }) => {
     const [isRecurring, setIsRecurring] = useState(!!newEvent.recurring)
     const [initialOccurenceNum, setInitialOccurenceNum] = useState(newEvent.occurenceNum);
 
@@ -89,7 +89,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                         </label>
                         <input
                             type="text"
-                            className={`form-control form-control-lg border-0 bg-light ${errors.title ? 'is-invalid' : ''}`}
+                            className="form-control form-control-lg border-0 bg-light"
                             name="title"
                             id="title"
                             placeholder="e.g. Weekly Math Tutoring"
@@ -99,7 +99,6 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             aria-label="Event title"
                             aria-required="true"
                         />
-                        {errors.title && <div className="invalid-feedback">{errors.title}</div>}
                     </div>
 
                     <div className="mb-4">
@@ -129,7 +128,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             </label>
                             <input
                                 type="datetime-local"
-                                className={`form-control border-0 bg-light ${errors.dates ? 'is-invalid' : ''}`}
+                                className="form-control border-0 bg-light"
                                 name="start"
                                 id="start"
                                 value={
@@ -153,7 +152,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             </label>
                             <input
                                 type="datetime-local"
-                                className={`form-control border-0 bg-light ${errors.dates ? 'is-invalid' : ''}`}
+                                className="form-control border-0 bg-light"
                                 name="end"
                                 id="end"
                                 value={
@@ -168,7 +167,6 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 aria-required="true"
                             />
                         </div>
-                        {errors.dates && <div className="col-12 text-danger small mt-1">{errors.dates}</div>}
                     </div>
 
                     <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-3 border-top">
@@ -192,7 +190,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                 href={newEvent.teamsJoinUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="btn btn-success d-flex align-items-center gap-2"
+                                className="btn btn-outline-success d-flex align-items-center gap-2"
                             >
                                 <SiMicrosoftTeams size={18} /> Join Now
                             </a>
@@ -234,7 +232,6 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             </div>
                         )}
                     </div>
-                    {errors.recurring && <div className="text-danger text-end small mt-1">{errors.recurring}</div>}
 
                     {isRecurring && !newEvent.isRecurringInstance && !readOnly && (
                         <div className="mt-3 p-3 bg-light rounded d-flex align-items-center justify-content-between">
@@ -251,7 +248,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                     </label>
                                     <input
                                         type="number"
-                                        className={`form-control form-control-sm w-auto ${errors.occurenceNum ? 'is-invalid' : ''}`}
+                                        className="form-control form-control-sm w-auto"
                                         name="occurenceNum"
                                         id="occurenceNum"
                                         style={{ maxWidth: '100px' }}
@@ -262,7 +259,6 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                         min="2"
                                         placeholder="Min 2"
                                     />
-                                    {errors.occurenceNum && <div className="invalid-feedback ms-2">{errors.occurenceNum}</div>}
                                 </>
                             )}
                         </div>
