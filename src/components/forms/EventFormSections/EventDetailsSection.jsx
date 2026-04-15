@@ -89,7 +89,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                         </label>
                         <input
                             type="text"
-                            className="form-control form-control-lg border-0 bg-light"
+                            className="form-control form-control-lg"
                             name="title"
                             id="title"
                             placeholder="e.g. Weekly Math Tutoring"
@@ -106,7 +106,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             Description (Optional)
                         </label>
                         <textarea
-                            className="form-control border-0 bg-light"
+                            className="form-control"
                             rows={2}
                             name="description"
                             id="description"
@@ -128,7 +128,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             </label>
                             <input
                                 type="datetime-local"
-                                className="form-control border-0 bg-light"
+                                className="form-control"
                                 name="start"
                                 id="start"
                                 value={
@@ -152,7 +152,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             </label>
                             <input
                                 type="datetime-local"
-                                className="form-control border-0 bg-light"
+                                className="form-control"
                                 name="end"
                                 id="end"
                                 value={

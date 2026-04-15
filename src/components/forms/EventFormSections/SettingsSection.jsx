@@ -56,7 +56,7 @@ const SettingsSection = ({
                             </label>
                             <input
                                 type="number"
-                                className="form-control border-0 bg-light"
+                                className="form-control"
                                 name="minStudents"
                                 id="minStudents"
                                 value={newEvent.minStudents || 0}

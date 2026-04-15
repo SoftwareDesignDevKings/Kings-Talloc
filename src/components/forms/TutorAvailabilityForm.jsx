@@ -191,7 +191,7 @@ const TutorAvailabilityForm = ({
                             </label>
                             <input
                                 type="datetime-local"
-                                className={`form-control border-0 bg-light ${error && error.includes('date') ? styles.invalidInput : ''}`}
+                                className={`form-control ${error && error.includes('date') ? styles.invalidInput : ''}`}
                                 name="start"
                                 id="start"
                                 value={
@@ -213,7 +213,7 @@ const TutorAvailabilityForm = ({
                             </label>
                             <input
                                 type="datetime-local"
-                                className={`form-control border-0 bg-light ${error && error.includes('date') ? styles.invalidInput : ''}`}
+                                className={`form-control ${error && error.includes('date') ? styles.invalidInput : ''}`}
                                 name="end"
                                 id="end"
                                 value={

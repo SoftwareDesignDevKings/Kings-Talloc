@@ -188,6 +188,25 @@ h1, h2, h3, h4, h5, h6,
     padding: 0.125rem 0.5rem;
 }
 
+/* ─── Unified input surface ───────────────────────────────────── */
+/* All native inputs, textareas, and selects share the same look as
+   react-select controls: light background, no visible border, focus
+   ring using the brand primary. Add border-0 bg-light is no longer
+   needed on individual inputs — this rule handles it globally. */
+.form-control,
+.form-select {
+    background-color: #f8f9fa !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: #f8f9fa !important;
+    border: none !important;
+    box-shadow: 0 0 0 2px var(--tks-primary-subtle) !important;
+}
+
 /* ─── react-select defaults ──────────────────────────────────── */
 /* Sets the base control appearance — eliminates inline styles={}
    on every Select. Override per-instance only where it differs. */
