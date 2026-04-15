@@ -171,7 +171,7 @@ const TeacherStats = ({ data, onUpdate }) => {
                                             </div>
                                             <div className="d-flex gap-2">
                                                 <button
-                                                    className="btn btn-sm btn-success"
+                                                    className="btn btn-sm btn-outline-success"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         handleApproveRequest(request.id);
@@ -180,7 +180,7 @@ const TeacherStats = ({ data, onUpdate }) => {
                                                     Approve
                                                 </button>
                                                 <button
-                                                    className="btn btn-sm btn-secondary"
+                                                    className="btn btn-sm btn-outline-secondary"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         handleRejectRequest(request.id);
@@ -189,7 +189,7 @@ const TeacherStats = ({ data, onUpdate }) => {
                                                     Reject
                                                 </button>
                                                 <button
-                                                    className="btn btn-sm btn-danger"
+                                                    className="btn btn-sm btn-outline-danger"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         handleDeleteRequest(request.id);

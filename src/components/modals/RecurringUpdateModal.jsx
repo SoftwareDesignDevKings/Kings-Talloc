@@ -28,10 +28,10 @@ const RecurringUpdateModal = ({ show, onHide, onConfirm }) => {
             size="md"
             customFooter={
                 <>
-                    <button type="button" className="btn btn-secondary" onClick={onHide}>
+                    <button type="button" className="btn btn-outline-secondary" onClick={onHide}>
                         Cancel
                     </button>
-                    <button type="button" className="btn btn-primary" onClick={handleConfirm}>
+                    <button type="button" className="btn btn-outline-primary" onClick={handleConfirm}>
                         Update
                     </button>
                 </>

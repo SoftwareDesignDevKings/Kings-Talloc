@@ -322,7 +322,7 @@ const ClassList = () => {
                                                     </small>
                                                 </div>
                                                 <button
-                                                    className="btn btn-sm btn-danger"
+                                                    className="btn btn-sm btn-outline-danger"
                                                     onClick={() => {
                                                         confirmRemoveStudent(
                                                             student,
@@ -348,7 +348,7 @@ const ClassList = () => {
                             <div className="modal-footer">
                                 <button
                                     type="button"
-                                    className="btn btn-secondary"
+                                    className="btn btn-outline-secondary"
                                     onClick={() => setShowViewStudentsModal(false)}
                                 >
                                     Close

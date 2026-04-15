@@ -150,7 +150,7 @@ const BaseModal = ({
                                             {deleteButton && (
                                                 <button
                                                     type="button"
-                                                    className={`btn btn-${deleteButton.variant || 'danger'}`}
+                                                    className={`btn btn-outline-${deleteButton.variant || 'danger'}`}
                                                     onClick={handleDeleteClick}
                                                     disabled={disabled || loading}
                                                 >
@@ -159,7 +159,7 @@ const BaseModal = ({
                                             )}
                                             <button
                                                 type="submit"
-                                                className="btn btn-primary"
+                                                className="btn btn-outline-primary"
                                                 disabled={disabled || loading}
                                             >
                                                 {getSubmitButtonText()}
