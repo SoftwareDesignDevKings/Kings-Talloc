@@ -454,7 +454,7 @@ const UserRolesManager = () => {
                                     >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn btn-primary px-4">
+                                    <button type="submit" className="btn btn-outline-primary px-4">
                                         {isEditing ? 'Save Changes' : 'Create User'}
                                     </button>
                                 </div>

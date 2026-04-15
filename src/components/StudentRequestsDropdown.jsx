@@ -103,7 +103,7 @@ const StudentRequestsDropdown = () => {
     return (
         <div className="dropdown">
             <button
-                className="btn btn-warning position-relative"
+                className="btn btn-outline-warning position-relative"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
             >
@@ -161,14 +161,14 @@ const StudentRequestsDropdown = () => {
 
                                     <div className="d-flex gap-2">
                                         <button
-                                            className="btn btn-sm btn-success"
+                                            className="btn btn-sm btn-outline-success"
                                             onClick={() => handleApprove(request.id)}
                                         >
                                             <FiCheck className="me-1" />
                                             Approve
                                         </button>
                                         <button
-                                            className="btn btn-sm btn-danger"
+                                            className="btn btn-sm btn-outline-danger"
                                             onClick={() => handleReject(request.id)}
                                         >
                                             <FiX className="me-1" />

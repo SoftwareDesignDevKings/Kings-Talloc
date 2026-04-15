@@ -140,18 +140,31 @@ const BaseModal = ({
                         <form onSubmit={handleSubmit} id="modal-form">
                             <div className="modal-body">{children}</div>
 
-                            {/* Footer */}
-                            {showFooter && (
-                                <div className="modal-footer">
-                                    {customFooter ? (
-                                        customFooter
-                                    ) : (
-                                        <div className="d-flex gap-2">
-                                            {deleteButton && (
+                        {/* Body */}
+                        {onSubmit ? (
+                            <form onSubmit={handleSubmit} id="modal-form">
+                                <div className="modal-body">{children}</div>
+
+                                {/* Footer */}
+                                {showFooter && (
+                                    <div className="modal-footer">
+                                        {customFooter ? (
+                                            customFooter
+                                        ) : (
+                                            <div className="d-flex gap-2">
+                                                {deleteButton && (
+                                                    <button
+                                                        type="button"
+                                                        className={`btn btn-outline-${deleteButton.variant || 'danger'}`}
+                                                        onClick={deleteButton.onClick}
+                                                        disabled={disabled || loading}
+                                                    >
+                                                        {deleteButton.text || 'Delete'}
+                                                    </button>
+                                                )}
                                                 <button
-                                                    type="button"
-                                                    className={`btn btn-${deleteButton.variant || 'danger'}`}
-                                                    onClick={handleDeleteClick}
+                                                    type="submit"
+                                                    className="btn btn-outline-primary"
                                                     disabled={disabled || loading}
                                                 >
                                                     {deleteButton.text || 'Delete'}

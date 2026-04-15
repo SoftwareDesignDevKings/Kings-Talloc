@@ -74,7 +74,7 @@ const LandingPage = () => {
                 </div>
                 <div className="text-center mt-5 fade-in" style={{ animationDelay: '200ms' }}>
                     <a
-                        className="btn btn-primary px-5 py-3 rounded-pill fw-medium"
+                        className="btn btn-outline-primary px-5 py-3 rounded-pill fw-medium"
                         href="/login"
                     >
                         Get Started
