@@ -264,8 +264,6 @@ const TutorAvailabilityForm = ({
                                 styles={{
                                     control: (base) => ({
                                         ...base,
-                                        backgroundColor: '#f8f9fa',
-                                        border: 'none',
                                         padding: '4px',
                                         borderRadius: '0.5rem',
                                     }),
@@ -293,8 +291,6 @@ const TutorAvailabilityForm = ({
                                 styles={{
                                     control: (base) => ({
                                         ...base,
-                                        backgroundColor: '#f8f9fa',
-                                        border: 'none',
                                         padding: '4px',
                                         borderRadius: '0.5rem',
                                     }),

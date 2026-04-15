@@ -7,7 +7,6 @@ const StudentRequestSection = ({
     handleApprovalChange,
     approvalOptions,
     readOnly,
-    errors = {},
 }) => {
     if (!newEvent.createdByStudent) return null;
 
@@ -24,14 +23,13 @@ const StudentRequestSection = ({
                     data-bs-target="#studentRequest"
                     aria-expanded={isExpanded}
                     aria-controls="studentRequest"
-                    style={{ background: 'transparent' }}
                 >
                     <div className="d-flex align-items-center justify-content-between w-100 me-3">
                         <div className="d-flex align-items-center">
                             <MdNoteAlt className="me-2 text-primary" size={20} aria-hidden="true" />
                             <span className="fw-bold">Student Request Details</span>
                         </div>
-                        <span className="badge rounded-pill bg-info fw-normal" style={{ fontSize: '0.65rem' }}>STUDENT SUBMITTED</span>
+                        <span className="badge rounded-pill bg-info fw-normal text-xs">STUDENT SUBMITTED</span>
                     </div>
                 </button>
             </h2>
@@ -100,7 +98,7 @@ const StudentRequestSection = ({
                                     }),
                                 }}
                             />
-                            <div className="mt-2 text-muted" style={{ fontSize: '0.75rem' }}>
+                            <div className="mt-2 text-muted text-xs">
                                 <MdSchool className="me-1" /> 
                                 Approving this request will automatically schedule the session and notify the student.
                             </div>

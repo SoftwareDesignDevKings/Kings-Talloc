@@ -54,8 +54,7 @@ export default function Login() {
                                     <button
                                         key={user.id}
                                         onClick={() => signIn(user.id, { callbackUrl: '/dashboard' })}
-                                        className={`btn btn-outline-${user.variant} btn-sm grow`}
-                                        style={{ fontSize: '0.75rem' }}
+                                        className={`btn btn-outline-${user.variant} btn-sm grow text-xs`}
                                     >
                                         {user.label}
                                     </button>

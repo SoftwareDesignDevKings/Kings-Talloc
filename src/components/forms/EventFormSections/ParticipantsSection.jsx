@@ -15,7 +15,6 @@ const ParticipantsSection = ({
     handleStudentSelectChange,
     studentOptions,
     readOnly,
-    errors = {},
 }) => {
     return (
         <div className="accordion-item border-0 border-bottom">
@@ -27,7 +26,6 @@ const ParticipantsSection = ({
                     data-bs-target="#participants"
                     aria-expanded="false"
                     aria-controls="participants"
-                    style={{ background: 'transparent' }}
                 >
                     <MdPeople className="me-2 text-primary" size={20} aria-hidden="true" />
                     <span className="fw-bold">Participants</span>
@@ -60,20 +58,7 @@ const ParticipantsSection = ({
                             isDisabled={readOnly}
                             aria-label="Assign tutors to event"
                             inputId="staff"
-                            styles={{
-                                control: (base) => ({
-                                    ...base,
-                                    borderColor: errors.staff ? '#dc3545' : '#dee2e6',
-                                    backgroundColor: '#f8f9fa',
-                                    border: 'none',
-                                    padding: '2px',
-                                    '&:hover': {
-                                        borderColor: errors.staff ? '#dc3545' : '#dee2e6',
-                                    },
-                                }),
-                            }}
                         />
-                        {errors.staff && <div className="text-danger small mt-1">{errors.staff}</div>}
                     </div>
 
                     <div className="row g-3">
@@ -94,14 +79,6 @@ const ParticipantsSection = ({
                                 isDisabled={readOnly}
                                 aria-label="Assign classes to event"
                                 inputId="classes"
-                                styles={{
-                                    control: (base) => ({
-                                        ...base,
-                                        backgroundColor: '#f8f9fa',
-                                        border: 'none',
-                                        padding: '2px',
-                                    }),
-                                }}
                             />
                         </div>
 
@@ -122,14 +99,6 @@ const ParticipantsSection = ({
                                 isDisabled={readOnly}
                                 aria-label="Assign students to event"
                                 inputId="students"
-                                styles={{
-                                    control: (base) => ({
-                                        ...base,
-                                        backgroundColor: '#f8f9fa',
-                                        border: 'none',
-                                        padding: '2px',
-                                    }),
-                                }}
                             />
                         </div>
                     </div>

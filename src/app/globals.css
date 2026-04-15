@@ -63,6 +63,15 @@
     --bs-body-font-family: var(--font-body, system-ui, -apple-system, sans-serif);
     --bs-body-font-size: 1rem;
     --bs-body-line-height: 1.6;
+
+    /* ── Bootstrap colour overrides ─────────────────────────── */
+    /* Map Bootstrap's semantic "primary" to the brand token so that
+       btn-primary, btn-outline-primary, links, and focus rings all
+       automatically use the brand colour instead of Bootstrap blue. */
+    --bs-primary:           var(--tks-primary);
+    --bs-primary-rgb:       111, 165, 204;
+    --bs-link-color:        var(--tks-primary);
+    --bs-link-hover-color:  var(--tks-secondary);
 }
 
 /* Global Transitions */
@@ -75,6 +84,15 @@ select,
 textarea {
     transition: all var(--transition-fast) !important;
 }
+
+/* ── Button hierarchy convention ────────────────────────────────
+   Modal submit / confirm                     : btn btn-primary
+   Destructive CTA (confirm delete dialog)    : btn btn-danger
+   Page-level add / export triggers           : btn btn-sm btn-outline-primary
+   Row action — edit / add sub-item           : btn btn-sm btn-outline-primary
+   Row action — view / neutral                : btn btn-sm btn-outline-secondary
+   Row action — remove / delete               : btn btn-sm btn-outline-danger
+   ────────────────────────────────────────────────────────────── */
 
 .btn:hover {
     transform: translateY(-1px);
@@ -146,6 +164,55 @@ h1, h2, h3, h4, h5, h6,
 .app-shell {
     height: 100dvh;
     overflow: hidden;
+}
+
+/* ─── Utility classes ─────────────────────────────────────────── */
+
+/* Small text for meta / helper labels */
+.text-xs {
+    font-size: 0.75rem;
+}
+
+/* Tabular numeric rendering for time columns */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Muted pill badge — e.g. event count, minor status labels */
+.badge-muted {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+}
+
+/* ─── react-select defaults ──────────────────────────────────── */
+/* Sets the base control appearance — eliminates inline styles={}
+   on every Select. Override per-instance only where it differs. */
+.select__control {
+    background-color: #f8f9fa !important;
+    border: none !important;
+    padding: 2px !important;
+    border-radius: 4px !important;
+}
+
+.select__control--is-focused {
+    box-shadow: 0 0 0 2px var(--tks-primary-subtle) !important;
+}
+
+/* ─── Accordion button transparency ──────────────────────────── */
+/* All accordions in this app use transparent header buttons.
+   Overrides Bootstrap's default white background. */
+.accordion-button {
+    background-color: transparent !important;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
 }
 
 .table-text-sm td {
