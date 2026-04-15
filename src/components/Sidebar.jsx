@@ -7,7 +7,6 @@ import {
     FiBook,
     FiClock,
     FiUser,
-    FiSettings,
     FiChevronLeft,
     FiChevronRight,
     FiBookOpen,
@@ -151,10 +150,10 @@ const Sidebar = ({ userRole, user }) => {
                 
                 <button
                     onClick={() => signOut({ callbackUrl: '/login' })}
-                    className={`${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
+                    className={`btn btn-outline-danger d-flex align-items-center ${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
                     title="Logout"
                 >
-                    <FiLogOut className={styles.navIcon} />
+                    <FiLogOut className={styles.logoutIcon} />
                     <span className={styles.navLabel}>Logout</span>
                 </button>
             </div>

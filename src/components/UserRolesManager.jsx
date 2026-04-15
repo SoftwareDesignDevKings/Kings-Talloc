@@ -244,9 +244,9 @@ const UserRolesManager = () => {
                         setRole('student');
                         setUserRoles([]);
                     }}
-                    className="btn btn-primary"
+                    className="btn btn-outline-primary btn-sm"
                 >
-                    Add User Role
+    Add User Role
                 </button>
             </div>
 

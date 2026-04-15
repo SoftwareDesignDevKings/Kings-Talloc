@@ -260,14 +260,13 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 <CSVLink
                     data={csvData}
                     filename={`tutor_hours_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.csv`}
+                    className="btn btn-outline-primary btn-sm"
                 >
-                    <button className="btn btn-primary btn-sm">
-                        Export as CSV
-                    </button>
+                    Export as CSV
                 </CSVLink>
             </div>
             <div className="mb-3 p-3 border border-secondary-subtle bg-light rounded d-flex align-items-start gap-2">
-                <FaInfoCircle className="text-secondary mt-1 shrink-0" style={{ fontSize: '1.25rem' }} />
+                <FaInfoCircle className="text-secondary mt-1 shrink-0 fs-5" />
                 <div className="small text-secondary">
                     <p className="mb-2">
                         Please check if the hours are correct by Friday. If there are any
@@ -315,7 +314,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                                         'tutor',
                                                     )
                                                 }
-                                                className="btn btn-success btn-sm"
+                                                className="btn btn-sm btn-outline-success"
                                             >
                                                 Generate Tutor Timesheet
                                             </button>
@@ -328,7 +327,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                                             'coach',
                                                         )
                                                     }
-                                                    className="btn btn-secondary btn-sm"
+                                                    className="btn btn-sm btn-outline-secondary"
                                                 >
                                                     Generate Coach Timesheet
                                                 </button>
