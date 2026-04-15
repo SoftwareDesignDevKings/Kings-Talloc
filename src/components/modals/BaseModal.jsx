@@ -27,6 +27,7 @@ const BaseModal = ({
 
     // Layout props
     showFooter = true,
+    noValidate = false,
 }) => {
     const modalRef = useRef(null);
     const bsModalRef = useRef(null);
@@ -142,7 +143,7 @@ const BaseModal = ({
 
                         {/* Body */}
                         {onSubmit ? (
-                            <form onSubmit={handleSubmit} id="modal-form">
+                            <form onSubmit={handleSubmit} id="modal-form" noValidate={noValidate}>
                                 <div className="modal-body">{children}</div>
 
                                 {/* Footer */}
