@@ -81,12 +81,11 @@ const CalendarFilterPanel = () => {
 
             <div className={`${styles.filterContent} collapse${isOpen ? ' show' : ''}`} id="filterPanelCollapse">
                     <div className="d-flex justify-content-between align-items-center mb-3">
-                        <h3 className={styles.filterTitle} style={{ margin: 0 }}>Filters</h3>
+                        <h3 className={`${styles.filterTitle} mb-0`}>Filters</h3>
                         <div className="d-flex gap-2 align-items-center">
                             <button
-                                className="btn btn-sm btn-link text-muted p-0 text-decoration-none"
+                                className="btn btn-sm btn-link text-muted p-0 text-decoration-none text-xs"
                                 onClick={actions.clearFilters}
-                                style={{ fontSize: '0.75rem' }}
                             >
                                 Clear All
                             </button>

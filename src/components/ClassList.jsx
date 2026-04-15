@@ -229,7 +229,7 @@ const ClassList = () => {
                         setSelectedSubject(null);
                         setSelectedTeacher(null);
                     }}
-                    className="btn btn-primary text-nowrap"
+                    className="btn btn-outline-primary btn-sm text-nowrap"
                 >
                     Add Class
                 </button>

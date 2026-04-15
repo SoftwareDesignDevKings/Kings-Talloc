@@ -35,7 +35,6 @@ const SettingsSection = ({
                     data-bs-target="#settings"
                     aria-expanded="false"
                     aria-controls="settings"
-                    style={{ background: 'transparent' }}
                 >
                     <MdSettings className="me-2 text-primary" size={20} aria-hidden="true" />
                     <span className="fw-bold">Settings & Status</span>
@@ -66,7 +65,7 @@ const SettingsSection = ({
                                 aria-label="Minimum number of students required"
                                 min="0"
                             />
-                            <small className="text-muted mt-1 d-block" style={{ fontSize: '0.7rem' }}>
+                            <small className="text-muted mt-1 d-block text-xs">
                                 Required for confirmation
                             </small>
                         </div>
@@ -81,8 +80,7 @@ const SettingsSection = ({
                                         {newEvent.studentResponses.map((response, index) => (
                                             <span
                                                 key={index}
-                                                className={`badge rounded-pill bg-${response.response ? 'success' : 'danger'} fw-normal`}
-                                                style={{ fontSize: '0.7rem' }}
+                                                className={`badge rounded-pill bg-${response.response ? 'success' : 'danger'} fw-normal text-xs`}
                                             >
                                                 {response.email.split('@')[0]}
                                             </span>
@@ -111,14 +109,6 @@ const SettingsSection = ({
                                 isDisabled={readOnly}
                                 aria-label="Event work type"
                                 inputId="workType"
-                                styles={{
-                                    control: (base) => ({
-                                        ...base,
-                                        backgroundColor: '#f8f9fa',
-                                        border: 'none',
-                                        padding: '2px',
-                                    }),
-                                }}
                             />
                         </div>
 
@@ -138,14 +128,6 @@ const SettingsSection = ({
                                 isDisabled={readOnly && userRole !== 'tutor'}
                                 aria-label="Event work status"
                                 inputId="workStatus"
-                                styles={{
-                                    control: (base) => ({
-                                        ...base,
-                                        backgroundColor: '#f8f9fa',
-                                        border: 'none',
-                                        padding: '2px',
-                                    }),
-                                }}
                             />
                         </div>
                     </div>

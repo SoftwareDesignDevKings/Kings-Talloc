@@ -123,19 +123,7 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                 <FiCalendar className="text-muted" size={16} />
                 <h6 className="mb-0 fw-semibold text-dark">{title}</h6>
                 {events.length > 0 && (
-                    <span
-                        className="ms-auto"
-                        style={{
-                            fontSize: '0.6875rem',
-                            background: 'rgba(107, 114, 128, 0.1)',
-                            color: '#4b5563',
-                            borderRadius: '9999px',
-                            padding: '0.125rem 0.5rem',
-                            fontWeight: 500,
-                        }}
-                    >
-                        {events.length}
-                    </span>
+                    <span className="ms-auto badge-muted">{events.length}</span>
                 )}
             </div>
             <div className="card-body p-0">
@@ -169,12 +157,8 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                         style={{ width: '80px' }}
                                     >
                                         <span
-                                            className="text-muted"
-                                            style={{
-                                                fontSize: '0.72rem',
-                                                fontVariantNumeric: 'tabular-nums',
-                                                whiteSpace: 'nowrap',
-                                            }}
+                                            className="text-muted tabular-nums text-nowrap"
+                                            style={{ fontSize: '0.72rem' }}
                                         >
                                             {isToday
                                                 ? format(new Date(event.start), 'h:mm a')
@@ -182,13 +166,8 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                         </span>
                                         {isToday && (
                                             <span
-                                                className="text-muted"
-                                                style={{
-                                                    fontSize: '0.72rem',
-                                                    fontVariantNumeric: 'tabular-nums',
-                                                    whiteSpace: 'nowrap',
-                                                    opacity: 0.6,
-                                                }}
+                                                className="text-muted tabular-nums text-nowrap"
+                                                style={{ fontSize: '0.72rem', opacity: 0.6 }}
                                             >
                                                 {format(new Date(event.end), 'h:mm a')}
                                             </span>
@@ -198,10 +177,7 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                     {/* Content */}
                                     <div className="grow px-3 py-3">
                                         <div className="d-flex align-items-center gap-2 flex-wrap">
-                                            <span
-                                                className="fw-semibold text-dark"
-                                                style={{ fontSize: '0.875rem' }}
-                                            >
+                                            <span className="fw-semibold text-dark small">
                                                 {event.title}
                                             </span>
 
@@ -223,18 +199,12 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                             )}
 
                                             {isPending && (
-                                                <span
-                                                    className="badge bg-warning text-dark"
-                                                    style={{ fontSize: '0.65rem' }}
-                                                >
+                                                <span className="badge bg-warning text-dark text-xs">
                                                     Pending
                                                 </span>
                                             )}
                                             {isApproved && (
-                                                <span
-                                                    className="badge bg-success"
-                                                    style={{ fontSize: '0.65rem' }}
-                                                >
+                                                <span className="badge bg-success text-xs">
                                                     Approved
                                                 </span>
                                             )}
@@ -249,18 +219,13 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                                         <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
                                             {(userRole === 'teacher' || userRole === 'admin') &&
                                                 staffNames.length > 0 && (
-                                                    <span
-                                                        className="text-muted"
-                                                        style={{ fontSize: '0.75rem' }}
-                                                    >
+                                                    <span className="text-muted text-xs">
                                                         {staffNames.join(', ')}
                                                     </span>
                                                 )}
                                             {event.students?.length > 0 && (
-                                                <span
-                                                    className="text-muted"
-                                                    style={{ fontSize: '0.75rem' }}
-                                                >
+                                                <span className="text-muted text-xs">
+
                                                     {(userRole === 'teacher' ||
                                                         userRole === 'admin') &&
                                                         staffNames.length > 0 &&
