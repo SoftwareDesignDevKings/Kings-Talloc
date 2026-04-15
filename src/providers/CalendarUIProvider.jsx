@@ -215,20 +215,6 @@ export const CalendarUIProvider = ({ children }) => {
         return splitAvailabilities;
     }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
 
-    const clearFilters = useCallback(() => {
-        setFilterBySubject(null);
-        setFilterByTutor(null);
-        setFilterByWorkType(null);
-        setFilterAvailabilityByWorkType(null);
-        setShowAllEvents(true);
-        setShowTutorInitials(true);
-        setHideOwnAvailabilities(false);
-        setHideDeniedStudentRequests(false);
-        setShowTutoringEvents(true);
-        setShowCoachingEvents(true);
-        setShowWorkEvents(true);
-    }, []);
-
     // ─────────────────────────────────────
     // context values
     // ─────────────────────────────────────
@@ -271,7 +257,6 @@ export const CalendarUIProvider = ({ children }) => {
                 setShowTutoringEvents: handleShowTutoringEventsChange,
                 setShowCoachingEvents: handleShowCoachingEventsChange,
                 setShowWorkEvents: handleShowWorkEventsChange,
-                clearFilters,
             },
         }),
         [
@@ -294,7 +279,6 @@ export const CalendarUIProvider = ({ children }) => {
             handleShowTutoringEventsChange,
             handleShowCoachingEventsChange,
             handleShowWorkEventsChange,
-            clearFilters,
         ],
     );
 

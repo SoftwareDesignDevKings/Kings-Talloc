@@ -83,12 +83,6 @@ const CalendarFilterPanel = () => {
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <h3 className={`${styles.filterTitle} mb-0`}>Filters</h3>
                         <div className="d-flex gap-2 align-items-center">
-                            <button
-                                className="btn btn-sm btn-link text-muted p-0 text-decoration-none text-xs"
-                                onClick={actions.clearFilters}
-                            >
-                                Clear All
-                            </button>
                             {userRole === 'student' && (
                                 <button
                                     className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
