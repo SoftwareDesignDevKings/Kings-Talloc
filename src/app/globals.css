@@ -221,17 +221,28 @@ h1, h2, h3, h4, h5, h6,
     box-shadow: 0 0 0 2px var(--tks-primary-subtle) !important;
 }
 
-/* ─── Accordion button transparency ──────────────────────────── */
-/* All accordions in this app use transparent header buttons.
-   Overrides Bootstrap's default white background. */
+/* ─── Accordion button transparency & shape ──────────────────── */
+/* All accordions in this app use transparent header buttons with no
+   rounded corners. Bootstrap rounds the first/last accordion-item and
+   its button/collapse via :first-of-type/:last-of-type rules — override
+   all of them so border-bottom dividers are the sole visual separator. */
+.accordion-item,
+.accordion-item:first-of-type,
+.accordion-item:last-of-type,
+.accordion-item:last-of-type > .accordion-collapse {
+    border-radius: 0 !important;
+}
+
 .accordion-button {
     background-color: transparent !important;
+    border-radius: 0 !important;
 }
 
 .accordion-button:not(.collapsed) {
     background-color: transparent !important;
     box-shadow: none !important;
     color: inherit !important;
+    border-radius: 0 !important;
 }
 
 .table-text-sm td {

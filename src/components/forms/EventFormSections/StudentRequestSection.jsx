@@ -14,7 +14,7 @@ const StudentRequestSection = ({
     const isExpanded = true;
 
     return (
-        <div className="accordion-item border-0">
+        <div className="accordion-item">
             <h2 className="accordion-header">
                 <button
                     className={`accordion-button shadow-none ${isExpanded ? '' : 'collapsed'}`}

@@ -17,7 +17,7 @@ const ParticipantsSection = ({
     readOnly,
 }) => {
     return (
-        <div className="accordion-item border-0 border-bottom">
+        <div className="accordion-item">
             <h2 className="accordion-header">
                 <button
                     className="accordion-button collapsed shadow-none"

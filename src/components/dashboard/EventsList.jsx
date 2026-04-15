@@ -28,7 +28,7 @@ const WORK_TYPE_BADGE = {
 
 const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) => {
     return (
-        <div className="card border-0 shadow-sm h-100">
+        <div className="card shadow-sm h-100" style={{ border: '1px solid var(--tks-border)' }}>
             <div className="card-header bg-white border-bottom d-flex align-items-center gap-2 py-3">
                 <FiCalendar className="text-muted" size={16} />
                 <h6 className="mb-0 fw-semibold text-dark">{title}</h6>
