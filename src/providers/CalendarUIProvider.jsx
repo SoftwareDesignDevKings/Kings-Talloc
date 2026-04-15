@@ -6,6 +6,18 @@ import { useAppData } from "@/providers/AppDataProvider"
 import { CalendarEntityType } from "@/strategy/calendarStrategy"
 import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
 
+// Normalize workType to an array (handles string | string[] | undefined)
+const toWorkTypes = (workType) => [].concat(workType ?? []);
+
+// True if an availability's workType overlaps with any of the filter values.
+// 'tutoringOrWork' availabilities also satisfy 'tutoring' or 'work' filters.
+const availMatchesFilter = (avail, filterValues) =>
+    toWorkTypes(avail.workType).some(t =>
+        filterValues.includes(t) ||
+        filterValues.includes('tutoringOrWork') ||
+        (t === 'tutoringOrWork' && (filterValues.includes('tutoring') || filterValues.includes('work')))
+    );
+
 /**
  * UI Provider to persist on re-renders across different page.jsx
  */
@@ -141,12 +153,9 @@ export const CalendarUIProvider = ({ children }) => {
         // for tutors/coaches: split own availabilities around shifts as RBC events (never other tutors')
         if ((userRole === 'tutor' || userRole === 'coach') && showTutorInitials && !hideOwnAvailabilities) {
             let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
-            if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
+            if (filterAvailabilityByWorkType?.length > 0) {
                 const filterValues = filterAvailabilityByWorkType.map(f => f.value);
-                availabilities = availabilities.filter(a => {
-                    const types = Array.isArray(a.workType) ? a.workType : [a.workType];
-                    return types.some(t => filterValues.includes(t) || filterValues.includes('tutoringOrWork'));
-                });
+                availabilities = availabilities.filter(a => availMatchesFilter(a, filterValues));
             }
             const splitAvailabilities = calendarAvailabilitySplit(availabilities, filtered);
             filtered = [...filtered, ...splitAvailabilities];
@@ -188,10 +197,9 @@ export const CalendarUIProvider = ({ children }) => {
 
         // students: only show tutoring availabilities (exclude coaching and work)
         if (userRole === 'student') {
-            filtered = filtered.filter(a => {
-                const types = Array.isArray(a.workType) ? a.workType : [a.workType];
-                return types.some(t => t === 'tutoring' || t === 'tutoringOrWork') || a.workType === undefined;
-            });
+            filtered = filtered.filter(a =>
+                a.workType == null || toWorkTypes(a.workType).some(t => t === 'tutoring' || t === 'tutoringOrWork')
+            );
         }
 
         // filter by selected tutors from CalendarUIProvider
@@ -201,12 +209,9 @@ export const CalendarUIProvider = ({ children }) => {
         }
 
         // filter by availability work type from CalendarUIProvider
-        if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
+        if (filterAvailabilityByWorkType?.length > 0) {
             const filterValues = filterAvailabilityByWorkType.map(f => f.value);
-            filtered = filtered.filter(a => {
-                const types = Array.isArray(a.workType) ? a.workType : [a.workType];
-                return types.some(t => filterValues.includes(t) || filterValues.includes('tutoringOrWork'));
-            });
+            filtered = filtered.filter(a => availMatchesFilter(a, filterValues));
         }
 
         // Split availabilities around clashing shifts (always use actual shifts, not filtered)
