@@ -34,10 +34,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         setCalendarShifts,
         setCalendarAvailabilities,
         setCalendarStudentRequests,
-        subjects,
-        classes,
-        tutors,
-        students
     } = useAppData();
     // Derive mode flags
     const isView = mode === 'view';
@@ -51,7 +47,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [errors, setErrors] = useState({});
     const { addAlert } = useAlert();
 
     // fetch form data using custom hook
@@ -92,41 +87,31 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         const start = new Date(newEvent.start);
         const end = new Date(newEvent.end);
         if (!isAfter(end, start)) {
-            setErrors((prev) => ({ ...prev, dates: 'End date must be after the start date.' }));
             addAlert('error', 'End date must be after the start date.');
             return false;
         }
-        setErrors((prev) => {
-            const newErr = { ...prev };
-            delete newErr.dates;
-            return newErr;
-        });
         return true;
     };
 
     const validateForm = () => {
-        const newFormErrors = {};
 
         // Validate dates first
         if (!validateDates()) {
-            // Error already added by validateDates
+            return false;
         }
 
         if (process.env.NODE_ENV !== 'development') {
             if (!newEvent.staff || newEvent.staff.length === 0) {
-                newFormErrors.staff = 'At least one tutor must be assigned to the event.';
                 addAlert('error', 'At least one tutor must be assigned to the event.');
             }
         }
 
         if (!newEvent.title) {
-            newFormErrors.title = 'Title is required';
             addAlert('error', 'Title is required');
         }
 
         // Validate cannot make completed events recurring (but allow completing recurring instances since they get detached)
         if (newEvent.recurring && newEvent.workStatus === 'completed' && !eventToEdit?.isRecurringInstance) {
-            newFormErrors.recurring = 'Cannot make completed events recurring.';
             addAlert('error', 'Cannot make completed events recurring.');
         }
 
@@ -136,16 +121,15 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             const maxOccurrences = newEvent.recurring === 'fortnightly' ? 5 : 10;
 
             if (!count || count < 2) {
-                newFormErrors.occurenceNum = 'Recurring events must have at least 2 occurrences.';
                 addAlert('error', 'Recurring events must have at least 2 occurrences.');
+                return false;
             } else if (count > maxOccurrences) {
-                newFormErrors.occurenceNum = `Recurring shifts are capped at 10 weeks (max ${maxOccurrences} occurrences for ${newEvent.recurring} recurrence).`;
                 addAlert('error', `Recurring shifts are capped at 10 weeks (max ${maxOccurrences} occurrences for ${newEvent.recurring} recurrence).`);
+                return false;
             }
         }
 
-        setErrors(newFormErrors);
-        return Object.keys(newFormErrors).length === 0;
+        return true;
     };
 
     const onSubmit = async (e) => {
@@ -379,7 +363,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         handleInputChange={handleInputChange}
                         readOnly={isView}
                         isEditing={isEditing}
-                        errors={errors}
                     />
 
                     <ParticipantsSection
@@ -395,7 +378,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         handleStudentSelectChange={handleStudentSelectChange}
                         studentOptions={studentOptions}
                         readOnly={isView}
-                        errors={errors}
                     />
 
                     <SettingsSection
@@ -406,7 +388,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         workStatusOptions={workStatusOptions}
                         readOnly={isView}
                         userRole={userRole}
-                        errors={errors}
                     />
 
                     <StudentRequestSection
@@ -414,7 +395,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         handleApprovalChange={handleApprovalChange}
                         approvalOptions={approvalOptions}
                         readOnly={isView}
-                        errors={errors}
                     />
                 </div>
             </BaseModal>
