@@ -55,7 +55,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
     const isExpanded = !isStudentRequest;
 
     return (
-        <div className="accordion-item border-0 border-bottom">
+        <div className="accordion-item">
             <h2 className="accordion-header">
                 <button
                     className={`accordion-button shadow-none ${isExpanded ? '' : 'collapsed'}`}
@@ -64,7 +64,6 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                     data-bs-target="#eventDetails"
                     aria-expanded={isExpanded}
                     aria-controls="eventDetails"
-                    style={{ background: 'transparent' }}
                 >
                     <div className="d-flex align-items-center justify-content-between w-100 me-3">
                         <div className="d-flex align-items-center">
@@ -89,7 +88,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                         </label>
                         <input
                             type="text"
-                            className="form-control form-control-lg"
+                            className="form-control"
                             name="title"
                             id="title"
                             placeholder="e.g. Weekly Math Tutoring"
