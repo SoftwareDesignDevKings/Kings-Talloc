@@ -422,23 +422,3 @@ h1, h2, h3, h4, h5, h6,
     z-index: 9999 !important;
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* EVENT CARDS & AVAILABILITY BLOCKS (FULL-WIDTH FIX)          */
-/* ───────────────────────────────────────────────────────────── */
-/* React Big Calendar adds a 10px right margin to the events container
-   to allow users to click the grid. To make the cards span 
-   edge-to-edge, we use calc(100% + 10px) to overcome that margin.
-   Targeted only inside the time grid (.rbc-time-content) to protect the Month view layout. */
-.rbc-time-content .rbc-event,
-.rbc-time-content .availability-block {
-    width: calc(100% + 10px) !important;
-    left: 0 !important;
-    border-radius: 0 !important; /* Square edges for a flush fit */
-    border-left: none !important;
-    border-right: none !important;
-    z-index: 1 !important;
-}
-
-.rbc-time-content .rbc-event {
-    z-index: 2 !important; /* Keep scheduled shifts above availabilities */
-}
