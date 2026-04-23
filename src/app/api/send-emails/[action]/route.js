@@ -2,7 +2,7 @@ import { adminDb } from '../../../../firestore/firestoreAdmin';
 import { DateTime } from 'luxon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/security/authConfig';
-import { msSendEmail } from '@/lib/microsoftGraph';
+// import { msSendEmail } from '@/lib/microsoftGraph';
 
 // TO BE DEPRECATED
 export async function GET(_req, { params }) {
