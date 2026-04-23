@@ -118,7 +118,7 @@ async function handleSignIn({ user }) {
     }
 
     // verify Fb entry - both firestore userDoc and firebaseAuth user registration
-    return authFbVerifyUserRecords({ user })
+    return await authFbVerifyUserRecords({ user })
 }
 
 async function handleJwt({ token, user, account, profile }) {
