@@ -82,10 +82,15 @@ const BaseModal = ({
                     focus: true
                 });
 
-                // Listen for Bootstrap modal hidden event (after animation completes)
+                // Listen for Bootstrap modal events
                 modalRef.current.addEventListener('hidden.bs.modal', () => {
                     isClosing.current = false; // Reset closing flag
                     if (onHide) onHide();
+                });
+
+                // Reset closing flag when modal successfully opens (prevents race condition)
+                modalRef.current.addEventListener('shown.bs.modal', () => {
+                    isClosing.current = false;
                 });
             }
         }
