@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Sidebar from '../../src/components/Sidebar.jsx';
 import { useRouter } from 'next/navigation';
+import useAuthSession from '../../src/hooks/useAuthSession';
 
 // Mock useRouter from next/navigation globally or for this test file
 // The jest.setup.js file should already have a global mock for 'next/navigation'
@@ -21,6 +22,12 @@ jest.mock('next/navigation', () => ({
     useSearchParams: jest.fn(() => new URLSearchParams()),
 }));
 
+// Mock useAuthSession hook
+jest.mock('../../src/hooks/useAuthSession', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
+
 
 const setup = (userRole = 'student', userOverrides = {}) => {
     const user = {
@@ -30,7 +37,14 @@ const setup = (userRole = 'student', userOverrides = {}) => {
         ...userOverrides,
     };
 
-    render(<Sidebar userRole={userRole} user={user} />);
+    // Mock the useAuthSession hook to return the specified userRole
+    useAuthSession.mockReturnValue({
+        userRole,
+        availableRoles: [],
+        switchRole: jest.fn(),
+    });
+
+    render(<Sidebar user={user} />);
 
     return { }; // No longer returning setActiveSection
 };
@@ -67,23 +81,24 @@ describe('Sidebar', () => {
         setup('teacher');
 
         expect(screen.getByText('Calendar')).toBeInTheDocument();
-        expect(screen.getByText('User Roles')).toBeInTheDocument();
+        expect(screen.queryByText('User Roles')).not.toBeInTheDocument(); // Only for admin
         expect(screen.getByText('Manage Classes')).toBeInTheDocument();
         expect(screen.getByText('Manage Subjects')).toBeInTheDocument();
-        expect(screen.getByText('Tutor Hours')).toBeInTheDocument();
+        expect(screen.queryByText('Tutor Hours')).not.toBeInTheDocument(); // Only for admin, tutor, coach
     });
 
-    it('calls router.push when menu item is clicked', () => {
-        setup('teacher');
+    it('renders navigation links with correct hrefs', () => {
+        setup('admin'); // Use admin to test all menu items
 
-        fireEvent.click(screen.getByText('Calendar'));
-        expect(mockRouter.push).toHaveBeenCalledWith('/calendar');
+        // Check that links have correct href attributes
+        const calendarLink = screen.getByText('Calendar').closest('a');
+        expect(calendarLink).toHaveAttribute('href', '/calendar');
 
-        fireEvent.click(screen.getByText('User Roles'));
-        expect(mockRouter.push).toHaveBeenCalledWith('/userRoles');
+        const userRolesLink = screen.getByText('User Roles').closest('a');
+        expect(userRolesLink).toHaveAttribute('href', '/userRoles');
 
-        fireEvent.click(screen.getByText('Manage Classes'));
-        expect(mockRouter.push).toHaveBeenCalledWith('/classes');
+        const manageClassesLink = screen.getByText('Manage Classes').closest('a');
+        expect(manageClassesLink).toHaveAttribute('href', '/classes');
     });
 
     it('displays user name when provided', () => {
@@ -98,8 +113,8 @@ describe('Sidebar', () => {
         expect(screen.getByText('Menu')).toBeInTheDocument();
         expect(screen.getByText('Calendar')).toBeInTheDocument();
 
-        // Click collapse button
-        const toggleButton = screen.getByRole('button');
+        // Click collapse button (first button is the toggle)
+        const toggleButton = screen.getAllByRole('button')[0];
         fireEvent.click(toggleButton);
 
         // After collapse - "Menu" text should be hidden
@@ -110,7 +125,7 @@ describe('Sidebar', () => {
     it('expands sidebar when toggle button is clicked again', () => {
         setup('teacher');
 
-        const toggleButton = screen.getByRole('button');
+        const toggleButton = screen.getAllByRole('button')[0];
 
         // Collapse first
         fireEvent.click(toggleButton);

@@ -5,6 +5,33 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
     disconnect: jest.fn(),
 }));
 
+// Polyfill fetch and Response for Firebase Auth and other dependencies
+if (typeof global.fetch === 'undefined') {
+    global.fetch = jest.fn(() =>
+        Promise.resolve({
+            ok: true,
+            json: async () => ({}),
+            text: async () => '',
+            blob: async () => new Blob(),
+        })
+    );
+}
+
+if (typeof global.Response === 'undefined') {
+    global.Response = class Response {
+        constructor(body, init = {}) {
+            this.body = body;
+            this.status = init.status || 200;
+            this.ok = this.status >= 200 && this.status < 300;
+            this.statusText = init.statusText || '';
+            this.headers = init.headers || {};
+        }
+        async json() { return typeof this.body === 'string' ? JSON.parse(this.body) : this.body; }
+        async text() { return String(this.body); }
+        async blob() { return new Blob([this.body]); }
+    };
+}
+
 // Check if we're in a browser-like environment (jsdom)
 const isBrowserEnv = typeof window !== 'undefined';
 
@@ -16,8 +43,10 @@ if (isBrowserEnv) {
     jest.mock('next/image', () => ({
         __esModule: true,
         default: (props) => {
+            // Remove Next.js-specific props before passing to img
+            const { unoptimized, priority, ...imgProps } = props;
             // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-            return <img {...props} />;
+            return <img {...imgProps} />;
         },
     }));
 
@@ -58,6 +87,14 @@ if (isBrowserEnv) {
         },
         usePathname: jest.fn(() => '/'),
         useSearchParams: jest.fn(() => new URLSearchParams()),
+    }));
+
+    // Mock Next.js Link component
+    jest.mock('next/link', () => ({
+        __esModule: true,
+        default: ({ children, href }) => {
+            return <a href={href}>{children}</a>;
+        },
     }));
 
     // Mock NextAuth
