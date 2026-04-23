@@ -17,7 +17,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import styles from '@/styles/sidebar.module.css';
 import useAuthSession from '@/hooks/useAuthSession';
-import { AppLogout } from '@lib/security/auth';
+import { AppLogout } from '@/lib/security/clientAuth';
 
 const ROLE_LABELS = {
     admin: 'Admin',

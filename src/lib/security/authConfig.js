@@ -1,8 +1,8 @@
 import Google from 'next-auth/providers/google';
 import AzureAD from 'next-auth/providers/azure-ad';
 import Credentials from 'next-auth/providers/credentials';
-import { authMsRefreshToken, authMsStoreTokens, authFirebaseGenerateToken, authFbVerifyUserRecords } from './auth';
-import { adminDb, adminAuth } from '@/firestore/firestoreAdmin';
+import crypto from "crypto";
+import { adminDb, adminDbAuth } from '@/firestore/firestoreAdmin';
 import { TEST_USERS as DEV_USERS } from '@/lib/security/testUsers';
 
 /**
@@ -42,17 +42,76 @@ export const authOptions = {
 
 /**
  * ==========================================
- * 2. NEXTAUTH CALLBACK HANDLERS
+ * 2. HELPER FUNCTIONS
+ * ==========================================
+ */
+
+/**
+ * Verify both firestore user entry, and register the user in firebaseAuth for signin later
+ */
+async function authFbVerifyUserRecords({ user }) {
+    try {
+        const userUid = user.email.toLowerCase();
+        const userRef = adminDb.collection('users').doc(user.email);
+
+        // STEP 1: check FB user entry - create entry if it doesnt exist
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            const calendarFeedToken = crypto.randomBytes(32).toString("hex");
+            const newUser = {
+                email: user.email,
+                name: user.name,
+                role: 'student',
+                defaultRole: 'student',
+                userRoles: [],
+                calendarFeedToken,
+            };
+            await userRef.set(newUser);
+            Object.assign(user, newUser);
+        } else {
+            const userData = userDoc.data();
+            user.defaultRole = userData.defaultRole || userData.role;
+            user.userRolesList = userData.userRoles || [];
+            user.calendarFeedToken = userData.calendarFeedToken || crypto.randomBytes(32).toString("hex");
+
+            if (!userData.calendarFeedToken) {
+                await userRef.update({ calendarFeedToken: user.calendarFeedToken });
+            }
+        }
+
+        // STEP 2: create firebaseAuth user registration if required
+        try {
+            await adminDbAuth.getUser(userUid);
+        } catch (error) {
+            if (error.code === 'auth/user-not-found') {
+                await adminDbAuth.createUser({
+                    uid: userUid,
+                    email: user.email,
+                    displayName: user.name,
+                });
+            }
+        }
+        return true;
+    } catch (error) {
+        console.error('CRITICAL: authFbVerify failed:', error);
+        return false;
+    }
+}
+
+/**
+ * ==========================================
+ * 3. NEXTAUTH CALLBACK HANDLERS
  * ==========================================
  */
 async function handleSignIn({ user }) {
     // dev bypass for configured test users (development only)
     if (process.env.NODE_ENV === 'development' && DEV_USERS[user.email]) {
         const devUser = DEV_USERS[user.email];
-        
+
         user.role = devUser.role;
         user.defaultRole = devUser.defaultRole;
-        user.userRoles = devUser.userRoles;
+        user.userRolesList = devUser.userRoles;
         user.calendarFeedToken = 'dev-bypass-token';
         console.log(`Dev bypass activated for ${user.email} (${devUser.defaultRole})`);
         return true;
@@ -78,8 +137,9 @@ async function handleJwt({ token, user, account, profile }) {
             token.picture = user.image;
         }
 
-        // signin user after verified in NextAuth signInCallbacl callback
-        user.firebaseToken = await adminAuth.createCustomToken(userUid, {
+        // signin user after verified in NextAuth signIn callback
+        const userUid = user.email.toLowerCase();
+        user.firebaseToken = await adminDbAuth.createCustomToken(userUid, {
             role: user.role,
             userRoles: user.userRolesList
         });
@@ -113,7 +173,7 @@ async function handleSession({ session, token }) {
 
 /**
  * ==========================================
- * 3. DEVELOPMENT HELPERS
+ * 4. DEVELOPMENT HELPERS
  * ==========================================
  */
 

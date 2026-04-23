@@ -1,8 +1,10 @@
 import { adminDb } from '../../../../firestore/firestoreAdmin';
 import { DateTime } from 'luxon';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../auth/[...nextauth]/authOptions';
+import { authOptions } from '@/lib/security/authConfig';
+import { msSendEmail } from '@/lib/microsoftGraph';
 
+// TO BE DEPRECATED
 export async function GET(_req, { params }) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -140,38 +142,15 @@ export async function GET(_req, { params }) {
             }
         }
 
-        // Send all emails in parallel
+        // Send all emails in parallel using centralized Microsoft Graph service
         const emailPromises = Array.from(tutorsMap.entries()).map(async ([tutorEmail, tutorEvents]) => {
             const emailBody = generateEmailHTML(tutorEvents);
 
-            return fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: {
-                        subject: 'Talloc Event Notification',
-                        body: {
-                            contentType: 'HTML',
-                            content: emailBody,
-                        },
-                        toRecipients: [
-                            {
-                                emailAddress: { address: tutorEmail },
-                            },
-                        ],
-                    },
-                    saveToSentItems: 'true',
-                }),
-            }).then(async (response) => {
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(
-                        `Failed to send email to ${tutorEmail}: ${error.error?.message || response.statusText}`,
-                    );
-                }
+            return msSendEmail(accessToken, {
+                to: tutorEmail,
+                subject: 'Talloc Event Notification',
+                htmlContent: emailBody,
+                saveToSentItems: true,
             });
         });
 
