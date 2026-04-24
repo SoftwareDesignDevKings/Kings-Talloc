@@ -139,9 +139,9 @@ async function handleJwt({ token, user, account, profile }) {
 
         // signin user after verified in NextAuth signIn callback
         const userUid = user.email.toLowerCase();
-        user.firebaseToken = await adminDbAuth.createCustomToken(userUid, {
-            role: user.role,
-            userRoles: user.userRolesList
+        token.firebaseToken = await adminDbAuth.createCustomToken(userUid, {
+            defaultRole: user.defaultRole || user.role,
+            userRoles: user.userRolesList || [],
         });
 
         // retrieve access / refresh tokens from Azure - store in JWT
