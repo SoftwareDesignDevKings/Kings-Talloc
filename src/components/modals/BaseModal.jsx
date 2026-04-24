@@ -138,34 +138,21 @@ const BaseModal = ({
 
                     {/* Body */}
                     {onSubmit ? (
-                        <form onSubmit={handleSubmit} id="modal-form">
+                        <form onSubmit={handleSubmit} id="modal-form" noValidate={noValidate}>
                             <div className="modal-body">{children}</div>
 
-                        {/* Body */}
-                        {onSubmit ? (
-                            <form onSubmit={handleSubmit} id="modal-form" noValidate={noValidate}>
-                                <div className="modal-body">{children}</div>
-
-                                {/* Footer */}
-                                {showFooter && (
-                                    <div className="modal-footer">
-                                        {customFooter ? (
-                                            customFooter
-                                        ) : (
-                                            <div className="d-flex gap-2">
-                                                {deleteButton && (
-                                                    <button
-                                                        type="button"
-                                                        className={`btn btn-outline-${deleteButton.variant || 'danger'}`}
-                                                        onClick={deleteButton.onClick}
-                                                        disabled={disabled || loading}
-                                                    >
-                                                        {deleteButton.text || 'Delete'}
-                                                    </button>
-                                                )}
+                            {/* Footer */}
+                            {showFooter && (
+                                <div className="modal-footer">
+                                    {customFooter ? (
+                                        customFooter
+                                    ) : (
+                                        <div className="d-flex gap-2">
+                                            {deleteButton && (
                                                 <button
-                                                    type="submit"
-                                                    className="btn btn-outline-primary"
+                                                    type="button"
+                                                    className={`btn btn-outline-${deleteButton.variant || 'danger'}`}
+                                                    onClick={handleDeleteClick}
                                                     disabled={disabled || loading}
                                                 >
                                                     {deleteButton.text || 'Delete'}
