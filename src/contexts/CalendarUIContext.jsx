@@ -175,8 +175,10 @@ export const CalendarUIContextProvider = ({ children }) => {
         // for tutors: split own availabilities around shifts as RBC events (never other tutors')
         if (userRole === 'tutor' && showTutorInitials && !hideOwnAvailabilities) {
             let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
-            if (filterAvailabilityByWorkType) {
-                availabilities = availabilities.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
+            if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
+                availabilities = availabilities.filter(a =>
+                    filterAvailabilityByWorkType.some(f => matchesWorkTypeFilter(a.workType, f.value))
+                );
             }
             const splitAvailabilities = calendarAvailabilitySplit(availabilities, filtered);
             filtered = [...filtered, ...splitAvailabilities];
@@ -232,8 +234,10 @@ export const CalendarUIContextProvider = ({ children }) => {
         }
 
         // filter by availability work type from CalendarUIContextProvider
-        if (filterAvailabilityByWorkType) {
-            filtered = filtered.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
+        if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
+            filtered = filtered.filter(a =>
+                filterAvailabilityByWorkType.some(f => matchesWorkTypeFilter(a.workType, f.value))
+            );
         }
 
         // Split availabilities around clashing shifts (always use actual shifts, not filtered)
