@@ -102,13 +102,11 @@ const CalendarContent = () => {
         // RBC returns an array for Week/Day view and an Object for Month view
         if (Array.isArray(range)) {
             calendarStart = range[0];
-            calendarEnd = range[range.length - 1];
-            // Day view returns a single-element array — end of that date is midnight (00:00:00),
-            // so shift it to end of day to include all shifts on that day
-            if (range.length === 1) {
-                calendarEnd = new Date(calendarEnd);
-                calendarEnd.setHours(23, 59, 59, 999);
-            }
+
+            // RBC gives midnight of each day — extend to end of the last day so events
+            // on Sunday (week view) or the selected day (day view) are included in queries
+            calendarEnd = new Date(range[range.length - 1]);
+            calendarEnd.setHours(23, 59, 59, 999);
         } else {
             calendarStart = range.start;
             calendarEnd = range.end;
