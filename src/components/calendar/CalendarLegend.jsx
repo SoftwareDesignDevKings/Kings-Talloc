@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { FiChevronDown, FiChevronUp } from '@/components/icons';
+import React from 'react';
 import { CALENDAR_COLORS } from '@/constants/calendarColors';
 
 const LEGEND_ITEMS = [
@@ -24,41 +23,22 @@ const Swatch = ({ bg, border }) => (
     />
 );
 
-const CalendarLegend = () => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <div className="text-xs">
-            <div
-                className="d-flex justify-content-between align-items-center py-2 text-muted"
-                style={{ cursor: 'pointer' }}
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <div className="fw-bold small text-uppercase" style={{ letterSpacing: '0.05em' }}>
-                    Calendar Legend
-                </div>
-                <button
-                    className="btn btn-sm p-0 border-0 text-muted d-flex align-items-center justify-content-center"
-                    style={{ width: '20px', height: '20px' }}
-                    onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-                    aria-label={isOpen ? 'Collapse legend' : 'Expand legend'}
-                >
-                    {isOpen ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
-                </button>
+const CalendarLegend = () => (
+    <div className="text-xs">
+        <div className="py-2 text-muted">
+            <div className="fw-bold small text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                Calendar Legend
             </div>
-
-            {isOpen && (
-                <div className="d-flex flex-column gap-2 pb-2">
-                    {LEGEND_ITEMS.map(({ label, bg, border }) => (
-                        <div key={label} className="d-flex align-items-center gap-2">
-                            <Swatch bg={bg} border={border} />
-                            <small className="text-muted fw-medium">{label}</small>
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
-    );
-};
+        <div className="d-flex flex-column gap-2 pb-2">
+            {LEGEND_ITEMS.map(({ label, bg, border }) => (
+                <div key={label} className="d-flex align-items-center gap-2">
+                    <Swatch bg={bg} border={border} />
+                    <small className="text-muted fw-medium">{label}</small>
+                </div>
+            ))}
+        </div>
+    </div>
+);
 
 export default CalendarLegend;
