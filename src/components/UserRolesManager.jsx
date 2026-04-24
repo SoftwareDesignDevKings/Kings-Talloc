@@ -410,7 +410,13 @@ const UserRolesManager = () => {
                                             className="form-select"
                                             id="userRole"
                                             value={role}
-                                            onChange={(e) => setRole(e.target.value)}
+                                            onChange={(e) => {
+                                                const newDefault = e.target.value;
+                                                setRole(newDefault);
+                                                // strip any userRoles that aren't valid for the new defaultRole
+                                                const allowed = EXTRA_ROLES_BY_DEFAULT[newDefault] ?? [];
+                                                setUserRoles(prev => prev.filter(r => allowed.includes(r)));
+                                            }}
                                         >
                                             <option value="student">Student</option>
                                             <option value="tutor">Tutor</option>
@@ -425,7 +431,7 @@ const UserRolesManager = () => {
                                             Additional Privileges
                                         </label>
                                         <div className={styles.rolesGrid}>
-                                            {availableRoles.map((roleOption) => {
+                                            {extraRoleOptions.map((roleOption) => {
                                                 const isSelected = userRoles.includes(roleOption);
                                                 return (
                                                     <div
