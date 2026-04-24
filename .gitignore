@@ -53,6 +53,8 @@ CLAUDE.md
 # swc
 .swc
 
+/public/version.json
+
 # cypress
 /cypress/screenshots
 /cypress/videos
@@ -62,3 +64,4 @@ CLAUDE.md
 /firebase/firestore-debug.log
 
 TODO.md
+public/version.json
