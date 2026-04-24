@@ -14,6 +14,8 @@ export default function Maintenance() {
                         width={275}
                         height={275}
                         className="rounded"
+                        priority
+                        unoptimized
                     />
                 </div>
                 <div className="text-center mt-4">

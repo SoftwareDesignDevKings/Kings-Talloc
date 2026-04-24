@@ -2,7 +2,7 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/authOptions';
+import { authOptions } from '@/lib/security/authConfig';
 import { DateTime } from 'luxon';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];

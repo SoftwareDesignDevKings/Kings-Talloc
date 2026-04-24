@@ -1,8 +1,8 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import AlertProvider from './AlertProvider';
-import AuthProvider from './AuthProvider';
+import { AlertContextProvider } from './AlertContext';
+import { AuthContextProvider } from './AuthContext';
 
 /**
  * App session provider - called in app/layout.jsx to wrap around the app and provide session context.
@@ -11,14 +11,12 @@ import AuthProvider from './AuthProvider';
  * @param {JSX} children
  * @returns
  */
-const AppSessionProvider = ({ children }) => {
+export const AppSessionContextProvider = ({ children }) => {
     return (
         <SessionProvider>
-            <AuthProvider>
-                <AlertProvider>{children}</AlertProvider>
-            </AuthProvider>
+            <AuthContextProvider>
+                <AlertContextProvider>{children}</AlertContextProvider>
+            </AuthContextProvider>
         </SessionProvider>
     );
 };
-
-export default AppSessionProvider;

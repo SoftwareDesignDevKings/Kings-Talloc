@@ -1,10 +1,100 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { FiCalendar } from '@/components/icons';
 import { format } from 'date-fns';
 
 const workTypeColor = (workType) => {
     if (workType === 'coaching') return '#9B59B6';
     return 'blue';
+};
+
+const EventItem = ({ event, index, totalEvents, userRole, isToday, delay = 0 }) => {
+    const itemRef = useRef(null);
+
+    useEffect(() => {
+        if (itemRef.current) {
+            const timer = setTimeout(() => {
+                itemRef.current.classList.add('show');
+            }, delay);
+            return () => clearTimeout(timer);
+        }
+    }, [delay]);
+
+    const accentColor = workTypeColor(event.workType);
+    const staffNames = event.staff?.map(s => s.label || s.value) || [];
+    const isPending = event.createdByStudent && event.approvalStatus === 'pending';
+    const isApproved = event.createdByStudent && event.approvalStatus === 'approved';
+
+    return (
+        <div
+            ref={itemRef}
+            className="d-flex align-items-stretch fade"
+            style={{
+                borderBottom: index < totalEvents - 1 ? '1px solid #f1f3f5' : 'none',
+            }}
+        >
+            {/* Time column */}
+            <div
+                className="flex-shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
+                style={{ width: '80px' }}
+            >
+                <span className="text-muted" style={{ fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {isToday
+                        ? format(new Date(event.start), 'h:mm a')
+                        : format(new Date(event.start), 'd MMM')}
+                </span>
+                {isToday && (
+                    <span className="text-muted" style={{ fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', opacity: 0.6 }}>
+                        {format(new Date(event.end), 'h:mm a')}
+                    </span>
+                )}
+            </div>
+
+            {/* Accent bar */}
+            <div
+                style={{
+                    width: '3px',
+                    borderRadius: '2px',
+                    backgroundColor: accentColor,
+                    margin: '10px 0',
+                    flexShrink: 0,
+                }}
+            />
+
+            {/* Content */}
+            <div className="flex-grow-1 px-3 py-3">
+                <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <span className="fw-semibold text-dark" style={{ fontSize: '0.875rem' }}>
+                        {event.title}
+                    </span>
+                    {isPending && (
+                        <span className="badge bg-warning text-dark" style={{ fontSize: '0.65rem' }}>Pending</span>
+                    )}
+                    {isApproved && (
+                        <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>Approved</span>
+                    )}
+                </div>
+
+                {event.description && (
+                    <p className="mb-0 text-secondary fst-italic text-truncate small">
+                        {event.description}
+                    </p>
+                )}
+
+                <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                    {(userRole === 'teacher' || userRole === 'admin') && staffNames.length > 0 && (
+                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                            {staffNames.join(', ')}
+                        </span>
+                    )}
+                    {event.students?.length > 0 && (
+                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                            {(userRole === 'teacher' || userRole === 'admin') && staffNames.length > 0 && '·'} {event.students.length} student{event.students.length !== 1 ? 's' : ''}
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) => {
@@ -27,84 +117,17 @@ const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) 
                     </div>
                 ) : (
                     <div>
-                        {events.map((event, index) => {
-                            const accentColor = workTypeColor(event.workType);
-                            const staffNames = event.staff?.map(s => s.label || s.value) || [];
-                            const isPending = event.createdByStudent && event.approvalStatus === 'pending';
-                            const isApproved = event.createdByStudent && event.approvalStatus === 'approved';
-
-                            return (
-                                <div
-                                    key={event.id}
-                                    className="d-flex align-items-stretch"
-                                    style={{
-                                        borderBottom: index < events.length - 1 ? '1px solid #f1f3f5' : 'none',
-                                    }}
-                                >
-                                    {/* Time column */}
-                                    <div
-                                        className="flex-shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
-                                        style={{ width: '80px' }}
-                                    >
-                                        <span className="text-muted" style={{ fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                                            {isToday
-                                                ? format(new Date(event.start), 'h:mm a')
-                                                : format(new Date(event.start), 'd MMM')}
-                                        </span>
-                                        {isToday && (
-                                            <span className="text-muted" style={{ fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', opacity: 0.6 }}>
-                                                {format(new Date(event.end), 'h:mm a')}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Accent bar */}
-                                    <div
-                                        style={{
-                                            width: '3px',
-                                            borderRadius: '2px',
-                                            backgroundColor: accentColor,
-                                            margin: '10px 0',
-                                            flexShrink: 0,
-                                        }}
-                                    />
-
-                                    {/* Content */}
-                                    <div className="flex-grow-1 px-3 py-3">
-                                        <div className="d-flex align-items-center gap-2 flex-wrap">
-                                            <span className="fw-semibold text-dark" style={{ fontSize: '0.875rem' }}>
-                                                {event.title}
-                                            </span>
-                                            {isPending && (
-                                                <span className="badge bg-warning text-dark" style={{ fontSize: '0.65rem' }}>Pending</span>
-                                            )}
-                                            {isApproved && (
-                                                <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>Approved</span>
-                                            )}
-                                        </div>
-
-                                        {event.description && (
-                                            <p className="mb-0 text-secondary fst-italic text-truncate small">
-                                                {event.description}
-                                            </p>
-                                        )}
-
-                                        <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                                            {(userRole === 'teacher' || userRole === 'admin') && staffNames.length > 0 && (
-                                                <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                                    {staffNames.join(', ')}
-                                                </span>
-                                            )}
-                                            {event.students?.length > 0 && (
-                                                <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                                    {(userRole === 'teacher' || userRole === 'admin') && staffNames.length > 0 && '·'} {event.students.length} student{event.students.length !== 1 ? 's' : ''}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        {events.map((event, index) => (
+                            <EventItem
+                                key={event.id}
+                                event={event}
+                                index={index}
+                                totalEvents={events.length}
+                                userRole={userRole}
+                                isToday={isToday}
+                                delay={index * 75}
+                            />
+                        ))}
                     </div>
                 )}
             </div>

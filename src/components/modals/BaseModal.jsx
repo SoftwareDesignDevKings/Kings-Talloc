@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 /**
- * Clean, simple BaseModal component - uses inline styles instead of Bootstrap JS
+ * BaseModal component - uses Bootstrap 5 Modal JS API with animations
  */
 const BaseModal = ({
     show = false,
@@ -28,10 +28,38 @@ const BaseModal = ({
     // Layout props
     showFooter = true,
 }) => {
-    const handleSubmit = (e) => {
+    const modalRef = useRef(null);
+    const bsModalRef = useRef(null);
+    const isClosing = useRef(false);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (onSubmit && !disabled && !loading) {
-            onSubmit(e);
+            // Execute callback first
+            const result = await onSubmit(e);
+
+            // Only close if callback succeeded (returned true or nothing)
+            if (result !== false) {
+                isClosing.current = true;
+                if (bsModalRef.current) {
+                    bsModalRef.current.hide();
+                }
+            }
+        }
+    };
+
+    const handleDeleteClick = async () => {
+        if (deleteButton?.onClick) {
+            // Execute callback first
+            const result = await deleteButton.onClick();
+
+            // Only close if callback succeeded (returned true or nothing)
+            if (result !== false) {
+                isClosing.current = true;
+                if (bsModalRef.current) {
+                    bsModalRef.current.hide();
+                }
+            }
         }
     };
 
@@ -40,115 +68,121 @@ const BaseModal = ({
         return submitText;
     };
 
-    // Handle ESC key to close modal
+    // Initialize Bootstrap Modal and handle show/hide with animations
     useEffect(() => {
-        if (!show) return;
+        if (!modalRef.current) return;
 
-        const handleEscape = (e) => {
-            if (e.key === 'Escape') {
-                onHide();
+        // Initialize Bootstrap Modal instance if not already done
+        if (!bsModalRef.current) {
+            // Wait for Bootstrap to be available
+            if (typeof window !== 'undefined' && window.bootstrap) {
+                bsModalRef.current = new window.bootstrap.Modal(modalRef.current, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
+
+                // Listen for Bootstrap modal events
+                modalRef.current.addEventListener('hidden.bs.modal', () => {
+                    isClosing.current = false; // Reset closing flag
+                    if (onHide) onHide();
+                });
+
+                // Reset closing flag when modal successfully opens (prevents race condition)
+                modalRef.current.addEventListener('shown.bs.modal', () => {
+                    isClosing.current = false;
+                });
             }
-        };
+        }
 
-        document.addEventListener('keydown', handleEscape);
-
-        // Prevent body scroll when modal is open
-        document.body.style.overflow = 'hidden';
-
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
-        };
+        // Show modal with animation when show becomes true (but not if we're in the middle of closing)
+        if (bsModalRef.current && show && !isClosing.current) {
+            bsModalRef.current.show();
+        }
     }, [show, onHide]);
 
-    if (!show) return null;
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (bsModalRef.current) {
+                bsModalRef.current.dispose();
+            }
+        };
+    }, []);
 
     const sizeClass =
         size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : size === 'xl' ? 'modal-xl' : '';
 
     return (
-        <>
-            {/* Backdrop */}
-            <div
-                className="modal-backdrop fade show"
-                onClick={onHide}
-                style={{ zIndex: 1050 }}
-            ></div>
+        <div
+            ref={modalRef}
+            className="modal fade"
+            tabIndex="-1"
+            aria-hidden="true"
+        >
+            <div className={`modal-dialog modal-dialog-centered ${sizeClass}`}>
+                <div className="modal-content">
+                    {/* Header */}
+                    <div className="modal-header">
+                        {title && (
+                            <h5 className="modal-title w-100 text-center fw-bold">{title}</h5>
+                        )}
+                        <button
+                            type="button"
+                            className="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
+                    </div>
 
-            {/* Modal */}
-            <div
-                className="modal fade show"
-                tabIndex="-1"
-                style={{ display: 'block', zIndex: 1055 }}
-                onClick={onHide}
-            >
-                <div
-                    className={`modal-dialog modal-dialog-centered ${sizeClass}`}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="modal-content">
-                        {/* Header */}
-                        <div className="modal-header">
-                            {title && (
-                                <h5 className="modal-title w-100 text-center fw-bold">{title}</h5>
-                            )}
-                            <button
-                                type="button"
-                                className="btn-close"
-                                onClick={onHide}
-                                aria-label="Close"
-                            ></button>
-                        </div>
+                    {/* Body */}
+                    {onSubmit ? (
+                        <form onSubmit={handleSubmit} id="modal-form">
+                            <div className="modal-body">{children}</div>
 
-                        {/* Body */}
-                        {onSubmit ? (
-                            <form onSubmit={handleSubmit} id="modal-form">
-                                <div className="modal-body">{children}</div>
-
-                                {/* Footer */}
-                                {showFooter && (
-                                    <div className="modal-footer">
-                                        {customFooter ? (
-                                            customFooter
-                                        ) : (
-                                            <div className="d-flex gap-2">
-                                                {deleteButton && (
-                                                    <button
-                                                        type="button"
-                                                        className={`btn btn-${deleteButton.variant || 'danger'}`}
-                                                        onClick={deleteButton.onClick}
-                                                        disabled={disabled || loading}
-                                                    >
-                                                        {deleteButton.text || 'Delete'}
-                                                    </button>
-                                                )}
+                            {/* Footer */}
+                            {showFooter && (
+                                <div className="modal-footer">
+                                    {customFooter ? (
+                                        customFooter
+                                    ) : (
+                                        <div className="d-flex gap-2">
+                                            {deleteButton && (
                                                 <button
-                                                    type="submit"
-                                                    className="btn btn-primary"
+                                                    type="button"
+                                                    className={`btn btn-${deleteButton.variant || 'danger'}`}
+                                                    onClick={handleDeleteClick}
                                                     disabled={disabled || loading}
                                                 >
-                                                    {getSubmitButtonText()}
+                                                    {deleteButton.text || 'Delete'}
                                                 </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </form>
-                        ) : (
-                            <>
-                                <div className="modal-body">{children}</div>
+                                            )}
+                                            <button
+                                                type="submit"
+                                                className="btn btn-primary"
+                                                disabled={disabled || loading}
+                                            >
+                                                {getSubmitButtonText()}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </form>
+                    ) : (
+                        <>
+                            <div className="modal-body">{children}</div>
 
-                                {showFooter && customFooter && (
-                                    <div className="modal-footer">
-                                        {customFooter}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
+                            {showFooter && customFooter && (
+                                <div className="modal-footer">
+                                    {customFooter}
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

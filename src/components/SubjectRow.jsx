@@ -10,6 +10,9 @@ const SubjectRow = ({
     confirmRemoveTutor,
     handleEditSubject,
 }) => {
+    const collapseId = `subject-collapse-${subject.id}`;
+    const isExpanded = expandedSubject === subject.id;
+
     return (
         <>
             <tr>
@@ -37,21 +40,28 @@ const SubjectRow = ({
                         <button
                             onClick={() => handleExpandSubject(subject)}
                             className="btn btn-sm btn-secondary"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#${collapseId}`}
+                            aria-expanded={isExpanded}
+                            aria-controls={collapseId}
                         >
-                            {expandedSubject === subject.id ? 'Collapse' : 'Expand'}
+                            {isExpanded ? 'Collapse' : 'Expand'}
                         </button>
                     </div>
                 </td>
             </tr>
-            {expandedSubject === subject.id && (
-                <tr>
-                    <td colSpan="2" className="p-3">
-                        <div style={{ maxHeight: '15rem', overflowY: 'auto' }}>
+            <tr>
+                <td colSpan="2" className="p-0">
+                    <div
+                        id={collapseId}
+                        className={`collapse${isExpanded ? ' show' : ''}`}
+                    >
+                        <div className="p-3" style={{maxHeight: '15rem', overflowY: 'auto'}}>
                             <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
                         </div>
-                    </td>
-                </tr>
-            )}
+                    </div>
+                </td>
+            </tr>
         </>
     );
 };

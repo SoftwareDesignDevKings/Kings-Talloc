@@ -1,6 +1,6 @@
 import TutorHoursSummary from "@/components/TutorHoursSummary";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import { authOptions } from "@/lib/security/authConfig";
 
 const TutorHoursPage = async () => {
     const session = await getServerSession(authOptions);

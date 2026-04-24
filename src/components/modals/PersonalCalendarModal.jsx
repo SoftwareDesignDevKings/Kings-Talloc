@@ -37,7 +37,7 @@ const PersonalCalendarModal = ({ show, onHide }) => {
             <>
                 <div className="mb-4">
                     <h6 className="fw-bold mb-2 d-flex align-items-center gap-2">
-                        <Image src="/outlook.svg" width={20} height={20} alt="Outlook" />
+                        <Image src="/outlook.svg" width={20} height={20} alt="Outlook" unoptimized />
                         Outlook
                     </h6>
                     <p className="text-muted small mb-2">
@@ -63,7 +63,7 @@ const PersonalCalendarModal = ({ show, onHide }) => {
 
                 <div className="mb-3">
                     <h6 className="fw-bold mb-2 d-flex align-items-center gap-2">
-                        <Image src="/calendar.svg" width={20} height={20} alt="Google Calendar" />
+                        <Image src="/calendar.svg" width={20} height={20} alt="Google Calendar" unoptimized />
                         Google Calendar
                     </h6>
                     <p className="text-muted small mb-2">

@@ -62,8 +62,12 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
 
     const fetchTutorHours = useCallback(async () => {
+        const isAdmin = userRole === 'admin';
         const isTutorOrCoach = userRole === 'tutor' || userRole === 'coach';
         let accessFilter = [];
+
+        // Tutors/Coaches: only see their own shifts
+        // Admins: see all shifts (no filter)
         if (isTutorOrCoach) {
             accessFilter = [where('emailsList', 'array-contains', userEmail)];
         }
@@ -160,6 +164,8 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             email,
             ...data,
         }));
+
+        // Tutors only see their own summary, admins see everyone
         if (userRole === 'tutor') {
             tutorHoursArray = tutorHoursArray.filter((tutor) => tutor.email === userEmail);
         }

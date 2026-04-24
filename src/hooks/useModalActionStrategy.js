@@ -1,4 +1,4 @@
-import { CalendarFlow, CalendarEntityType } from '@/strategy/calendarStrategy';
+import { CalendarFlow, CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 import EventForm from '@/components/forms/EventForm.jsx';
 import StudentEventForm from '@/components/forms/StudentEventForm.jsx';

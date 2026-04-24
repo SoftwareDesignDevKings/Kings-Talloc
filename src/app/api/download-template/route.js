@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/authOptions';
+import { authOptions } from '@/lib/security/authConfig';
 import { readFile } from 'fs/promises';
 import path from 'path';
 

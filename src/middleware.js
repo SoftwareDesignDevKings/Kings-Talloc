@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+import buildCsp from '@lib/security/csp';
+
 // ===== MAINTENANCE MODE =====
 // Set to true to enable maintenance mode (redirects all users to /maintenance)
 // Set to false to disable (normal operation)
@@ -8,6 +10,14 @@ const MAINTENANCE_MODE = false;
 // ============================
 
 export async function middleware(req) {
+    const nonce = btoa(crypto.randomUUID());
+    const res = NextResponse.next();
+    res.headers.set(
+        "Content-Security-Policy",
+        buildCsp(nonce)
+    );
+    res.headers.set("x-nonce", nonce);
+
     const { pathname } = req.nextUrl;
 
     // Maintenance mode ENABLED - redirect everyone to /maintenance
@@ -22,7 +32,7 @@ export async function middleware(req) {
 
     // IF PUBLIC ENDPOINT (or redirect on login, no security checks)
     if (pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth')) {
-        return NextResponse.next();
+        return res;
     }
 
     const secret = process.env.NEXTAUTH_SECRET;
@@ -39,22 +49,31 @@ export async function middleware(req) {
     const userRole = token.defaultRole || token.role;
     const userRoles = token.userRoles || [];
 
-    // admin-only routes (routes)
-    const adminOnlyRoutes = ['/userRoles', '/classes', '/subjects'];
+    // admin-only routes
+    const adminOnlyRoutes = ['/userRoles'];
     const isAdminOnlyRoute = adminOnlyRoutes.some(route => pathname.startsWith(route));
     if (isAdminOnlyRoute && userRole !== 'admin' && !userRoles.includes('admin')) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
-    // routes accessible by admins, teachers, tutors, coaches (not students)
-    const nonStudentRoutes = ['/tutorHours'];
-    const isNonStudentRoute = nonStudentRoutes.some(route => pathname.startsWith(route));
-    if (isNonStudentRoute && userRole === 'student' && !userRoles.some(r => ['admin', 'teacher', 'tutor', 'coach'].includes(r))) {
+    // admin + teacher routes
+    const adminTeacherRoutes = ['/classes', '/subjects'];
+    const isAdminTeacherRoute = adminTeacherRoutes.some(route => pathname.startsWith(route));
+    const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher' || userRoles.includes('admin') || userRoles.includes('teacher');
+    if (isAdminTeacherRoute && !isAdminOrTeacher) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+
+    // tutor hours — admin, tutor, coach routes
+    const tutorOnlyRoutes = ['/tutorHours'];
+    const isTutorOnlyRoute = tutorOnlyRoutes.some(route => pathname.startsWith(route));
+    const canAccessTutorHours = ['admin', 'tutor', 'coach'].includes(userRole) || userRoles.some(r => ['admin', 'tutor', 'coach'].includes(r));
+    if (isTutorOnlyRoute && !canAccessTutorHours) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
     // token exists, allow the request
-    return NextResponse.next();
+    return res;
 }
 
 // pefine the paths that the middleware will apply to

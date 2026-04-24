@@ -13,14 +13,18 @@ const ClassModal = ({
     subjects,
     selectedSubject,
     setSelectedSubject,
+    teachers,
+    selectedTeacher,
+    setSelectedTeacher,
     isEditing,
 }) => {
     useEffect(() => {
         if (!showModal) {
             setClassName('');
             setSelectedSubject(null);
+            setSelectedTeacher(null);
         }
-    }, [showModal, setClassName, setSelectedSubject]);
+    }, [showModal, setClassName, setSelectedSubject, setSelectedTeacher]);
 
     return (
         <BaseModal
@@ -50,9 +54,24 @@ const ClassModal = ({
                     onChange={setSelectedSubject}
                     getOptionLabel={(option) => option.name}
                     getOptionValue={(option) => option.id}
-                    className="w-100 mb-4"
+                    className="w-100 mb-3"
                     classNamePrefix="select"
                     placeholder="Select a subject"
+                    required
+                />
+            </div>
+
+            <div className="mb-3">
+                <label className="form-label">Teacher</label>
+                <Select
+                    options={teachers}
+                    value={teachers.find((teacher) => teacher.email === selectedTeacher?.email)}
+                    onChange={setSelectedTeacher}
+                    getOptionLabel={(option) => option.name}
+                    getOptionValue={(option) => option.email}
+                    className="w-100 mb-4"
+                    classNamePrefix="select"
+                    placeholder="Select a teacher"
                     required
                 />
             </div>

@@ -19,11 +19,13 @@ import AddStudentsModal from './modals/AddStudentsModal.jsx';
 const ClassList = () => {
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
+    const [teachers, setTeachers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [showStudentModal, setShowStudentModal] = useState(false);
     const [className, setClassName] = useState('');
     const [selectedSubject, setSelectedSubject] = useState(null);
+    const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [success, setSuccess] = useState('');
     const [studentsToAdd, setStudentsToAdd] = useState('');
@@ -51,9 +53,25 @@ const ClassList = () => {
         setSubjects(subjectsList);
     };
 
+    const fetchTeachers = async () => {
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        const teachersList = querySnapshot.docs
+            .map((doc) => ({
+                email: doc.id,
+                ...doc.data(),
+            }))
+            .filter(
+                (user) =>
+                    user.defaultRole === 'teacher' ||
+                    (Array.isArray(user.userRoles) && user.userRoles.includes('teacher')),
+            );
+        setTeachers(teachersList);
+    };
+
     useEffect(() => {
         fetchClasses();
         fetchSubjects();
+        fetchTeachers();
     }, []);
 
     useEffect(() => {
@@ -69,16 +87,27 @@ const ClassList = () => {
             setSuccess('Please select a subject.');
             return;
         }
+        if (!selectedTeacher) {
+            setSuccess('Please select a teacher.');
+            return;
+        }
+
         if (isEditing) {
             const classRef = doc(db, 'classes', selectedClass.id);
             await updateDoc(classRef, {
                 name: className,
                 subject: selectedSubject.id,
+                teacherEmail: selectedTeacher.email,
             });
             setClasses(
                 classes.map((cls) =>
                     cls.id === selectedClass.id
-                        ? { ...cls, name: className, subject: selectedSubject.id }
+                        ? {
+                              ...cls,
+                              name: className,
+                              subject: selectedSubject.id,
+                              teacherEmail: selectedTeacher.email,
+                          }
                         : cls,
                 ),
             );
@@ -87,10 +116,12 @@ const ClassList = () => {
             await addDoc(collection(db, 'classes'), {
                 name: className,
                 subject: selectedSubject.id,
+                teacherEmail: selectedTeacher.email,
             });
         }
         setClassName('');
         setSelectedSubject(null);
+        setSelectedTeacher(null);
         setShowModal(false);
         setSuccess(isEditing ? 'Class edited successfully' : 'Class added successfully');
         fetchClasses();
@@ -100,6 +131,7 @@ const ClassList = () => {
         setSelectedClass(cls);
         setClassName(cls.name);
         setSelectedSubject(subjects.find((subject) => subject.id === cls.subject));
+        setSelectedTeacher(teachers.find((teacher) => teacher.email === cls.teacherEmail));
         setIsEditing(true);
         setShowModal(true);
     };
@@ -194,6 +226,8 @@ const ClassList = () => {
                         setSelectedClass(null);
                         setIsEditing(false);
                         setShowModal(true);
+                        setSelectedSubject(null);
+                        setSelectedTeacher(null);
                     }}
                     className="btn btn-primary text-nowrap"
                 >
@@ -207,6 +241,7 @@ const ClassList = () => {
                         <tr>
                             <th scope="col">Class Name</th>
                             <th scope="col">Subject</th>
+                            <th scope="col">Teacher</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -216,6 +251,7 @@ const ClassList = () => {
                                 key={cls.id}
                                 cls={cls}
                                 subjects={subjects}
+                                teachers={teachers}
                                 handleOpenStudentModal={handleOpenStudentModal}
                                 confirmDeleteClass={confirmDeleteClass}
                                 handleViewStudents={handleViewStudents}
@@ -236,6 +272,9 @@ const ClassList = () => {
                 subjects={subjects}
                 selectedSubject={selectedSubject}
                 setSelectedSubject={setSelectedSubject}
+                teachers={teachers}
+                selectedTeacher={selectedTeacher}
+                setSelectedTeacher={setSelectedTeacher}
                 isEditing={isEditing}
             />
             <AddStudentsModal

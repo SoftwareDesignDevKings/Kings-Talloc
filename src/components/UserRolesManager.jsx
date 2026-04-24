@@ -19,7 +19,16 @@ const UserRolesManager = () => {
     const { addAlert } = useAlert();
     const modalRef = useRef(null);
 
-    const availableRoles = ['admin', 'teacher', 'tutor', 'coach', 'student'];
+    // Extra roles available per defaultRole
+    const EXTRA_ROLES_BY_DEFAULT = {
+        admin:   [],
+        teacher: ['admin'],
+        tutor:   ['coach', 'admin'],
+        coach:   ['tutor', 'admin'],
+        student: [],
+    };
+
+    const extraRoleOptions = EXTRA_ROLES_BY_DEFAULT[role] ?? [];
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -394,7 +403,13 @@ const UserRolesManager = () => {
                                             className="form-select"
                                             id="userRole"
                                             value={role}
-                                            onChange={(e) => setRole(e.target.value)}
+                                            onChange={(e) => {
+                                                const newDefault = e.target.value;
+                                                setRole(newDefault);
+                                                // strip any userRoles that aren't valid for the new defaultRole
+                                                const allowed = EXTRA_ROLES_BY_DEFAULT[newDefault] ?? [];
+                                                setUserRoles(prev => prev.filter(r => allowed.includes(r)));
+                                            }}
                                             aria-label="Select default role"
                                         >
                                             <option value="student">Student</option>
@@ -407,27 +422,33 @@ const UserRolesManager = () => {
                                     <div className="mb-3">
                                         <label className="form-label">Additional Roles</label>
                                         <div className="d-flex flex-wrap gap-2">
-                                            {availableRoles.map((roleOption) => {
-                                                const isSelected = userRoles.includes(roleOption);
-                                                return (
-                                                    <span
-                                                        key={roleOption}
-                                                        className={`badge ${isSelected ? 'bg-primary' : 'bg-secondary'}`}
-                                                        onClick={() => {
-                                                            if (isSelected) {
-                                                                setUserRoles(userRoles.filter(r => r !== roleOption));
-                                                            } else {
-                                                                setUserRoles([...userRoles, roleOption]);
-                                                            }
-                                                        }}
-                                                        style={{ cursor: 'pointer', fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
-                                                    >
-                                                        {roleOption}
-                                                    </span>
-                                                );
-                                            })}
+                                            {extraRoleOptions.length === 0 ? (
+                                                <small className="text-muted fst-italic">No additional roles for this default role</small>
+                                            ) : (
+                                                extraRoleOptions.map((roleOption) => {
+                                                    const isSelected = userRoles.includes(roleOption);
+                                                    return (
+                                                        <button
+                                                            key={roleOption}
+                                                            type="button"
+                                                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                                            onClick={() => {
+                                                                if (isSelected) {
+                                                                    setUserRoles(userRoles.filter(r => r !== roleOption));
+                                                                } else {
+                                                                    setUserRoles([...userRoles, roleOption]);
+                                                                }
+                                                            }}
+                                                        >
+                                                            {roleOption}
+                                                        </button>
+                                                    );
+                                                })
+                                            )}
                                         </div>
-                                        <small className="text-muted">Click to toggle additional roles</small>
+                                        {extraRoleOptions.length > 0 && (
+                                            <small className="text-muted">Click to toggle additional roles</small>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="modal-footer">

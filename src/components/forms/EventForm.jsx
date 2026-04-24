@@ -10,7 +10,7 @@ import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
 import SettingsSection from './EventFormSections/SettingsSection.jsx';
 import StudentRequestSection from './EventFormSections/StudentRequestSection.jsx';
 import { useEventFormData } from './useEventFormData';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 import {
     calendarEventHandleDelete,
     calendarEventCreateTeamsMeeting,
@@ -92,9 +92,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         const end = new Date(newEvent.end);
         if (!isAfter(end, start)) {
             addAlert('error', 'End date must be after the start date.');
-            return false;
+            return false; // Validation failed
         }
-        return true;
+        return true; // Validation passed
     };
 
     const validateForm = () => {
@@ -137,12 +137,12 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (!validateForm()) return;
+        if (!validateForm()) return false; // Validation failed - don't close modal
 
         // Validate title
         if (!newEvent.title) {
             addAlert('error', 'Title is required');
-            return;
+            return false; // Validation failed - don't close modal
         }
 
         // Debug: Check if recurring instance flag is preserved
@@ -177,6 +177,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             recurring: newEvent.recurring || null,
             createTeamsMeeting: newEvent.createTeamsMeeting || false,
             occurenceNum: newEvent.occurenceNum || null,
+            until: newEvent.until || null,
         };
 
         // Add 'until' date for recurring events
@@ -203,17 +204,13 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     await calendarEventCreateTeamsMeeting(docId, eventData, {
                         addAlert,
                     });
-
-                    setShowModal(false);
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
                     await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', userEmail, eventToEdit);
-                    setShowModal(false);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
                     const newDocId = await detachRecurringInstance(eventToEdit, eventData);
                     await addOrUpdateEventInQueue({ ...eventData, id: newDocId }, 'store', userEmail);
-                    setShowModal(false);
 
                     if (eventData.teamsEventId) {
                         try {
@@ -241,7 +238,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 } else {
                     await updateEventInFirestore(eventToEdit.id, eventData);
                     await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', userEmail, eventToEdit);
-                    setShowModal(false);
 
                     // Handle Teams meeting update/delete
                     await calendarEventHandleTeamsMeetingUpdate(eventToEdit, eventData, {
@@ -252,7 +248,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 // Create single event (recurring or not)
                 const docId = await createEventInFirestore(eventData);
                 await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail, null);
-                setShowModal(false);
 
                 // Handle Teams meeting creation for new events
                 if (eventData.approvalStatus === 'approved' || eventData.createTeamsMeeting) {
@@ -261,40 +256,56 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     });
                 }
             }
+            return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to submit event:', error);
             addAlert('error', `Failed to submit event: ${error.message}`);
+            return false; // Error - don't close modal
         }
     };
 
-    const handleDeleteClick = () => {
+    const handleDeleteClick = async () => {
         // Check if this is a recurring event
         const isRecurring = eventToEdit.recurring || eventToEdit.isRecurringInstance;
 
         if (isRecurring) {
             // Show confirmation modal for recurring events
             setShowDeleteConfirm(true);
+            return false; // Don't close main modal yet - wait for confirmation
         } else {
             // Delete non-recurring event directly
-            calendarEventHandleDelete(eventToEdit, 'this', {
+            try {
+                await calendarEventHandleDelete(eventToEdit, 'this', {
+                    setAllEvents: setCalendarShifts,
+                    setAvailabilities: setCalendarAvailabilities,
+                    setStudentRequests: setCalendarStudentRequests,
+                    addAlert,
+                });
+                return true; // Success - allow modal to close
+            } catch (error) {
+                console.error('Failed to delete event:', error);
+                addAlert('error', 'Failed to delete event');
+                return false; // Error - don't close modal
+            }
+        }
+    };
+
+    const handleConfirmDelete = async (deleteOption) => {
+        try {
+            await calendarEventHandleDelete(eventToEdit, deleteOption, {
                 setAllEvents: setCalendarShifts,
                 setAvailabilities: setCalendarAvailabilities,
                 setStudentRequests: setCalendarStudentRequests,
                 addAlert,
             });
+            setShowDeleteConfirm(false);
             setShowModal(false);
+        } catch (error) {
+            console.error('Failed to delete event:', error);
+            addAlert('error', 'Failed to delete event');
+            setShowDeleteConfirm(false);
+            // Don't close main modal on error
         }
-    };
-
-    const handleConfirmDelete = (deleteOption) => {
-        calendarEventHandleDelete(eventToEdit, deleteOption, {
-            setAllEvents: setCalendarShifts,
-            setAvailabilities: setCalendarAvailabilities,
-            setStudentRequests: setCalendarStudentRequests,
-            addAlert,
-        });
-        setShowDeleteConfirm(false);
-        setShowModal(false);
     };
 
     const approvalOptions = [

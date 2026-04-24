@@ -118,7 +118,7 @@ const StudentRequestsDropdown = () => {
 
             {isOpen && (
                 <div
-                    className="dropdown-menu show"
+                    className="dropdown-menu dropdown-menu-end show"
                     style={{ minWidth: '400px', maxHeight: '500px', overflowY: 'auto' }}
                 >
                     {loading ? (

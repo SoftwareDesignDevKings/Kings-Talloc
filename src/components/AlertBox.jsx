@@ -1,67 +1,97 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Notification alert box component for displaying messages
  * - Type: can be either "ERROR", "INFO", or "SUCCESS"
- * @param {String} message - The message to display in the alert box
- * @param {Function} setMessage - Function to update the message state
- * @param {String} type - The type of alert: 'error', 'info', 'success'
- * @param {Function} setType - Function to update the type state
- * @returns
+ * @param {string} message - The message to display in the alert box
+ * @param {string} type - The type of alert: 'error', 'info', 'success'
+ * @param {Function} onClose - Callback fired when the toast is dismissed
+ * @returns {JSX.Element | null}
  */
-const AlertBox = ({ message, setMessage, type, setType }) => {
-    type = type.toLowerCase();
+const AlertBox = ({ message, type, onClose }) => {
+    const toastRef = useRef(null);
 
-    // clear state for message after 3 seconds if it's a success message
-    useEffect(() => {
-        if (type === 'success' && message !== '') {
-            const timer = setTimeout(() => setMessage(''), 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [message, type, setMessage]);
-
-    // Handle closing the alert
-    const handleAlertClose = () => {
-        setMessage('');
-        setType('');
-    };
-
-    if (message === '') {
-        return null;
+    if (!type) {
+        throw new Error("AlertBox: 'type' prop is required (ERROR, SUCCESS, or INFO)");
     }
 
-    let colour = '';
-    let iconClass = '';
-    // Set the color and icon class based on the type
-    if (type === 'error') {
-        colour = 'bg-danger';
-        iconClass = 'bi-exclamation-triangle-fill';
-    } else if (type === 'info') {
-        colour = 'bg-primary';
-        iconClass = 'bi-info-circle-fill';
-    } else if (type === 'success') {
-        colour = 'bg-success';
-        iconClass = 'bi-check-circle-fill';
-    } else {
+    if (!message) {
+        throw new Error("AlertBox: 'message' prop is required");
+    }
+
+    const lowerType = type.toLowerCase();
+
+    const alertConfig = {
+        error: {
+            colour: 'bg-danger',
+            iconClass: 'bi-exclamation-triangle-fill',
+        },
+        info: {
+            colour: 'bg-primary',
+            iconClass: 'bi-info-circle-fill',
+        },
+        success: {
+            colour: 'bg-success',
+            iconClass: 'bi-check-circle-fill',
+        },
+    };
+
+    const config = alertConfig[lowerType];
+
+    useEffect(() => {
+        if (!config) {
+            return;
+        }
+
+        const toastElement = toastRef.current;
+
+        if (toastElement && window.bootstrap) {
+            const toastBootstrap =
+                window.bootstrap.Toast.getOrCreateInstance(toastElement);
+
+            const handleHidden = () => {
+                if (onClose) {
+                    onClose();
+                }
+            };
+
+            toastElement.addEventListener('hidden.bs.toast', handleHidden);
+            toastBootstrap.show();
+
+            return () => {
+                toastElement.removeEventListener('hidden.bs.toast', handleHidden);
+                toastBootstrap.dispose();
+            };
+        }
+    }, [config, onClose]);
+
+    if (!config) {
         return null;
     }
 
     return (
-        <div className="w-auto" aria-hidden="false">
-            <div className={`modal-content ${colour} w-auto rounded`}>
-                <div className="modal-header border-0 py-3">
-                    <div className="modal-body text-white m-0 p-0" id="alertModalLabel">
-                        <i className={`bi ${iconClass} flex-shrink-0 ms-3 me-2 `}></i>
-                        {message}
-                    </div>
-                    <button
-                        type="button"
-                        className="btn-close btn-close-white ms-2 p-0 m-auto me-3"
-                        onClick={handleAlertClose}
-                    ></button>
+        <div
+            ref={toastRef}
+            className={`toast align-items-center border-0 mb-2 shadow text-white w-auto ${config.colour}`}
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+            data-bs-autohide="true"
+            data-bs-delay="5000"
+        >
+            <div className="d-flex">
+                <div className="toast-body d-flex align-items-center flex-grow-1 py-3 px-3">
+                    <i className={`bi ${config.iconClass} me-3 fs-5`}></i>
+                    <span className="fs-6">{message}</span>
                 </div>
+                <button
+                    type="button"
+                    className="btn-close btn-close-white me-3 m-auto"
+                    data-bs-dismiss="toast"
+                    aria-label="Close"
+                ></button>
             </div>
         </div>
     );

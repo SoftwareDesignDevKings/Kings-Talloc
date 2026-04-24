@@ -215,7 +215,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                             handleWeeklyRecurringToggle()
                                             setIsRecurring(true)
                                         }}
-                                        disabled={readOnly || (isEditing && newEvent.occurenceNum)}
+                                        disabled={readOnly || isEditing}
                                         aria-pressed={newEvent.recurring === 'weekly'}
                                         aria-label="Repeat weekly"
                                     >
@@ -228,7 +228,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                             handleFortnightlyRecurringToggle()
                                             setIsRecurring(true)
                                         }}
-                                        disabled={readOnly || (isEditing && newEvent.occurenceNum)}
+                                        disabled={readOnly || isEditing}
                                         aria-pressed={newEvent.recurring === 'fortnightly'}
                                         aria-label="Repeat fortnightly"
                                     >

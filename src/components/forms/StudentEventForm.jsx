@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
-import { CalendarEntityType } from '@/strategy/calendarStrategy';
+import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 import useAlert from '@/hooks/useAlert.js';
 
@@ -45,7 +45,6 @@ const StudentEventForm = ({
             ? newEvent.students[0]
             : { value: studentEmail, label: studentEmail },
     );
-    const [error, setError] = useState('');
     const { addAlert } = useAlert();
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
@@ -107,11 +106,10 @@ const StudentEventForm = ({
         const start = new Date(newEvent.start);
         const end = new Date(newEvent.end);
         if (!isAfter(end, start)) {
-            setError('End date must be after the start date.');
-            return false;
+            addAlert('error', 'End date must be after the start date.');
+            return false; // Validation failed
         }
-        setError('');
-        return true;
+        return true; // Validation passed
     };
 
     const filterTutorsByAvailability = (start, end) => {
@@ -157,7 +155,7 @@ const StudentEventForm = ({
         // Validate tutor selection
         if (!selectedTutor || filteredTutors.length === 0) {
             addAlert('error', 'You must select a tutor available to have a tutor session');
-            return;
+            return false; // Don't close modal
         }
 
         const eventData = {
@@ -211,10 +209,11 @@ const StudentEventForm = ({
                 addAlert('success', 'Tutoring session request created successfully');
                 addAlert('info', 'Watch your emails for an MS Teams Meeting. DO NOT RSVP.');
             }
-            setShowStudentModal(false);
+            return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to submit student event request:', error);
-            setError('Failed to submit event request');
+            addAlert('error', 'Failed to submit event request');
+            return false; // Error - don't close modal
         }
     };
 
@@ -224,10 +223,11 @@ const StudentEventForm = ({
             setCalendarStudentRequests(
                 calendarStudentRequests.filter((req) => req.id !== eventToEdit.id)
             );
-            setShowStudentModal(false);
+            return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to delete student event request:', error);
-            setError('Failed to delete event request');
+            addAlert('error', 'Failed to delete event request');
+            return false; // Error - don't close modal
         }
     };
 
@@ -237,11 +237,12 @@ const StudentEventForm = ({
         filterTutorsByAvailability(start, end);
     };
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
-        if (validateDates()) {
-            handleSubmit(e);
+        if (!validateDates()) {
+            return false; // Validation failed - don't close modal
         }
+        return await handleSubmit(e); // Pass through the result
     };
 
     return (
@@ -263,8 +264,6 @@ const StudentEventForm = ({
             }
             showFooter={!isView}
         >
-            {error && <div className="alert alert-danger" role="alert" aria-live="polite">{error}</div>}
-
             <div className="mb-3">
                 <label htmlFor="start" className="form-label">
                     Start Time

@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { FcGoogle, SiMicrosoft } from '@/components/icons';
+import { AppLogin } from '@/lib/security/clientAuth';
 
 // Dev bypass users (matches authOptions.js)
-const DEV_BYPASS_USERS = [
+const DEV_USERS = [
     { id: 'dev-computing', email: 'computing@kings.edu.au', label: '🔧 Admin (Teacher)', variant: 'success' },
     { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: '👨‍🏫 Tutor', variant: 'primary' },
     { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: '👨‍🏫 Tutor + Admin', variant: 'info' },
@@ -26,6 +26,8 @@ export default function Login() {
                         width={275}
                         height={275}
                         className="rounded"
+                        priority
+                        unoptimized
                     />
                 </div>
                 <div className="text-center">
@@ -49,14 +51,14 @@ export default function Login() {
                     </p>
                 </div>
                 <div className="mt-4">
-                    {process.env.NODE_ENV === 'development' && (
+                    {(process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ) && (
                         <div className="mb-3">
                             <p className="small text-muted mb-2 text-center">Development Bypass Accounts:</p>
                             <div className="d-grid gap-1">
-                                {DEV_BYPASS_USERS.map(user => (
+                                {DEV_USERS.map(user => (
                                     <button
                                         key={user.id}
-                                        onClick={() => signIn(user.id, { callbackUrl: '/dashboard' })}
+                                        onClick={() => AppLogin(user.id)}
                                         className={`btn btn-${user.variant} btn-sm`}
                                     >
                                         {user.label}
@@ -67,14 +69,14 @@ export default function Login() {
                         </div>
                     )}
                     <button
-                        onClick={() => signIn('azure-ad', { callbackUrl: '/dashboard' })}
+                        onClick={() => AppLogin('AZURE')}
                         className="btn btn-dark w-100 d-flex align-items-center justify-content-center"
                     >
                         <SiMicrosoft className="me-2" />
                         Sign in with Microsoft SSO
                     </button>
                     <button
-                        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                        onClick={() => AppLogin('GOOGLE')}
                         className="btn w-100 d-flex align-items-center justify-content-center mt-2"
                         style={{ backgroundColor: 'white', color: '#202124', border: '1px solid #dadce0' }}
                     >

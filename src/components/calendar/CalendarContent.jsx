@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, endOfWeek, getDay, addDays } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
-import { useAppData } from '@/providers/AppDataProvider';
+import { useAppData } from '@/contexts/AppDataContext';
 
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
@@ -16,7 +16,7 @@ import { updateEventInFirestore, createEventInFirestore } from '@/firestore/fire
 import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
-import { CalendarEntityType } from '@/strategy/calendarStrategy';
+import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent from './CustomEvent.jsx';
@@ -56,7 +56,7 @@ const CalendarContent = () => {
     const strategy = useCalendarStrategy(session.user.email, userRole, userRoles);
     const { addAlert } = useAlert();
 
-    // get pre-filtered data from CalendarUIProvider
+    // get pre-filtered data from CalendarUIContextProvider
     const { filteredEvents, filteredAvailabilities } = useCalendarUI();
 
     // get state setters from CalendarDataProvider
@@ -67,12 +67,21 @@ const CalendarContent = () => {
         setCalendarAvailabilities,
         calendarStudentRequests,
         setCalendarStudentRequests,
+        calendarDateRange,
         setCalendarDateRange,
         tutors,
     } = useAppData();
 
+    // track the calendar's displayed date to keep it in sync with the data provider
+    const [calendarDate, setCalendarDate] = useState(() => calendarDateRange.start);
+
+    // sync calendar date with data provider's date range on mount/navigation
+    useEffect(() => {
+        setCalendarDate(calendarDateRange.start);
+    }, [calendarDateRange.start]);
+
     /* ----------------------------------------------------------- */
-    /* Events and Availabilities - Pre-filtered by CalendarUIProvider */
+    /* Events and Availabilities - Pre-filtered by CalendarUIContextProvider */
     /* ----------------------------------------------------------- */
     const rbcEvents = filteredEvents;
     const overlayAvailabilities = filteredAvailabilities;
@@ -106,10 +115,18 @@ const CalendarContent = () => {
         }
 
         // Update the global range state to trigger the optimized Firestore listeners
-        setCalendarDateRange({ 
-            start: calendarStart, 
-            end: calendarEnd 
+        setCalendarDateRange({
+            start: calendarStart,
+            end: calendarEnd
         });
+    };
+
+    /**
+     * Handle calendar navigation (prev/next/today buttons)
+     * Update the displayed date and sync with data provider
+     */
+    const handleNavigate = (newDate) => {
+        setCalendarDate(newDate);
     };
     
 
@@ -223,7 +240,7 @@ const CalendarContent = () => {
                 return;
             }
 
-            // save to Firestore and update a new RBC event 
+            // save to Firestore and update a new RBC event
             const docId = await createEventInFirestore(duplicatedEvent, collectionName);
             const newEvent = {
                 ...duplicatedEvent,
@@ -404,6 +421,8 @@ const CalendarContent = () => {
                         max={maxTime}
                         style={{ height: '100%' }}
 
+                        date={calendarDate}
+                        onNavigate={handleNavigate}
                         defaultView={defaultView}
                         views={rbcViews}
 

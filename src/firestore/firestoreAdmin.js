@@ -30,7 +30,7 @@ if (!admin.apps.length) {
 /**
  * SERVER ONLY - Firebase AdminAuth instance
  */
-export const adminAuth = admin.auth();
+export const adminDbAuth = admin.auth();
 
 /**
  * SERVER ONLY - Firebase Admin Firestore instance

@@ -14,14 +14,26 @@ import {
     FiHome,
 } from '@/components/icons';
 import Image from 'next/image';
-import { signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from '@/styles/sidebar.module.css';
+import useAuthSession from '@/hooks/useAuthSession';
+import { AppLogout } from '@/lib/security/clientAuth';
 
-const Sidebar = ({ userRole, user }) => {
+const ROLE_LABELS = {
+    admin: 'Admin',
+    teacher: 'Teacher',
+    tutor: 'Tutor',
+    coach: 'Coach',
+    student: 'Student',
+};
+
+const Sidebar = ({ user }) => {
+    const { userRole, availableRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
-    const router = useRouter();
+
+    const isAdmin = userRole === 'admin';
+    const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher';
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -60,63 +72,60 @@ const Sidebar = ({ userRole, user }) => {
                 </div>
                 <div className="flex-grow-1">
                     <ul className={styles.navList}>
-                        <li
-                            className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                            onClick={() => router.push('/dashboard')}
-                        >
-                            <FiHome className={styles.navIcon} />
-                            {!isCollapsed && <span>Dashboard</span>}
+                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                            <Link href="/dashboard" className={styles.navLink}>
+                                <FiHome className={styles.navIcon} />
+                                {!isCollapsed && <span>Dashboard</span>}
+                            </Link>
                         </li>
-                        <li
-                            className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                            onClick={() => router.push('/calendar')}
-                        >
-                            <FiCalendar className={styles.navIcon} />
-                            {!isCollapsed && <span>Calendar</span>}
+                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                            <Link href="/calendar" className={styles.navLink}>
+                                <FiCalendar className={styles.navIcon} />
+                                {!isCollapsed && <span>Calendar</span>}
+                            </Link>
                         </li>
-                        {(userRole === 'teacher' || userRole === 'admin') && (
-                            <>
-                                <li
-                                    className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                    onClick={() => router.push('/userRoles')}
-                                >
+                        {isAdmin && (
+                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                <Link href="/userRoles" className={styles.navLink}>
                                     <FiUsers className={styles.navIcon} />
                                     {!isCollapsed && <span>User Roles</span>}
+                                </Link>
+                            </li>
+                        )}
+                        {isAdminOrTeacher && (
+                            <>
+                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                    <Link href="/classes" className={styles.navLink}>
+                                        <FiBook className={styles.navIcon} />
+                                        {!isCollapsed && <span>Manage Classes</span>}
+                                    </Link>
                                 </li>
-                                <li
-                                    className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                    onClick={() => router.push('/classes')}
-                                >
-                                    <FiBook className={styles.navIcon} />
-                                    {!isCollapsed && <span>Manage Classes</span>}
+                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                    <Link href="/subjects" className={styles.navLink}>
+                                        <FiBookOpen className={styles.navIcon} />
+                                        {!isCollapsed && <span>Manage Subjects</span>}
+                                    </Link>
                                 </li>
                             </>
                         )}
-                        {(userRole === 'teacher' || userRole === 'admin') && (
-                            <li
-                                className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                onClick={() => router.push('/subjects')}
-                            >
-                                <FiBookOpen className={styles.navIcon} />
-                                {!isCollapsed && <span>Manage Subjects</span>}
-                            </li>
-                        )}
-                        {userRole !== 'student' && (
-                            <li
-                                className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}
-                                onClick={() => router.push('/tutorHours')}
-                            >
-                                <FiClock className={styles.navIcon} />
-                                {!isCollapsed && <span>Tutor Hours</span>}
+                        {['admin', 'tutor', 'coach'].includes(userRole) && (
+                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
+                                <Link href="/tutorHours" className={styles.navLink}>
+                                    <FiClock className={styles.navIcon} />
+                                    {!isCollapsed && <span>Tutor Hours</span>}
+                                </Link>
                             </li>
                         )}
                     </ul>
                 </div>
             </div>
-            <div className={styles.profileSection}>
+            <div className={`${styles.profileSection} dropdown dropup`}>
                 <div
                     className={`${styles.profileContainer} ${isCollapsed ? styles.profileContainerCollapsed : styles.profileContainerExpanded}`}
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    data-bs-toggle="dropdown"
+                    aria-expanded={showProfileMenu}
+                    role="button"
                 >
                     {user?.image ? (
                         <Image
@@ -125,6 +134,7 @@ const Sidebar = ({ userRole, user }) => {
                             width={32}
                             height={32}
                             className={styles.profileImage}
+                            unoptimized
                         />
                     ) : (
                         <div className={styles.profilePlaceholder}>
@@ -134,18 +144,31 @@ const Sidebar = ({ userRole, user }) => {
                     {!isCollapsed && <span>{user.name}</span>}
                     {!isCollapsed && <FiSettings className={styles.navIcon} />}
                 </div>
-                {showProfileMenu && (
-                    <div
-                        className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded}`}
-                    >
+                <div
+                    className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded} dropdown-menu${showProfileMenu ? ' show' : ''}`}
+                >
+                    {availableRoles.length > 1 && (
+                        <div className="d-flex gap-1 flex-wrap mb-2 px-3 pt-3">
+                            {availableRoles.map((role) => (
+                                <button
+                                    key={role}
+                                    onClick={() => switchRole(role)}
+                                    className={`btn btn-sm ${userRole === role ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                >
+                                    {ROLE_LABELS[role] || role}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    <div className="px-3 pb-3">
                         <button
-                            onClick={() => signOut({ callbackUrl: '/login' })}
+                            onClick={AppLogout}
                             className="btn btn-danger w-100"
                         >
                             Logout
                         </button>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

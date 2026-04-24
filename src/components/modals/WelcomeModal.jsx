@@ -81,6 +81,8 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                         width={250}
                         height={250}
                         className="rounded"
+                        priority
+                        unoptimized
                     />
                 </div>
 

@@ -24,7 +24,6 @@ const nextConfig = {
     // Improve hot reload performance
     experimental: {
         optimizePackageImports: [
-            'react-bootstrap',
             'react-big-calendar',
             'react-select',
         ],
@@ -34,11 +33,6 @@ const nextConfig = {
     compiler: {
         removeConsole:
             process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
-    },
-    modularizeImports: {
-        'react-bootstrap': {
-            transform: 'react-bootstrap/{{member}}',
-        },
     },
     // Empty turbopack config to silence the warning (Turbopack is the default in Next.js 16)
     turbopack: {},

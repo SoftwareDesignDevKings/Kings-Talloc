@@ -11,7 +11,8 @@
             "@middleware/*": ["src/middleware/*"],
             "@firestore/*": ["src/firestore/*"],
             "@layouts/*": ["src/layouts/*"],
-            "@utils/*": ["src/utils/*"]
+            "@utils/*": ["src/utils/*"],
+            "@lib/*": ["src/lib/*"]
         }
     }
 }
