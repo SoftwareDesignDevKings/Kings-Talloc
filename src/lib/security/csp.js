@@ -8,7 +8,8 @@ const contentSecurityPolicy = {
         "'self'",
         "https://cdn.jsdelivr.net",
         "https://www.google.com",
-        "https://www.gstatic.com"
+        "https://www.gstatic.com",
+        "https://apis.google.com"
     ],
 
     "style-src": [
@@ -35,6 +36,7 @@ const contentSecurityPolicy = {
 
     "connect-src": [
         "'self'",
+        "https://cdn.jsdelivr.net",
         "https://graph.microsoft.com",
         "https://login.microsoftonline.com",
         "https://firestore.googleapis.com",
@@ -49,7 +51,8 @@ const contentSecurityPolicy = {
 
     "frame-src": [
         "https://www.google.com",
-        "https://login.microsoftonline.com"
+        "https://login.microsoftonline.com",
+        "https://*.firebaseapp.com"
     ],
 
     "object-src": ["'none'"],
