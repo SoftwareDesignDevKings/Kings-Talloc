@@ -17,7 +17,6 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
 import styles from '@/styles/sidebar.module.css';
 import useAuthSession from '@/hooks/useAuthSession';
 import { AppLogout } from '@/lib/security/clientAuth';
@@ -194,7 +193,7 @@ const Sidebar = ({ user }) => {
                 )}
 
                 <button
-                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    onClick={AppLogout}
                     className={`btn btn-outline-danger d-flex align-items-center ${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
                     title="Logout"
                 >
