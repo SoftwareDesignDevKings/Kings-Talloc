@@ -7,12 +7,12 @@ import { AppLogin } from '@/lib/security/clientAuth';
 
 // Dev bypass users (matches authOptions.js)
 const DEV_USERS = [
-    { id: 'dev-computing', email: 'computing@kings.edu.au', label: '🔧 Admin (Teacher)', variant: 'success' },
-    { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: '👨‍🏫 Tutor', variant: 'primary' },
-    { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: '👨‍🏫 Tutor + Admin', variant: 'info' },
-    { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: '📚 Teacher', variant: 'warning' },
-    { id: 'dev-coach', email: 'coach@kings.edu.au', label: '⚽ Coach + Tutor', variant: 'secondary' },
-    { id: 'dev-student', email: 'student@kings.edu.au', label: '🎓 Student', variant: 'danger' }
+    { id: 'dev-computing', email: 'computing@kings.edu.au', label: 'Admin (Teacher)', variant: 'success' },
+    { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: 'Tutor', variant: 'primary' },
+    { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: 'Tutor + Admin', variant: 'info' },
+    { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: 'Teacher', variant: 'warning' },
+    { id: 'dev-coach', email: 'coach@kings.edu.au', label: 'Coach + Tutor', variant: 'secondary' },
+    { id: 'dev-student', email: 'student@kings.edu.au', label: 'Student', variant: 'danger' }
 ];
 
 export default function Login() {
@@ -26,6 +26,7 @@ export default function Login() {
                         width={200}
                         height={200}
                         priority
+                        unoptimized
                     />
                 </div>
                 <div className="text-center mb-4 fade-in" style={{ animationDelay: '100ms' }}>
@@ -46,14 +47,14 @@ export default function Login() {
                         </p>
                     </div>
                     
-                    {process.env.NODE_ENV === 'development' && (
+                    {(process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ) && (
                         <div className="mb-4 p-3 border rounded-3 bg-light">
                             <p className="small fw-bold text-muted mb-3 text-uppercase" style={{ letterSpacing: '0.05em' }}>Dev Accounts</p>
                             <div className="d-flex flex-wrap gap-2">
-                                {DEV_BYPASS_USERS.map(user => (
+                                {DEV_USERS.map(user => (
                                     <button
                                         key={user.id}
-                                        onClick={() => signIn(user.id, { callbackUrl: '/dashboard' })}
+                                        onClick={() => AppLogin(user.id)}
                                         className={`btn btn-outline-${user.variant} btn-sm grow text-xs`}
                                     >
                                         {user.label}
@@ -65,7 +66,7 @@ export default function Login() {
                     
                     <div className="d-flex flex-column gap-3">
                         <button
-                            onClick={() => signIn('azure-ad', { callbackUrl: '/dashboard' })}
+                            onClick={() => AppLogin('AZURE')}
                             className="btn btn-dark w-100 d-flex align-items-center justify-content-center gap-2 py-2"
                             style={{ minHeight: '44px' }}
                         >
@@ -73,7 +74,7 @@ export default function Login() {
                             <span className="fw-medium">Sign in with Microsoft</span>
                         </button>
                         <button
-                            onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                            onClick={() => AppLogin('GOOGLE')}
                             className="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2 py-2 border"
                             style={{ minHeight: '44px' }}
                         >
