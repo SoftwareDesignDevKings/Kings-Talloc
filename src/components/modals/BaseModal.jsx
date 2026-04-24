@@ -96,9 +96,11 @@ const BaseModal = ({
             }
         }
 
-        // Show modal with animation when show becomes true (but not if we're in the middle of closing)
+        // Show or hide modal based on show prop
         if (bsModalRef.current && show && !isClosing.current) {
             bsModalRef.current.show();
+        } else if (bsModalRef.current && !show) {
+            bsModalRef.current.hide();
         }
     }, [show, onHide]);
 
