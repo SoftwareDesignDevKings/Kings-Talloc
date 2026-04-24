@@ -177,7 +177,6 @@ const TutorAvailabilityForm = ({
             showFooter={!isView}
         >
             <div className={styles.formContainer}>
-                {error && <div className="alert alert-danger py-2 mb-0" role="alert" aria-live="polite">{error}</div>}
 
                 {/* Time Selection Section */}
                 <div className={styles.section}>
@@ -193,7 +192,7 @@ const TutorAvailabilityForm = ({
                             </label>
                             <input
                                 type="datetime-local"
-                                className={`form-control ${error && error.includes('date') ? styles.invalidInput : ''}`}
+                                className="form-control"
                                 name="start"
                                 id="start"
                                 value={
@@ -215,7 +214,7 @@ const TutorAvailabilityForm = ({
                             </label>
                             <input
                                 type="datetime-local"
-                                className={`form-control ${error && error.includes('date') ? styles.invalidInput : ''}`}
+                                className="form-control"
                                 name="end"
                                 id="end"
                                 value={
@@ -231,12 +230,6 @@ const TutorAvailabilityForm = ({
                             />
                         </div>
                     </div>
-
-                    {error && error.includes('date') && (
-                        <div className={styles.invalidFeedback}>
-                            {error}
-                        </div>
-                    )}
 
                 </div>
 
