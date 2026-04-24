@@ -160,7 +160,7 @@ const BaseModal = ({
                                             )}
                                             <button
                                                 type="submit"
-                                                className="btn btn-primary"
+                                                className="btn btn-outline-primary"
                                                 disabled={disabled || loading}
                                             >
                                                 {getSubmitButtonText()}
