@@ -12,6 +12,7 @@ import {
     FiBookOpen,
     FiHome,
     FiLogOut,
+    FiUserCheck,
 } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -30,9 +31,27 @@ const ROLE_LABELS = {
 };
 
 const Sidebar = ({ user }) => {
-    const { userRole, availableRoles, switchRole } = useAuthSession();
+    const { session, userRole, userRoles, availableRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const pathname = usePathname();
+
+    const isAdmin = userRole === 'admin';
+    const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher';
+    const isTutorHoursRole = ['admin', 'tutor', 'coach'].includes(userRole);
+
+    const hasAdminAccess = userRoles?.includes('admin') || session?.user?.defaultRole === 'admin';
+    const isCurrentlyAdmin = userRole === 'admin';
+    const originalRole = session?.user?.defaultRole === 'admin' 
+        ? availableRoles.find(r => r !== 'admin') 
+        : session?.user?.defaultRole;
+
+    const handleRoleToggle = () => {
+        if (isCurrentlyAdmin) {
+            switchRole(originalRole || 'student');
+        } else {
+            switchRole('admin');
+        }
+    };
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -92,7 +111,7 @@ const Sidebar = ({ user }) => {
                                 <span className={styles.navLabel}>Calendar</span>
                             </Link>
                         </li>
-                        {userRole === 'admin' && (
+                        {isAdmin && (
                             <li className={styles.navItem}>
                                 <Link
                                     href="/userRoles"
@@ -103,7 +122,7 @@ const Sidebar = ({ user }) => {
                                 </Link>
                             </li>
                         )}
-                        {(userRole === 'teacher' || userRole === 'admin') && (
+                        {isAdminOrTeacher && (
                             <>
                                 <li className={styles.navItem}>
                                     <Link
@@ -125,7 +144,7 @@ const Sidebar = ({ user }) => {
                                 </li>
                             </>
                         )}
-                        {(userRole === 'admin' || userRole === 'tutor' || userRole === 'coach') && (
+                        {isTutorHoursRole && (
                             <li className={styles.navItem}>
                                 <Link
                                     href="/tutorHours"
@@ -160,6 +179,20 @@ const Sidebar = ({ user }) => {
                     <span className={`${styles.navLabel} fw-semibold text-truncate`}>{user.name}</span>
                 </div>
                 
+                {hasAdminAccess && (
+                    <button
+                        onClick={handleRoleToggle}
+                        className={`btn btn-outline-secondary d-flex align-items-center ${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
+                        style={{ borderStyle: 'dashed' }}
+                        title={isCurrentlyAdmin ? `Switch to ${ROLE_LABELS[originalRole] || originalRole}` : "Switch to Admin"}
+                    >
+                        <FiUserCheck className={styles.logoutIcon} />
+                        <span className={styles.navLabel}>
+                            {isCurrentlyAdmin ? `Back to ${ROLE_LABELS[originalRole] || originalRole}` : 'Admin View'}
+                        </span>
+                    </button>
+                )}
+
                 <button
                     onClick={() => signOut({ callbackUrl: '/login' })}
                     className={`btn btn-outline-danger d-flex align-items-center ${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
