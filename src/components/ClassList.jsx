@@ -291,8 +291,9 @@ const ClassList = () => {
                     className="modal show d-block"
                     tabIndex="-1"
                     style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                    onClick={() => setShowViewStudentsModal(false)}
                 >
-                    <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-content">
                             <div className="modal-header">
                                 <h5 className="modal-title">
