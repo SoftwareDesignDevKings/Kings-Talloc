@@ -1,6 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Sidebar from '../../src/components/Sidebar.jsx';
+import useAuthSession from '../../src/hooks/useAuthSession.js';
+
+jest.mock('../../src/hooks/useAuthSession.js');
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
@@ -64,7 +67,7 @@ describe('Sidebar', () => {
     });
 
     it('renders navigation links with correct hrefs', () => {
-        setup('teacher');
+        setup('admin');
 
         expect(screen.getByRole('link', { name: /calendar/i })).toHaveAttribute('href', '/calendar');
         expect(screen.getByRole('link', { name: /user roles/i })).toHaveAttribute('href', '/userRoles');

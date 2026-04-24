@@ -92,17 +92,19 @@ const Sidebar = ({ user }) => {
                                 <span className={styles.navLabel}>Calendar</span>
                             </Link>
                         </li>
+                        {userRole === 'admin' && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/userRoles"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/userRoles') ? styles.activeNavLink : ''}`}
+                                >
+                                    <FiUsers className={styles.navIcon} />
+                                    <span className={styles.navLabel}>User Roles</span>
+                                </Link>
+                            </li>
+                        )}
                         {(userRole === 'teacher' || userRole === 'admin') && (
                             <>
-                                <li className={styles.navItem}>
-                                    <Link
-                                        href="/userRoles"
-                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/userRoles') ? styles.activeNavLink : ''}`}
-                                    >
-                                        <FiUsers className={styles.navIcon} />
-                                        <span className={styles.navLabel}>User Roles</span>
-                                    </Link>
-                                </li>
                                 <li className={styles.navItem}>
                                     <Link
                                         href="/classes"
@@ -112,20 +114,18 @@ const Sidebar = ({ user }) => {
                                         <span className={styles.navLabel}>Manage Classes</span>
                                     </Link>
                                 </li>
+                                <li className={styles.navItem}>
+                                    <Link
+                                        href="/subjects"
+                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/subjects') ? styles.activeNavLink : ''}`}
+                                    >
+                                        <FiBookOpen className={styles.navIcon} />
+                                        <span className={styles.navLabel}>Manage Subjects</span>
+                                    </Link>
+                                </li>
                             </>
                         )}
-                        {(userRole === 'teacher' || userRole === 'admin') && (
-                            <li className={styles.navItem}>
-                                <Link
-                                    href="/subjects"
-                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/subjects') ? styles.activeNavLink : ''}`}
-                                >
-                                    <FiBookOpen className={styles.navIcon} />
-                                    <span className={styles.navLabel}>Manage Subjects</span>
-                                </Link>
-                            </li>
-                        )}
-                        {userRole !== 'student' && (
+                        {(userRole === 'admin' || userRole === 'tutor' || userRole === 'coach') && (
                             <li className={styles.navItem}>
                                 <Link
                                     href="/tutorHours"
