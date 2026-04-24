@@ -25,7 +25,8 @@ export async function GET() {
         await adminDb.collection("users").doc(uid).update({ calendarFeedToken });
     }
 
-    const httpsUrl = `https://kings-talloc.vercel.app/api/calendar/feed?uid=${uid}&token=${calendarFeedToken}`;
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://talloc.kings.edu.au';
+    const httpsUrl = `${baseUrl}/api/calendar/feed?uid=${uid}&token=${calendarFeedToken}`;
     const webcalUrl = httpsUrl.replace("https://", "webcal://");
 
     return NextResponse.json({

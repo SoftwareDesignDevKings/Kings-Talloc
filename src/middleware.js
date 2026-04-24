@@ -11,11 +11,13 @@ const MAINTENANCE_MODE = false;
 
 export async function middleware(req) {
     const nonce = btoa(crypto.randomUUID());
-    const res = NextResponse.next();
-    res.headers.set(
-        "Content-Security-Policy",
-        buildCsp(nonce)
-    );
+
+    // forward nonce on the request so server components can read it via headers()
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-nonce', nonce);
+
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    res.headers.set("Content-Security-Policy", buildCsp(nonce));
     res.headers.set("x-nonce", nonce);
 
     const { pathname } = req.nextUrl;

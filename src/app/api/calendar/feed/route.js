@@ -70,7 +70,7 @@ export async function GET(request) {
 
         const vevent = [
             "BEGIN:VEVENT",
-            `UID:${event.id}@kings-talloc.vercel.app`,
+            `UID:${event.id}@talloc.kings.edu.au`,
             `DTSTAMP:${formatICSDate(now)}`,
             `DTSTART:${formatICSDate(start)}`,
             `DTEND:${formatICSDate(end)}`,
