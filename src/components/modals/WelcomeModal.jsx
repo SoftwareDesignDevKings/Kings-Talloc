@@ -6,7 +6,7 @@ import BaseModal from './BaseModal';
 import { FiHome, FiCalendar, FaInfoCircle } from '@/components/icons';
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { CALENDAR_COLORS } from '@/constants/calendarColors';
+import { CALENDAR_COLOURS } from '@/constants/calendarColours';
 
 /**
  * Welcome modal for new students explaining the app functionality
@@ -123,10 +123,10 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                     <h6 className="fw-bold mb-3">Calendar Color Guide</h6>
                     <div className="d-flex flex-column gap-2">
                         {[
-                            { ...CALENDAR_COLORS.available, label: <><strong>Green background:</strong> Tutor availabilities (darker = more tutors available)</> },
-                            { ...CALENDAR_COLORS.confirmed,  label: <><strong>Light blue:</strong> Your confirmed tutoring sessions</> },
-                            { ...CALENDAR_COLORS.pending,    label: <><strong>Orange:</strong> Pending booking requests (awaiting approval)</> },
-                            { ...CALENDAR_COLORS.denied,     label: <><strong>Red:</strong> Requires your confirmation or denied requests</> },
+                            { ...CALENDAR_COLOURS.available, label: <><strong>Green background:</strong> Tutor availabilities (darker = more tutors available)</> },
+                            { ...CALENDAR_COLOURS.confirmed,  label: <><strong>Light blue:</strong> Your confirmed tutoring sessions</> },
+                            { ...CALENDAR_COLOURS.pending,    label: <><strong>Orange:</strong> Pending booking requests (awaiting approval)</> },
+                            { ...CALENDAR_COLOURS.denied,     label: <><strong>Red:</strong> Requires your confirmation or denied requests</> },
                         ].map(({ bg, border, label }, i) => (
                             <div key={i} className="d-flex align-items-center gap-2">
                                 <div className="shrink-0" style={{ width: '20px', height: '20px', backgroundColor: bg, border: `1px solid ${border}`, borderRadius: '3px' }} />

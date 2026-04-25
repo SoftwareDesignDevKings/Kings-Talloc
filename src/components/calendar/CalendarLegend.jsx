@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { CALENDAR_COLORS } from '@/constants/calendarColors';
+import { CALENDAR_COLOURS } from '@/constants/calendarColours';
 
 const LEGEND_ITEMS = [
-    { label: 'Availabilities', ...CALENDAR_COLORS.available },
-    { label: 'Confirmed',      ...CALENDAR_COLORS.confirmed },
-    { label: 'Pending',        ...CALENDAR_COLORS.pending },
-    { label: 'Denied',         ...CALENDAR_COLORS.denied },
+    { label: 'Availabilities', ...CALENDAR_COLOURS.available },
+    { label: 'Confirmed',      ...CALENDAR_COLOURS.confirmed },
+    { label: 'Pending',        ...CALENDAR_COLOURS.pending },
+    { label: 'Denied',         ...CALENDAR_COLOURS.denied },
 ];
 
 const Swatch = ({ bg, border }) => (

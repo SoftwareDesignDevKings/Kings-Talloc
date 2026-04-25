@@ -6,7 +6,7 @@ import { FaInfoCircle, FiSettings, MdEventNote, MdFlag } from '@/components/icon
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import useAuthSession from '@/hooks/useAuthSession';
-import { CALENDAR_COLORS } from '@/constants/calendarColors';
+import { CALENDAR_COLOURS } from '@/constants/calendarColours';
 
 /**
  * "How to use" modal for students to understand calendar colors and filtering
@@ -105,10 +105,10 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                                 </p>
                                 <div className="d-flex flex-column gap-2">
                                     {[
-                                        { ...CALENDAR_COLORS.available, title: 'Green background', desc: 'Shows when tutors are available. Darker green = more tutors free.' },
-                                        { ...CALENDAR_COLORS.confirmed,  title: 'Light blue',        desc: 'Your confirmed tutoring sessions (approved and ready to go).' },
-                                        { ...CALENDAR_COLORS.pending,    title: 'Orange',             desc: 'Waiting for teacher approval on your booking request.' },
-                                        { ...CALENDAR_COLORS.denied,     title: 'Red',                desc: 'Your booking was denied.' },
+                                        { ...CALENDAR_COLOURS.available, title: 'Green background', desc: 'Shows when tutors are available. Darker green = more tutors free.' },
+                                        { ...CALENDAR_COLOURS.confirmed,  title: 'Light blue',        desc: 'Your confirmed tutoring sessions (approved and ready to go).' },
+                                        { ...CALENDAR_COLOURS.pending,    title: 'Orange',             desc: 'Waiting for teacher approval on your booking request.' },
+                                        { ...CALENDAR_COLOURS.denied,     title: 'Red',                desc: 'Your booking was denied.' },
                                     ].map(({ bg, border, title, desc }) => (
                                         <div key={title} className="d-flex align-items-start">
                                             <div className="me-3 mt-1 shrink-0" style={{
