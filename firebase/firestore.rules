@@ -94,6 +94,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Email Notifications — admins/teachers write (queue notifications); only server reads/deletes via Admin SDK
+    match /emailNotifications/{shiftId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
     // Student Event Requests — admins/teachers read all; students read their own only; tutors/coaches blocked
     match /studentEventRequests/{requestId} {
       allow read: if isAdminOrTeacher()

@@ -123,8 +123,8 @@ async function handleSignIn({ user }) {
 
 async function handleJwt({ token, user, account, profile }) {
     if (user) {
-        token.defaultRole = user.defaultRole;
-        token.userRoles = user.userRolesList;
+        token.defaultRole = user.defaultRole || user.role;
+        token.userRoles = user.userRolesList || [];
 
         token.email = user.email;
         token.name = user.name;
@@ -133,24 +133,23 @@ async function handleJwt({ token, user, account, profile }) {
         if (profile) {
             token.profile = profile;
         }
+
         if (user.image) {
             token.picture = user.image;
         }
 
-        // signin user after verified in NextAuth signIn callback
         const userUid = user.email.toLowerCase();
+
         token.firebaseToken = await adminDbAuth.createCustomToken(userUid, {
             defaultRole: user.defaultRole || user.role,
             userRoles: user.userRolesList || [],
         });
+    }
 
-        // retrieve access / refresh tokens from Azure - store in JWT
-        if (account.provider === 'azure-ad') {
-            token.microsoftAccessToken = account.access_token;
-            token.microsoftRefreshToken = account.refresh_token;
-        
-            token.microsoftTokenExpiry = account.expires_at * 1000;
-        }
+    if (account?.provider === 'azure-ad') {
+        token.msAccessToken = account.access_token;
+        token.msRefreshToken = account.refresh_token;
+        token.msAccessTokenExpiry = account.expires_at * 1000;
     }
 
     return token;

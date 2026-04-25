@@ -9,8 +9,8 @@ import {
     deleteEventFromFirestore,
     addEventException,
     setRecurringUntilDate,
-    removeEventFromQueue,
-    addOrUpdateEventInQueue,
+    removeEmailNotification,
+    queueEmailNotification,
 } from '@/firestore/firestoreOperations';
 import {
     createTeamsMeeting,
@@ -695,7 +695,7 @@ export const calendarEventHandleDelete = async (
     try {
         if (hasRecurring && deleteOption === 'all') {
             await deleteEventFromFirestore(eventToDelete.id, collectionName);
-            await removeEventFromQueue(eventToDelete.id);
+            await removeEmailNotification(eventToDelete.id);
 
             // Delete Teams meeting if the original recurring event had one
             if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
@@ -808,7 +808,7 @@ export const calendarEventHandleDelete = async (
             }
         }
 
-        await removeEventFromQueue(eventToDelete.id);
+        await removeEmailNotification(eventToDelete.id);
     } catch (error) {
         console.error('Failed to delete event:', error);
     }
@@ -886,7 +886,7 @@ export const calendarEventHandleDuplicate = async (
             const docId = await createEventInFirestore(eventData);
             eventData.id = docId;
             setAllEvents([...allEvents, { ...eventData, id: docId }]);
-            await addOrUpdateEventInQueue(eventData, 'store', userEmail);
+            await queueEmailNotification(eventData, 'allocated', userEmail);
 
             if (eventData.approvalStatus === 'approved') {
                 const subject = eventData.title;

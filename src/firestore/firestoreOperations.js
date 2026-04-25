@@ -1,91 +1,86 @@
-import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, deleteDoc, getDoc, collection, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
 /**
- * Adds or updates an event in the email events queue
- * Only sends notifications when event times change
- * @param {Object} event - The event object containing event details and id
- * @param {string} action - The action being performed (e.g., 'store', 'update')
- * @param {Object} originalEvent - The original event data (for updates)
- * @param {string} createdByEmail - Email of the user creating/updating the event (required)
- * @returns {Promise<{message: string}>} Success message
- * @throws {Error} If operation fails
+ * Queue an email notification for a shift allocation or time change.
+ * Uses shiftId as doc ID so rapid edits collapse into one notification.
+ *
+ * action='allocated' — new shift or student request approved
+ * action='moved'     — existing shift times changed
+ *
+ * Dedup logic for 'moved':
+ *   - if existing doc is 'allocated' (tutor never saw it), update times and keep 'allocated'
+ *   - otherwise write/overwrite as 'moved' with previousStart/End from originalEvent
  */
-export const addOrUpdateEventInQueue = async (event, action, createdByEmail, originalEvent = null) => {
-    try {
-        // Validate createdByEmail is provided
-        if (!createdByEmail) {
-            throw new Error('createdByEmail is required for email queue operations');
-        }
+export const queueEmailNotification = async (event, action, createdByEmail, originalEvent = null) => {
+    if (!createdByEmail) return;
+    if (event.title?.includes('(TESTING)')) return;
+    if (!event.id) return;
 
-        // Skip email notifications for testing events
-        if (event.title && event.title.includes('(TESTING)')) {
-            return { message: `Event ${action}d but no notification sent (testing event)` };
-        }
+    const notifDoc = doc(db, 'emailNotifications', event.id);
 
-        // For new events, always send notification
-        if (action === 'store') {
-            const eventDoc = doc(db, 'emailEventsQueue', event.id);
-            await setDoc(eventDoc, {
-                ...event,
+    if (action === 'allocated') {
+        await setDoc(notifDoc, {
+            shiftId: event.id,
+            action: 'allocated',
+            title: event.title,
+            start: event.start,
+            end: event.end,
+            staff: event.staff || [],
+            createdByEmail,
+            timestamp: new Date(),
+        });
+        return;
+    }
+
+    if (action === 'moved' && originalEvent) {
+        const origStart = originalEvent.start instanceof Date ? originalEvent.start : new Date(originalEvent.start);
+        const origEnd = originalEvent.end instanceof Date ? originalEvent.end : new Date(originalEvent.end);
+        const newStart = event.start instanceof Date ? event.start : new Date(event.start);
+        const newEnd = event.end instanceof Date ? event.end : new Date(event.end);
+
+        const timesChanged = origStart.getTime() !== newStart.getTime() || origEnd.getTime() !== newEnd.getTime();
+        if (!timesChanged) return;
+
+        const existing = await getDoc(notifDoc);
+        if (existing.exists() && existing.data().action === 'allocated') {
+            // tutor was never told the old time — just update the allocated notification
+            await setDoc(notifDoc, {
+                shiftId: event.id,
+                action: 'allocated',
+                title: event.title,
+                start: event.start,
+                end: event.end,
+                staff: event.staff || [],
                 createdByEmail,
                 timestamp: new Date(),
             });
-            return { message: `Event ${action}d successfully in email queue` };
+        } else {
+            await setDoc(notifDoc, {
+                shiftId: event.id,
+                action: 'moved',
+                title: event.title,
+                start: event.start,
+                end: event.end,
+                previousStart: origStart,
+                previousEnd: origEnd,
+                staff: event.staff || [],
+                createdByEmail,
+                timestamp: new Date(),
+            });
         }
-
-        // For updates, only send notification if times changed
-        if (action === 'update' && originalEvent) {
-            const originalStart = originalEvent.start instanceof Date
-                ? originalEvent.start
-                : new Date(originalEvent.start);
-            const originalEnd = originalEvent.end instanceof Date
-                ? originalEvent.end
-                : new Date(originalEvent.end);
-            const newStart = event.start instanceof Date
-                ? event.start
-                : new Date(event.start);
-            const newEnd = event.end instanceof Date
-                ? event.end
-                : new Date(event.end);
-
-            const timesChanged =
-                originalStart.getTime() !== newStart.getTime() ||
-                originalEnd.getTime() !== newEnd.getTime();
-
-            if (timesChanged) {
-                const eventDoc = doc(db, 'emailEventsQueue', event.id);
-                await setDoc(eventDoc, {
-                    ...event,
-                    createdByEmail,
-                    timestamp: new Date(),
-                });
-                return { message: `Event ${action}d successfully in email queue (times changed)` };
-            } else {
-                return { message: `Event ${action}d but no notification sent (times unchanged)` };
-            }
-        }
-
-        return { message: `Event ${action}d but no notification sent` };
-    } catch (error) {
-        console.error(`Error during ${action} event in email queue:`, error);
-        throw new Error(`Failed to ${action} event in email queue`);
     }
 };
 
 /**
- * Removes an event from the email events queue
- * @param {string} id - The ID of the event to remove
- * @returns {Promise<{message: string}>} Success message
- * @throws {Error} If removal fails
+ * Remove a pending notification for a shift (called on shift delete to avoid
+ * sending an allocated/moved email for something that no longer exists).
  */
-export const removeEventFromQueue = async (id) => {
+export const removeEmailNotification = async (shiftId) => {
+    if (!shiftId) return;
     try {
-        const eventDoc = doc(db, 'emailEventsQueue', id);
-        await deleteDoc(eventDoc);
-        return { message: 'Event removed successfully from email queue' };
-    } catch (error) {
-        console.error('Error removing event from email queue:', error);
-        throw new Error('Failed to remove event from email queue');
+        await deleteDoc(doc(db, 'emailNotifications', shiftId));
+    } catch {
+        // doc may not exist — not an error
     }
 };
 

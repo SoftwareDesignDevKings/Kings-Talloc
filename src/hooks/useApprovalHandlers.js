@@ -3,7 +3,7 @@ import { db } from '@/firestore/firestoreClient.js';
 import {
     createEventInFirestore,
     deleteEventFromFirestore,
-    addOrUpdateEventInQueue,
+    queueEmailNotification,
 } from '@/firestore/firestoreOperations';
 import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
 import useAlert from '@/hooks/useAlert';
@@ -46,7 +46,7 @@ export const useApprovalHandlers = (onUpdate) => {
             const docId = await createEventInFirestore(eventData);
 
             // Queue email notification
-            await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail);
+            await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
 
             // Create Teams meeting in background
             calendarEventCreateTeamsMeeting(docId, eventData, {

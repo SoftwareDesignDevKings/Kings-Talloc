@@ -10,7 +10,6 @@ import {
     msDeleteOccurrence,
     msUpdateRecurrenceEnd,
     msSetAutoRecord,
-    msSendEmail,
 } from "./msGraphFunctions";
 
 /**
@@ -41,48 +40,16 @@ export async function POST(req) {
         const isDev = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
         if (isDev) {
             console.log("[MS Proxy] Running in DEV mode - using mock responses");
-            const accessToken = "DEV_MODE_MOCK_TOKEN";
-            return await handleMicrosoftAction(req, accessToken);
+            return await handleMicrosoftAction(req, "DEV_MODE_MOCK_TOKEN");
         }
 
-        // PRODUCTION: Check for Microsoft refresh token
-        if (!token.microsoftRefreshToken) {
-            return NextResponse.json(
-                {
-                    error: "REFRESH_TOKEN_MISSING",
-                    message: "Microsoft authentication required. Please sign in again.",
-                },
-                { status: 401 }
-            );
+        // PRODUCTION: resolve valid MS access token from JWT
+        const msAccessToken = await getMicrosoftAccessToken(token);
+        if (!msAccessToken) {
+            return NextResponse.json({ error: "REAUTH_REQUIRED", message: "Microsoft authentication required. Please sign in again." }, { status: 401 });
         }
 
-        // Get access token and check expiration
-        let accessToken = token.microsoftAccessToken;
-        const isExpired = Date.now() > token.microsoftTokenExpiry;
-
-        if (isExpired) {
-            console.log("[MS Proxy] Access token expired, refreshing...");
-
-            try {
-                accessToken = await refreshMicrosoftToken(token.microsoftRefreshToken);
-
-                // TODO: Update the token in NextAuth session
-                // For now, we use the refreshed token for this request only
-                
-                // TODO: if refresh token expired, redirect to login page to reauthenticate and repopulate this accessToken field. 
-            } catch (refreshError) {
-                console.error("[MS Proxy] Token refresh failed:", refreshError);
-                return NextResponse.json(
-                    {
-                        error: "TOKEN_REFRESH_FAILED",
-                        message: "Unable to refresh Microsoft access token. Please sign in again.",
-                    },
-                    { status: 401 }
-                );
-            }
-        }
-
-        return await handleMicrosoftAction(req, accessToken);
+        return await handleMicrosoftAction(req, msAccessToken);
 
     } catch (error) {
         console.error(`[MS Proxy] Error:`, error);
@@ -184,17 +151,6 @@ async function handleMicrosoftAction(req, accessToken) {
             }
             result = await msSetAutoRecord(accessToken, body.onlineMeetingId);
 
-        } else if (action === "send-email") {
-            if (!body.to || !body.subject || !body.htmlContent) {
-                return NextResponse.json(
-                    { error: "Missing required email fields (to, subject, htmlContent)" },
-                    { status: 400 }
-                );
-            }
-            // 
-            // msSendEmail - implement later. 
-
-            // result = await msSendEmail(accessToken, body);
         } else {
             return NextResponse.json({ error: "Invalid action" }, { status: 400 });
         }
@@ -206,38 +162,40 @@ async function handleMicrosoftAction(req, accessToken) {
     }
 }
 
-/**
- * Refresh Microsoft access token using refresh token
- * @param {string} refreshToken - Microsoft refresh token
- * @returns {Promise<string>} New access token
- */
-async function refreshMicrosoftToken(refreshToken) {
-    const AZURE_AD_TENANT_ID = process.env.AZURE_AD_TENANT_ID;
-    const AZURE_AD_CLIENT_ID = process.env.AZURE_AD_CLIENT_ID;
-    const AZURE_AD_CLIENT_SECRET = process.env.AZURE_AD_CLIENT_SECRET;
+async function getMicrosoftAccessToken(token) {
+    if (!token?.msRefreshToken) return null;
 
+    const TOKEN_BUFFER_MS = 60 * 1000;
+    const msAccessTokenExpiry = token.msAccessTokenExpiry ?? 0;
+
+    if (token.msAccessToken && Date.now() < msAccessTokenExpiry - TOKEN_BUFFER_MS) {
+        return token.msAccessToken;
+    }
+
+    return refreshMicrosoftToken(token.msRefreshToken);
+}
+
+async function refreshMicrosoftToken(msRefreshToken) {
     const response = await fetch(
-        `https://login.microsoftonline.com/${AZURE_AD_TENANT_ID}/oauth2/v2.0/token`,
+        `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/oauth2/v2.0/token`,
         {
             method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({
-                client_id: AZURE_AD_CLIENT_ID,
-                client_secret: AZURE_AD_CLIENT_SECRET,
+                client_id: process.env.AZURE_AD_CLIENT_ID,
+                client_secret: process.env.AZURE_AD_CLIENT_SECRET,
                 grant_type: "refresh_token",
-                refresh_token: refreshToken,
+                refresh_token: msRefreshToken,
                 scope: "openid profile email offline_access User.Read Calendars.ReadWrite Mail.Send",
             }),
         }
     );
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to refresh token: ${errorData.error_description || response.statusText}`);
+        console.error("[MS Proxy] Token refresh failed:", await response.text());
+        return null;
     }
 
-    const tokens = await response.json();
-    return tokens.access_token;
+    const tokenData = await response.json();
+    return tokenData.access_token;
 }
