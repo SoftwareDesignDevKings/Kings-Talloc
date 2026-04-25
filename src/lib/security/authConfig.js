@@ -158,7 +158,7 @@ async function handleJwt({ token, user, account, profile }) {
 async function handleSession({ session, token }) {
     if (!session?.user) return session;
 
-    session.user.role = token.role;
+    session.user.role = token.defaultRole;
     session.user.defaultRole = token.defaultRole;
     session.user.userRoles = token.userRoles;
     session.user.firebaseToken = token.firebaseToken;

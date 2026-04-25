@@ -178,6 +178,11 @@ const DashboardOverview = () => {
                 return;
             }
 
+            if (response.status === 207) {
+                addAlert('warning', data.message);
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to send emails');
             }

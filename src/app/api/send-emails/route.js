@@ -1,7 +1,7 @@
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { getServerSession } from 'next-auth/next';
-import { getToken } from 'next-auth/jwt';
 import { authOptions } from '@/lib/security/authConfig';
+import { getMicrosoftAccessToken } from '@/lib/microsoft/tokenUtils';
 import { msSendEmail } from '@/app/api/microsoft/msGraphFunctions';
 import { DateTime } from 'luxon';
 
@@ -22,96 +22,70 @@ export async function POST(req) {
         return Response.json({ error: 'REAUTH_REQUIRED' }, { status: 401 });
     }
 
-    const snapshot = await adminDb.collection('emailNotifications').get();
-    if (snapshot.empty) {
-        return Response.json({ message: 'No notifications to send.' });
-    }
+    try {
+        const userEmail = session.user.email;
 
-    const notifications = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const snapshot = await adminDb.collection('emailNotifications').where('createdByEmail', '==', userEmail).get();
+        if (snapshot.empty) {
+            return Response.json({ message: 'No notifications to send.' });
+        }
 
-    const tutorMap = new Map();
-    for (const notification of notifications) {
-        for (const member of (notification.staff || [])) {
-            const email = member.value || member;
+        const notifications = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-            if (!tutorMap.has(email)) {
-                tutorMap.set(email, []);
+        const tutorMap = new Map();
+        for (const notification of notifications) {
+            for (const member of (notification.staff || [])) {
+                const email = member.value || member;
+                if (!tutorMap.has(email)) tutorMap.set(email, []);
+                tutorMap.get(email).push(notification);
             }
-
-            tutorMap.get(email).push(notification);
         }
-    }
 
-	const tutorEntries = Array.from(tutorMap.entries());
-	const sendPromises = [];
+        const tutorEntries = Array.from(tutorMap.entries());
+        const results = await Promise.allSettled(
+            tutorEntries.map(([tutorEmail, tutorNotifications]) =>
+                msSendEmail(msAccessToken, {
+                    targetEmail: tutorEmail,
+                    subject: 'Talloc Shift Notification',
+                    htmlContent: buildEmailHTML(tutorNotifications),
+                    saveToSentItems: true,
+                })
+            )
+        );
 
-	for (let i = 0; i < tutorEntries.length; i++) {
-		const [tutorEmail, tutorNotifications] = tutorEntries[i];
-		const html = buildEmailHTML(tutorNotifications);
+        // Track notifications that had at least one failed send — keep those for retry
+        const failedNotifIds = new Set();
+        results.forEach((result, i) => {
+            if (result.status === 'rejected') {
+                console.error(`[send-emails] Failed to send to ${tutorEntries[i][0]}:`, result.reason);
+                for (const n of tutorEntries[i][1]) {
+                    failedNotifIds.add(n.id);
+                }
+            }
+        });
 
-		sendPromises.push(msSendEmail(msAccessToken, {
-			targetEmail: tutorEmail,
-			subject: 'Talloc Shift Notification',
-			htmlContent: html,
-			saveToSentItems: true,
-		}));
-	}
-
-	await Promise.all(sendPromises);
-
-    const batch = adminDb.batch();
-    for (const notification of notifications) {
-        batch.delete(adminDb.collection('emailNotifications').doc(notification.id));
-    }
-    await batch.commit();
-
-    return Response.json({ message: `Emails sent to ${tutorMap.size} tutor(s).` });
-}
-
-async function getMicrosoftAccessToken(req) {
-    const token = await getToken({
-        req,
-        secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!token?.msRefreshToken) {
-        return null;
-    }
-
-    const TOKEN_BUFFER_MS = 60 * 1000;
-    const msAccessTokenExpiry = token.msAccessTokenExpiry ?? 0;
-
-    if (token.msAccessToken && Date.now() < msAccessTokenExpiry - TOKEN_BUFFER_MS) {
-        return token.msAccessToken;
-    }
-
-    return refreshMicrosoftToken(token.msRefreshToken);
-}
-
-async function refreshMicrosoftToken(msRefreshToken) {
-    const response = await fetch(
-        `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/oauth2/v2.0/token`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: process.env.AZURE_AD_CLIENT_ID,
-                client_secret: process.env.AZURE_AD_CLIENT_SECRET,
-                grant_type: 'refresh_token',
-                refresh_token: msRefreshToken,
-                scope: 'openid profile email offline_access User.Read Calendars.ReadWrite Mail.Send',
-            }),
+        const idsToDelete = notifications.map((n) => n.id).filter((id) => !failedNotifIds.has(id));
+        if (idsToDelete.length > 0) {
+            const batch = adminDb.batch();
+            for (const id of idsToDelete) {
+                batch.delete(adminDb.collection('emailNotifications').doc(id));
+            }
+            await batch.commit();
         }
-    );
 
-    if (!response.ok) {
-        console.error('MS token refresh failed:', await response.text());
-        return null;
+        const failCount = results.filter((r) => r.status === 'rejected').length;
+        if (failCount > 0) {
+            return Response.json(
+                { message: `${tutorEntries.length - failCount} of ${tutorEntries.length} emails sent. ${failCount} failed — retry to resend.` },
+                { status: 207 }
+            );
+        }
+
+        return Response.json({ message: `Emails sent to ${tutorEntries.length} tutor(s).` });
+    } catch (error) {
+        console.error('[send-emails] Unexpected error:', error);
+        return Response.json({ message: 'Failed to send emails' }, { status: 500 });
     }
-
-    const tokenData = await response.json();
-
-    return tokenData.access_token;
 }
 
 /* ── HTML helpers ──────────────────────────────────────────────────────── */
@@ -183,6 +157,8 @@ function buildEmailHTML(notifications) {
         .map((notification, index) => buildEventRow(notification, index, notifications.length))
         .join('');
 
+    const dashboardUrl = process.env.NEXTAUTH_URL || '#';
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -225,7 +201,7 @@ function buildEmailHTML(notifications) {
                     <table cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="background-color:#1d4ed8;border-radius:8px;">
-                          <a href="#" style="display:block;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:13px 36px;letter-spacing:0.2px;">View My Dashboard &rarr;</a>
+                          <a href="${dashboardUrl}" style="display:block;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:13px 36px;letter-spacing:0.2px;">View My Dashboard &rarr;</a>
                         </td>
                       </tr>
                     </table>

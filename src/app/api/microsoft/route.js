@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { resolveMsAccessToken } from "@/lib/microsoft/tokenUtils";
 import {
     msCreateEvent,
     msUpdateEvent,
@@ -44,7 +45,7 @@ export async function POST(req) {
         }
 
         // PRODUCTION: resolve valid MS access token from JWT
-        const msAccessToken = await getMicrosoftAccessToken(token);
+        const msAccessToken = await resolveMsAccessToken(token);
         if (!msAccessToken) {
             return NextResponse.json({ error: "REAUTH_REQUIRED", message: "Microsoft authentication required. Please sign in again." }, { status: 401 });
         }
@@ -160,42 +161,4 @@ async function handleMicrosoftAction(req, accessToken) {
         console.error(`[MS Proxy] Action handler error:`, error);
         throw error;
     }
-}
-
-async function getMicrosoftAccessToken(token) {
-    if (!token?.msRefreshToken) return null;
-
-    const TOKEN_BUFFER_MS = 60 * 1000;
-    const msAccessTokenExpiry = token.msAccessTokenExpiry ?? 0;
-
-    if (token.msAccessToken && Date.now() < msAccessTokenExpiry - TOKEN_BUFFER_MS) {
-        return token.msAccessToken;
-    }
-
-    return refreshMicrosoftToken(token.msRefreshToken);
-}
-
-async function refreshMicrosoftToken(msRefreshToken) {
-    const response = await fetch(
-        `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/oauth2/v2.0/token`,
-        {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-                client_id: process.env.AZURE_AD_CLIENT_ID,
-                client_secret: process.env.AZURE_AD_CLIENT_SECRET,
-                grant_type: "refresh_token",
-                refresh_token: msRefreshToken,
-                scope: "openid profile email offline_access User.Read Calendars.ReadWrite Mail.Send",
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        console.error("[MS Proxy] Token refresh failed:", await response.text());
-        return null;
-    }
-
-    const tokenData = await response.json();
-    return tokenData.access_token;
 }

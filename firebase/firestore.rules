@@ -94,7 +94,8 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Email Notifications — admins/teachers write (queue notifications); only server reads/deletes via Admin SDK
+    // Email Notifications — admins read/write from client (queueEmailNotification uses client SDK);
+    // server reads/deletes via Admin SDK which bypasses these rules
     match /emailNotifications/{shiftId} {
       allow read, create, update, delete: if isAdmin();
     }
