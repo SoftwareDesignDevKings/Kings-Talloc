@@ -41,7 +41,7 @@ export const useAppData = () => {
 export const AppDataContextProvider = ({ children }) => {
     const { session, userRole, userRoles } = useAuthSession();
     const userEmail = session?.user?.email;
-    const calendarStrategy = useCalendarStrategy(userEmail, userRole, userRoles);
+    const calendarStrategy = useCalendarStrategy(userEmail, userRole);
 
     // Raw data buckets from Firestore listeners
     const [oneOffShifts, setOneOffShifts] = useState([]);

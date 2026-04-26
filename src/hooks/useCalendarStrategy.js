@@ -4,7 +4,7 @@ import { teacherCalendarStrategy, tutorCalendarStrategy, coachCalendarStrategy, 
  * Simple role-based calendar strategy
  * Uses defaultRole only - additional roles (admin, coach, etc.) can be implemented later
  */
-const useCalendarStrategy = (userEmail, defaultUserRole, userRoles = []) => {
+const useCalendarStrategy = (userEmail, defaultUserRole) => {
     if (defaultUserRole === "admin") {
         return adminCalendarStrategy();
     } else if (defaultUserRole === "teacher") {

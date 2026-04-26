@@ -52,7 +52,7 @@ const MemoisedCalendarTimeSlot = memo(CustomTimeslot);
 
 const CalendarContent = () => {
     const { session, userRole, userRoles, device } = useAuthSession();
-    const strategy = useCalendarStrategy(session.user.email, userRole, userRoles);
+    const strategy = useCalendarStrategy(session.user.email, userRole);
     const { addAlert } = useAlert();
 
     // get pre-filtered data from CalendarUIContextProvider

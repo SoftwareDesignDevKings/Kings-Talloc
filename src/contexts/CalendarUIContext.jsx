@@ -51,7 +51,7 @@ export const CalendarUIContextProvider = ({ children }) => {
     const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useAppData();
 
     // cal strategy for filters and scope
-    const calendarStrategy = useCalendarStrategy(userEmail, userRole, userRoles);
+    const calendarStrategy = useCalendarStrategy(userEmail, userRole);
     const { calendarFilters, calendarScope } = calendarStrategy;
 
     // Visibility toggles (defaults from strategy)
