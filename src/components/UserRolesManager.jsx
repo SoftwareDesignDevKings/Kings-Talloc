@@ -434,7 +434,8 @@ const UserRolesManager = () => {
                                             {extraRoleOptions.map((roleOption) => {
                                                 const isSelected = userRoles.includes(roleOption);
                                                 return (
-                                                    <div
+                                                    <button
+                                                        type="button"
                                                         key={roleOption}
                                                         className={`badge rounded-pill ${styles.selectableBadge} ${isSelected ? styles.selectableBadgeSelected : 'bg-light text-dark'}`}
                                                         onClick={() => {
@@ -446,7 +447,7 @@ const UserRolesManager = () => {
                                                         }}
                                                     >
                                                         {roleOption.toUpperCase()}
-                                                    </div>
+                                                    </button>
                                                 );
                                             })}
                                         </div>
