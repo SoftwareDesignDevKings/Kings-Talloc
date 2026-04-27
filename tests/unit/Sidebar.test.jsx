@@ -19,14 +19,14 @@ const setup = (userRole = 'student', userOverrides = {}) => {
         ...userOverrides,
     };
 
-    // Mock the useAuthSession hook to return the specified userRole
     useAuthSession.mockReturnValue({
-        userRole,
+        session: { user },
+        userRoles: [],
         availableRoles: [],
         switchRole: jest.fn(),
     });
 
-    render(<Sidebar user={user} />);
+    render(<Sidebar user={user} userRole={userRole} />);
 
     return { }; // No longer returning setActiveSection
 };
