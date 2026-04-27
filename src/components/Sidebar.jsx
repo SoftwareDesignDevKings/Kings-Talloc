@@ -29,8 +29,8 @@ const ROLE_LABELS = {
     student: 'Student',
 };
 
-const Sidebar = ({ user }) => {
-    const { session, userRole, userRoles, availableRoles, switchRole } = useAuthSession();
+const Sidebar = ({ user, userRole }) => {
+    const { session, userRoles, availableRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const pathname = usePathname();
 
@@ -40,9 +40,7 @@ const Sidebar = ({ user }) => {
 
     const hasAdminAccess = userRoles?.includes('admin') || session?.user?.defaultRole === 'admin';
     const isCurrentlyAdmin = userRole === 'admin';
-    const originalRole = session?.user?.defaultRole === 'admin' 
-        ? availableRoles.find(r => r !== 'admin') 
-        : session?.user?.defaultRole;
+    const originalRole = session?.user?.defaultRole;
 
     const handleRoleToggle = () => {
         if (isCurrentlyAdmin) {
