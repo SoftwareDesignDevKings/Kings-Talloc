@@ -13,10 +13,10 @@ import { TEST_USERS as DEV_USERS } from '@/lib/security/testUsers';
 export const authOptions = {
     providers: [
         ...generateDevProviders(),
-        Google({
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        }),
+        // Google({
+        //     clientId: process.env.GOOGLE_CLIENT_ID,
+        //     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        // }),
         AzureAD({
             clientId: process.env.AZURE_AD_CLIENT_ID,
             clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
