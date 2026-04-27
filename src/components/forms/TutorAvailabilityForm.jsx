@@ -137,16 +137,20 @@ const TutorAvailabilityForm = ({
         setNewAvailability({ ...newAvailability, workType: values });
     };
 
+    const normaliseWorkType = (workType) => {
+        if (typeof workType === 'string') {
+            if (workType === 'tutoringOrWork') return ['tutoring', 'work'];
+            return [workType];
+        }
+        return workType;
+    };
+
     const getWorkTypeBadge = () => {
-        const workTypes = Array.isArray(newAvailability.workType) 
-            ? newAvailability.workType 
-            : [newAvailability.workType];
-            
+        const workTypes = normaliseWorkType(newAvailability.workType);
         const badges = {
             tutoring: <span key="tutoring" className="badge bg-primary me-1">Tutoring</span>,
             coaching: <span key="coaching" className="badge bg-info me-1">Coaching</span>,
             work: <span key="work" className="badge bg-secondary me-1">Work</span>,
-            tutoringOrWork: <><span key="tutoring" className="badge bg-primary me-1">Tutoring</span><span key="work" className="badge bg-secondary me-1">Work</span></>,
         };
         return workTypes.map(type => badges[type] || null);
     };
@@ -246,15 +250,9 @@ const TutorAvailabilityForm = ({
                                 isMulti
                                 name="workType"
                                 options={workTypeOptions}
-                                value={workTypeOptions.filter((option) => {
-                                    if (Array.isArray(newAvailability.workType)) {
-                                        return newAvailability.workType.includes(option.value);
-                                    }
-                                    if (newAvailability.workType === 'tutoringOrWork') {
-                                        return option.value === 'tutoring' || option.value === 'work';
-                                    }
-                                    return newAvailability.workType === option.value;
-                                })}
+                                value={workTypeOptions.filter((option) =>
+                                    normaliseWorkType(newAvailability.workType).includes(option.value)
+                                )}
                                 onChange={handleWorkTypeChange}
                                 classNamePrefix="select"
                                 placeholder="Select types..."
