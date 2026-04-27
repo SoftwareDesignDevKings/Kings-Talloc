@@ -6,6 +6,7 @@ import DashboardStatsCards from '@/components/dashboard/DashboardStatsCards.jsx'
 import EventsList from '@/components/dashboard/EventsList.jsx';
 import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
 import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
+import ReLoginModal from '@/components/modals/ReLoginModal.jsx';
 import useAlert from '@/hooks/useAlert';
 import { useAppData } from '@/contexts/AppDataContext';
 import { startOfWeek, endOfWeek, isSameDay } from 'date-fns';
@@ -14,6 +15,7 @@ const DashboardOverview = () => {
     const { session, userRole, userRoles } = useAuthSession();
     const isAdmin = userRole === 'admin' || userRoles?.includes('admin');
     const { addAlert } = useAlert();
+    const [needsReauth, setNeedsReauth] = useState(false);
     const {
         calendarShifts,
         calendarStudentRequests,
@@ -166,11 +168,20 @@ const DashboardOverview = () => {
     }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, userRole]);
 
 
-    // Handle sending email notifications
     const handleSendEmailNotifications = async () => {
         try {
-            const response = await fetch('/api/send-emails/send');
+            const response = await fetch('/api/send-emails', { method: 'POST' });
             const data = await response.json();
+
+            if (data.error === 'REAUTH_REQUIRED') {
+                setNeedsReauth(true);
+                return;
+            }
+
+            if (response.status === 500) {
+                addAlert('warning', data.message);
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to send emails');
@@ -178,7 +189,6 @@ const DashboardOverview = () => {
 
             addAlert('success', data.message || 'Emails sent successfully');
         } catch (error) {
-            console.log('Error sending emails:', error);
             addAlert('error', error.message || 'Failed to send emails');
         }
     };
@@ -195,7 +205,11 @@ const DashboardOverview = () => {
                 onHide={() => setShowCalendarModal(false)}
             />
 
-            {/* Email Shift Notifications Button (Admins Only) */}
+            <ReLoginModal
+                show={needsReauth}
+                onHide={() => setNeedsReauth(false)}
+            />
+
             {isAdmin && (
                 <div className="row mb-3">
                     <div className="col-12">

@@ -23,7 +23,7 @@ import {
 import {
     updateEventInFirestore,
     createEventInFirestore,
-    addOrUpdateEventInQueue,
+    queueEmailNotification,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
@@ -198,7 +198,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
                     const docId = await createEventInFirestore(eventData);
 
-                    await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail);
+                    await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
 
                     // Handle Teams meeting creation
                     await calendarEventCreateTeamsMeeting(docId, eventData, {
@@ -206,11 +206,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     });
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', userEmail, eventToEdit);
+                    await queueEmailNotification({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
                     const newDocId = await detachRecurringInstance(eventToEdit, eventData);
-                    await addOrUpdateEventInQueue({ ...eventData, id: newDocId }, 'store', userEmail);
+                    await queueEmailNotification({ ...eventData, id: newDocId }, 'allocated', userEmail);
 
                     if (eventData.teamsEventId) {
                         try {
@@ -237,7 +237,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     }
                 } else {
                     await updateEventInFirestore(eventToEdit.id, eventData);
-                    await addOrUpdateEventInQueue({ ...eventData, id: eventToEdit.id }, 'update', userEmail, eventToEdit);
+                    await queueEmailNotification({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
 
                     // Handle Teams meeting update/delete
                     await calendarEventHandleTeamsMeetingUpdate(eventToEdit, eventData, {
@@ -247,7 +247,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             } else {
                 // Create single event (recurring or not)
                 const docId = await createEventInFirestore(eventData);
-                await addOrUpdateEventInQueue({ ...eventData, id: docId }, 'store', userEmail, null);
+                await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
 
                 // Handle Teams meeting creation for new events
                 if (eventData.approvalStatus === 'approved' || eventData.createTeamsMeeting) {

@@ -467,20 +467,21 @@ export const msSetAutoRecord = async (accessToken, onlineMeetingId) => {
  * @param {Object} emailData - Email details
  * @returns {Promise<boolean>}
  */
-export const msSendEmail = async (accessToken, { to, subject, htmlContent, saveToSentItems = true }) => {
+export const msSendEmail = async (accessToken, { targetEmail, subject, htmlContent, saveToSentItems = true }) => {
     try {
         // DEV MODE: Return mock response
         if (isDevMode(accessToken)) {
-            const recipients = Array.isArray(to) ? to.join(', ') : to;
-            console.log('[msGraph] DEV MODE: Mocking send-email to:', recipients, 'subject:', subject);
+            console.log('[msGraph] DEV MODE: Mocking send-email to:', targetEmail, 'subject:', subject);
             return true;
         }
 
-        // Build recipients array
-        const toRecipients = [];
-        for (const email of to) {
-            toRecipients.push({ emailAddress: { address: email } });
-        }
+        const toRecipients = [
+            {
+                emailAddress: {
+                    address: targetEmail,
+                },
+            },
+        ];
 
         const response = await fetch(`${GRAPH_BASE_URL}/me/sendMail`, {
             method: 'POST',
