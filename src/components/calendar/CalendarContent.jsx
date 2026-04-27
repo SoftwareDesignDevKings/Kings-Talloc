@@ -397,6 +397,7 @@ const CalendarContent = () => {
             event={eventProps.event}
             canDuplicate={strategy.actions.canDuplicateEvent?.(eventProps.event)}
             onDuplicate={handleDuplicateEvent}
+            tutors={tutors}
         />
     );
 
