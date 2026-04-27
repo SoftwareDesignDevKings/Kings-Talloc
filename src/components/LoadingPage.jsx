@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-const LoadingPage = ({ withBackground = true }) => {
+const LoadingPage = ({ withWhiteBackground = true }) => {
     const [dotCount, setDotCount] = useState(1);
 
     useEffect(() => {
@@ -19,7 +19,7 @@ const LoadingPage = ({ withBackground = true }) => {
     }, []);
 
     const dots = '.'.repeat(dotCount);
-    const backgroundClass = withBackground
+    const backgroundClass = withWhiteBackground
         ? 'bg-white'
         : 'bg-transparent';
     
