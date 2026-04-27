@@ -231,10 +231,10 @@ const UserRolesManager = () => {
 
     return (
         <div className={styles.managerContainer}>
+            <h2 className="h4 mb-3 fw-bold text-tks-secondary">
+                Manage User Roles
+            </h2>
             <div className={styles.headerActions}>
-                <h2 className="h4 mb-0 fw-bold text-tks-secondary">
-                    Manage User Roles
-                </h2>
                 <div className={styles.searchWrapper}>
                     <input
                         type="text"
