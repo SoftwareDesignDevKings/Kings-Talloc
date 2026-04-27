@@ -59,7 +59,7 @@ export const calendarEventGetDefaults = (slotInfo, userRole, userEmail) => {
             start,
             end,
             tutor: userEmail,
-            workType: 'tutoringOrWork',
+            workType: ['tutoring', 'work'],
             locationType: '',
         };
     }

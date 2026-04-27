@@ -6,6 +6,7 @@ import { FaInfoCircle, FiSettings, MdEventNote, MdFlag } from '@/components/icon
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import useAuthSession from '@/hooks/useAuthSession';
+import { CALENDAR_COLOURS } from '@/constants/calendarColours';
 
 /**
  * "How to use" modal for students to understand calendar colors and filtering
@@ -72,7 +73,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                 <div className="w-100 d-flex justify-content-center">
                     <button
                         type="button"
-                        className="btn btn-primary px-4"
+                        className="btn btn-outline-primary px-4"
                         onClick={handleClose}
                     >
                         Got it!
@@ -103,58 +104,26 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                                     The calendar uses different colors to show different information:
                                 </p>
                                 <div className="d-flex flex-column gap-2">
-                                    <div className="d-flex align-items-start">
-                                        <div className="me-3 mt-1" style={{
-                                            minWidth: '24px',
-                                            height: '24px',
-                                            backgroundColor: 'rgba(144, 238, 144, 0.5)',
-                                            border: '1px solid green',
-                                            borderRadius: '3px'
-                                        }}></div>
-                                        <div>
-                                            <strong>Green background</strong>
-                                            <p className="mb-0 small">Shows when tutors are available. Darker green = more tutors free.</p>
+                                    {[
+                                        { ...CALENDAR_COLOURS.available, title: 'Green background', desc: 'Shows when tutors are available. Darker green = more tutors free.' },
+                                        { ...CALENDAR_COLOURS.confirmed,  title: 'Light blue',        desc: 'Your confirmed tutoring sessions (approved and ready to go).' },
+                                        { ...CALENDAR_COLOURS.pending,    title: 'Orange',             desc: 'Waiting for teacher approval on your booking request.' },
+                                        { ...CALENDAR_COLOURS.denied,     title: 'Red',                desc: 'Your booking was denied.' },
+                                    ].map(({ bg, border, title, desc }) => (
+                                        <div key={title} className="d-flex align-items-start">
+                                            <div className="me-3 mt-1 shrink-0" style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                backgroundColor: bg,
+                                                border: `1px solid ${border}`,
+                                                borderRadius: '3px',
+                                            }} />
+                                            <div>
+                                                <strong>{title}</strong>
+                                                <p className="mb-0 small">{desc}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="d-flex align-items-start">
-                                        <div className="me-3 mt-1" style={{
-                                            minWidth: '24px',
-                                            height: '24px',
-                                            backgroundColor: 'lightblue',
-                                            border: '1px solid blue',
-                                            borderRadius: '3px'
-                                        }}></div>
-                                        <div>
-                                            <strong>Light blue</strong>
-                                            <p className="mb-0 small">Your confirmed tutoring sessions (approved and ready to go).</p>
-                                        </div>
-                                    </div>
-                                    <div className="d-flex align-items-start">
-                                        <div className="me-3 mt-1" style={{
-                                            minWidth: '24px',
-                                            height: '24px',
-                                            backgroundColor: 'orange',
-                                            border: '1px solid darkorange',
-                                            borderRadius: '3px'
-                                        }}></div>
-                                        <div>
-                                            <strong>Orange</strong>
-                                            <p className="mb-0 small">Waiting for teacher approval on your booking request.</p>
-                                        </div>
-                                    </div>
-                                    <div className="d-flex align-items-start">
-                                        <div className="me-3 mt-1" style={{
-                                            minWidth: '24px',
-                                            height: '24px',
-                                            backgroundColor: 'red',
-                                            border: '1px solid darkred',
-                                            borderRadius: '3px'
-                                        }}></div>
-                                        <div>
-                                            <strong>Red</strong>
-                                            <p className="mb-0 small">Your booking was denied.</p>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-const LoadingPage = ({ withBackground = true }) => {
+const LoadingPage = ({ withWhiteBackground = true }) => {
     const [dotCount, setDotCount] = useState(1);
 
     useEffect(() => {
@@ -19,12 +19,12 @@ const LoadingPage = ({ withBackground = true }) => {
     }, []);
 
     const dots = '.'.repeat(dotCount);
-    const backgroundClass = withBackground
-        ? 'gradient-background'
-        : 'bg-white';
+    const backgroundClass = withWhiteBackground
+        ? 'bg-white'
+        : 'bg-transparent';
     
-    const spinnerColorClass = withBackground ? 'text-light' : 'text-tks-primary';
-    const textColorClass = withBackground ? 'text-white' : 'text-secondary';
+    const spinnerColorClass = 'text-dark';
+    const textColorClass = 'text-dark';
 
     return (
         <div className={`d-flex align-items-center justify-content-center position-fixed top-0 start-0 w-100 h-100 ${backgroundClass}`}>

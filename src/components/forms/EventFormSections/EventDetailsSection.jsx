@@ -1,8 +1,9 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { format, isValid } from 'date-fns';
 import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
+import styles from '@/styles/availabilityForm.module.css';
 
-const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing }) => {
+const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing = {} }) => {
     const [isRecurring, setIsRecurring] = useState(!!newEvent.recurring)
     const [initialOccurenceNum, setInitialOccurenceNum] = useState(newEvent.occurenceNum);
 
@@ -57,14 +58,22 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
         <div className="accordion-item">
             <h2 className="accordion-header">
                 <button
-                    className={`accordion-button ${isExpanded ? '' : 'collapsed'}`}
+                    className={`accordion-button shadow-none ${isExpanded ? '' : 'collapsed'}`}
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#eventDetails"
                     aria-expanded={isExpanded}
                     aria-controls="eventDetails"
                 >
-                    <MdEventNote className="me-2" aria-hidden="true" /> Event Details
+                    <div className="d-flex align-items-center justify-content-between w-100 me-3">
+                        <div className="d-flex align-items-center">
+                            <MdEventNote className="me-2 text-primary" size={20} aria-hidden="true" />
+                            <span className="fw-bold">General Information</span>
+                        </div>
+                        {newEvent.createTeamsMeeting && (
+                            <SiMicrosoftTeams className="text-tks-secondary" size={18} title="Teams Meeting Enabled" />
+                        )}
+                    </div>
                 </button>
             </h2>
             <div
@@ -72,16 +81,17 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                 className={`accordion-collapse collapse ${isExpanded ? 'show' : ''}`}
                 data-bs-parent="#eventFormAccordion"
             >
-                <div className="accordion-body">
-                    <div className="mb-3">
-                        <label htmlFor="title" className="form-label small text-muted mb-1">
-                            Title
+                <div className="accordion-body p-4">
+                    <div className="mb-4">
+                        <label htmlFor="title" className="form-label small fw-bold text-muted text-uppercase">
+                            Event Title
                         </label>
                         <input
                             type="text"
                             className="form-control"
                             name="title"
                             id="title"
+                            placeholder="e.g. Weekly Math Tutoring"
                             value={newEvent.title}
                             onChange={handleInputChange}
                             disabled={readOnly}
@@ -90,15 +100,16 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                         />
                     </div>
 
-                    <div className="mb-3">
-                        <label htmlFor="description" className="form-label small text-muted mb-1">
-                            Description
+                    <div className="mb-4">
+                        <label htmlFor="description" className="form-label small fw-bold text-muted text-uppercase">
+                            Description (Optional)
                         </label>
                         <textarea
                             className="form-control"
                             rows={2}
                             name="description"
                             id="description"
+                            placeholder="Add any notes or context..."
                             value={newEvent.description}
                             onChange={handleInputChange}
                             disabled={readOnly}
@@ -106,103 +117,87 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                         />
                     </div>
 
-                    <div className="mb-3">
-                        <div className="d-flex gap-2 align-items-center flex-wrap">
-                            {!readOnly && (
+                    <div className="row g-3 mb-4">
+                        <div className="col-md-6">
+                            <label
+                                htmlFor="start"
+                                className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1"
+                            >
+                                <MdAccessTime /> Start Time
+                            </label>
+                            <input
+                                type="datetime-local"
+                                className="form-control"
+                                name="start"
+                                id="start"
+                                value={
+                                    newEvent.start && isValid(new Date(newEvent.start))
+                                        ? format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")
+                                        : ''
+                                }
+                                onChange={handleInputChange}
+                                required
+                                disabled={readOnly}
+                                aria-label="Event start time"
+                                aria-required="true"
+                            />
+                        </div>
+                        <div className="col-md-6">
+                            <label
+                                htmlFor="end"
+                                className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1"
+                            >
+                                <MdAccessTime /> End Time
+                            </label>
+                            <input
+                                type="datetime-local"
+                                className="form-control"
+                                name="end"
+                                id="end"
+                                value={
+                                    newEvent.end && isValid(new Date(newEvent.end))
+                                        ? format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")
+                                        : ''
+                                }
+                                onChange={handleInputChange}
+                                required
+                                disabled={readOnly}
+                                aria-label="Event end time"
+                                aria-required="true"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-3 border-top">
+                        {!readOnly && (
+                            <div className="d-flex align-items-center gap-3">
                                 <button
                                     type="button"
-                                    className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
+                                    className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? styles.teamsButton : styles.teamsButtonOutline} ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
                                     onClick={handleTeamsMeetingToggle}
-                                    style={
-                                        newEvent.createTeamsMeeting
-                                            ? {
-                                                  backgroundColor: '#5059C9',
-                                                  borderColor: '#5059C9',
-                                              }
-                                            : { color: '#5059C9', borderColor: '#5059C9' }
-                                    }
                                     aria-pressed={newEvent.createTeamsMeeting}
                                     aria-label={`${newEvent.createTeamsMeeting ? 'Remove' : 'Add'} online Teams meeting`}
                                 >
-                                    <SiMicrosoftTeams size={30} aria-hidden="true" />
-                                    Online Teams Meeting
+                                    <SiMicrosoftTeams size={24} aria-hidden="true" />
+                                    <span>{newEvent.createTeamsMeeting ? 'Teams Meeting Enabled' : 'Add Teams Meeting'}</span>
                                 </button>
-                            )}
-
-                            {newEvent.teamsJoinUrl && (
-                                <a
-                                    href={newEvent.teamsJoinUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="btn btn-success"
-                                >
-                                    Join Meeting
-                                </a>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="row">
-                        <div className="col-md-6">
-                            <div className="mb-3">
-                                <label
-                                    htmlFor="start"
-                                    className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                >
-                                    <MdAccessTime /> Start Time
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    className="form-control"
-                                    name="start"
-                                    id="start"
-                                    value={
-                                        newEvent.start && isValid(new Date(newEvent.start))
-                                            ? format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")
-                                            : ''
-                                    }
-                                    onChange={handleInputChange}
-                                    required
-                                    disabled={readOnly}
-                                    aria-label="Event start time"
-                                    aria-required="true"
-                                />
                             </div>
-                        </div>
-                        <div className="col-md-6">
-                            <div className="mb-0">
-                                <label
-                                    htmlFor="end"
-                                    className="form-label small text-muted mb-1 d-flex align-items-center gap-1"
-                                >
-                                    <MdAccessTime /> End Time
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    className="form-control"
-                                    name="end"
-                                    id="end"
-                                    value={
-                                        newEvent.end && isValid(new Date(newEvent.end))
-                                            ? format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")
-                                            : ''
-                                    }
-                                    onChange={handleInputChange}
-                                    required
-                                    disabled={readOnly}
-                                    aria-label="Event end time"
-                                    aria-required="true"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                        )}
 
-                    {!readOnly && (
-                        <>
-                            <div className="d-flex gap-2 align-items-center mt-3">
-                                <small className="text-muted" id="recurring-label">
-                                    Recurring:
-                                </small>
+                        {newEvent.teamsJoinUrl && (
+                            <a
+                                href={newEvent.teamsJoinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-outline-success d-flex align-items-center gap-2"
+                            >
+                                <SiMicrosoftTeams size={18} /> Join Now
+                            </a>
+                        )}
+
+                        {!readOnly && (
+                            <div className="d-flex align-items-center gap-2 ms-auto">
+                                <small className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.7rem' }}>Recurrence:</small>
                                 <div
                                     className="btn-group btn-group-sm"
                                     role="group"
@@ -217,9 +212,8 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                         }}
                                         disabled={readOnly || isEditing}
                                         aria-pressed={newEvent.recurring === 'weekly'}
-                                        aria-label="Repeat weekly"
                                     >
-                                        Repeat Weekly
+                                        Weekly
                                     </button>
                                     <button
                                         type="button"
@@ -230,45 +224,43 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                         }}
                                         disabled={readOnly || isEditing}
                                         aria-pressed={newEvent.recurring === 'fortnightly'}
-                                        aria-label="Repeat fortnightly"
                                     >
-                                        Repeat Fortnightly
+                                        Fortnightly
                                     </button>
                                 </div>
                             </div>
+                        )}
+                    </div>
 
-                            {isRecurring && !newEvent.isRecurringInstance && (
-                                <div className="mt-2">
-                                    {isEditing && initialOccurenceNum ? (
-                                        <small className="text-muted d-block">
-                                            <strong>Occurrences:</strong> {newEvent.eventExceptions && newEvent.eventExceptions.length > 0
-                                                ? newEvent.occurenceNum - newEvent.eventExceptions.length
-                                                : newEvent.occurenceNum}
-                                        </small>
-                                    ) : (
-                                        <>
-                                            <label htmlFor="occurenceNum" className="form-label small text-muted mb-1">
-                                                Number of Occurrences *
-                                            </label>
-                                            <input
-                                                type="number"
-                                                className="form-control form-control-sm shadow-none w-100"
-                                                name="occurenceNum"
-                                                id="occurenceNum"
-                                                value={newEvent.occurenceNum || ''}
-                                                onChange={handleOccurenceNumChange}
-                                                onBlur={handleOccurenceNumBlur}
-                                                disabled={readOnly}
-                                                aria-label="Number of Occurrences"
-                                                aria-required="true"
-                                                min="2"
-                                                placeholder="Enter number"
-                                            />
-                                        </>
-                                    )}
+                    {isRecurring && !newEvent.isRecurringInstance && !readOnly && (
+                        <div className="mt-3 p-3 bg-light rounded d-flex align-items-center justify-content-between">
+                            {isEditing && initialOccurenceNum ? (
+                                <div className="small text-muted">
+                                    <span className="fw-bold">Active Occurrences:</span> {newEvent.eventExceptions && newEvent.eventExceptions.length > 0
+                                        ? newEvent.occurenceNum - newEvent.eventExceptions.length
+                                        : newEvent.occurenceNum}
                                 </div>
+                            ) : (
+                                <>
+                                    <label htmlFor="occurenceNum" className="form-label small fw-bold text-muted text-uppercase mb-0 me-3">
+                                        Occurrences *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="form-control form-control-sm w-auto"
+                                        name="occurenceNum"
+                                        id="occurenceNum"
+                                        style={{ maxWidth: '100px' }}
+                                        value={newEvent.occurenceNum || ''}
+                                        onChange={handleOccurenceNumChange}
+                                        onBlur={handleOccurenceNumBlur}
+                                        disabled={readOnly}
+                                        min="2"
+                                        placeholder="Min 2"
+                                    />
+                                </>
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
             </div>

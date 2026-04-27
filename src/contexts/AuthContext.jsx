@@ -40,10 +40,16 @@ export const AuthContextProvider = ({ children }) => {
 
             // use persisted role from sessionStorage, fallback to default
             const persistedRole = sessionStorage.getItem('selectedUserRole');
-            if (persistedRole) {
+
+            const defaultRole = userRole;
+            const allRoles = [...new Set([defaultRole, ...(userRoles || [])])].filter(Boolean);
+
+            if (persistedRole && allRoles.includes(persistedRole)) {
                 setUserRole(persistedRole);
-            } else if (userRole) {
-                setUserRole(userRole);
+            } else {
+                if (persistedRole) sessionStorage.removeItem('selectedUserRole');
+                const effectiveRole = userRoles?.includes('admin') ? 'admin' : userRole;
+                if (effectiveRole) setUserRole(effectiveRole);
             }
         });
     }, [status, session]);

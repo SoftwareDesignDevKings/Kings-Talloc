@@ -41,7 +41,17 @@ const isBookedShift = (event) => {
     return !event.createdByStudent || event.approvalStatus === 'approved';
 };
 
-const CustomEvent = ({ event, canDuplicate, onDuplicate }) => {
+const getTutorInitials = (tutorEmail, tutors) => {
+    if (!tutorEmail) return '';
+    const tutor = tutors?.find(t => t.email === tutorEmail);
+    if (tutor?.name) return getStaffInitials({ label: tutor.name });
+    // fallback: derive from email local part (e.g. john.doe@... → JD)
+    const localPart = tutorEmail.split('@')[0];
+    const parts = localPart.split('.');
+    return parts.map(p => p.charAt(0).toUpperCase()).join('');
+};
+
+const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors }) => {
     const [showDuplicate, setShowDuplicate] = useState(false);
 
     const handleDuplicateClick = (e) => {
@@ -57,10 +67,11 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate }) => {
         e.preventDefault();
     };
 
-    // Get staff initials for booked shifts
-    const staffInitials = isBookedShift(event) && event.staff && event.staff.length > 0
+    const staffInitials = isBookedShift(event) && event.staff?.length > 0
         ? event.staff.map(getStaffInitials).join(', ')
-        : '';
+        : event.entityType === 'tutorAvailabilities' && event.tutor
+            ? getTutorInitials(event.tutor, tutors)
+            : '';
 
     return (
         <div
@@ -68,7 +79,7 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate }) => {
             onMouseEnter={() => setShowDuplicate(true)}
             onMouseLeave={() => setShowDuplicate(false)}
         >
-            <div>{event.title}</div>
+            <div className={styles.eventTitle}>{event.title}</div>
             {staffInitials && (
                 <div className={styles.staffInitials}>({staffInitials})</div>
             )}

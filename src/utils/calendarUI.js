@@ -81,6 +81,7 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     if (isAvailability) {
         backgroundColor = userRole === 'student' ? 'lightgrey' : 'mediumspringgreen';
         borderColor = userRole === 'student' ? 'grey' : 'springgreen';
+        
     }
 
     // --- Student responses ---

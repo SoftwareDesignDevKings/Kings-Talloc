@@ -22,7 +22,6 @@ import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent from './CustomEvent.jsx';
 import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
-import CalendarLegend from './CalendarLegend.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
 
@@ -53,7 +52,7 @@ const MemoisedCalendarTimeSlot = memo(CustomTimeslot);
 
 const CalendarContent = () => {
     const { session, userRole, userRoles, device } = useAuthSession();
-    const strategy = useCalendarStrategy(session.user.email, userRole, userRoles);
+    const strategy = useCalendarStrategy(session.user.email, userRole);
     const { addAlert } = useAlert();
 
     // get pre-filtered data from CalendarUIContextProvider
@@ -398,6 +397,7 @@ const CalendarContent = () => {
             event={eventProps.event}
             canDuplicate={strategy.actions.canDuplicateEvent?.(eventProps.event)}
             onDuplicate={handleDuplicateEvent}
+            tutors={tutors}
         />
     );
 
@@ -407,7 +407,7 @@ const CalendarContent = () => {
 
     return (
         <div className="d-flex h-100 w-100">
-            <div className="flex-grow-1 p-3 calendar-scroll-container position-relative">
+            <div className="grow p-3 calendar-scroll-container position-relative">
                 <div className="h-100">
                     <DnDCalendar
                         culture="en-AU"
@@ -448,10 +448,6 @@ const CalendarContent = () => {
                 </div>
             </div>
         
-            <div className="position-absolute bottom-0 end-0 mb-3 me-3" style={{ zIndex: 10 }}>
-                <CalendarLegend />
-            </div>
-
             <CalendarFilterPanel calendarStrategy={strategy} device={device} userRole={userRole} />
             
             {/* render different modals depending on the target, action  */}

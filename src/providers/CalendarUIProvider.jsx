@@ -7,24 +7,6 @@ import { CalendarEntityType } from "@/strategy/calendarStrategy"
 import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
 
 /**
- * Returns true if an availability's workType matches the selected filter.
- * 'tutoringOrWork' availabilities are included when filtering by 'tutoring' or 'work',
- * and vice-versa.
- */
-const matchesWorkTypeFilter = (availWorkType, filterWorkType) => {
-    if (filterWorkType === 'tutoringOrWork') {
-        return availWorkType === 'tutoring' || availWorkType === 'work' || availWorkType === 'tutoringOrWork';
-    }
-    if (filterWorkType === 'tutoring') {
-        return availWorkType === 'tutoring' || availWorkType === 'tutoringOrWork';
-    }
-    if (filterWorkType === 'work') {
-        return availWorkType === 'work' || availWorkType === 'tutoringOrWork';
-    }
-    return availWorkType === filterWorkType;
-};
-
-/**
  * UI Provider to persist on re-renders across different page.jsx
  */
 export const CalendarUIProvider = ({ children }) => {
@@ -35,7 +17,7 @@ export const CalendarUIProvider = ({ children }) => {
     const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useAppData();
 
     // cal strategy for filters and scope
-    const calendarStrategy = useCalendarStrategy(userEmail, userRole, userRoles);
+    const calendarStrategy = useCalendarStrategy(userEmail, userRole);
     const { calendarFilters, calendarScope } = calendarStrategy;
 
     // Visibility toggles (defaults from strategy)
@@ -50,48 +32,54 @@ export const CalendarUIProvider = ({ children }) => {
     // Hierarchical toggle handlers
     const handleShowAllEventsChange = useCallback((checked) => {
         setShowAllEvents(checked);
+
         if (!checked) {
-            // Uncheck all sub-toggles when parent is unchecked
             setShowTutoringEvents(false);
             setShowCoachingEvents(false);
             setShowWorkEvents(false);
-        } else {
-            // Check all sub-toggles when parent is checked
-            setShowTutoringEvents(true);
-            setShowCoachingEvents(true);
-            setShowWorkEvents(true);
+            return;
         }
+
+        setShowTutoringEvents(true);
+        setShowCoachingEvents(true);
+        setShowWorkEvents(true);
     }, []);
 
     const handleShowTutoringEventsChange = useCallback((checked) => {
         setShowTutoringEvents(checked);
+
         if (checked && !showAllEvents) {
-            // If enabling this and parent is off, turn parent on
             setShowAllEvents(true);
-        } else if (!checked && !showCoachingEvents && !showWorkEvents) {
-            // If disabling this and all others are off, turn parent off
+            return;
+        }
+
+        if (!checked && !showCoachingEvents && !showWorkEvents) {
             setShowAllEvents(false);
         }
     }, [showAllEvents, showCoachingEvents, showWorkEvents]);
 
     const handleShowCoachingEventsChange = useCallback((checked) => {
         setShowCoachingEvents(checked);
+
         if (checked && !showAllEvents) {
-            // If enabling this and parent is off, turn parent on
             setShowAllEvents(true);
-        } else if (!checked && !showTutoringEvents && !showWorkEvents) {
-            // If disabling this and all others are off, turn parent off
+            return;
+        }
+
+        if (!checked && !showTutoringEvents && !showWorkEvents) {
             setShowAllEvents(false);
         }
     }, [showAllEvents, showTutoringEvents, showWorkEvents]);
 
     const handleShowWorkEventsChange = useCallback((checked) => {
         setShowWorkEvents(checked);
+
         if (checked && !showAllEvents) {
-            // If enabling this and parent is off, turn parent on
             setShowAllEvents(true);
-        } else if (!checked && !showTutoringEvents && !showCoachingEvents) {
-            // If disabling this and all others are off, turn parent off
+            return;
+        }
+
+        if (!checked && !showTutoringEvents && !showCoachingEvents) {
             setShowAllEvents(false);
         }
     }, [showAllEvents, showTutoringEvents, showCoachingEvents]);
@@ -102,9 +90,6 @@ export const CalendarUIProvider = ({ children }) => {
     const [filterByWorkType, setFilterByWorkType] = useState(null);
     const [filterAvailabilityByWorkType, setFilterAvailabilityByWorkType] = useState(null);
 
-    // ─────────────────────────────────────
-    // Merge all calendar entities
-    // ─────────────────────────────────────
     const calendarEntities = useMemo(
         () => [
             ...calendarShifts,
@@ -113,122 +98,134 @@ export const CalendarUIProvider = ({ children }) => {
         [calendarShifts, calendarStudentRequests],
     );
 
-    // Filter RBC events by panel controls
     const filteredEvents = useMemo(() => {
         let filtered = [...calendarEntities];
 
-        // apply "Show All Events" toggle
         if (!showAllEvents) {
             return [];
         }
 
-        // filter by tutoring/coaching/work type
         if (!showTutoringEvents) {
             filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'tutoring'));
         }
+
         if (!showCoachingEvents) {
             filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'coaching'));
         }
+
         if (!showWorkEvents) {
             filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'work'));
         }
 
-        // filter by tutor selection
         if (filterByTutor && filterByTutor.length > 0) {
             const selectedTutorEmails = filterByTutor.map(t => t.value);
+
             filtered = filtered.filter(calEvent => {
-                // for shifts, check if any staff member matches
                 if (calEvent.entityType === CalendarEntityType.SHIFT) {
                     return calEvent.staff?.some(s => selectedTutorEmails.includes(s.value || s));
                 }
-                // for availabilities, check tutor field
+
                 if (calEvent.entityType === CalendarEntityType.AVAILABILITY) {
                     return selectedTutorEmails.includes(calEvent.tutor);
                 }
+
                 return true;
             });
         }
 
-        // hide denied student requests from CalendarUIProvider
         if (hideDeniedStudentRequests) {
             filtered = filtered.filter(calEvent =>
                 !(calEvent.entityType === CalendarEntityType.STUDENT_REQUEST && calEvent.approvalStatus === 'denied')
             );
         }
 
-        // for tutors/coaches: split own availabilities around shifts as RBC events (never other tutors')
         if ((userRole === 'tutor' || userRole === 'coach') && showTutorInitials && !hideOwnAvailabilities) {
             let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
-            if (filterAvailabilityByWorkType) {
-                availabilities = availabilities.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
+
+            if (filterAvailabilityByWorkType?.length > 0) {
+                const selectedWorkTypes = filterAvailabilityByWorkType.map(f => f.value);
+
+                availabilities = availabilities.filter(a =>
+                    availabilityMatchesWorkTypeFilter(a, selectedWorkTypes)
+                );
             }
+
             const splitAvailabilities = calendarAvailabilitySplit(availabilities, filtered);
             filtered = [...filtered, ...splitAvailabilities];
         }
 
         return filtered;
-    }, [calendarEntities, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, showTutorInitials, hideOwnAvailabilities, calendarAvailabilities, filterAvailabilityByWorkType, userEmail]);
+    }, [
+        calendarEntities,
+        showAllEvents,
+        showTutoringEvents,
+        showCoachingEvents,
+        showWorkEvents,
+        filterByTutor,
+        hideDeniedStudentRequests,
+        userRole,
+        showTutorInitials,
+        hideOwnAvailabilities,
+        calendarAvailabilities,
+        filterAvailabilityByWorkType,
+        userEmail,
+    ]);
 
-    // ─────────────────────────────────────
-    // Filter availabilities by panel controls
-    // ─────────────────────────────────────
     const filteredAvailabilities = useMemo(() => {
-
-        // check strategy-level and CalendarUIProvider visibility settings
         if (!showTutorInitials) {
             return [];
         }
 
         let filtered = calendarAvailabilities;
 
-        // tutors/coaches: hide own availabilities if CalendarUIProvider setting is enabled
         if (userRole === 'tutor' || userRole === 'coach') {
             if (hideOwnAvailabilities) {
-                filtered = filtered.filter((a) => a.tutor !== userEmail);
+                filtered = filtered.filter(a => a.tutor !== userEmail);
             } else {
-                // Show all availabilities including own
                 filtered = calendarAvailabilities;
             }
         }
 
-        // students: filter by selected subject's tutors from CalendarUIProvider
         if (userRole === 'student' && filterBySubject) {
             const selectedSubject = subjects?.find(s => s.id === filterBySubject.value);
+
             if (selectedSubject?.tutors) {
                 const subjectTutorEmails = selectedSubject.tutors.map(t => t.email);
                 filtered = filtered.filter(a => subjectTutorEmails.includes(a.tutor));
             }
         }
 
-        // students: only show tutoring availabilities (exclude coaching and work)
         if (userRole === 'student') {
-            filtered = filtered.filter(a =>
-                a.workType === 'tutoring' ||
-                a.workType === 'tutoringOrWork' ||
-                a.workType === undefined
-            );
+            filtered = filtered.filter(a => availabilityIsVisibleToStudent(a));
         }
 
-        // filter by selected tutors from CalendarUIProvider
         if (filterByTutor && filterByTutor.length > 0) {
             const selectedTutorEmails = filterByTutor.map(t => t.value);
             filtered = filtered.filter(a => selectedTutorEmails.includes(a.tutor));
         }
 
-        // filter by availability work type from CalendarUIProvider
-        if (filterAvailabilityByWorkType) {
-            filtered = filtered.filter(a => matchesWorkTypeFilter(a.workType, filterAvailabilityByWorkType.value));
+        if (filterAvailabilityByWorkType?.length > 0) {
+            const selectedWorkTypes = filterAvailabilityByWorkType.map(f => f.value);
+
+            filtered = filtered.filter(a =>
+                availabilityMatchesWorkTypeFilter(a, selectedWorkTypes)
+            );
         }
 
-        // Split availabilities around clashing shifts (always use actual shifts, not filtered)
-        const splitAvailabilities = calendarAvailabilitySplit(filtered, calendarShifts);
+        return calendarAvailabilitySplit(filtered, calendarShifts);
+    }, [
+        showTutorInitials,
+        calendarAvailabilities,
+        userRole,
+        hideOwnAvailabilities,
+        userEmail,
+        filterBySubject,
+        subjects,
+        filterByTutor,
+        filterAvailabilityByWorkType,
+        calendarShifts,
+    ]);
 
-        return splitAvailabilities;
-    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
-
-    // ─────────────────────────────────────
-    // context values
-    // ─────────────────────────────────────
     const value = useMemo(() => (
         {
             filters: {
@@ -248,11 +245,9 @@ export const CalendarUIProvider = ({ children }) => {
                 showWorkEvents,
             },
 
-            // Filtered data (ready to use)
             filteredEvents,
             filteredAvailabilities,
 
-            // strategy-defined capabilities (read-only)
             calendarFilters,
             calendarScope,
 
@@ -299,3 +294,62 @@ export const CalendarUIProvider = ({ children }) => {
         </CalendarUIContext.Provider>
     );
 };
+
+function getAvailabilityWorkTypes(availability) {
+    if (!availability.workType) {
+        return [];
+    }
+
+    if (Array.isArray(availability.workType)) {
+        return availability.workType;
+    }
+
+    return [availability.workType];
+}
+
+function workTypeMatchesFilter(availabilityWorkType, selectedWorkTypes) {
+    if (selectedWorkTypes.includes(availabilityWorkType)) {
+        return true;
+    }
+
+    // legacy support: old availabilities may still use 'tutoringOrWork'.
+    if (selectedWorkTypes.includes('tutoringOrWork')) {
+        return true;
+    }
+
+    if (
+        availabilityWorkType === 'tutoringOrWork' &&
+        (selectedWorkTypes.includes('tutoring') || selectedWorkTypes.includes('work'))
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+function availabilityMatchesWorkTypeFilter(availability, selectedWorkTypes) {
+    const availabilityWorkTypes = getAvailabilityWorkTypes(availability);
+
+    for (let i = 0; i < availabilityWorkTypes.length; i++) {
+        if (workTypeMatchesFilter(availabilityWorkTypes[i], selectedWorkTypes)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function availabilityIsVisibleToStudent(availability) {
+    if (availability.workType == null) {
+        return true;
+    }
+
+    const workTypes = getAvailabilityWorkTypes(availability);
+    for (let i = 0; i < workTypes.length; i++) {
+        if (workTypes[i] === 'tutoring' || workTypes[i] === 'tutoringOrWork') {
+            return true;
+        }
+    }
+
+    return false;
+}

@@ -21,25 +21,25 @@ const SubjectRow = ({
                     <div className="d-flex gap-2">
                         <button
                             onClick={() => handleEditSubject(subject)}
-                            className="btn btn-sm btn-primary"
+                            className="btn btn-sm btn-outline-primary"
                         >
                             Edit
                         </button>
                         <button
                             onClick={() => handleOpenTutorModal(subject)}
-                            className="btn btn-sm btn-dark-blue"
+                            className="btn btn-sm btn-outline-primary"
                         >
                             Add Tutors
                         </button>
                         <button
                             onClick={() => confirmDeleteSubject(subject)}
-                            className="btn btn-sm btn-danger"
+                            className="btn btn-sm btn-outline-danger"
                         >
                             Delete
                         </button>
                         <button
                             onClick={() => handleExpandSubject(subject)}
-                            className="btn btn-sm btn-secondary"
+                            className="btn btn-sm btn-outline-secondary"
                             data-bs-toggle="collapse"
                             data-bs-target={`#${collapseId}`}
                             aria-expanded={isExpanded}

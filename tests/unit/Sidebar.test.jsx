@@ -1,33 +1,15 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Sidebar from '../../src/components/Sidebar.jsx';
-import { useRouter } from 'next/navigation';
-import useAuthSession from '../../src/hooks/useAuthSession';
+import useAuthSession from '../../src/hooks/useAuthSession.js';
 
-// Mock useRouter from next/navigation globally or for this test file
-// The jest.setup.js file should already have a global mock for 'next/navigation'
-// We need to access the mocked push function.
-const mockRouter = {
-    push: jest.fn(),
-    replace: jest.fn(),
-    reload: jest.fn(),
-    back: jest.fn(),
-    forward: jest.fn(),
-    prefetch: jest.fn(),
-};
+jest.mock('../../src/hooks/useAuthSession.js');
 
 jest.mock('next/navigation', () => ({
-    useRouter: () => mockRouter,
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
     usePathname: jest.fn(() => '/'),
     useSearchParams: jest.fn(() => new URLSearchParams()),
 }));
-
-// Mock useAuthSession hook
-jest.mock('../../src/hooks/useAuthSession', () => ({
-    __esModule: true,
-    default: jest.fn(),
-}));
-
 
 const setup = (userRole = 'student', userOverrides = {}) => {
     const user = {
@@ -37,22 +19,19 @@ const setup = (userRole = 'student', userOverrides = {}) => {
         ...userOverrides,
     };
 
-    // Mock the useAuthSession hook to return the specified userRole
     useAuthSession.mockReturnValue({
-        userRole,
+        session: { user },
+        userRoles: [],
         availableRoles: [],
         switchRole: jest.fn(),
     });
 
-    render(<Sidebar user={user} />);
+    render(<Sidebar user={user} userRole={userRole} />);
 
     return { }; // No longer returning setActiveSection
 };
 
 describe('Sidebar', () => {
-    beforeEach(() => {
-        mockRouter.push.mockClear(); // Clear mock calls before each test
-    });
 
     it('renders calendar for all user roles', () => {
         setup('student');
@@ -88,17 +67,11 @@ describe('Sidebar', () => {
     });
 
     it('renders navigation links with correct hrefs', () => {
-        setup('admin'); // Use admin to test all menu items
+        setup('admin');
 
-        // Check that links have correct href attributes
-        const calendarLink = screen.getByText('Calendar').closest('a');
-        expect(calendarLink).toHaveAttribute('href', '/calendar');
-
-        const userRolesLink = screen.getByText('User Roles').closest('a');
-        expect(userRolesLink).toHaveAttribute('href', '/userRoles');
-
-        const manageClassesLink = screen.getByText('Manage Classes').closest('a');
-        expect(manageClassesLink).toHaveAttribute('href', '/classes');
+        expect(screen.getByRole('link', { name: /calendar/i })).toHaveAttribute('href', '/calendar');
+        expect(screen.getByRole('link', { name: /user roles/i })).toHaveAttribute('href', '/userRoles');
+        expect(screen.getByRole('link', { name: /manage classes/i })).toHaveAttribute('href', '/classes');
     });
 
     it('displays user name when provided', () => {
@@ -113,26 +86,25 @@ describe('Sidebar', () => {
         expect(screen.getByText('Menu')).toBeInTheDocument();
         expect(screen.getByText('Calendar')).toBeInTheDocument();
 
-        // Click collapse button (first button is the toggle)
-        const toggleButton = screen.getAllByRole('button')[0];
+        // Click collapse button (aria-label is "Collapse sidebar" when expanded)
+        const toggleButton = screen.getByRole('button', { name: 'Collapse sidebar' });
         fireEvent.click(toggleButton);
 
-        // After collapse - "Menu" text should be hidden
-        expect(screen.queryByText('Menu')).not.toBeInTheDocument();
-        expect(screen.queryByText('Calendar')).not.toBeInTheDocument();
+        // After collapse - "Menu" text is still in DOM but visually hidden via CSS (navLabel class)
+        expect(screen.getByText('Menu')).toBeInTheDocument();
+        expect(screen.getByText('Calendar')).toBeInTheDocument();
     });
 
     it('expands sidebar when toggle button is clicked again', () => {
         setup('teacher');
 
-        const toggleButton = screen.getAllByRole('button')[0];
+        // Collapse first (button label is "Collapse sidebar" when expanded)
+        fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+        // Text remains in DOM, hidden via CSS animation
+        expect(screen.getByText('Menu')).toBeInTheDocument();
 
-        // Collapse first
-        fireEvent.click(toggleButton);
-        expect(screen.queryByText('Menu')).not.toBeInTheDocument();
-
-        // Expand again
-        fireEvent.click(toggleButton);
+        // Expand again (button label is "Expand sidebar" when collapsed)
+        fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
         expect(screen.getByText('Menu')).toBeInTheDocument();
         expect(screen.getByText('Calendar')).toBeInTheDocument();
     });

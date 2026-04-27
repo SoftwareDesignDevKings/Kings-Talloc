@@ -7,14 +7,16 @@ import {
     FiBook,
     FiClock,
     FiUser,
-    FiSettings,
     FiChevronLeft,
     FiChevronRight,
     FiBookOpen,
     FiHome,
+    FiLogOut,
+    FiUserCheck,
 } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import styles from '@/styles/sidebar.module.css';
 import useAuthSession from '@/hooks/useAuthSession';
 import { AppLogout } from '@/lib/security/clientAuth';
@@ -27,13 +29,26 @@ const ROLE_LABELS = {
     student: 'Student',
 };
 
-const Sidebar = ({ user }) => {
-    const { userRole, availableRoles, switchRole } = useAuthSession();
+const Sidebar = ({ user, userRole }) => {
+    const { session, userRoles, availableRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const pathname = usePathname();
 
     const isAdmin = userRole === 'admin';
     const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher';
+    const isTutorHoursRole = ['admin', 'tutor', 'coach'].includes(userRole);
+
+    const hasAdminAccess = userRoles?.includes('admin') || session?.user?.defaultRole === 'admin';
+    const isCurrentlyAdmin = userRole === 'admin';
+    const originalRole = session?.user?.defaultRole;
+
+    const handleRoleToggle = () => {
+        if (isCurrentlyAdmin) {
+            switchRole(originalRole || 'student');
+        } else {
+            switchRole('admin');
+        }
+    };
 
     useEffect(() => {
         // Collapse sidebar by default on mobile
@@ -51,17 +66,20 @@ const Sidebar = ({ user }) => {
 
     return (
         <div
-            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : styles.sidebarExpanded} d-flex flex-column justify-content-between`}
+            style={{ '--sidebar-w': isCollapsed ? '5rem' : '16rem' }}
+            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : ''} d-flex flex-column justify-content-between`}
         >
             <div>
                 <div className="p-4">
-                    <div className="d-flex justify-content-between align-items-center">
-                        {!isCollapsed && (
-                            <h4 className={`fs-3 fw-bold mb-0 ${styles.menuTitle}`}>
-                                Menu
-                            </h4>
-                        )}
-                        <button onClick={toggleSidebar} className={styles.toggleButton}>
+                    <div className={`d-flex align-items-center ${isCollapsed ? 'justify-content-center' : 'justify-content-between'}`}>
+                        <h4 className={`fs-3 fw-bold mb-0 ${styles.menuTitle} ${styles.navLabel}`}>
+                            Menu
+                        </h4>
+                        <button
+                            onClick={toggleSidebar}
+                            className={styles.toggleButton}
+                            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        >
                             {isCollapsed ? (
                                 <FiChevronRight size={24} />
                             ) : (
@@ -70,62 +88,76 @@ const Sidebar = ({ user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="flex-grow-1">
+                <div className="grow">
                     <ul className={styles.navList}>
-                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                            <Link href="/dashboard" className={styles.navLink}>
+                        <li className={styles.navItem}>
+                            <Link
+                                href="/dashboard"
+                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/dashboard') ? styles.activeNavLink : ''}`}
+                            >
                                 <FiHome className={styles.navIcon} />
-                                {!isCollapsed && <span>Dashboard</span>}
+                                <span className={styles.navLabel}>Dashboard</span>
                             </Link>
                         </li>
-                        <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                            <Link href="/calendar" className={styles.navLink}>
+                        <li className={styles.navItem}>
+                            <Link
+                                href="/calendar"
+                                className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/calendar') ? styles.activeNavLink : ''}`}
+                            >
                                 <FiCalendar className={styles.navIcon} />
-                                {!isCollapsed && <span>Calendar</span>}
+                                <span className={styles.navLabel}>Calendar</span>
                             </Link>
                         </li>
                         {isAdmin && (
-                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                <Link href="/userRoles" className={styles.navLink}>
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/userRoles"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/userRoles') ? styles.activeNavLink : ''}`}
+                                >
                                     <FiUsers className={styles.navIcon} />
-                                    {!isCollapsed && <span>User Roles</span>}
+                                    <span className={styles.navLabel}>User Roles</span>
                                 </Link>
                             </li>
                         )}
                         {isAdminOrTeacher && (
                             <>
-                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                    <Link href="/classes" className={styles.navLink}>
+                                <li className={styles.navItem}>
+                                    <Link
+                                        href="/classes"
+                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
+                                    >
                                         <FiBook className={styles.navIcon} />
-                                        {!isCollapsed && <span>Manage Classes</span>}
+                                        <span className={styles.navLabel}>Manage Classes</span>
                                     </Link>
                                 </li>
-                                <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                    <Link href="/subjects" className={styles.navLink}>
+                                <li className={styles.navItem}>
+                                    <Link
+                                        href="/subjects"
+                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/subjects') ? styles.activeNavLink : ''}`}
+                                    >
                                         <FiBookOpen className={styles.navIcon} />
-                                        {!isCollapsed && <span>Manage Subjects</span>}
+                                        <span className={styles.navLabel}>Manage Subjects</span>
                                     </Link>
                                 </li>
                             </>
                         )}
-                        {['admin', 'tutor', 'coach'].includes(userRole) && (
-                            <li className={`${styles.navItem} ${isCollapsed ? styles.navItemCollapsed : styles.navItemExpanded}`}>
-                                <Link href="/tutorHours" className={styles.navLink}>
+                        {isTutorHoursRole && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/tutorHours"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/tutorHours') ? styles.activeNavLink : ''}`}
+                                >
                                     <FiClock className={styles.navIcon} />
-                                    {!isCollapsed && <span>Tutor Hours</span>}
+                                    <span className={styles.navLabel}>Tutor Hours</span>
                                 </Link>
                             </li>
                         )}
                     </ul>
                 </div>
             </div>
-            <div className={`${styles.profileSection} dropdown dropup`}>
+            <div className={styles.profileSection}>
                 <div
                     className={`${styles.profileContainer} ${isCollapsed ? styles.profileContainerCollapsed : styles.profileContainerExpanded}`}
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    data-bs-toggle="dropdown"
-                    aria-expanded={showProfileMenu}
-                    role="button"
                 >
                     {user?.image ? (
                         <Image
@@ -141,34 +173,31 @@ const Sidebar = ({ user }) => {
                             <FiUser className={styles.navIcon} data-testid="fi-user-icon" />
                         </div>
                     )}
-                    {!isCollapsed && <span>{user.name}</span>}
-                    {!isCollapsed && <FiSettings className={styles.navIcon} />}
+                    <span className={`${styles.navLabel} fw-semibold text-truncate`}>{user.name}</span>
                 </div>
-                <div
-                    className={`${styles.profileMenu} ${isCollapsed ? styles.profileMenuCollapsed : styles.profileMenuExpanded} dropdown-menu${showProfileMenu ? ' show' : ''}`}
+                
+                {hasAdminAccess && (
+                    <button
+                        onClick={handleRoleToggle}
+                        className={`btn btn-outline-secondary d-flex align-items-center ${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
+                        style={{ borderStyle: 'dashed' }}
+                        title={isCurrentlyAdmin ? `View as ${ROLE_LABELS[originalRole] || originalRole}` : 'View as Admin'}
+                    >
+                        <FiUserCheck className={styles.logoutIcon} />
+                        <span className={styles.navLabel}>
+                            {isCurrentlyAdmin ? `View as ${ROLE_LABELS[originalRole] || originalRole}` : 'View as Admin'}
+                        </span>
+                    </button>
+                )}
+
+                <button
+                    onClick={AppLogout}
+                    className={`btn btn-outline-danger d-flex align-items-center ${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
+                    title="Logout"
                 >
-                    {availableRoles.length > 1 && (
-                        <div className="d-flex gap-1 flex-wrap mb-2 px-3 pt-3">
-                            {availableRoles.map((role) => (
-                                <button
-                                    key={role}
-                                    onClick={() => switchRole(role)}
-                                    className={`btn btn-sm ${userRole === role ? 'btn-primary' : 'btn-outline-secondary'}`}
-                                >
-                                    {ROLE_LABELS[role] || role}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    <div className="px-3 pb-3">
-                        <button
-                            onClick={AppLogout}
-                            className="btn btn-danger w-100"
-                        >
-                            Logout
-                        </button>
-                    </div>
-                </div>
+                    <FiLogOut className={styles.logoutIcon} />
+                    <span className={styles.navLabel}>Logout</span>
+                </button>
             </div>
         </div>
     );

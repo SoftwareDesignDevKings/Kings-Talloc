@@ -34,10 +34,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         setCalendarShifts,
         setCalendarAvailabilities,
         setCalendarStudentRequests,
-        subjects,
-        classes,
-        tutors,
-        students
     } = useAppData();
     // Derive mode flags
     const isView = mode === 'view';
@@ -94,10 +90,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             addAlert('error', 'End date must be after the start date.');
             return false; // Validation failed
         }
-        return true; // Validation passed
+        return true;
     };
 
     const validateForm = () => {
+
         // Validate dates first
         if (!validateDates()) {
             return false;
@@ -108,6 +105,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 addAlert('error', 'At least one tutor must be assigned to the event.');
                 return false;
             }
+        }
+
+        if (!newEvent.title) {
+            addAlert('error', 'Title is required');
+            return false;
         }
 
         // Validate cannot make completed events recurring (but allow completing recurring instances since they get detached)
@@ -124,9 +126,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             if (!count || count < 2) {
                 addAlert('error', 'Recurring events must have at least 2 occurrences.');
                 return false;
-            }
-
-            if (count > maxOccurrences) {
+            } else if (count > maxOccurrences) {
                 addAlert('error', `Recurring shifts are capped at 10 weeks (max ${maxOccurrences} occurrences for ${newEvent.recurring} recurrence).`);
                 return false;
             }
@@ -138,12 +138,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const onSubmit = async (e) => {
         e.preventDefault();
         if (!validateForm()) return false; // Validation failed - don't close modal
-
-        // Validate title
-        if (!newEvent.title) {
-            addAlert('error', 'Title is required');
-            return false; // Validation failed - don't close modal
-        }
 
         // Debug: Check if recurring instance flag is preserved
         console.log('EventForm onSubmit - eventToEdit:', {
@@ -375,6 +369,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         : null
                 }
                 showFooter={!isView || isTutorPartialEdit}
+                noValidate
             >
                 <div className="accordion" id="eventFormAccordion">
                     <EventDetailsSection

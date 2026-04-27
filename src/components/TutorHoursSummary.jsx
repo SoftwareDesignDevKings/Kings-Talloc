@@ -49,8 +49,9 @@ const isTutorConfirmed = (event, tutorEmail) => {
 /**
  * Component to display and manage tutor hours summary
  */
-const TutorHoursSummary = ({ userRole, userEmail }) => {
+const TutorHoursSummary = ({ userRole, userRoles, userEmail }) => {
     const { addAlert } = useAlert();
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
         const monday = getMonday(new Date());
@@ -62,7 +63,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
 
     const fetchTutorHours = useCallback(async () => {
-        const isAdmin = userRole === 'admin';
         const isTutorOrCoach = userRole === 'tutor' || userRole === 'coach';
         let accessFilter = [];
 
@@ -171,7 +171,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         }
 
         setTutorHours(tutorHoursArray);
-    }, [startDate, endDate, userRole, userEmail]);
+    }, [startDate, endDate, userRole, userRoles, userEmail, isAdmin]);
 
     useEffect(() => {
         fetchTutorHours();
@@ -223,7 +223,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
             addAlert('success', `${roleLabel} timesheet generated and downloaded successfully`);
 
             if (overflowHours > 0) {
-                addAlert('info', `${overflowHours}hrs exceeded for "${tutorName}" — will need to be carried over to the next pay period.`);
+                addAlert('info', `${overflowHours} hours exceeded for "${tutorName}" — will need to be carried over to the next pay period.`);
             }
         } catch (error) {
             console.error('Error generating timesheet:', error);
@@ -260,14 +260,13 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 <CSVLink
                     data={csvData}
                     filename={`tutor_hours_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.csv`}
+                    className="btn btn-outline-primary btn-sm"
                 >
-                    <button className="btn btn-primary btn-sm">
-                        Export as CSV
-                    </button>
+                    Export as CSV
                 </CSVLink>
             </div>
             <div className="mb-3 p-3 border border-secondary-subtle bg-light rounded d-flex align-items-start gap-2">
-                <FaInfoCircle className="text-secondary mt-1 flex-shrink-0" style={{ fontSize: '1.25rem' }} />
+                <FaInfoCircle className="text-secondary mt-1 shrink-0 fs-5" />
                 <div className="small text-secondary">
                     <p className="mb-2">
                         Please check if the hours are correct by Friday. If there are any
@@ -279,7 +278,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                 </div>
             </div>
 
-            <div className="flex-grow-1 overflow-auto">
+            <div className="grow overflow-auto">
                 <div className="table-responsive">
                     <table className="table table-sm table-hover bg-white">
                         <thead className="sticky-top bg-light" style={{ zIndex: 1 }}>
@@ -289,7 +288,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                             <th className="small fw-medium text-secondary">Tutor / Work</th>
                             <th className="small fw-medium text-secondary">Coaching</th>
                             <th className="small fw-medium text-secondary">Total</th>
-                            {userRole === 'teacher' && (
+                            {isAdmin && (
                                 <th className="small fw-medium text-secondary">Actions</th>
                             )}
                         </tr>
@@ -304,7 +303,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                 <td className="small fw-semibold align-middle">
                                     {(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}
                                 </td>
-                                {userRole === 'teacher' && (
+                                {isAdmin && (
                                     <td className="small align-middle">
                                         <div className="d-flex flex-column gap-2 align-items-start">
                                             <button
@@ -315,7 +314,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                                         'tutor',
                                                     )
                                                 }
-                                                className="btn btn-success btn-sm"
+                                                className="btn btn-sm btn-outline-success"
                                             >
                                                 Generate Tutor Timesheet
                                             </button>
@@ -328,7 +327,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                                             'coach',
                                                         )
                                                     }
-                                                    className="btn btn-secondary btn-sm"
+                                                    className="btn btn-sm btn-outline-secondary"
                                                 >
                                                     Generate Coach Timesheet
                                                 </button>

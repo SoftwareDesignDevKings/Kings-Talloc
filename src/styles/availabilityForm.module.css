@@ -1,0 +1,98 @@
+.formContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 0.5rem 1rem;
+    max-width: 100%;
+}
+
+.section {
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+    border: none;
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    color: #1a1a1a;
+}
+
+.timeGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 576px) {
+    .timeGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.quickButtons button {
+    transition:
+        color var(--transition-fast, 150ms ease),
+        background-color var(--transition-fast, 150ms ease),
+        border-color var(--transition-fast, 150ms ease),
+        box-shadow var(--transition-fast, 150ms ease),
+        transform var(--transition-fast, 150ms ease);
+}
+
+.quickButtons button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.quickButtons button:active {
+    transform: scale(0.98);
+}
+
+
+
+.typeGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.teamsButton, .teamsButtonOutline {
+    transition: all 0.2s ease-in-out;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.teamsButton {
+    background-color: #5059C9;
+    border-color: #5059C9;
+}
+
+.teamsButtonOutline {
+    color: #5059C9;
+    border-color: #5059C9;
+}
+
+.teamsButton:hover, .teamsButton:active {
+    background-color: #4048a8 !important;
+    border-color: #4048a8 !important;
+    transform: translateY(-1px);
+}
+
+.teamsButtonOutline:hover, .teamsButtonOutline:active {
+    background-color: #5059C9 !important;
+    color: white !important;
+    transform: translateY(-1px);
+}
+
+.invalidInput {
+    border-color: #dc3545 !important;
+}
+
+.invalidFeedback {
+    color: #dc3545;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}

@@ -2,112 +2,231 @@
 @tailwind components;
 @tailwind utilities; */
 
+/* @import must precede all rules */
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+@import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+
+/* ─── Brand tokens ───────────────────────────────────────────────────── */
+:root {
+    /* Brand */
+    --tks-primary: #6FA5CC;
+    --tks-primary-subtle: rgba(111, 165, 204, 0.15);
+    --tks-secondary: #1A4D6F;
+    --tks-secondary-hover: #1e5a80;
+
+    /* Surfaces & borders */
+    --tks-surface: #fafbff;
+    --tks-border: #e5e7eb;
+    --tks-border-subtle: #f1f3f5;
+
+    /* Text */
+    --tks-text-primary: #111827;
+    --tks-text-muted: #6b7280;
+    --tks-text-subtle: #9ca3af;
+
+    /* Animations */
+    --transition-fast: 150ms cubic-bezier(0.25, 1, 0.5, 1);
+    --transition-normal: 300ms cubic-bezier(0.25, 1, 0.5, 1);
+
+    /* ── Bootstrap theming via Bootstrap's own variables ─────────────── */
+    /* Bootstrap reads these at render time — no !important needed.       */
+    --bs-primary:          var(--tks-primary);
+    --bs-primary-rgb:      111, 165, 204;
+    --bs-link-color:       var(--tks-primary);
+    --bs-link-hover-color: var(--tks-secondary);
+    --bs-border-color:     var(--tks-border);
+    --bs-body-font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+    --bs-body-font-size:   1rem;
+    --bs-body-line-height: 1.6;
+
+    /* Calendar */
+    --calendar-bg: var(--tks-surface);
+    --calendar-text: var(--tks-text-primary);
+}
+
+/* ─── Typography ─────────────────────────────────────────────────────── */
+
+body {
+    font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: var(--font-heading, var(--font-body, system-ui, sans-serif));
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+/* ─── Utility classes ─────────────────────────────────────────────────── */
+
 .gradient-background {
     background-image: linear-gradient(to right, var(--tks-primary), var(--tks-secondary));
 }
 
-.text-tks-primary {
-    color: var(--tks-primary) !important;
+.app-gradient-bg {
+    background: var(--tks-secondary);
 }
 
-.text-tks-secondary {
-    color: var(--tks-secondary) !important;
+.text-tks-primary  { color: var(--tks-primary); }
+.text-tks-secondary { color: var(--tks-secondary); }
+
+.grow     { flex-grow: 1; }
+.shrink-0 { flex-shrink: 0; }
+
+.app-shell {
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.text-xs        { font-size: 0.75rem; }
+.tabular-nums   { font-variant-numeric: tabular-nums; }
+
+.badge-muted {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+}
+
+/* ─── Button conventions ──────────────────────────────────────────────────
+   Modal submit / confirm                     : btn btn-primary
+   Destructive CTA (confirm delete dialog)    : btn btn-danger
+   Page-level add / export triggers           : btn btn-sm btn-outline-primary
+   Row action — edit / add sub-item           : btn btn-sm btn-outline-primary
+   Row action — view / neutral                : btn btn-sm btn-outline-secondary
+   Row action — remove / delete               : btn btn-sm btn-outline-danger
+   ────────────────────────────────────────────────────────────────────── */
+
+/* Lift only standalone CTAs — not dense table-row or icon buttons.
+   transform/box-shadow are not set by Bootstrap on :hover so no conflict. */
+.btn:not(.btn-sm):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* ─── Form controls ───────────────────────────────────────────────────── */
+/* `html .form-control` specificity (0,1,1) beats Bootstrap's (0,1,0)     */
+/* regardless of CSS load order — no !important needed.                   */
+
+html .form-control,
+html .form-select {
+    background-color: var(--bs-tertiary-bg);
+    border-color: transparent;
+}
+
+html .form-control:focus,
+html .form-select:focus {
+    background-color: var(--bs-tertiary-bg);
+    border-color: transparent;
+    /* --bs-primary-rgb is already overridden above so Bootstrap's default
+       focus ring will use the brand colour; just tighten the ring size.  */
+    box-shadow: 0 0 0 2px var(--tks-primary-subtle);
+}
+
+/* ─── react-select ────────────────────────────────────────────────────── */
+/* Bootstrap doesn't compete with .select__ classes so no !important needed */
+
+.select__control {
+    background-color: var(--bs-tertiary-bg);
+    border: none;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+.select__control--is-focused {
+    box-shadow: 0 0 0 2px var(--tks-primary-subtle);
+}
+
+/* ─── Accordion ───────────────────────────────────────────────────────── */
+/* Override Bootstrap's accordion CSS variables at higher specificity.    */
+/* Bootstrap defines these on .accordion (0,1,0); we win at (0,1,1).      */
+
+html .accordion {
+    --bs-accordion-btn-bg: transparent;
+    --bs-accordion-active-bg: transparent;
+    --bs-accordion-active-color: inherit;
+    --bs-accordion-btn-focus-box-shadow: none;
+    --bs-accordion-border-radius: 0;
+    --bs-accordion-inner-border-radius: 0;
+}
+
+/* ─── Animations ──────────────────────────────────────────────────────── */
+
+.fade-in {
+    animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
 
 .spinner-border-custom {
     animation: spin 1.5s linear infinite;
 }
 
-@import 'react-big-calendar/lib/css/react-big-calendar.css';
-@import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-
-:root {
-    --calendar-bg: #ffffff;
-    --calendar-text: #000000;
-
-    /* Primary */
-    --tks-primary: #6FA5CC;
-
-    /* Secondary */
-    --tks-secondary: #1A4D6F;
+/* Table row hover transition — Bootstrap doesn't set an easing here */
+.table-hover tbody tr {
+    transition: background-color var(--transition-fast);
 }
 
-.app-gradient-bg {
-    background: linear-gradient(to right, var(--tks-primary), var(--tks-secondary));
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
-.text-purple {
-    color: #6366f1 !important;
-}
-
-.table-text-sm td {
-    font-size: 0.875rem;
-}
-
-.btn-dark-blue {
-    background-color: #198754 !important;
-    border-color: #198754 !important;
-    color: white !important;
-}
-
-.btn-dark-blue:hover {
-    background-color: #157347 !important;
-    border-color: #157347 !important;
-    color: white !important;
-}
-
-.btn-dark-blue:focus {
-    background-color: #157347 !important;
-    border-color: #157347 !important;
-    color: white !important;
-    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.5) !important;
-}
+/* ─── Layout ──────────────────────────────────────────────────────────── */
 
 .dashboard-title {
     font-size: 1.875rem;
     font-weight: 800;
-    color: #111827;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--tks-text-primary);
     margin-top: 1rem;
 }
 
 @media (min-width: 768px) {
-    .dashboard-title {
-        margin-top: 0;
-    }
+    .dashboard-title { margin-top: 0; }
 }
 
-.signed-in-text {
-    font-size: 0.875rem;
-}
+.signed-in-text  { font-size: 0.875rem; }
 
 .divider-offset {
     margin-left: 0.5rem;
     margin-right: 0;
 }
 
-.content-scroll-area {
-    min-height: 0;
+.content-scroll-area { min-height: 0; }
+
+.table-text-sm td { font-size: 0.875rem; }
+
+/* ─── React Big Calendar ──────────────────────────────────────────────── */
+/* react-big-calendar is un-layered and uses high-specificity selectors;  */
+/* !important is required for the layout-critical fixes below.            */
+
+.rbc-calendar {
+    color: var(--calendar-text) !important;
 }
 
-/* Calendar scroll container */
 .calendar-scroll-container {
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-}
-
-/* React Big Calendar fixes */
-.rbc-calendar {
-    color: var(--calendar-text) !important;
 }
 
 .custom-time-slot-wrapper {
@@ -123,10 +242,7 @@
 
 .custom-slot-text {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -144,36 +260,20 @@
     max-width: 100%;
 }
 
-.rbc-time-content > *:not(.rbc-time-gutter) .custom-slot-text {
-    display: flex;
-}
+.rbc-time-content > *:not(.rbc-time-gutter) .custom-slot-text { display: flex; }
+.rbc-time-gutter .custom-slot-text { display: none; }
 
-.rbc-time-gutter .custom-slot-text {
-    display: none;
-}
-
-.rbc-time-slot {
-    min-height: 30px;
-}
+.rbc-time-slot { min-height: 30px; }
 
 .rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper {
     background-color: var(--custom-slot-bg) !important;
 }
 
-.rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper .custom-slot-text {
-    display: flex;
-}
+.rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper .custom-slot-text { display: flex; }
+.rbc-time-gutter .custom-time-slot-wrapper { background-color: transparent !important; }
+.rbc-time-gutter .custom-time-slot-wrapper .custom-slot-text { display: none; }
 
-.rbc-time-gutter .custom-time-slot-wrapper {
-    background-color: transparent !important;
-}
-
-.rbc-time-gutter .custom-time-slot-wrapper .custom-slot-text {
-    display: none;
-}
-
-/* Fix React Big Calendar column alignment issues */
-/* Critical: Force flex layout for time content wrapper */
+/* Critical: force flex layout for react-big-calendar column alignment */
 .rbc-time-content {
     display: flex !important;
     flex: 1 0 0% !important;
@@ -182,7 +282,6 @@
     position: relative;
 }
 
-/* Critical: Each day column must flex equally */
 .rbc-time-content > .rbc-day-slot {
     flex: 1 1 0% !important;
     min-width: 0 !important;
@@ -190,7 +289,6 @@
     width: auto !important;
 }
 
-/* Critical: Header content must match */
 .rbc-time-header-content {
     display: flex !important;
     flex: 1 !important;
@@ -198,7 +296,6 @@
     flex-direction: column !important;
 }
 
-/* Critical: Header cells must flex equally */
 .rbc-header {
     flex: 1 0 0% !important;
     min-width: 0 !important;
@@ -207,18 +304,9 @@
     text-overflow: ellipsis;
 }
 
-/* Ensure header row is flexbox */
-.rbc-row {
-    display: flex !important;
-    flex-direction: row !important;
-}
+.rbc-row { display: flex !important; flex-direction: row !important; }
+.rbc-time-gutter { flex: none !important; }
 
-/* Time gutter should not flex */
-.rbc-time-gutter {
-    flex: none !important;
-}
-
-/* Ensure consistent box-sizing across calendar */
 .rbc-calendar,
 .rbc-calendar *,
 .rbc-calendar *:before,
@@ -226,19 +314,14 @@
     box-sizing: border-box !important;
 }
 
-/* Make calendar date headers bold */
 .rbc-month-view .rbc-header,
 .rbc-time-view .rbc-header,
-.rbc-agenda-view th {
-    font-weight: bold;
-}
+.rbc-agenda-view th { font-weight: bold; }
 
-/* Make calendar date numbers in month view bold */
-.rbc-month-view .rbc-date-cell {
-    font-weight: bold;
-}
+.rbc-month-view .rbc-date-cell { font-weight: bold; }
 
-/* React DatePicker z-index fix */
+/* ─── Third-party z-index fixes ───────────────────────────────────────── */
+
 .react-datepicker-popper {
     z-index: 9999 !important;
 }

@@ -39,10 +39,10 @@ const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOrigi
             size="md"
             customFooter={
                 <>
-                    <button type="button" className="btn btn-secondary" onClick={onHide}>
+                    <button type="button" className="btn btn-outline-secondary" onClick={onHide}>
                         Cancel
                     </button>
-                    <button type="button" className="btn btn-danger" onClick={handleConfirm}>
+                    <button type="button" className="btn btn-outline-danger" onClick={handleConfirm}>
                         Delete
                     </button>
                 </>

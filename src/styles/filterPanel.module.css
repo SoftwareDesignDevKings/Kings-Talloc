@@ -3,9 +3,8 @@
 
 /* Filter Panel Container */
 .filterPanelContainer {
-    background-color: #ffffff;
-    color: #000000;
-    border-left: 1px solid #d1d5db; /* gray-300 */
+    background-color: var(--tks-surface);
+    color: var(--tks-text-primary);
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -27,8 +26,8 @@
     transform: translateY(-50%);
     z-index: 10;
     cursor: pointer;
-    background-color: #6366f1; /* indigo-500 */
-    color: #ffffff;
+    background-color: var(--tks-secondary);
+    color: var(--tks-surface);
     border-radius: 0.375rem 0 0 0.375rem; /* rounded-l-md */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border: none;
@@ -36,13 +35,18 @@
 }
 
 .toggleButton:hover {
-    background-color: #4f46e5; /* indigo-600 */
+    background-color: var(--tks-secondary-hover);
 }
 
 .toggleButton:focus {
-    outline: none;
+    outline: none; /* suppress browser default on mouse click */
+}
+
+.toggleButton:focus-visible {
+    outline: 2px solid var(--tks-surface);
+    outline-offset: 2px;
     box-shadow:
-        0 0 0 3px rgba(129, 140, 248, 0.5), /* indigo-400 ring */
+        0 0 0 4px rgba(26, 77, 111, 0.45), /* navy ring matching brand */
         0 4px 6px -1px rgba(0, 0, 0, 0.1),
         0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
@@ -67,23 +71,9 @@
     margin-bottom: 1rem;
     font-size: 1.25rem;
     font-weight: 600;
-    color: #374151; /* gray-700 */
+    color: var(--tks-text-muted);
 }
 
-/* Checkbox Labels */
-.checkboxLabel {
-    display: flex;
-    align-items: center;
-}
-
-.checkboxLabel input[type="checkbox"] {
-    margin-right: 0.5rem;
-}
-
-/* Indented Checkboxes */
-.checkboxIndented {
-    margin-left: 1.5rem;
-}
 
 .filterPanelContainer.open {
     width: 16rem;
@@ -91,6 +81,126 @@
 
 .filterPanelContainer.closed {
     width: 0;
-    border-left: none;
+}
+
+/* Section label above toggle rows */
+.filterSectionLabel {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tks-text-subtle);
+}
+
+/* ── Toggle switch ─────────────────────────────────────────── */
+
+/* Row: label on left, switch on right */
+.toggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggleRow:hover .toggleLabel {
+    color: var(--tks-secondary);
+}
+
+.toggleLabel {
+    font-size: 0.875rem;
+    color: var(--tks-text-primary);
+    line-height: 1.3;
+    flex: 1;
+    transition: color var(--transition-fast);
+}
+
+.toggleLabelMuted {
+    font-size: 0.8125rem;
+    color: var(--tks-text-muted);
+}
+
+/* The <span> wrapper that positions the input + track */
+.toggle {
+    position: relative;
+    width: 34px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Pill-shaped track */
+.toggleTrack {
+    position: absolute;
+    inset: 0;
+    background: var(--tks-border);
+    border-radius: 9999px;
+    transition: background var(--transition-fast);
+}
+
+.toggle input:checked + .toggleTrack {
+    background: var(--tks-primary);
+}
+
+/* Sliding knob */
+.toggleTrack::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform var(--transition-fast);
+}
+
+.toggle input:checked + .toggleTrack::after {
+    transform: translateX(14px);
+}
+
+/* Keyboard focus ring on the track */
+.toggle input:focus-visible + .toggleTrack {
+    outline: 2px solid var(--tks-primary);
+    outline-offset: 2px;
+    border-radius: 9999px;
+}
+
+/* Indented sub-toggle (e.g. "Hide mine" under "Show availabilities") */
+.subToggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.35rem 0 0.35rem 1.25rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.subToggleRow:hover .toggleLabel {
+    color: var(--tks-secondary);
+}
+
+/* ── Section divider ─────────────────────────────────────────── */
+.filterDivider {
+    border: none;
+    border-top: 1px solid var(--tks-border-subtle);
+    margin: 0.5rem 0;
+}
+
+/* Legend at the bottom of the filter panel */
+.legendSection {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--tks-border);
 }
 

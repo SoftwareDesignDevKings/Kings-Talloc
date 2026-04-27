@@ -16,7 +16,7 @@ const TutorList = ({ subject, confirmRemoveTutor }) => {
                             </span>
                             <button
                                 onClick={() => confirmRemoveTutor(tutor, subject)}
-                                className="btn btn-sm btn-danger"
+                                className="btn btn-sm btn-outline-danger"
                             >
                                 Remove
                             </button>

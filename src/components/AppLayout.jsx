@@ -1,6 +1,7 @@
 'use client';
 
 import Sidebar from '@/components/Sidebar';
+import { usePathname } from 'next/navigation';
 
 /**
  * Main application layout for authenticated users
@@ -11,9 +12,8 @@ import Sidebar from '@/components/Sidebar';
  * @param {JSX} children - Page content
  */
 const AppLayout = ({ session, userRole, children }) => {
+    const pathname = usePathname();
     let dashboardTitle;
-    
-    console.log("userRole: ", userRole)
     if (userRole === 'student') {
         dashboardTitle = 'Student Dashboard';
     } else if (userRole === 'teacher') {
@@ -25,25 +25,26 @@ const AppLayout = ({ session, userRole, children }) => {
     }
 
     return (
-        <div className="d-flex vh-100 app-gradient-bg">
-            <Sidebar user={session.user} />
+        <div className="d-flex app-shell">
+            <Sidebar user={session.user} userRole={userRole} />
 
-            {/* main content area with outer padding */}
-            <div className="flex-grow-1 p-1 p-md-3 d-flex flex-column overflow-hidden">
-                {/* white card container */}
-                <div className="bg-white rounded-3 shadow-lg p-4 p-md-4 d-flex flex-column flex-grow-1 overflow-hidden">
+            {/* main content area */}
+            <div className="grow d-flex flex-column overflow-hidden bg-white">
+                <div className="p-4 p-md-4 d-flex flex-column grow overflow-hidden">
                     {/* Header section: responsive alignment */}
                     <div className="ps-1 text-center text-md-start ps-1">
                         <h1 className="dashboard-title ps-1 mt-2">{dashboardTitle}</h1>
-                        <p className="ps-1  mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
+                        <p className="ps-1 mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
                     </div>
 
                     {/* divider */}
                     <hr className="my-4 divider-offset"/>
 
                     {/* content area with scroll */}
-                    <div className="flex-grow-1 overflow-hidden content-scroll-area">
-                        {children}
+                    <div className="grow overflow-hidden content-scroll-area">
+                        <div key={pathname} className="fade-in h-100">
+                            {children}
+                        </div>
                     </div>
                 </div>
             </div>

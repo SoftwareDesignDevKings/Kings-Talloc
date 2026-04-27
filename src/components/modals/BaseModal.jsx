@@ -27,6 +27,7 @@ const BaseModal = ({
 
     // Layout props
     showFooter = true,
+    noValidate = false,
 }) => {
     const modalRef = useRef(null);
     const bsModalRef = useRef(null);
@@ -95,9 +96,11 @@ const BaseModal = ({
             }
         }
 
-        // Show modal with animation when show becomes true (but not if we're in the middle of closing)
+        // Show or hide modal based on show prop
         if (bsModalRef.current && show && !isClosing.current) {
             bsModalRef.current.show();
+        } else if (bsModalRef.current && !show) {
+            bsModalRef.current.hide();
         }
     }, [show, onHide]);
 
@@ -137,7 +140,7 @@ const BaseModal = ({
 
                     {/* Body */}
                     {onSubmit ? (
-                        <form onSubmit={handleSubmit} id="modal-form">
+                        <form onSubmit={handleSubmit} id="modal-form" noValidate={noValidate}>
                             <div className="modal-body">{children}</div>
 
                             {/* Footer */}
@@ -150,7 +153,7 @@ const BaseModal = ({
                                             {deleteButton && (
                                                 <button
                                                     type="button"
-                                                    className={`btn btn-${deleteButton.variant || 'danger'}`}
+                                                    className={`btn btn-outline-${deleteButton.variant || 'danger'}`}
                                                     onClick={handleDeleteClick}
                                                     disabled={disabled || loading}
                                                 >
@@ -159,7 +162,7 @@ const BaseModal = ({
                                             )}
                                             <button
                                                 type="submit"
-                                                className="btn btn-primary"
+                                                className="btn btn-outline-primary"
                                                 disabled={disabled || loading}
                                             >
                                                 {getSubmitButtonText()}
