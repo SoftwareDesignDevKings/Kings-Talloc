@@ -41,7 +41,10 @@ export const AuthContextProvider = ({ children }) => {
             // use persisted role from sessionStorage, fallback to default
             const persistedRole = sessionStorage.getItem('selectedUserRole');
 
-            if (persistedRole && userRoles?.includes(persistedRole)) {
+            const defaultRole = userRole;
+            const allRoles = [...new Set([defaultRole, ...(userRoles || [])])].filter(Boolean);
+
+            if (persistedRole && allRoles.includes(persistedRole)) {
                 setUserRole(persistedRole);
             } else {
                 if (persistedRole) sessionStorage.removeItem('selectedUserRole');
