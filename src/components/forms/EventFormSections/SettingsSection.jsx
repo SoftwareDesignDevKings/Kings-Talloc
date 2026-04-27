@@ -125,7 +125,7 @@ const SettingsSection = ({
                                     (option) =>
                                         option.value === (newEvent.workStatus || 'notCompleted'),
                                 )}
-                                isDisabled={readOnly && userRole !== 'tutor'}
+                                isDisabled={readOnly && userRole !== 'tutor' && userRole !== 'coach'}
                                 aria-label="Event work status"
                                 inputId="workStatus"
                             />

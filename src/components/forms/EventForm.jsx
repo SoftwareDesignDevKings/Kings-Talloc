@@ -40,8 +40,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView; // for backward compat with existing logic
 
-    // Tutors can edit workStatus even in view mode
-    const isTutorPartialEdit = isView && userRole === 'tutor';
+    // Tutors and coaches can edit workStatus even in view mode
+    const isTutorPartialEdit = isView && (userRole === 'tutor' || userRole === 'coach');
 
     const [selectedStaff, setSelectedStaff] = useState(newEvent.staff || []);
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
