@@ -83,15 +83,17 @@ const DashboardOverview = () => {
 
             // 3. Completed & Hours
             if (event.workStatus === 'completed') {
-                if (end < now) completedEvents++; // Only count if actually passed
-                
-                if (event.workType === 'coaching') {
-                    coachingHours += hours;
-                } else {
-                    tutoringHours += hours;
+                if (end < now) {
+                    completedEvents++;
                 }
-            } else if (end < now && event.workStatus !== 'completed') {
-                 needsCompletion++;
+            } else if (end < now) {
+                needsCompletion++;
+            }
+
+            if (event.workType === 'coaching') {
+                coachingHours += hours;
+            } else {
+                tutoringHours += hours;
             }
 
             // 4. Unique Students (for Tutor View)
