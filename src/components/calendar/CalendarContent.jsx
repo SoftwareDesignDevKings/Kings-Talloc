@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
@@ -73,11 +73,6 @@ const CalendarContent = () => {
 
     // track the calendar's displayed date to keep it in sync with the data provider
     const [calendarDate, setCalendarDate] = useState(() => calendarDateRange.start);
-
-    // sync calendar date with data provider's date range on mount/navigation
-    useEffect(() => {
-        setCalendarDate(calendarDateRange.start);
-    }, [calendarDateRange.start]);
 
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIContextProvider */
