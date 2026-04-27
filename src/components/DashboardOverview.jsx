@@ -178,7 +178,7 @@ const DashboardOverview = () => {
                 return;
             }
 
-            if (response.status === 207) {
+            if (response.status === 500) {
                 addAlert('warning', data.message);
                 return;
             }

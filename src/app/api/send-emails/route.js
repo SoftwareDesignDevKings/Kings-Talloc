@@ -77,7 +77,7 @@ export async function POST(req) {
         if (failCount > 0) {
             return Response.json(
                 { message: `${tutorEntries.length - failCount} of ${tutorEntries.length} emails sent. ${failCount} failed — retry to resend.` },
-                { status: 207 }
+                { status: 500 }
             );
         }
 
