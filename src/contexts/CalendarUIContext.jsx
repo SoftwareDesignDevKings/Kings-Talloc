@@ -172,8 +172,8 @@ export const CalendarUIContextProvider = ({ children }) => {
             );
         }
 
-        // for tutors: split own availabilities around shifts as RBC events (never other tutors')
-        if (userRole === 'tutor' && showTutorInitials && !hideOwnAvailabilities) {
+        // for tutors/coaches: split own availabilities around shifts as RBC events (never other tutors')
+        if ((userRole === 'tutor' || userRole === 'coach') && showTutorInitials && !hideOwnAvailabilities) {
             let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
             if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
                 availabilities = availabilities.filter(a =>
@@ -199,8 +199,8 @@ export const CalendarUIContextProvider = ({ children }) => {
 
         let filtered = calendarAvailabilities;
 
-        // tutors: hide own availabilities if CalendarUIContextProvider setting is enabled
-        if (userRole === 'tutor') {
+        // tutors/coaches: hide own availabilities if CalendarUIContextProvider setting is enabled
+        if (userRole === 'tutor' || userRole === 'coach') {
             if (hideOwnAvailabilities) {
                 filtered = filtered.filter((a) => a.tutor !== userEmail);
             } else {
