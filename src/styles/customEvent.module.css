@@ -21,9 +21,8 @@
 
 .staffInitials {
     font-size: 0.7rem;
-    color: var(--tks-text-muted);
     font-weight: 500;
-    margin-top: auto;
+    margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
