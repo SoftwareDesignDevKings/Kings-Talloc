@@ -45,7 +45,8 @@ export const AuthContextProvider = ({ children }) => {
                 setUserRole(persistedRole);
             } else {
                 if (persistedRole) sessionStorage.removeItem('selectedUserRole');
-                if (userRole) setUserRole(userRole);
+                const effectiveRole = userRoles?.includes('admin') ? 'admin' : userRole;
+                if (effectiveRole) setUserRole(effectiveRole);
             }
         });
     }, [status, session]);

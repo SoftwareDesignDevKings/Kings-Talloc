@@ -181,11 +181,11 @@ const Sidebar = ({ user, userRole }) => {
                         onClick={handleRoleToggle}
                         className={`btn btn-outline-secondary d-flex align-items-center ${styles.logoutButton} ${isCollapsed ? styles.logoutButtonCollapsed : styles.logoutButtonExpanded}`}
                         style={{ borderStyle: 'dashed' }}
-                        title={isCurrentlyAdmin ? `Switch to ${ROLE_LABELS[originalRole] || originalRole}` : "Switch to Admin"}
+                        title={isCurrentlyAdmin ? `View as ${ROLE_LABELS[originalRole] || originalRole}` : 'View as Admin'}
                     >
                         <FiUserCheck className={styles.logoutIcon} />
                         <span className={styles.navLabel}>
-                            {isCurrentlyAdmin ? `Back to ${ROLE_LABELS[originalRole] || originalRole}` : 'Admin View'}
+                            {isCurrentlyAdmin ? `View as ${ROLE_LABELS[originalRole] || originalRole}` : 'View as Admin'}
                         </span>
                     </button>
                 )}
