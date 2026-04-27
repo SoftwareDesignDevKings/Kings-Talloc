@@ -49,8 +49,9 @@ const isTutorConfirmed = (event, tutorEmail) => {
 /**
  * Component to display and manage tutor hours summary
  */
-const TutorHoursSummary = ({ userRole, userEmail }) => {
+const TutorHoursSummary = ({ userRole, userRoles, userEmail }) => {
     const { addAlert } = useAlert();
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
         const monday = getMonday(new Date());
@@ -62,7 +63,6 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
 
     const fetchTutorHours = useCallback(async () => {
-        const isAdmin = userRole === 'admin';
         const isTutorOrCoach = userRole === 'tutor' || userRole === 'coach';
         let accessFilter = [];
 
@@ -171,7 +171,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
         }
 
         setTutorHours(tutorHoursArray);
-    }, [startDate, endDate, userRole, userEmail]);
+    }, [startDate, endDate, userRole, userRoles, userEmail, isAdmin]);
 
     useEffect(() => {
         fetchTutorHours();
@@ -288,7 +288,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                             <th className="small fw-medium text-secondary">Tutor / Work</th>
                             <th className="small fw-medium text-secondary">Coaching</th>
                             <th className="small fw-medium text-secondary">Total</th>
-                            {userRole === 'teacher' && (
+                            {isAdmin && (
                                 <th className="small fw-medium text-secondary">Actions</th>
                             )}
                         </tr>
@@ -303,7 +303,7 @@ const TutorHoursSummary = ({ userRole, userEmail }) => {
                                 <td className="small fw-semibold align-middle">
                                     {(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}
                                 </td>
-                                {userRole === 'teacher' && (
+                                {isAdmin && (
                                     <td className="small align-middle">
                                         <div className="d-flex flex-column gap-2 align-items-start">
                                             <button
