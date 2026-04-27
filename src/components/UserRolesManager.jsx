@@ -255,7 +255,7 @@ const UserRolesManager = () => {
                     }}
                     className="btn btn-outline-primary btn-sm"
                 >
-    Add User Role
+                    Add User Role
                 </button>
             </div>
 
