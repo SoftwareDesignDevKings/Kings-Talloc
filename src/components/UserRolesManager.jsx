@@ -20,7 +20,8 @@ const UserRolesManager = () => {
     const { addAlert } = useAlert();
     const modalRef = useRef(null);
 
-    // Extra roles available per defaultRole
+    // Extra roles available per defaultRole.
+    // Teacher and tutor/coach are mutually exclusive — selecting one hides the other.
     const EXTRA_ROLES_BY_DEFAULT = {
         admin:   [],
         teacher: ['admin'],
@@ -430,36 +431,37 @@ const UserRolesManager = () => {
                                             <option value="tutor">Tutor</option>
                                             <option value="coach">Coach</option>
                                             <option value="teacher">Teacher</option>
-                                            <option value="admin">Admin</option>
                                         </select>
                                     </div>
 
-                                    <div>
-                                        <label className="form-label small fw-bold text-muted mb-0">
-                                            Additional Privileges
-                                        </label>
-                                        <div className={styles.rolesGrid}>
-                                            {extraRoleOptions.map((roleOption) => {
-                                                const isSelected = userRoles.includes(roleOption);
-                                                return (
-                                                    <button
-                                                        type="button"
-                                                        key={roleOption}
-                                                        className={`badge rounded-pill ${styles.selectableBadge} ${isSelected ? styles.selectableBadgeSelected : 'bg-light text-dark'}`}
-                                                        onClick={() => {
-                                                            if (isSelected) {
-                                                                setUserRoles(userRoles.filter(r => r !== roleOption));
-                                                            } else {
-                                                                setUserRoles([...userRoles, roleOption]);
-                                                            }
-                                                        }}
-                                                    >
-                                                        {roleOption.toUpperCase()}
-                                                    </button>
-                                                );
-                                            })}
+                                    {extraRoleOptions.length > 0 && (
+                                        <div>
+                                            <label className="form-label small fw-bold text-muted mb-0">
+                                                Additional Privileges
+                                            </label>
+                                            <div className={styles.rolesGrid}>
+                                                {extraRoleOptions.map((roleOption) => {
+                                                    const isSelected = userRoles.includes(roleOption);
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            key={roleOption}
+                                                            className={`badge rounded-pill ${styles.selectableBadge} ${isSelected ? styles.selectableBadgeSelected : 'bg-light text-dark'}`}
+                                                            onClick={() => {
+                                                                if (isSelected) {
+                                                                    setUserRoles(userRoles.filter(r => r !== roleOption));
+                                                                } else {
+                                                                    setUserRoles([...userRoles, roleOption]);
+                                                                }
+                                                            }}
+                                                        >
+                                                            {roleOption.toUpperCase()}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                                 <div className="modal-footer border-top-0 pt-0">
                                     <button
