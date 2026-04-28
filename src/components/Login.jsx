@@ -7,12 +7,13 @@ import { AppLogin } from '@/lib/security/clientAuth';
 
 // Dev bypass users (matches authOptions.js)
 const DEV_USERS = [
-    { id: 'dev-computing', email: 'computing@kings.edu.au', label: 'Admin (Teacher)', variant: 'success' },
-    { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: 'Tutor', variant: 'primary' },
-    { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: 'Tutor + Admin', variant: 'info' },
-    { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: 'Teacher', variant: 'warning' },
-    { id: 'dev-coach', email: 'coach@kings.edu.au', label: 'Coach + Tutor', variant: 'secondary' },
-    { id: 'dev-student', email: 'student@kings.edu.au', label: 'Student', variant: 'danger' }
+    { id: 'dev-computing', email: 'computing@kings.edu.au', label: 'Teacher + Admin'},
+    { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: 'Tutor + Admin'},
+    { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: 'Teacher'},
+    { id: 'dev-coach-tutor', email: 'coachTutor@kings.edu.au', label: 'Coach + Tutor'},
+    { id: 'dev-coach', email: 'coach@kings.edu.au', label: 'Coach'},
+    { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: 'Tutor'},
+    { id: 'dev-student', email: 'student@kings.edu.au', label: 'Student'}
 ];
 
 export default function Login() {
@@ -48,7 +49,7 @@ export default function Login() {
                                     <button
                                         key={user.id}
                                         onClick={() => AppLogin(user.id)}
-                                        className={`btn btn-outline-${user.variant} btn-sm grow text-xs`}
+                                        className="btn btn-outline-primary btn-sm grow text-xs"
                                     >
                                         {user.label}
                                     </button>
