@@ -194,14 +194,13 @@ export const fetchCacheTutors = () =>
 
         const usersMap = new Map();
         [...roleSnapshot.docs, ...defaultRoleSnapshot.docs, ...userRolesSnapshot.docs].forEach((doc) => {
-            const { email, name, defaultRole, role, userRoles } = doc.data();
+            const { email, name, defaultRole, role } = doc.data();
             if (!usersMap.has(email)) {
-                const roles = [defaultRole || role, ...(userRoles || [])].filter(Boolean);
-                usersMap.set(email, { name, roles });
+                usersMap.set(email, { name, primaryRole: defaultRole || role });
             }
         });
 
-        return [...usersMap.entries()].map(([email, { name, roles }]) => ({ email, name, roles }));
+        return [...usersMap.entries()].map(([email, { name, primaryRole }]) => ({ email, name, primaryRole }));
     });
 
 export const fetchCacheSubjects = () =>

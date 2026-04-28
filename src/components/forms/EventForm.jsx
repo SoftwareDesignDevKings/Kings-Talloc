@@ -67,17 +67,15 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     }, [setNewEvent]);
 
     const handleWorkTypeChange = useCallback((workType) => {
-        setSelectedStaff((prev) => {
-            const filtered = prev.filter((s) => {
-                if (!s.roles) return true;
-                if (workType === 'tutoring') return s.roles.includes('tutor');
-                if (workType === 'coaching') return s.roles.includes('coach');
-                return true;
-            });
-            setNewEvent((prev2) => ({ ...prev2, workType, staff: filtered }));
-            return filtered;
+        const filtered = selectedStaff.filter((s) => {
+            if (!s.primaryRole) return true;
+            if (workType === 'tutoring') return s.primaryRole === 'tutor';
+            if (workType === 'coaching') return s.primaryRole === 'coach';
+            return true;
         });
-    }, [setNewEvent]);
+        setSelectedStaff(filtered);
+        setNewEvent((prev) => ({ ...prev, workType, staff: filtered }));
+    }, [selectedStaff, setNewEvent]);
 
     const handleClassSelectChange = useCallback((selectedOptions) => {
         setSelectedClasses(selectedOptions);
@@ -114,8 +112,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
         const requiredRole = workType === 'tutoring' ? 'tutor' : 'coach';
         const invalidStaff = (newEvent.staff || []).filter((staffMember) => {
-            if (!staffMember.roles) return false;
-            return !staffMember.roles.includes(requiredRole);
+            if (!staffMember.primaryRole) return false;
+            return staffMember.primaryRole !== requiredRole;
         });
 
         if (invalidStaff.length > 0) {

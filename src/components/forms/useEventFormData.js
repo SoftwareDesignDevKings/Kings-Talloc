@@ -18,8 +18,8 @@ export const useEventFormData = (newEvent) => {
 
         let options = [];
         for (const tutor of tutors) {
-            if (workType === 'tutoring' && !tutor.roles?.includes('tutor')) continue;
-            if (workType === 'coaching' && !tutor.roles?.includes('coach')) continue;
+            if (workType === 'tutoring' && tutor.primaryRole !== 'tutor') continue;
+            if (workType === 'coaching' && tutor.primaryRole !== 'coach') continue;
 
             const matchingAvailability = calendarAvailabilities.find(
                 (avail) =>
@@ -31,7 +31,7 @@ export const useEventFormData = (newEvent) => {
             options.push({
                 value: tutor.email,
                 label: tutor.name,
-                roles: tutor.roles,
+                primaryRole: tutor.primaryRole,
                 locationType: matchingAvailability
                     ? matchingAvailability.locationType || 'onsite'
                     : 'unavailable',
