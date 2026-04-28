@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-const StatsCard = ({ icon: Icon, iconBgColor, title, value, subtitle, delay = 0 }) => {
+const BaseStatsCard = ({ icon: Icon, iconBgColor, title, value, subtitle, delay = 0 }) => {
     const cardRef = useRef(null);
 
     useEffect(() => {
@@ -34,4 +34,4 @@ const StatsCard = ({ icon: Icon, iconBgColor, title, value, subtitle, delay = 0 
     );
 };
 
-export default StatsCard;
+export default BaseStatsCard;
