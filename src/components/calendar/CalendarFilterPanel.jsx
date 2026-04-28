@@ -212,7 +212,7 @@ const CalendarFilterPanel = () => {
                                     </span>
                                 </label>
 
-                                {userRole === 'tutor' && (
+                                {(userRole === 'tutor' || userRole === 'coach') && (
                                     <label className={`${styles.subToggleRow} ${!visibility.showTutorInitials ? 'opacity-50' : ''}`}>
                                         <span className={`${styles.toggleLabel} ${styles.toggleLabelMuted}`}>Hide my availability</span>
                                         <span className={styles.toggle}>
