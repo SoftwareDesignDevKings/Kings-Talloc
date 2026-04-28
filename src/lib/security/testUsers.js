@@ -29,6 +29,12 @@ export const TEST_USERS = {
         defaultRole: 'coach',
         userRoles: ['tutor']
     },
+    'coachonly@kings.edu.au': {
+        name: 'Dev Coach',
+        role: 'coach',
+        defaultRole: 'coach',
+        userRoles: []
+    },
     'student@kings.edu.au': {
         name: 'John Doe',
         role: 'student',
