@@ -5,24 +5,24 @@ import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
 import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
-import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
+import { calendarAvailabilitySplit, normaliseWorkType } from "@/utils/calendarAvailability"
 
 /**
  * Returns true if an availability's workType matches the selected filter.
- * 'tutoringOrWork' availabilities are included when filtering by 'tutoring' or 'work',
- * and vice-versa.
+ * Handles both the legacy string format and the current array format.
  */
 const matchesWorkTypeFilter = (availWorkType, filterWorkType) => {
+    const types = normaliseWorkType(availWorkType);
     if (filterWorkType === 'tutoringOrWork') {
-        return availWorkType === 'tutoring' || availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+        return types.includes('tutoring') || types.includes('work') || types.includes('tutoringOrWork');
     }
     if (filterWorkType === 'tutoring') {
-        return availWorkType === 'tutoring' || availWorkType === 'tutoringOrWork';
+        return types.includes('tutoring') || types.includes('tutoringOrWork');
     }
     if (filterWorkType === 'work') {
-        return availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+        return types.includes('work') || types.includes('tutoringOrWork');
     }
-    return availWorkType === filterWorkType;
+    return types.includes(filterWorkType);
 };
 
 /**
@@ -220,11 +220,10 @@ export const CalendarUIContextProvider = ({ children }) => {
 
         // students: only show tutoring availabilities (exclude coaching and work)
         if (userRole === 'student') {
-            filtered = filtered.filter(a =>
-                a.workType === 'tutoring' ||
-                a.workType === 'tutoringOrWork' ||
-                a.workType === undefined
-            );
+            filtered = filtered.filter(a => {
+                const types = normaliseWorkType(a.workType);
+                return types.length === 0 || types.includes('tutoring') || types.includes('tutoringOrWork');
+            });
         }
 
         // filter by selected tutors from CalendarUIContextProvider

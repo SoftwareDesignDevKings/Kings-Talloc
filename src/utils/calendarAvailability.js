@@ -1,6 +1,17 @@
 // import { isBefore, isAfter } from 'date-fns';
 
 /**
+ * Normalise workType to an array, handling both the legacy string format
+ * ('tutoring', 'tutoringOrWork', …) and the current array format (['tutoring', 'work']).
+ */
+export const normaliseWorkType = (workType) => {
+    if (!workType) return [];
+    if (Array.isArray(workType)) return workType;
+    if (workType === 'tutoringOrWork') return ['tutoring', 'work'];
+    return [workType];
+};
+
+/**
  * Split availabilities around booked events
  */
 export const calendarAvailabilitySplit = (availabilities, events) => {
