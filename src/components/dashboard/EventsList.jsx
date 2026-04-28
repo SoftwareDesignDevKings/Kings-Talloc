@@ -90,7 +90,7 @@ const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
                 </div>
 
                 {event.description && (
-                    <p className="mb-0 text-secondary fst-italic text-truncate small">
+                    <p className="mb-0 text-secondary fst-italic small" style={{ whiteSpace: 'pre-wrap' }}>
                         {event.description}
                     </p>
                 )}
