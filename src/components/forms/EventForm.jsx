@@ -138,11 +138,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (!validateForm()) return false; // Validation failed - don't close modal
 
         // Tutors/coaches may only update workStatus — send only that field to satisfy
-        // the Firestore rule: hasOnly(['workStatus']). Sending a full eventData payload
-        // (which includes emailsList and date fields) would cause the diff check to fail.
+        // the Firestore rule: hasOnly(['workStatus']). Skip full form validation: rules
+        // like "can't mark a recurring event completed" are admin/teacher concerns and
+        // must not gate the tutor/coach single-field write path.
         if (isTutorPartialEdit) {
             try {
                 await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted');
@@ -153,6 +153,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 return false;
             }
         }
+
+        if (!validateForm()) return false; // Validation failed - don't close modal
 
         // Debug: Check if recurring instance flag is preserved
         console.log('EventForm onSubmit - eventToEdit:', {
