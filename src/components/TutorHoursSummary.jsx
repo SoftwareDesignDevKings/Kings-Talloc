@@ -8,6 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
+import useAuthSession from '@/hooks/useAuthSession';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 
 const getMonday = (d) => {
@@ -49,9 +50,12 @@ const isTutorConfirmed = (event, tutorEmail) => {
 /**
  * Component to display and manage tutor hours summary
  */
-const TutorHoursSummary = ({ userRole, userRoles, userEmail }) => {
+const TutorHoursSummary = () => {
     const { addAlert } = useAlert();
-    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+    const { userRole, userRoles, session } = useAuthSession();
+    const userEmail = session?.user?.email;
+    const isAdmin = userRole === 'admin';
+    
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
         const monday = getMonday(new Date());
@@ -63,12 +67,11 @@ const TutorHoursSummary = ({ userRole, userRoles, userEmail }) => {
     const [tutorHours, setTutorHours] = useState([]);
 
     const fetchTutorHours = useCallback(async () => {
-        const isTutorOrCoach = userRole === 'tutor' || userRole === 'coach';
         let accessFilter = [];
 
         // Tutors/Coaches: only see their own shifts
         // Admins: see all shifts (no filter)
-        if (isTutorOrCoach) {
+        if (!isAdmin) {
             accessFilter = [where('emailsList', 'array-contains', userEmail)];
         }
 
@@ -166,7 +169,7 @@ const TutorHoursSummary = ({ userRole, userRoles, userEmail }) => {
         }));
 
         // Tutors only see their own summary, admins see everyone
-        if (userRole === 'tutor') {
+        if (!isAdmin) {
             tutorHoursArray = tutorHoursArray.filter((tutor) => tutor.email === userEmail);
         }
 
