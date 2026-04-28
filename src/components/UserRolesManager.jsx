@@ -23,7 +23,6 @@ const UserRolesManager = () => {
     // Extra roles available per defaultRole.
     // Teacher and tutor/coach are mutually exclusive — selecting one hides the other.
     const EXTRA_ROLES_BY_DEFAULT = {
-        admin:   [],
         teacher: ['admin'],
         tutor:   ['coach', 'admin'],
         coach:   ['tutor', 'admin'],
