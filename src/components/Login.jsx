@@ -10,7 +10,7 @@ const DEV_USERS = [
     { id: 'dev-computing', email: 'computing@kings.edu.au', label: 'Teacher + Admin'},
     { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: 'Tutor + Admin'},
     { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: 'Teacher'},
-    { id: 'dev-coach-tutor', email: 'coachTutor@kings.edu.au', label: 'Coach + Tutor'},
+    { id: 'dev-coachTutor', email: 'coachTutor@kings.edu.au', label: 'Coach + Tutor'},
     { id: 'dev-coach', email: 'coach@kings.edu.au', label: 'Coach'},
     { id: 'dev-tutor', email: 'tutor@kings.edu.au', label: 'Tutor'},
     { id: 'dev-student', email: 'student@kings.edu.au', label: 'Student'}
