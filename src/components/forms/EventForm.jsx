@@ -277,6 +277,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             addAlert('error', `Failed to submit event: ${error.message}`);
             return false; // Error - don't close modal
         }
+        } catch (error) {
+            console.error('Failed to submit event:', error);
+            addAlert('error', `Failed to submit event: ${error.message}`);
+            return false;
         } finally {
             setIsSubmitting(false);
         }
