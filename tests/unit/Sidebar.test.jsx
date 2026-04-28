@@ -70,7 +70,7 @@ describe('Sidebar', () => {
         setup('admin');
 
         expect(screen.getByRole('link', { name: /calendar/i })).toHaveAttribute('href', '/calendar');
-        expect(screen.getByRole('link', { name: /user roles/i })).toHaveAttribute('href', '/userRoles');
+        expect(screen.getByRole('link', { name: /manage users/i })).toHaveAttribute('href', '/userRoles');
         expect(screen.getByRole('link', { name: /manage classes/i })).toHaveAttribute('href', '/classes');
     });
 

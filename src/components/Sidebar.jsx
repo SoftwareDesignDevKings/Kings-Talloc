@@ -115,7 +115,7 @@ const Sidebar = ({ user, userRole }) => {
                                     className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/userRoles') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiUsers className={styles.navIcon} />
-                                    <span className={styles.navLabel}>User Roles</span>
+                                    <span className={styles.navLabel}>Manage Users</span>
                                 </Link>
                             </li>
                         )}
