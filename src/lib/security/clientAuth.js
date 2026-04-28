@@ -61,9 +61,13 @@ export const fbAuthLoginSync = async (token) => {
         return;
     }
 
+    // if Firebase already has a live session fetch - groken ID token from browser. else, re-authenticate. 
     try {
-        await signInWithCustomToken(clientAuth, token);
-        await clientAuth.currentUser?.getIdToken(true);
+        if (clientAuth.currentUser) {
+            await clientAuth.currentUser.getIdToken(true);
+        } else {
+            await signInWithCustomToken(clientAuth, token);
+        }
     } catch (error) {
         console.error("Firebase Sync Error:", error);
     }
