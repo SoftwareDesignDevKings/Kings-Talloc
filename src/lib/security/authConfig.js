@@ -137,19 +137,23 @@ async function handleJwt({ token, user, account, profile }) {
         if (user.image) {
             token.picture = user.image;
         }
-
-        const userUid = user.email.toLowerCase();
-
-        token.firebaseToken = await adminDbAuth.createCustomToken(userUid, {
-            defaultRole: user.defaultRole || user.role,
-            userRoles: user.userRolesList || [],
-        });
     }
 
     if (account?.provider === 'azure-ad') {
         token.msAccessToken = account.access_token;
         token.msRefreshToken = account.refresh_token;
         token.msAccessTokenExpiry = account.expires_at * 1000;
+    }
+
+    // regenerate custom token (after 1hr expiry). runs on sign-in and every explicit updateSession() from AuthContext
+    const firebaseUid = token.email.toLowerCase();
+    try {
+        token.firebaseToken = await adminDbAuth.createCustomToken(firebaseUid, {
+            defaultRole: token.defaultRole,
+            userRoles: token.userRoles || [],
+        });
+    } catch (error) {
+        console.error('Failed to create Firebase custom token:', error);
     }
 
     return token;
