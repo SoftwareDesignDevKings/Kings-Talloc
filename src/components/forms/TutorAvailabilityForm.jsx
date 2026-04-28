@@ -21,9 +21,13 @@ const TutorAvailabilityForm = ({
     setNewAvailability,
     eventToEdit,
     setShowModal,
+    userRole,
+    userRoles = [],
 }) => {
     const { calendarAvailabilities, setCalendarAvailabilities } = useAppData();
     const { addAlert } = useAlert();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -40,9 +44,10 @@ const TutorAvailabilityForm = ({
         { value: 'remote', label: 'Remote' },
     ];
 
+    const allRoles = [userRole, ...userRoles].filter(Boolean);
     const workTypeOptions = [
-        { value: 'tutoring', label: 'Tutoring' },
-        { value: 'coaching', label: 'Coaching' },
+        ...(allRoles.includes('tutor') ? [{ value: 'tutoring', label: 'Tutoring' }] : []),
+        ...(allRoles.includes('coach') ? [{ value: 'coaching', label: 'Coaching' }] : []),
         { value: 'work', label: 'Work' },
     ];
 
@@ -122,10 +127,16 @@ const TutorAvailabilityForm = ({
 
     const onSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return false;
         if (!validateDates()) {
             return false; // Validation failed - don't close modal
         }
-        return await handleSubmit(e); // Pass through the result
+        setIsSubmitting(true);
+        try {
+            return await handleSubmit(e); // Pass through the result
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleLocationChange = (selectedOption) => {
@@ -170,6 +181,7 @@ const TutorAvailabilityForm = ({
             size="lg"
             onSubmit={isView ? undefined : onSubmit}
             submitText={isEdit ? 'Save Changes' : 'Add Availability'}
+            loading={isSubmitting}
             deleteButton={
                 isEdit
                     ? {
