@@ -22,6 +22,7 @@ import {
 } from '@/utils/msTeams';
 import {
     updateEventInFirestore,
+    updateWorkStatusInFirestore,
     createEventInFirestore,
     queueEmailNotification,
     deleteEventFromFirestore,
@@ -138,6 +139,20 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const onSubmit = async (e) => {
         e.preventDefault();
         if (!validateForm()) return false; // Validation failed - don't close modal
+
+        // Tutors/coaches may only update workStatus — send only that field to satisfy
+        // the Firestore rule: hasOnly(['workStatus']). Sending a full eventData payload
+        // (which includes emailsList and date fields) would cause the diff check to fail.
+        if (isTutorPartialEdit) {
+            try {
+                await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted');
+                return true;
+            } catch (error) {
+                console.error('Failed to update work status:', error);
+                addAlert('error', `Failed to update work status: ${error.message}`);
+                return false;
+            }
+        }
 
         // Debug: Check if recurring instance flag is preserved
         console.log('EventForm onSubmit - eventToEdit:', {

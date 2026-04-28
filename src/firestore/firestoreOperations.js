@@ -85,6 +85,15 @@ export const removeEmailNotification = async (shiftId) => {
 };
 
 /**
+ * Updates only the workStatus field of a shift — used by tutors/coaches who lack
+ * permission to touch any other field (Firestore rule: hasOnly(['workStatus'])).
+ */
+export const updateWorkStatusInFirestore = async (shiftId, workStatus) => {
+    const shiftDoc = doc(db, 'shifts', shiftId);
+    await updateDoc(shiftDoc, { workStatus });
+};
+
+/**
  * Updates an event in Firestore
  * @param {string} eventId - The ID of the event to update
  * @param {Object} eventData - The updated event data
