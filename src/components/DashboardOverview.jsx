@@ -9,7 +9,8 @@ import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
 import ReLoginModal from '@/components/modals/ReLoginModal.jsx';
 import useAlert from '@/hooks/useAlert';
 import { useAppData } from '@/contexts/AppDataContext';
-import { startOfWeek, endOfWeek, isSameDay } from 'date-fns';
+import { startOfWeek, endOfWeek } from 'date-fns';
+import { fetchCacheClasses } from '@/firestore/firestoreFetch';
 
 const DashboardOverview = () => {
     const { session, userRole, userRoles } = useAuthSession();
@@ -24,6 +25,14 @@ const DashboardOverview = () => {
     } = useAppData();
 
     const [showCalendarModal, setShowCalendarModal] = useState(false);
+    const [teacherClasses, setTeacherClasses] = useState([]);
+
+    useEffect(() => {
+        if (userRole !== 'teacher' || !session.user.email) return;
+        fetchCacheClasses().then(classes =>
+            setTeacherClasses(classes.filter(c => c.teacherEmail === session.user.email))
+        );
+    }, [userRole, session.user.email]);
 
     // Ensure we are viewing the current week when on the dashboard
     useEffect(() => {
@@ -45,11 +54,12 @@ const DashboardOverview = () => {
         // Filter events
         const todayEvents = [];
         const upcomingEvents = [];
-        let completedEvents = 0;
+        let completedShifts = 0;
         let uncompletedTodayEvents = 0;
-        let needsCompletion = 0;
+        let uncompletedShifts = 0;
         let tutoringHours = 0;
         let coachingHours = 0;
+        let workHours = 0;
         let needsConfirmation = 0;
         const uniqueStudentEmails = new Set();
         const uniqueTutorEmailsToday = new Set();
@@ -81,20 +91,23 @@ const DashboardOverview = () => {
                 upcomingEvents.push(event);
             }
 
-            // 3. Completed & Hours
+            // 3. Completion tracking
             if (event.workStatus === 'completed') {
-                if (end < now) completedEvents++; // Only count if actually passed
-                
-                if (event.workType === 'coaching') {
-                    coachingHours += hours;
-                } else {
-                    tutoringHours += hours;
-                }
-            } else if (end < now && event.workStatus !== 'completed') {
-                 needsCompletion++;
+                if (end < now) completedShifts++;
+            } else if (end < now) {
+                uncompletedShifts++;
             }
 
-            // 4. Unique Students (for Tutor View)
+            // 4. Hours (all shifts, regardless of completion status)
+            if (event.workType === 'coaching') {
+                coachingHours += hours;
+            } else if (event.workType === 'work') {
+                workHours += hours;
+            } else {
+                tutoringHours += hours;
+            }
+
+            // 5. Unique Students (for Tutor View)
             event.students?.forEach(s => uniqueStudentEmails.add(s.value));
 
             // 5. Tutors scheduled today
@@ -142,30 +155,56 @@ const DashboardOverview = () => {
             ? Math.round((totalBookedHours / totalAvailableHours) * 100) 
             : 0;
 
+        // Teacher stats
+        const teacherStudentEmails = new Set(
+            teacherClasses.flatMap(c => (c.students || []).map(s => s.email))
+        );
+        const teacherShifts = calendarShifts.filter(event =>
+            event.students?.some(s => teacherStudentEmails.has(s.value || s.email)) ||
+            event.staff?.some(s => (s.value || s) === session?.user?.email)
+        );
+        const teacherStudentSessions = teacherShifts.length;
+        const teacherUncompletedShifts = teacherShifts.filter(event =>
+            new Date(event.end) < now && event.workStatus !== 'completed'
+        ).length;
+        const teacherUniqueTutors = new Set(
+            teacherShifts.flatMap(event => (event.staff || []).map(s => s.value || s))
+        ).size;
+        const teacherPendingRequests = pendingRequestsData.filter(req =>
+            req.students?.some(s => teacherStudentEmails.has(s.value || s.email))
+        );
+
         return {
             todayEvents: todayEvents.sort((a, b) => a.start - b.start),
             upcomingEvents: upcomingEvents.sort((a, b) => a.start - b.start),
             upcomingEventsCount: upcomingEvents.length,
             unapprovedStudentRequests: pendingRequestsData.length,
             pendingRequestsData: pendingRequestsData,
-            completedEvents,
             uncompletedTodayEvents,
             weeklyUtilization,
             topSubjects,
             weeklyHours: {
                 tutoring: Math.round(tutoringHours * 10) / 10,
                 coaching: Math.round(coachingHours * 10) / 10,
+                work: Math.round(workHours * 10) / 10,
             },
-            needsCompletion,
+            completedShifts,
+            uncompletedShifts,
             needsConfirmation,
             uniqueStudents: uniqueStudentEmails.size,
             pendingRequests: pendingRequestsData.length,
-            approvedRequests: 0, // Not tracking approved count historically in this view
-            rejectedRequests: 0, // Not tracking rejected count in this view
+            approvedRequests: 0,
+            rejectedRequests: 0,
             tutorsScheduledToday: uniqueTutorEmailsToday.size,
+            teacherStats: {
+                studentSessions: teacherStudentSessions,
+                uncompletedShifts: teacherUncompletedShifts,
+                uniqueTutors: teacherUniqueTutors,
+                pendingRequests: teacherPendingRequests,
+            },
         };
 
-    }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, userRole]);
+    }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, userRole, teacherClasses]);
 
 
     const handleSendEmailNotifications = async () => {
