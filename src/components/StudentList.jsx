@@ -1,32 +1,31 @@
 import React from 'react';
+import t from '@/styles/manageTable.module.css';
 
 const StudentList = ({ cls, confirmRemoveStudent }) => {
     return (
-        <div className="mt-4">
-            <h3 className="h5 text-tks-secondary fw-medium">Students</h3>
+        <div>
+            <p className={t.expandLabel}>
+                Students{cls.students?.length ? ` (${cls.students.length})` : ''}
+            </p>
             {cls.students && cls.students.length > 0 ? (
-                <ul className="list-unstyled mt-3">
+                <div className={t.memberList}>
                     {cls.students.map((student) => (
-                        <li
-                            key={student.email}
-                            className="d-flex justify-content-between align-items-center p-3 border rounded mb-2 bg-light"
-                        >
-                            <span>
-                                {student.name
-                                    ? `${student.name} (${student.email})`
-                                    : student.email}
-                            </span>
+                        <div key={student.email} className={t.memberItem}>
+                            <div>
+                                <div className={t.memberName}>{student.name || 'No name'}</div>
+                                <div className={t.memberEmail}>{student.email}</div>
+                            </div>
                             <button
-                                onClick={() => confirmRemoveStudent(student, cls)}
-                                className="btn btn-sm btn-link text-danger text-decoration-none"
+                                onClick={() => confirmRemoveStudent(cls, student)}
+                                className="btn btn-sm btn-link text-danger text-decoration-none p-0"
                             >
                                 Remove
                             </button>
-                        </li>
+                        </div>
                     ))}
-                </ul>
+                </div>
             ) : (
-                <p className="text-muted small">No students added to this class.</p>
+                <p className={t.emptyMessage}>No students added to this class yet.</p>
             )}
         </div>
     );
