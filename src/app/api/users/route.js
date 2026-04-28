@@ -29,7 +29,11 @@ export async function DELETE(req) {
         }
     }
 
-    await adminDb.collection('users').doc(email).delete();
+    try {
+        await adminDb.collection('users').doc(email).delete();
+    } catch (error) {
+        return Response.json({ message: `Failed to delete user entry from Firebase: ${error.message}` }, { status: 500 });
+    }
 
     return Response.json({ message: `User ${email} deleted successfully.` });
 }

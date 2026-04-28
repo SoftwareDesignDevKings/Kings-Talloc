@@ -179,7 +179,7 @@ const UserRolesManager = () => {
             addAlert('success', `User ${userEmail} deleted successfully.`);
         } catch (error) {
             console.error('Error deleting user:', error);
-            addAlert('error', `Error deleting user: ${error.message}`);
+            addAlert('error', 'Error deleting user. Please try again.');
         }
     };
 
