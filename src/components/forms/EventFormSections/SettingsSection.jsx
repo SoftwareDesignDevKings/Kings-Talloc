@@ -6,6 +6,7 @@ const SettingsSection = ({
     newEvent,
     setNewEvent,
     handleMinStudentsChange,
+    onWorkTypeChange,
     workTypeOptions,
     workStatusOptions,
     readOnly,
@@ -13,11 +14,8 @@ const SettingsSection = ({
 }) => {
     // memoised handlers for Select components
     const handleWorkTypeChange = useCallback((selectedOption) => {
-        setNewEvent((prev) => ({
-            ...prev,
-            workType: selectedOption.value,
-        }));
-    }, [setNewEvent]);
+        onWorkTypeChange(selectedOption.value);
+    }, [onWorkTypeChange]);
 
     const handleWorkStatusChange = useCallback((selectedOption) => {
         setNewEvent((prev) => ({

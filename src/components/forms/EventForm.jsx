@@ -35,7 +35,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         setCalendarShifts,
         setCalendarAvailabilities,
         setCalendarStudentRequests,
-        tutors,
     } = useAppData();
     // Derive mode flags
     const isView = mode === 'view';
@@ -65,6 +64,19 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const handleStaffSelectChange = useCallback((selectedOptions) => {
         setSelectedStaff(selectedOptions);
         setNewEvent((prev) => ({ ...prev, staff: selectedOptions }));
+    }, [setNewEvent]);
+
+    const handleWorkTypeChange = useCallback((workType) => {
+        setSelectedStaff((prev) => {
+            const filtered = prev.filter((s) => {
+                if (!s.roles) return true;
+                if (workType === 'tutoring') return s.roles.includes('tutor');
+                if (workType === 'coaching') return s.roles.includes('coach');
+                return true;
+            });
+            setNewEvent((prev2) => ({ ...prev2, workType, staff: filtered }));
+            return filtered;
+        });
     }, [setNewEvent]);
 
     const handleClassSelectChange = useCallback((selectedOptions) => {
@@ -101,11 +113,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         if (workType !== 'tutoring' && workType !== 'coaching') return true;
 
         const requiredRole = workType === 'tutoring' ? 'tutor' : 'coach';
-        const assignedStaff = newEvent.staff || [];
-
-        const invalidStaff = assignedStaff.filter((staffMember) => {
-            const tutorRecord = tutors.find((t) => t.email === staffMember.value);
-            return tutorRecord && !tutorRecord.roles?.includes(requiredRole);
+        const invalidStaff = (newEvent.staff || []).filter((staffMember) => {
+            if (!staffMember.roles) return false;
+            return !staffMember.roles.includes(requiredRole);
         });
 
         if (invalidStaff.length > 0) {
@@ -461,6 +471,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}
                         handleMinStudentsChange={handleMinStudentsChange}
+                        onWorkTypeChange={handleWorkTypeChange}
                         workTypeOptions={workTypeOptions}
                         workStatusOptions={workStatusOptions}
                         readOnly={isView}

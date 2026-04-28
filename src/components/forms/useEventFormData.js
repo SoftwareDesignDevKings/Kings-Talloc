@@ -16,28 +16,28 @@ export const useEventFormData = (newEvent) => {
         const eventEnd = new Date(newEvent.end);
         const workType = newEvent.workType;
 
-        return tutors
-            .filter((tutor) => {
-                if (workType === 'tutoring') return tutor.roles?.includes('tutor');
-                if (workType === 'coaching') return tutor.roles?.includes('coach');
-                return true;
-            })
-            .map((tutor) => {
-                const matchingAvailability = calendarAvailabilities.find((avail) =>
+        let options = [];
+        for (const tutor of tutors) {
+            if (workType === 'tutoring' && !tutor.roles?.includes('tutor')) continue;
+            if (workType === 'coaching' && !tutor.roles?.includes('coach')) continue;
+
+            const matchingAvailability = calendarAvailabilities.find(
+                (avail) =>
                     avail.tutor === tutor.email &&
                     new Date(avail.start) <= eventStart &&
                     new Date(avail.end) >= eventEnd
-                );
+            );
 
-                return {
-                    value: tutor.email,
-                    label: tutor.name,
-                    roles: tutor.roles,
-                    locationType: matchingAvailability
-                        ? (matchingAvailability.locationType || 'onsite')
-                        : 'unavailable',
-                };
+            options.push({
+                value: tutor.email,
+                label: tutor.name,
+                roles: tutor.roles,
+                locationType: matchingAvailability
+                    ? matchingAvailability.locationType || 'onsite'
+                    : 'unavailable',
             });
+        }
+        return options;
     }, [tutors, calendarAvailabilities, newEvent.start, newEvent.end, newEvent.workType]);
 
     const classOptions = useMemo(() =>
