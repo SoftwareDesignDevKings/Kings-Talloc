@@ -18,7 +18,7 @@ export const TEST_USERS = {
         userRoles: ['admin']
     },
     'teacher@kings.edu.au': {
-        name: 'Dev Teacher',
+        name: 'Rocco Ianni',
         role: 'teacher',
         defaultRole: 'teacher',
         userRoles: []
@@ -30,7 +30,7 @@ export const TEST_USERS = {
         userRoles: ['tutor']
     },
     'coach@kings.edu.au': {
-        name: 'Dev Coach',
+        name: 'Max Burykin',
         role: 'coach',
         defaultRole: 'coach',
         userRoles: []
