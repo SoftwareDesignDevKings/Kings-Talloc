@@ -5,6 +5,7 @@ import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
 import styles from '@/styles/userRoles.module.css';
+import t from '@/styles/manageTable.module.css';
 
 const UserRolesManager = () => {
     const [users, setUsers] = useState([]);
@@ -64,7 +65,6 @@ const UserRolesManager = () => {
 
     useEffect(() => {
         if (showModal && modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
-            // Initialize Bootstrap modal with accessibility features
             const modalInstance = new window.bootstrap.Modal(modalRef.current, {
                 backdrop: 'static',
                 keyboard: true,
@@ -72,7 +72,6 @@ const UserRolesManager = () => {
             });
             modalInstance.show();
 
-            // Handle modal close event
             const handleModalHidden = () => {
                 setShowModal(false);
                 setEmail('');
@@ -107,7 +106,6 @@ const UserRolesManager = () => {
         try {
             const userRef = doc(db, 'users', email);
 
-            // Check if user already exists (only when adding new user, not editing)
             if (!isEditing) {
                 const userDoc = await getDoc(userRef);
                 if (userDoc.exists()) {
@@ -119,21 +117,19 @@ const UserRolesManager = () => {
             await setDoc(userRef, {
                 email,
                 name,
-                role, // Keep for backward compatibility
+                role,
                 defaultRole: role,
                 userRoles
             }, { merge: true });
 
             addAlert('success', `Role of ${role} assigned to ${email}`);
 
-            // Close modal using Bootstrap API
             if (modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
                 const modalInstance = window.bootstrap.Modal.getInstance(modalRef.current);
                 if (modalInstance) {
                     modalInstance.hide();
                 }
             } else {
-                // Fallback if Bootstrap not loaded
                 setShowModal(false);
                 setEmail('');
                 setName('');
@@ -186,8 +182,8 @@ const UserRolesManager = () => {
     const handleEdit = (user) => {
         setEmail(user.email);
         setName(user.name);
-        setRole(user.defaultRole || user.role); // Use defaultRole if available, fallback to role
-        setUserRoles(user.userRoles || []); // Load existing userRoles or empty array
+        setRole(user.defaultRole || user.role);
+        setUserRoles(user.userRoles || []);
         setIsEditing(true);
         setShowModal(true);
     };
@@ -207,17 +203,14 @@ const UserRolesManager = () => {
         setUploadingTimesheets((prev) => ({ ...prev, [userEmail]: true }));
 
         try {
-            // Convert file to base64
             const base64Data = await fileToBase64(file);
             const fileSizeKB = (file.size / 1024).toFixed(2);
 
-            // Save timesheet data with base64 encoded file to Firestore
-            // Use email as document ID for easy lookup
             const timestamp = new Date().toISOString();
             const timesheetData = {
                 tutorEmail: userEmail,
                 tutorName: userName,
-                fileData: base64Data, // Store base64 encoded file
+                fileData: base64Data,
                 fileName: file.name,
                 fileType: file.type,
                 fileSize: file.size,
@@ -225,7 +218,6 @@ const UserRolesManager = () => {
                 uploadedBy: 'teacher',
             };
 
-            // Use setDoc with email as document ID instead of addDoc
             await setDoc(doc(db, 'timesheets', userEmail), timesheetData);
 
             addAlert('success', `Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
@@ -238,12 +230,13 @@ const UserRolesManager = () => {
     };
 
     return (
-        <div className={styles.managerContainer}>
+        <div className={t.container}>
             <h2 className="h4 mb-3 fw-bold text-tks-secondary">
                 Manage User Roles
             </h2>
-            <div className={styles.headerActions}>
-                <div className={styles.searchWrapper}>
+
+            <div className={t.headerActions}>
+                <div className={t.searchWrapper}>
                     <input
                         type="text"
                         placeholder="Search users..."
@@ -267,7 +260,7 @@ const UserRolesManager = () => {
                 </button>
             </div>
 
-            <div className="d-flex flex-wrap gap-2 mb-4">
+            <div className="d-flex flex-wrap gap-2 mb-3">
                 <a
                     href="/api/download-template?type=tutor"
                     download="Tutor_Timesheet_Template.docx"
@@ -276,34 +269,21 @@ const UserRolesManager = () => {
                     Tutor Template
                 </a>
             </div>
-            <div className={styles.tableContainer}>
-                <table className={`table table-hover mb-0 ${styles.roleTable}`}>
+
+            <div className={t.tableWrap}>
+                <table className={`table table-hover mb-0 ${t.table}`}>
                     <thead>
                         <tr>
+                            <th scope="col" className={t.actionCol}>Actions</th>
                             <th scope="col">User</th>
                             <th scope="col">Roles</th>
-                            <th scope="col" className="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.map((user) => (
                             <tr key={user.id}>
-                                <td>
-                                    <div className="fw-bold">{user.name}</div>
-                                    <div className="text-muted small">{user.email}</div>
-                                </td>
-                                <td>
-                                    <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
-                                        {(user.defaultRole || user.role).toUpperCase()}
-                                    </span>
-                                    {user.userRoles && user.userRoles.map(r => (
-                                        <span key={r} className={styles.roleBadge}>
-                                            {r.toUpperCase()}
-                                        </span>
-                                    ))}
-                                </td>
-                                <td>
-                                    <div className={styles.actionGroup}>
+                                <td className={t.actionCol}>
+                                    <div className={t.actionGroup}>
                                         {((user.defaultRole || user.role) === 'tutor' || user.userRoles?.includes('tutor')) && (
                                             <>
                                                 <input
@@ -331,9 +311,7 @@ const UserRolesManager = () => {
                                                             : 'btn-outline-success'
                                                     }`}
                                                 >
-                                                    {uploadingTimesheets[user.email]
-                                                        ? '...'
-                                                        : 'Upload'}
+                                                    {uploadingTimesheets[user.email] ? '...' : 'Upload'}
                                                 </label>
                                             </>
                                         )}
@@ -353,11 +331,26 @@ const UserRolesManager = () => {
                                         </button>
                                     </div>
                                 </td>
+                                <td>
+                                    <div className="fw-bold">{user.name}</div>
+                                    <div className="text-muted small">{user.email}</div>
+                                </td>
+                                <td>
+                                    <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
+                                        {(user.defaultRole || user.role).toUpperCase()}
+                                    </span>
+                                    {user.userRoles && user.userRoles.map(r => (
+                                        <span key={r} className={styles.roleBadge}>
+                                            {r.toUpperCase()}
+                                        </span>
+                                    ))}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
             {showModal && (
                 <div
                     className="modal fade"
@@ -421,7 +414,6 @@ const UserRolesManager = () => {
                                             onChange={(e) => {
                                                 const newDefault = e.target.value;
                                                 setRole(newDefault);
-                                                // strip any userRoles that aren't valid for the new defaultRole
                                                 const allowed = EXTRA_ROLES_BY_DEFAULT[newDefault] ?? [];
                                                 setUserRoles(prev => prev.filter(r => allowed.includes(r)));
                                             }}

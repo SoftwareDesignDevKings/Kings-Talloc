@@ -1,51 +1,4 @@
-.managerContainer {
-    padding: var(--space-lg, 1.5rem);
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.headerActions {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.searchWrapper {
-    flex: 1;
-    min-width: 250px;
-}
-
-.tableContainer {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.5rem;
-}
-
-.roleTable th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    padding: 1rem;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.roleTable td {
-    padding: 1rem;
-    vertical-align: middle;
-}
-
+/* Role badges */
 .roleBadge {
     display: inline-flex;
     align-items: center;
@@ -63,12 +16,7 @@
     color: var(--tks-secondary);
 }
 
-.actionGroup {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
-}
-
+/* File upload button */
 .uploadLabel {
     margin-bottom: 0;
     cursor: pointer;
@@ -81,6 +29,7 @@
     transform: translateY(-1px);
 }
 
+/* Modal sections */
 .modalSection {
     padding-bottom: 1rem;
     margin-bottom: 1.5rem;
@@ -92,6 +41,7 @@
     margin-bottom: 0;
 }
 
+/* Additional privileges grid */
 .rolesGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));

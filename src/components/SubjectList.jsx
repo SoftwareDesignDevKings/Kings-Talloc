@@ -16,6 +16,7 @@ import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';
 import SubjectRow from './SubjectRow.jsx';
 import useAlert from '@/hooks/useAlert';
+import t from '@/styles/manageTable.module.css';
 
 const SubjectList = () => {
     const { addAlert } = useAlert();
@@ -78,6 +79,7 @@ const SubjectList = () => {
             await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
             setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
             addAlert('success', 'Subject deleted successfully');
+            if (expandedSubject === subjectToDelete.id) setExpandedSubject(null);
         }
     };
 
@@ -144,30 +146,33 @@ const SubjectList = () => {
     };
 
     return (
-        <div className="p-4 bg-white rounded shadow h-100 d-flex flex-column">
-            <h2 className="h4 mb-4 fw-bold text-tks-secondary">Manage Subjects</h2>
-            <div className="d-flex gap-2 mb-4">
-                <input
-                    type="text"
-                    placeholder="Search by subject name"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="form-control"
-                />
+        <div className={t.container}>
+            <h2 className="h4 mb-3 fw-bold text-tks-secondary">Manage Subjects</h2>
+
+            <div className={t.headerActions}>
+                <div className={t.searchWrapper}>
+                    <input
+                        type="text"
+                        placeholder="Search by subject name"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="form-control"
+                    />
+                </div>
                 <button
                     onClick={openAddModal}
                     className="btn btn-outline-primary btn-sm text-nowrap"
                 >
-                    {isEditing ? 'Edit Subject' : 'Add Subject'}
+                    Add Subject
                 </button>
             </div>
 
-            <div className="table-responsive flex-fill" style={{ overflowY: 'auto' }}>
-                <table className="table table-hover table-text-sm">
-                    <thead className="sticky-top bg-light">
+            <div className={t.tableWrap}>
+                <table className={`table table-hover mb-0 ${t.table}`}>
+                    <thead>
                         <tr>
+                            <th scope="col" className={t.actionCol}>Actions</th>
                             <th scope="col">Subject Name</th>
-                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
