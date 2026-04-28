@@ -247,6 +247,10 @@ const StudentEventForm = ({
         setIsSubmitting(true);
         try {
             return await handleSubmit(e);
+        } catch (error) {
+            console.error('Failed to submit student event request:', error);
+            addAlert('error', 'Failed to submit event request');
+            return false;
         } finally {
             setIsSubmitting(false);
         }

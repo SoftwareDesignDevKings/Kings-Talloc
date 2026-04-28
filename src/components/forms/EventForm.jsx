@@ -283,6 +283,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     };
 
     const handleDeleteClick = async () => {
+        if (isSubmitting) return false;
         // Check if this is a recurring event
         const isRecurring = eventToEdit.recurring || eventToEdit.isRecurringInstance;
 
@@ -292,6 +293,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             return false; // Don't close main modal yet - wait for confirmation
         } else {
             // Delete non-recurring event directly
+            setIsSubmitting(true);
             try {
                 await calendarEventHandleDelete(eventToEdit, 'this', {
                     setAllEvents: setCalendarShifts,
@@ -304,11 +306,15 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 console.error('Failed to delete event:', error);
                 addAlert('error', 'Failed to delete event');
                 return false; // Error - don't close modal
+            } finally {
+                setIsSubmitting(false);
             }
         }
     };
 
     const handleConfirmDelete = async (deleteOption) => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await calendarEventHandleDelete(eventToEdit, deleteOption, {
                 setAllEvents: setCalendarShifts,
@@ -323,6 +329,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             addAlert('error', 'Failed to delete event');
             setShowDeleteConfirm(false);
             // Don't close main modal on error
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
