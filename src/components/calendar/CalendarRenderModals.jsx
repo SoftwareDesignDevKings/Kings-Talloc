@@ -6,7 +6,7 @@ import useAuthSession from '@/hooks/useAuthSession';
 
 const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTarget, onClose }) => {
     const modalActionStrategy = useModalActionStrategy(calendarAction);
-    const { session, userRole } = useAuthSession();
+    const { session, userRole, userRoles } = useAuthSession();
     const userEmail = session.user.email;
 
     // memoise the modal data so it doesn't recreate on every render
@@ -55,6 +55,7 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
         setShowStudentModal: onClose,
         userEmail,
         userRole,
+        userRoles,
     };
 
     if (dataProp === 'newEvent') {

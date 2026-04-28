@@ -3,6 +3,9 @@
     background: white;
     border-radius: 0.75rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .headerActions {
@@ -19,7 +22,8 @@
 }
 
 .tableContainer {
-    height: calc(100vh - 250px);
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     border: 1px solid var(--bs-border-color);
     border-radius: 0.5rem;
