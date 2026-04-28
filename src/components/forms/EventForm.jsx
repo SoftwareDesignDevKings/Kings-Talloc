@@ -35,6 +35,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         setCalendarShifts,
         setCalendarAvailabilities,
         setCalendarStudentRequests,
+        tutors,
     } = useAppData();
     // Derive mode flags
     const isView = mode === 'view';
@@ -95,6 +96,26 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         return true;
     };
 
+    const validateStaffRoles = () => {
+        const workType = newEvent.workType;
+        if (workType !== 'tutoring' && workType !== 'coaching') return true;
+
+        const requiredRole = workType === 'tutoring' ? 'tutor' : 'coach';
+        const assignedStaff = newEvent.staff || [];
+
+        const invalidStaff = assignedStaff.filter((staffMember) => {
+            const tutorRecord = tutors.find((t) => t.email === staffMember.value);
+            return tutorRecord && !tutorRecord.roles?.includes(requiredRole);
+        });
+
+        if (invalidStaff.length > 0) {
+            const names = invalidStaff.map((s) => s.label).join(', ');
+            addAlert('error', `The following staff do not have the ${requiredRole} role: ${names}`);
+            return false;
+        }
+        return true;
+    };
+
     const validateForm = () => {
 
         // Validate dates first
@@ -107,6 +128,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 addAlert('error', 'At least one tutor must be assigned to the event.');
                 return false;
             }
+        }
+
+        if (!validateStaffRoles()) {
+            return false;
         }
 
         if (!newEvent.title) {
