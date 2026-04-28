@@ -45,9 +45,9 @@ const DashboardOverview = () => {
         // Filter events
         const todayEvents = [];
         const upcomingEvents = [];
-        let completedEvents = 0;
+        let completedShifts = 0;
         let uncompletedTodayEvents = 0;
-        let needsCompletion = 0;
+        let uncompletedShifts = 0;
         let tutoringHours = 0;
         let coachingHours = 0;
         let needsConfirmation = 0;
@@ -84,16 +84,10 @@ const DashboardOverview = () => {
             // 3. Completed & Hours
             if (event.workStatus === 'completed') {
                 if (end < now) {
-                    completedEvents++;
+                    completedShifts++;
                 }
-            } else if (end < now) {
-                needsCompletion++;
-            }
-
-            if (event.workType === 'coaching') {
-                coachingHours += hours;
-            } else {
-                tutoringHours += hours;
+            } else if (end < now && event.workStatus !== 'completed') {
+                uncompletedShifts++;
             }
 
             // 4. Unique Students (for Tutor View)
@@ -150,7 +144,6 @@ const DashboardOverview = () => {
             upcomingEventsCount: upcomingEvents.length,
             unapprovedStudentRequests: pendingRequestsData.length,
             pendingRequestsData: pendingRequestsData,
-            completedEvents,
             uncompletedTodayEvents,
             weeklyUtilization,
             topSubjects,
@@ -158,7 +151,8 @@ const DashboardOverview = () => {
                 tutoring: Math.round(tutoringHours * 10) / 10,
                 coaching: Math.round(coachingHours * 10) / 10,
             },
-            needsCompletion,
+            completedShifts,
+            uncompletedShifts,
             needsConfirmation,
             uniqueStudents: uniqueStudentEmails.size,
             pendingRequests: pendingRequestsData.length,

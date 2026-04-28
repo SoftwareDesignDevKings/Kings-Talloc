@@ -65,8 +65,8 @@ const DashboardTutorStats = ({ data }) => (
         <StatsCard
             icon={FiAlertCircle}
             iconBgColor="bg-warning"
-            title="Needs Completion"
-            value={data.needsCompletion}
+            title="Uncompleted Shifts"
+            value={data.uncompletedShifts}
             subtitle={`${format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')} - ${format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')}`}
             delay={250}
         />
