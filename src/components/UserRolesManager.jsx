@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '@/firestore/firestoreClient';
-import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
 import styles from '@/styles/userRoles.module.css';
 
@@ -164,14 +164,22 @@ const UserRolesManager = () => {
 
     const handleDelete = async (userEmail) => {
         try {
-            await deleteDoc(doc(db, 'users', userEmail));
+            const res = await fetch('/api/users', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail }),
+            });
+            if (!res.ok) {
+                const { message } = await res.json();
+                throw new Error(message);
+            }
             const updatedUsers = users.filter((user) => user.email !== userEmail);
             setUsers(updatedUsers);
             setFilteredUsers(updatedUsers);
             addAlert('success', `User ${userEmail} deleted successfully.`);
         } catch (error) {
             console.error('Error deleting user:', error);
-            addAlert('error', 'Error deleting user. Please try again.');
+            addAlert('error', `Error deleting user: ${error.message}`);
         }
     };
 
