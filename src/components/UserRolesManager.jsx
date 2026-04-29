@@ -273,18 +273,14 @@ const UserRolesManager = () => {
                 <table className={`table table-hover mb-0 ${t.table}`}>
                     <thead>
                         <tr>
-                            <th scope="col">User</th>
                             <th scope="col" className={t.fixedCol}>Roles</th>
+                            <th scope="col">User</th>
                             <th scope="col" className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.map((user) => (
                             <tr key={user.id}>
-                                <td>
-                                    <div className="fw-bold">{user.name}</div>
-                                    <div className="text-muted small">{user.email}</div>
-                                </td>
                                 <td className={t.fixedCol}>
                                     <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
                                         {(user.defaultRole || user.role).toUpperCase()}
@@ -294,6 +290,10 @@ const UserRolesManager = () => {
                                             {r.toUpperCase()}
                                         </span>
                                     ))}
+                                </td>
+                                <td>
+                                    <div className="fw-bold">{user.name}</div>
+                                    <div className="text-muted small">{user.email}</div>
                                 </td>
                                 <td className={t.actionCol}>
                                     <div className={t.actionGroup}>
