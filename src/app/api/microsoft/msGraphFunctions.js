@@ -11,6 +11,7 @@ import { sanitiseHtml } from '@/lib/security/securityHelpers';
 
 const GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const TIMEZONE = 'Australia/Sydney';
+const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 
 /**
@@ -62,7 +63,7 @@ const buildEventBody = (subject, description, startTime, endTime, attendeesEmail
     // Add recurrence if specified
     if (recurrenceOptions && recurrenceOptions.recurring) {
         const startDate = new Date(startTime);
-        const endDate = recurrenceOptions.until || new Date(startDate);
+        let endDate = recurrenceOptions.until ? new Date(recurrenceOptions.until) : new Date(startDate);
         if (!recurrenceOptions.until) {
             endDate.setMonth(endDate.getMonth() + 3); // 3 months default
         }
@@ -71,17 +72,7 @@ const buildEventBody = (subject, description, startTime, endTime, attendeesEmail
             pattern: {
                 type: 'weekly',
                 interval: recurrenceOptions.recurring === 'weekly' ? 1 : 2,
-                daysOfWeek: [
-                    [
-                        'Sunday',
-                        'Monday',
-                        'Tuesday',
-                        'Wednesday',
-                        'Thursday',
-                        'Friday',
-                        'Saturday',
-                    ][startDate.getUTCDay()],
-                ],
+                daysOfWeek: [DAYS_OF_WEEK[startDate.getUTCDay()]],
             },
             range: {
                 type: 'endDate',
@@ -213,6 +204,7 @@ export const msDeleteEvent = async (accessToken, eventId) => {
             headers: buildHeaders(accessToken, false),
         });
 
+        // Treat 404 as success: DELETE is idempotent, and the event may already be deleted or not exist.
         if (!response.ok && response.status !== 404) {
             const error = await response.json();
             throw new Error(
