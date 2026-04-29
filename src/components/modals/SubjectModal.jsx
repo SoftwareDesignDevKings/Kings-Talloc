@@ -13,7 +13,6 @@ const SubjectModal = ({ showModal, setShowModal, subject, handleSubmit }) => {
     const handleFormSubmit = (e) => {
         e.preventDefault();
         handleSubmit({ name: subjectName });
-        setShowModal(false);
     };
 
     return (

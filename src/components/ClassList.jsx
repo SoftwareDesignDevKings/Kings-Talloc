@@ -92,6 +92,16 @@ const ClassList = () => {
             return false;
         }
 
+        const isDuplicateName = classes.some(
+            (cls) =>
+                cls.name.toLowerCase() === className.toLowerCase() &&
+                cls.id !== selectedClass?.id,
+        );
+        if (isDuplicateName) {
+            addAlert('error', 'A class with this name already exists.');
+            return;
+        }        
+
         try {
             if (isEditing) {
                 const classRef = doc(db, 'classes', selectedClass.id);
@@ -130,9 +140,9 @@ const ClassList = () => {
             console.error('Failed to save class:', err);
             addAlert('error', 'Failed to save class. Please try again.');
             return false;
-        }
-    };
-
+        };
+    }
+    
     const handleEditClass = (cls) => {
         setSelectedClass(cls);
         setClassName(cls.name);
@@ -153,11 +163,24 @@ const ClassList = () => {
 
     const handleAddStudents = async (e) => {
         e.preventDefault();
-        const entries = studentsToAdd.split(',').map((entry) => entry.trim());
+        const rawEntries = studentsToAdd.split(',').map((entry) => entry.trim()).filter(Boolean);
+
+        const existingEmails = new Set((selectedClass.students || []).map((s) => s.email));
+        const seenEmails = new Set();
+        const uniqueEntries = rawEntries.filter((entry) => {
+            const email = entry.includes(':') ? entry.split(':')[1].trim() : entry;
+            if (seenEmails.has(email) || existingEmails.has(email)) return false;
+            seenEmails.add(email);
+            return true;
+        });
+
+        if (uniqueEntries.length === 0) {
+            addAlert('error', 'All provided emails are already enrolled in this class.');
+            return;
+        }
 
         const newStudents = await Promise.all(
-            entries.map(async (entry) => {
-                // Check if entry has name:email format (from CSV) or just email (manual)
+            uniqueEntries.map(async (entry) => {
                 let email, name;
                 if (entry.includes(':')) {
                     [name, email] = entry.split(':').map((s) => s.trim());
@@ -169,11 +192,9 @@ const ClassList = () => {
                 const userRef = doc(db, 'users', email);
                 const userDoc = await getDoc(userRef);
                 if (!userDoc.exists()) {
-                    // User doesn't exist - use name from CSV or empty string
                     return { email, name };
                 } else {
                     const userData = userDoc.data();
-                    // Prefer name from database, fallback to CSV name, then empty
                     return { email, name: userData.name || name || '' };
                 }
             }),

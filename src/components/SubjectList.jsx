@@ -52,6 +52,16 @@ const SubjectList = () => {
     }, [searchTerm, subjects]);
 
     const handleAddSubject = async (subject) => {
+        const isDuplicateName = subjects.some(
+            (sub) =>
+                sub.name.toLowerCase() === subject.name.toLowerCase() &&
+                sub.id !== currentSubject?.id,
+        );
+        if (isDuplicateName) {
+            addAlert('error', 'A subject with this name already exists.');
+            return;
+        }
+
         if (isEditing) {
             const subjectRef = doc(db, 'subjects', currentSubject.id);
             await updateDoc(subjectRef, subject);
@@ -86,10 +96,14 @@ const SubjectList = () => {
     };
 
     const handleAddTutors = async (emails) => {
+        const existingTutorEmails = new Set((selectedSubject.tutors || []).map((t) => t.email));
         const uniqueEmails = [
             ...new Set(emails.map((email) => email.trim()).filter((email) => email !== '')),
-        ];
-        if (uniqueEmails.length === 0) return;
+        ].filter((email) => !existingTutorEmails.has(email));
+        if (uniqueEmails.length === 0) {
+            addAlert('error', 'All provided emails are already assigned to this subject.');
+            return;
+        }
         if (uniqueEmails.length > 499) {
             addAlert('error', 'Too many tutors at once — please add 499 or fewer at a time.');
             return;
