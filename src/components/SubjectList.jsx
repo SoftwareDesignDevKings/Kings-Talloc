@@ -83,6 +83,10 @@ const SubjectList = () => {
             ...new Set(emails.map((email) => email.trim()).filter((email) => email !== '')),
         ];
         if (uniqueEmails.length === 0) return;
+        if (uniqueEmails.length > 499) {
+            addAlert('error', 'Too many tutors at once — please add 499 or fewer at a time.');
+            return;
+        }
 
         const batch = writeBatch(db);
         const usersCollection = collection(db, 'users');
@@ -123,7 +127,13 @@ const SubjectList = () => {
         const subjectRef = doc(db, 'subjects', selectedSubject.id);
         batch.update(subjectRef, { tutors: updatedTutors });
 
-        await batch.commit();
+        try {
+            await batch.commit();
+        } catch (err) {
+            console.error('Failed to add tutors:', err);
+            addAlert('error', 'Failed to save tutors. Please try again.');
+            return;
+        }
 
         setSubjects(
             subjects.map((sub) =>
