@@ -35,6 +35,8 @@ const SubjectRow = ({
                         <button
                             onClick={() => handleExpandSubject(subject)}
                             className="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#${collapseId}`}
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
                         >
@@ -55,13 +57,11 @@ const SubjectRow = ({
                         id={collapseId}
                         role="region"
                         aria-label={`Tutors for ${subject.name}`}
-                        className={`${t.collapseWrap}${isExpanded ? ` ${t.collapseOpen}` : ''}`}
+                        className={`collapse${isExpanded ? ' show' : ''}`}
                     >
-                        <div className={t.collapseInner}>
-                            <div className={t.expandPanel}>
-                                <div className={t.expandPanelInner}>
-                                    <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
-                                </div>
+                        <div className={t.expandPanel}>
+                            <div className={t.expandPanelInner}>
+                                <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
                             </div>
                         </div>
                     </div>

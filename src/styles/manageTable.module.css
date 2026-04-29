@@ -86,22 +86,6 @@
     border-bottom: none !important;
 }
 
-/* grid-template-rows trick: animates height 0→auto without a fixed max-height */
-.collapseWrap {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 220ms ease;
-}
-
-.collapseOpen {
-    grid-template-rows: 1fr;
-}
-
-/* overflow: hidden required for the grid height animation to clip correctly */
-.collapseInner {
-    overflow: hidden;
-}
-
 .expandPanel {
     background: var(--tks-surface, #fafbff);
     border-top: 1px solid var(--tks-border-subtle, #f1f3f5);

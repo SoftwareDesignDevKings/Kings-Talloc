@@ -171,11 +171,11 @@ const SubjectList = () => {
             </div>
 
             <div className={t.tableWrap}>
-                <table className={`table table-hover mb-0 ${t.table}`}>
+                <table className={`table table-hover mb-0 ${t.table}`} style={{ tableLayout: 'fixed' }}>
                     <thead>
                         <tr>
                             <th scope="col">Subject Name</th>
-                            <th scope="col" className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '48%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
