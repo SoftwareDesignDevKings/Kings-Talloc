@@ -7,12 +7,8 @@ const SubjectModal = ({ showModal, setShowModal, subject, handleSubmit }) => {
     const [subjectName, setSubjectName] = useState('');
 
     useEffect(() => {
-        if (subject) {
-            setSubjectName(subject.name);
-        } else {
-            setSubjectName('');
-        }
-    }, [subject]);
+        setSubjectName(subject?.name ?? '');
+    }, [subject, showModal]);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();

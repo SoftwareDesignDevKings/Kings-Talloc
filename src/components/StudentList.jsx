@@ -17,7 +17,7 @@ const StudentList = ({ cls, confirmRemoveStudent }) => {
                             </div>
                             <button
                                 onClick={() => confirmRemoveStudent(cls, student)}
-                                className="btn btn-sm btn-link text-danger text-decoration-none p-0"
+                                className="btn btn-sm btn-outline-danger"
                             >
                                 Remove
                             </button>
