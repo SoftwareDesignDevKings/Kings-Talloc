@@ -49,6 +49,8 @@ const ClassRow = ({
                         <button
                             onClick={() => handleExpandClass(cls)}
                             className="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#${collapseId}`}
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
                         >
@@ -69,13 +71,11 @@ const ClassRow = ({
                         id={collapseId}
                         role="region"
                         aria-label={`Students in ${cls.name}`}
-                        className={`${t.collapseWrap}${isExpanded ? ` ${t.collapseOpen}` : ''}`}
+                        className={`collapse${isExpanded ? ' show' : ''}`}
                     >
-                        <div className={t.collapseInner}>
-                            <div className={t.expandPanel}>
-                                <div className={t.expandPanelInner}>
-                                    <StudentList cls={cls} confirmRemoveStudent={confirmRemoveStudent} />
-                                </div>
+                        <div className={t.expandPanel}>
+                            <div className={t.expandPanelInner}>
+                                <StudentList cls={cls} confirmRemoveStudent={confirmRemoveStudent} />
                             </div>
                         </div>
                     </div>
