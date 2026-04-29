@@ -7,6 +7,16 @@ import useAlert from '@/hooks/useAlert';
 import styles from '@/styles/userRoles.module.css';
 import t from '@/styles/manageTable.module.css';
 
+const getRolePriority = (user) => {
+    const all = [user.defaultRole || user.role, ...(user.userRoles || [])];
+    if (all.includes('admin'))   return 1;
+    if (all.includes('teacher')) return 2;
+    if (all.some(r => r === 'tutor' || r === 'coach')) return 3;
+    return 4;
+};
+
+const sortUsers = (list) => [...list].sort((a, b) => getRolePriority(a) - getRolePriority(b));
+
 const UserRolesManager = () => {
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
@@ -37,13 +47,7 @@ const UserRolesManager = () => {
             const querySnapshot = await getDocs(collection(db, 'users'));
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-            const sortedUsers = usersList.sort((a, b) => {
-                const roleOrder = { admin: 1, teacher: 2, tutor: 3, coach: 4, student: 5 };
-                const aRole = a.defaultRole || a.role;
-                const bRole = b.defaultRole || b.role;
-                return (roleOrder[aRole] || 6) - (roleOrder[bRole] || 6);
-            });
-
+            const sortedUsers = sortUsers(usersList);
             setUsers(sortedUsers);
             setFilteredUsers(sortedUsers);
         };
@@ -140,12 +144,7 @@ const UserRolesManager = () => {
 
             const querySnapshot = await getDocs(collection(db, 'users'));
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            const sortedUsers = usersList.sort((a, b) => {
-                const roleOrder = { admin: 1, teacher: 2, tutor: 3, coach: 4, student: 5 };
-                const aRole = a.defaultRole || a.role;
-                const bRole = b.defaultRole || b.role;
-                return (roleOrder[aRole] || 6) - (roleOrder[bRole] || 6);
-            });
+            const sortedUsers = sortUsers(usersList);
             setUsers(sortedUsers);
             setFilteredUsers(sortedUsers);
         } catch (error) {
@@ -275,7 +274,7 @@ const UserRolesManager = () => {
                     <thead>
                         <tr>
                             <th scope="col">User</th>
-                            <th scope="col">Roles</th>
+                            <th scope="col" className={t.fixedCol}>Roles</th>
                             <th scope="col" className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
@@ -286,7 +285,7 @@ const UserRolesManager = () => {
                                     <div className="fw-bold">{user.name}</div>
                                     <div className="text-muted small">{user.email}</div>
                                 </td>
-                                <td>
+                                <td className={t.fixedCol}>
                                     <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
                                         {(user.defaultRole || user.role).toUpperCase()}
                                     </span>
