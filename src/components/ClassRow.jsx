@@ -29,6 +29,9 @@ const ClassRow = ({
     return (
         <>
             <tr>
+                <td>{cls.name}</td>
+                <td>{getSubjectName(cls.subject)}</td>
+                <td>{getTeacherName(cls.teacherEmail)}</td>
                 <td className={t.actionCol}>
                     <div className={t.actionGroup}>
                         <button
@@ -61,9 +64,6 @@ const ClassRow = ({
                         </button>
                     </div>
                 </td>
-                <td>{cls.name}</td>
-                <td>{getSubjectName(cls.subject)}</td>
-                <td>{getTeacherName(cls.teacherEmail)}</td>
             </tr>
             <tr className={t.expandRow}>
                 <td colSpan={4}>

@@ -274,14 +274,28 @@ const UserRolesManager = () => {
                 <table className={`table table-hover mb-0 ${t.table}`}>
                     <thead>
                         <tr>
-                            <th scope="col" className={t.actionCol}>Actions</th>
                             <th scope="col">User</th>
                             <th scope="col">Roles</th>
+                            <th scope="col" className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.map((user) => (
                             <tr key={user.id}>
+                                <td>
+                                    <div className="fw-bold">{user.name}</div>
+                                    <div className="text-muted small">{user.email}</div>
+                                </td>
+                                <td>
+                                    <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
+                                        {(user.defaultRole || user.role).toUpperCase()}
+                                    </span>
+                                    {user.userRoles && user.userRoles.map(r => (
+                                        <span key={r} className={styles.roleBadge}>
+                                            {r.toUpperCase()}
+                                        </span>
+                                    ))}
+                                </td>
                                 <td className={t.actionCol}>
                                     <div className={t.actionGroup}>
                                         {((user.defaultRole || user.role) === 'tutor' || user.userRoles?.includes('tutor')) && (
@@ -330,20 +344,6 @@ const UserRolesManager = () => {
                                             Delete
                                         </button>
                                     </div>
-                                </td>
-                                <td>
-                                    <div className="fw-bold">{user.name}</div>
-                                    <div className="text-muted small">{user.email}</div>
-                                </td>
-                                <td>
-                                    <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
-                                        {(user.defaultRole || user.role).toUpperCase()}
-                                    </span>
-                                    {user.userRoles && user.userRoles.map(r => (
-                                        <span key={r} className={styles.roleBadge}>
-                                            {r.toUpperCase()}
-                                        </span>
-                                    ))}
                                 </td>
                             </tr>
                         ))}
