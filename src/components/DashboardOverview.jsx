@@ -194,7 +194,6 @@ const DashboardOverview = () => {
             uniqueStudents: uniqueStudentEmails.size,
             pendingRequests: pendingRequestsData.length,
             approvedRequests: 0,
-            rejectedRequests: 0,
             tutorsScheduledToday: uniqueTutorEmailsToday.size,
             teacherStats: {
                 studentSessions: teacherStudentSessions,
