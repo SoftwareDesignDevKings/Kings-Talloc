@@ -55,11 +55,11 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
     try {
         connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
         connectFirestoreEmulator(db, '127.0.0.1', 8080);
-        console.log('🔥 Connected to Firebase emulators');
+        console.log('Connected to Firebase emulators');
     } catch (error) {
         // Ignore "already started" errors (hot reload)
         if (!error.message.includes('already been started')) {
-            console.error('⚠️ Emulator connection failed:', error.message);
+            console.error('Emulator connection failed:', error.message);
         }
     }
 }
