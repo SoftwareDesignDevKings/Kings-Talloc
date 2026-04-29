@@ -18,6 +18,9 @@ import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';
 import SubjectRow from './SubjectRow.jsx';
 import useAlert from '@/hooks/useAlert';
+import useToggleSet from '@/hooks/useToggleSet';
+import { checkDuplicateName } from '@/utils/validation';
+import { filterNewEmails } from '@/utils/emailUtils';
 import t from '@/styles/manageTable.module.css';
 
 const SubjectList = () => {
@@ -30,7 +33,7 @@ const SubjectList = () => {
     const [showTutorModal, setShowTutorModal] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [tutorsToAdd, setTutorsToAdd] = useState('');
-    const [expandedSubjects, setExpandedSubjects] = useState(new Set());
+    const [expandedSubjects, toggleExpandedSubject, removeExpandedSubject] = useToggleSet();
     const [filteredSubjects, setFilteredSubjects] = useState([]);
 
     useEffect(() => {
@@ -52,12 +55,7 @@ const SubjectList = () => {
     }, [searchTerm, subjects]);
 
     const handleAddSubject = async (subject) => {
-        const isDuplicateName = subjects.some(
-            (sub) =>
-                sub.name.toLowerCase() === subject.name.toLowerCase() &&
-                sub.id !== currentSubject?.id,
-        );
-        if (isDuplicateName) {
+        if (checkDuplicateName(subjects, subject.name, currentSubject?.id)) {
             addAlert('error', 'A subject with this name already exists.');
             return;
         }
@@ -90,16 +88,16 @@ const SubjectList = () => {
         if (subjectToDelete) {
             await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
             setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
-            setExpandedSubjects((prev) => { const s = new Set(prev); s.delete(subjectToDelete.id); return s; });
+            removeExpandedSubject(subjectToDelete.id);
             addAlert('success', 'Subject deleted successfully');
         }
     };
 
     const handleAddTutors = async (emails) => {
-        const existingTutorEmails = new Set((selectedSubject.tutors || []).map((t) => t.email));
-        const uniqueEmails = [
-            ...new Set(emails.map((email) => email.trim()).filter((email) => email !== '')),
-        ].filter((email) => !existingTutorEmails.has(email));
+        const uniqueEmails = filterNewEmails(
+            emails,
+            (selectedSubject.tutors || []).map((t) => t.email),
+        );
         if (uniqueEmails.length === 0) {
             addAlert('error', 'All provided emails are already assigned to this subject.');
             return;
@@ -113,13 +111,12 @@ const SubjectList = () => {
         const usersCollection = collection(db, 'users');
         const existingUsersMap = new Map();
 
-        // fetch existing users in chunks of 30 (Firestore 'in' query limit) 
+        // fetch existing users in chunks of 30 (Firestore 'in' query limit)
         const chunks = [];
         for (let i = 0; i < uniqueEmails.length; i += 30) {
             chunks.push(uniqueEmails.slice(i, i + 30));
         }
 
-        // Promise.all to ensure they fire in parallel
         const snapshots = await Promise.all(
             chunks.map((chunk) => {
                 const q = query(usersCollection, where(documentId(), 'in', chunk));
@@ -139,7 +136,7 @@ const SubjectList = () => {
                 return { email, name: userData.name || '' };
             } else {
                 const userRef = doc(db, 'users', email);
-                batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor'}, { merge: true });
+                batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor' }, { merge: true });
                 return { email, name: '' };
             }
         });
@@ -197,13 +194,7 @@ const SubjectList = () => {
         setShowTutorModal(true);
     };
 
-    const handleExpandSubject = (subject) => {
-        setExpandedSubjects((prev) => {
-            const s = new Set(prev);
-            s.has(subject.id) ? s.delete(subject.id) : s.add(subject.id);
-            return s;
-        });
-    };
+    const handleExpandSubject = (subject) => toggleExpandedSubject(subject.id);
 
     return (
         <div className={t.container}>

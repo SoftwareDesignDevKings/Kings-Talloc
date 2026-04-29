@@ -15,6 +15,13 @@ import ClassRow from './ClassRow.jsx';
 import ClassModal from './modals/ClassModal.jsx';
 import AddStudentsModal from './modals/AddStudentsModal.jsx';
 import useAlert from '@/hooks/useAlert';
+import useToggleSet from '@/hooks/useToggleSet';
+import { checkDuplicateName } from '@/utils/validation';
+import {
+    parseStudentEntries,
+    filterNewStudentEntries,
+    extractEmailFromEntry,
+} from '@/utils/emailUtils';
 import t from '@/styles/manageTable.module.css';
 
 const ClassList = () => {
@@ -32,7 +39,7 @@ const ClassList = () => {
     const [studentsToAdd, setStudentsToAdd] = useState('');
     const [selectedClass, setSelectedClass] = useState(null);
     const [filteredClasses, setFilteredClasses] = useState([]);
-    const [expandedClasses, setExpandedClasses] = useState(new Set());
+    const [expandedClasses, toggleExpandedClass, removeExpandedClass] = useToggleSet();
 
     const fetchClasses = async () => {
         const querySnapshot = await getDocs(collection(db, 'classes'));
@@ -92,12 +99,7 @@ const ClassList = () => {
             return false;
         }
 
-        const isDuplicateName = classes.some(
-            (cls) =>
-                cls.name.toLowerCase() === className.toLowerCase() &&
-                cls.id !== selectedClass?.id,
-        );
-        if (isDuplicateName) {
+        if (checkDuplicateName(classes, className, selectedClass?.id)) {
             addAlert('error', 'A class with this name already exists.');
             return;
         }        
@@ -156,23 +158,18 @@ const ClassList = () => {
         if (classToDelete) {
             await deleteDoc(doc(db, 'classes', classToDelete.id));
             setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
-            setExpandedClasses((prev) => { const s = new Set(prev); s.delete(classToDelete.id); return s; });
+            removeExpandedClass(classToDelete.id);
             addAlert('success', 'Class deleted successfully');
         }
     };
 
     const handleAddStudents = async (e) => {
         e.preventDefault();
-        const rawEntries = studentsToAdd.split(',').map((entry) => entry.trim()).filter(Boolean);
-
-        const existingEmails = new Set((selectedClass.students || []).map((s) => s.email));
-        const seenEmails = new Set();
-        const uniqueEntries = rawEntries.filter((entry) => {
-            const email = entry.includes(':') ? entry.split(':')[1].trim() : entry;
-            if (seenEmails.has(email) || existingEmails.has(email)) return false;
-            seenEmails.add(email);
-            return true;
-        });
+        const rawEntries = parseStudentEntries(studentsToAdd);
+        const uniqueEntries = filterNewStudentEntries(
+            rawEntries,
+            (selectedClass.students || []).map((s) => s.email),
+        );
 
         if (uniqueEntries.length === 0) {
             addAlert('error', 'All provided emails are already enrolled in this class.');
@@ -181,13 +178,8 @@ const ClassList = () => {
 
         const newStudents = await Promise.all(
             uniqueEntries.map(async (entry) => {
-                let email, name;
-                if (entry.includes(':')) {
-                    [name, email] = entry.split(':').map((s) => s.trim());
-                } else {
-                    email = entry;
-                    name = '';
-                }
+                const email = extractEmailFromEntry(entry);
+                const name = entry.includes(':') ? entry.split(':')[0].trim() : '';
 
                 const userRef = doc(db, 'users', email);
                 const userDoc = await getDoc(userRef);
@@ -224,13 +216,7 @@ const ClassList = () => {
         setShowStudentModal(true);
     };
 
-    const handleExpandClass = (cls) => {
-        setExpandedClasses((prev) => {
-            const s = new Set(prev);
-            s.has(cls.id) ? s.delete(cls.id) : s.add(cls.id);
-            return s;
-        });
-    };
+    const handleExpandClass = (cls) => toggleExpandedClass(cls.id);
 
     return (
         <div className={t.container}>
