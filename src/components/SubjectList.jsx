@@ -175,7 +175,7 @@ const SubjectList = () => {
                     <thead>
                         <tr>
                             <th scope="col">Subject Name</th>
-                            <th scope="col" style={{ width: '48%' }} className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '34%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>

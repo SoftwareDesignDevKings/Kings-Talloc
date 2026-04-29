@@ -237,7 +237,7 @@ const ClassList = () => {
                             <th scope="col">Class Name</th>
                             <th scope="col" style={{ width: '16%' }}>Subject</th>
                             <th scope="col" style={{ width: '16%' }}>Teacher</th>
-                            <th scope="col" style={{ width: '44%' }} className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '36%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
