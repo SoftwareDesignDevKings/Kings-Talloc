@@ -67,16 +67,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     }, [setNewEvent]);
 
     const handleWorkTypeChange = useCallback((workType) => {
-        setSelectedStaff((prev) => {
-            const filtered = prev.filter((s) => {
-                if (!s.roles) return true;
-                if (workType === 'tutoring') return s.roles.includes('tutor');
-                if (workType === 'coaching') return s.roles.includes('coach');
-                return true;
-            });
-            setNewEvent((prev2) => ({ ...prev2, workType, staff: filtered }));
-            return filtered;
-        });
+        setNewEvent((prev) => ({ ...prev, workType }));
     }, [setNewEvent]);
 
     const handleClassSelectChange = useCallback((selectedOptions) => {
