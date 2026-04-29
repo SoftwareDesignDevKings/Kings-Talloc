@@ -29,10 +29,6 @@ const ClassList = () => {
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-<<<<<<< HEAD
-=======
-    const { addAlert } = useAlert();
->>>>>>> 7ee86ce (feat: filter by student's enrolled classSubject by default, then render depending on subject choice)
     const [studentsToAdd, setStudentsToAdd] = useState('');
     const [selectedClass, setSelectedClass] = useState(null);
     const [filteredClasses, setFilteredClasses] = useState([]);
