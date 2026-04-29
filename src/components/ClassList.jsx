@@ -143,7 +143,7 @@ const ClassList = () => {
             addAlert('error', 'Failed to save class. Please try again.');
             return false;
         };
-    }
+    };
     
     const handleEditClass = (cls) => {
         setSelectedClass(cls);
