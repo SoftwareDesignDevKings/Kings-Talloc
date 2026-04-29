@@ -15,8 +15,10 @@ import {
 import ClassRow from './ClassRow.jsx';
 import ClassModal from './modals/ClassModal.jsx';
 import AddStudentsModal from './modals/AddStudentsModal.jsx';
+import useAlert from '@/hooks/useAlert';
 
 const ClassList = () => {
+    const { addAlert } = useAlert();
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [teachers, setTeachers] = useState([]);
@@ -27,7 +29,6 @@ const ClassList = () => {
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [success, setSuccess] = useState('');
     const [studentsToAdd, setStudentsToAdd] = useState('');
     const [selectedClass, setSelectedClass] = useState(null);
     const [filteredClasses, setFilteredClasses] = useState([]);
@@ -84,11 +85,11 @@ const ClassList = () => {
     const handleAddClass = async (e) => {
         e.preventDefault();
         if (!selectedSubject) {
-            setSuccess('Please select a subject.');
+            addAlert('error', 'Please select a subject.');
             return;
         }
         if (!selectedTeacher) {
-            setSuccess('Please select a teacher.');
+            addAlert('error', 'Please select a teacher.');
             return;
         }
 
@@ -123,7 +124,7 @@ const ClassList = () => {
         setSelectedSubject(null);
         setSelectedTeacher(null);
         setShowModal(false);
-        setSuccess(isEditing ? 'Class edited successfully' : 'Class added successfully');
+        addAlert('success', isEditing ? 'Class edited successfully' : 'Class added successfully');
         fetchClasses();
     };
 
@@ -140,7 +141,7 @@ const ClassList = () => {
         if (classToDelete) {
             await deleteDoc(doc(db, 'classes', classToDelete.id));
             setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
-            setSuccess('Class deleted successfully');
+            addAlert('success', 'Class deleted successfully');
         }
     };
 
@@ -177,7 +178,7 @@ const ClassList = () => {
         setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
         setStudentsToAdd('');
         setShowStudentModal(false);
-        setSuccess('Students added successfully');
+        addAlert('success', 'Students added successfully');
         fetchClasses();
     };
 
@@ -188,7 +189,7 @@ const ClassList = () => {
         const classRef = doc(db, 'classes', classToUpdate.id);
         await updateDoc(classRef, { students: updatedStudents });
         setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
-        setSuccess('Student removed successfully');
+        addAlert('success', 'Student removed successfully');
         fetchClasses();
     };
 
@@ -360,7 +361,6 @@ const ClassList = () => {
                 </div>
             )}
 
-            {success && <p className="text-success small mt-3">{success}</p>}
         </div>
     );
 };
