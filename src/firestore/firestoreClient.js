@@ -1,4 +1,4 @@
-// firebase.js
+// firestoreClient.js
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
@@ -26,12 +26,16 @@ if (getApps().length > 0) {
 
 // app check for recaptcha in browser (only in production)
 if (typeof window !== "undefined" && process.env.NODE_ENV !== 'development') {
-    initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(
-            process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-        ),
-        isTokenAutoRefreshEnabled: true,
-    });
+    const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+    if (typeof recaptchaSiteKey === 'string' && recaptchaSiteKey.trim().length > 0) {
+        initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+            isTokenAutoRefreshEnabled: true,
+        });
+    } else {
+        console.error('Skipping Firebase App Check initialization: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set.');
+    }
 }
 
 /**
