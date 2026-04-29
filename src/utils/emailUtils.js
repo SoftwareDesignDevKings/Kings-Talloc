@@ -4,11 +4,13 @@ export const parseStudentEntries = (commaSeparated) =>
         .map((entry) => entry.trim())
         .filter(Boolean);
 
-export const extractEmailFromEntry = (entry) =>
-    entry.includes(':') ? entry.split(':')[1].trim() : entry;
+export const extractEmailFromEntry = (entry) => {
+    const raw = entry.includes(':') ? entry.split(':')[1].trim() : entry;
+    return raw.toLowerCase();
+};
 
 export const filterNewStudentEntries = (entries, existingEmails) => {
-    const existingSet = new Set(existingEmails);
+    const existingSet = new Set(existingEmails.map((e) => e.toLowerCase()));
     const seenEmails = new Set();
     return entries.filter((entry) => {
         const email = extractEmailFromEntry(entry);
@@ -19,8 +21,8 @@ export const filterNewStudentEntries = (entries, existingEmails) => {
 };
 
 export const filterNewEmails = (emails, existingEmails) => {
-    const existingSet = new Set(existingEmails);
-    return [...new Set(emails.map((e) => e.trim()).filter(Boolean))].filter(
+    const existingSet = new Set(existingEmails.map((e) => e.toLowerCase()));
+    return [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))].filter(
         (email) => !existingSet.has(email),
     );
 };
