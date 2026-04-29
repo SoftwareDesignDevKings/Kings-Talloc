@@ -1,4 +1,7 @@
-import 'server-only';
-import DOMPurify from 'isomorphic-dompurify';
+import sanitizeHtmlLibrary from 'sanitize-html';
 
-export const sanitiseHtml = (html) => DOMPurify.sanitize(html);
+export const sanitiseHtml = (html) =>
+    sanitizeHtmlLibrary(html, {
+        allowedTags: sanitizeHtmlLibrary.defaults.allowedTags,
+        allowedAttributes: sanitizeHtmlLibrary.defaults.allowedAttributes,
+});
