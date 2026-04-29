@@ -63,7 +63,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     }
 
     // Sort events by tutor once
-    for (const [tutor, tutorEvents] of eventsByTutor.entries()) {
+    for (const tutorEvents of eventsByTutor.values()) {
         tutorEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
     }
 

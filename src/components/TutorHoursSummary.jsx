@@ -20,15 +20,6 @@ const getMonday = (d) => {
     return monday;
 };
 
-const calculateBreakTime = (totalHours) => {
-    if (totalHours > 3 && totalHours <= 6) {
-        return 0.5;
-    } else if (totalHours > 6) {
-        return 1;
-    }
-    return 0;
-};
-
 const isShiftValid = (shift) => {
     if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
         return false;

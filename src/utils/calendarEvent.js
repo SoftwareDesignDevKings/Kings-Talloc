@@ -363,7 +363,7 @@ export const calendarEventHandleDrop = async (
                     start: new Date(start),
                     end: updatedEnd,
                 };
-                const newDocId = await createEventInFirestore(newEvent, collectionName);
+                await createEventInFirestore(newEvent, collectionName);
 
                 // Update the Teams occurrence for this instance
                 if (teamsEventId && !isAvailability && !isStudentRequest) {
@@ -549,7 +549,7 @@ export const calendarEventHandleResize = async (
                     start: new Date(start),
                     end: new Date(end),
                 };
-                const newDocId = await createEventInFirestore(newEvent, collectionName);
+                await createEventInFirestore(newEvent, collectionName);
 
                 // Update the Teams occurrence for this instance
                 if (teamsEventId && !isAvailability && !isStudentRequest) {
