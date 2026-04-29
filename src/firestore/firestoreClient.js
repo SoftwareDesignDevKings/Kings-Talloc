@@ -34,7 +34,7 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== 'development') {
             isTokenAutoRefreshEnabled: true,
         });
     } else {
-        console.warn('Skipping Firebase App Check initialization: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set.');
+        console.error('Skipping Firebase App Check initialization: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set.');
     }
 }
 
