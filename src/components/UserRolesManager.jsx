@@ -270,18 +270,22 @@ const UserRolesManager = () => {
             </div>
 
             <div className={t.tableWrap}>
-                <table className={`table table-hover mb-0 ${t.table}`}>
+                <table className={`table table-hover mb-0 ${t.table}`} style={{ tableLayout: 'fixed' }}>
                     <thead>
                         <tr>
-                            <th scope="col" className={t.fixedCol}>Roles</th>
                             <th scope="col">User</th>
-                            <th scope="col" className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '220px' }}>Roles</th>
+                            <th scope="col" style={{ width: '210px' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.map((user) => (
                             <tr key={user.id}>
-                                <td className={t.fixedCol}>
+                                <td>
+                                    <div className="fw-bold">{user.name}</div>
+                                    <div className="text-muted small">{user.email}</div>
+                                </td>
+                                <td>
                                     <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
                                         {(user.defaultRole || user.role).toUpperCase()}
                                     </span>
@@ -290,10 +294,6 @@ const UserRolesManager = () => {
                                             {r.toUpperCase()}
                                         </span>
                                     ))}
-                                </td>
-                                <td>
-                                    <div className="fw-bold">{user.name}</div>
-                                    <div className="text-muted small">{user.email}</div>
                                 </td>
                                 <td className={t.actionCol}>
                                     <div className={t.actionGroup}>
