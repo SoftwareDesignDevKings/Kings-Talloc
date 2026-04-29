@@ -1,30 +1,31 @@
 import React from 'react';
+import t from '@/styles/manageTable.module.css';
 
 const TutorList = ({ subject, confirmRemoveTutor }) => {
     return (
-        <div className="mt-3">
-            <h3 className="fs-5 fw-medium text-primary">Tutors</h3>
+        <div>
+            <p className={t.expandLabel}>
+                Tutors{subject.tutors?.length ? ` (${subject.tutors.length})` : ''}
+            </p>
             {subject.tutors && subject.tutors.length > 0 ? (
-                <ul className="list-group mt-2">
+                <div className={t.memberList}>
                     {subject.tutors.map((tutor) => (
-                        <li
-                            key={tutor.email}
-                            className="list-group-item d-flex justify-content-between align-items-center"
-                        >
-                            <span>
-                                {tutor.name ? `${tutor.name} (${tutor.email})` : tutor.email}
-                            </span>
+                        <div key={tutor.email} className={t.memberItem}>
+                            <div>
+                                <div className={t.memberName}>{tutor.name || 'No name'}</div>
+                                <div className={t.memberEmail}>{tutor.email}</div>
+                            </div>
                             <button
                                 onClick={() => confirmRemoveTutor(tutor, subject)}
                                 className="btn btn-sm btn-outline-danger"
                             >
                                 Remove
                             </button>
-                        </li>
+                        </div>
                     ))}
-                </ul>
+                </div>
             ) : (
-                <p className="text-muted">No tutors added to this subject.</p>
+                <p className={t.emptyMessage}>No tutors added to this subject yet.</p>
             )}
         </div>
     );

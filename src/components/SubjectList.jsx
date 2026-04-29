@@ -18,6 +18,7 @@ import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';
 import SubjectRow from './SubjectRow.jsx';
 import useAlert from '@/hooks/useAlert';
+import t from '@/styles/manageTable.module.css';
 
 const SubjectList = () => {
     const { addAlert } = useAlert();
@@ -29,7 +30,7 @@ const SubjectList = () => {
     const [showTutorModal, setShowTutorModal] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [tutorsToAdd, setTutorsToAdd] = useState('');
-    const [expandedSubject, setExpandedSubject] = useState(null);
+    const [expandedSubjects, setExpandedSubjects] = useState(new Set());
     const [filteredSubjects, setFilteredSubjects] = useState([]);
 
     useEffect(() => {
@@ -79,6 +80,7 @@ const SubjectList = () => {
         if (subjectToDelete) {
             await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
             setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
+            setExpandedSubjects((prev) => { const s = new Set(prev); s.delete(subjectToDelete.id); return s; });
             addAlert('success', 'Subject deleted successfully');
         }
     };
@@ -182,20 +184,27 @@ const SubjectList = () => {
     };
 
     const handleExpandSubject = (subject) => {
-        setExpandedSubject(expandedSubject === subject.id ? null : subject.id);
+        setExpandedSubjects((prev) => {
+            const s = new Set(prev);
+            s.has(subject.id) ? s.delete(subject.id) : s.add(subject.id);
+            return s;
+        });
     };
 
     return (
-        <div className="p-4 bg-white rounded shadow h-100 d-flex flex-column">
-            <h2 className="h4 mb-4 fw-bold text-tks-secondary">Manage Subjects</h2>
-            <div className="d-flex gap-2 mb-4">
-                <input
-                    type="text"
-                    placeholder="Search by subject name"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="form-control"
-                />
+        <div className={t.container}>
+            <h2 className="h4 mb-3 fw-bold text-tks-secondary">Manage Subjects</h2>
+
+            <div className={t.headerActions}>
+                <div className={t.searchWrapper}>
+                    <input
+                        type="text"
+                        placeholder="Search by subject name"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="form-control"
+                    />
+                </div>
                 <button
                     onClick={openAddModal}
                     className="btn btn-outline-primary btn-sm text-nowrap"
@@ -204,12 +213,12 @@ const SubjectList = () => {
                 </button>
             </div>
 
-            <div className="table-responsive flex-fill" style={{ overflowY: 'auto' }}>
-                <table className="table table-hover table-text-sm">
-                    <thead className="sticky-top bg-light">
+            <div className={t.tableWrap}>
+                <table className={`table table-hover mb-0 ${t.table}`} style={{ tableLayout: 'fixed' }}>
+                    <thead>
                         <tr>
                             <th scope="col">Subject Name</th>
-                            <th scope="col">Actions</th>
+                            <th scope="col" style={{ width: '34%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -220,7 +229,7 @@ const SubjectList = () => {
                                 handleOpenTutorModal={openAddTutorModal}
                                 confirmDeleteSubject={openDeleteModal}
                                 handleExpandSubject={handleExpandSubject}
-                                expandedSubject={expandedSubject}
+                                expandedSubjects={expandedSubjects}
                                 confirmRemoveTutor={handleRemoveTutor}
                                 handleEditSubject={openEditModal}
                             />

@@ -1,24 +1,25 @@
 import React from 'react';
 import TutorList from './TutorList.jsx';
+import t from '@/styles/manageTable.module.css';
 
 const SubjectRow = ({
     subject,
     handleOpenTutorModal,
     confirmDeleteSubject,
     handleExpandSubject,
-    expandedSubject,
+    expandedSubjects,
     confirmRemoveTutor,
     handleEditSubject,
 }) => {
     const collapseId = `subject-collapse-${subject.id}`;
-    const isExpanded = expandedSubject === subject.id;
+    const isExpanded = expandedSubjects.has(subject.id);
 
     return (
         <>
             <tr>
                 <td>{subject.name}</td>
-                <td>
-                    <div className="d-flex gap-2">
+                <td className={t.actionCol}>
+                    <div className={t.actionGroup}>
                         <button
                             onClick={() => handleEditSubject(subject)}
                             className="btn btn-sm btn-outline-primary"
@@ -32,12 +33,6 @@ const SubjectRow = ({
                             Add Tutors
                         </button>
                         <button
-                            onClick={() => confirmDeleteSubject(subject)}
-                            className="btn btn-sm btn-outline-danger"
-                        >
-                            Delete
-                        </button>
-                        <button
                             onClick={() => handleExpandSubject(subject)}
                             className="btn btn-sm btn-outline-secondary"
                             data-bs-toggle="collapse"
@@ -45,19 +40,29 @@ const SubjectRow = ({
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
                         >
-                            {isExpanded ? 'Collapse' : 'Expand'}
+                            {isExpanded ? 'Collapse' : 'Expand to view tutors'}
+                        </button>
+                        <button
+                            onClick={() => confirmDeleteSubject(subject)}
+                            className="btn btn-sm btn-outline-danger"
+                        >
+                            Delete
                         </button>
                     </div>
                 </td>
             </tr>
-            <tr>
-                <td colSpan="2" className="p-0">
+            <tr className={t.expandRow}>
+                <td colSpan={2}>
                     <div
                         id={collapseId}
+                        role="region"
+                        aria-label={`Tutors for ${subject.name}`}
                         className={`collapse${isExpanded ? ' show' : ''}`}
                     >
-                        <div className="p-3" style={{maxHeight: '15rem', overflowY: 'auto'}}>
-                            <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
+                        <div className={t.expandPanel}>
+                            <div className={t.expandPanelInner}>
+                                <TutorList subject={subject} confirmRemoveTutor={confirmRemoveTutor} />
+                            </div>
                         </div>
                     </div>
                 </td>

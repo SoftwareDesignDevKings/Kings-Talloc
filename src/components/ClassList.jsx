@@ -10,12 +10,12 @@ import {
     updateDoc,
     doc,
     getDoc,
-    setDoc,
 } from 'firebase/firestore';
 import ClassRow from './ClassRow.jsx';
 import ClassModal from './modals/ClassModal.jsx';
 import AddStudentsModal from './modals/AddStudentsModal.jsx';
 import useAlert from '@/hooks/useAlert';
+import t from '@/styles/manageTable.module.css';
 
 const ClassList = () => {
     const { addAlert } = useAlert();
@@ -32,8 +32,7 @@ const ClassList = () => {
     const [studentsToAdd, setStudentsToAdd] = useState('');
     const [selectedClass, setSelectedClass] = useState(null);
     const [filteredClasses, setFilteredClasses] = useState([]);
-    const [showViewStudentsModal, setShowViewStudentsModal] = useState(false);
-    const [viewStudentsClass, setViewStudentsClass] = useState(null);
+    const [expandedClasses, setExpandedClasses] = useState(new Set());
 
     const fetchClasses = async () => {
         const querySnapshot = await getDocs(collection(db, 'classes'));
@@ -141,6 +140,7 @@ const ClassList = () => {
         if (classToDelete) {
             await deleteDoc(doc(db, 'classes', classToDelete.id));
             setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
+            setExpandedClasses((prev) => { const s = new Set(prev); s.delete(classToDelete.id); return s; });
             addAlert('success', 'Class deleted successfully');
         }
     };
@@ -188,7 +188,6 @@ const ClassList = () => {
         );
         const classRef = doc(db, 'classes', classToUpdate.id);
         await updateDoc(classRef, { students: updatedStudents });
-        setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
         addAlert('success', 'Student removed successfully');
         fetchClasses();
     };
@@ -198,30 +197,28 @@ const ClassList = () => {
         setShowStudentModal(true);
     };
 
-    const handleViewStudents = (cls) => {
-        setViewStudentsClass(cls);
-        setShowViewStudentsModal(true);
-    };
-
-    const confirmRemoveStudent = (student, cls) => {
-        handleRemoveStudent(cls, student);
-    };
-
-    const confirmDeleteClass = (cls) => {
-        handleDeleteClass(cls);
+    const handleExpandClass = (cls) => {
+        setExpandedClasses((prev) => {
+            const s = new Set(prev);
+            s.has(cls.id) ? s.delete(cls.id) : s.add(cls.id);
+            return s;
+        });
     };
 
     return (
-        <div className="p-4 bg-white rounded shadow h-100 d-flex flex-column">
-            <h2 className="h4 mb-4 fw-bold text-tks-secondary">Manage Classes</h2>
-            <div className="d-flex gap-2 mb-4">
-                <input
-                    type="text"
-                    placeholder="Search by class name"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="form-control"
-                />
+        <div className={t.container}>
+            <h2 className="h4 mb-3 fw-bold text-tks-secondary">Manage Classes</h2>
+
+            <div className={t.headerActions}>
+                <div className={t.searchWrapper}>
+                    <input
+                        type="text"
+                        placeholder="Search by class name"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="form-control"
+                    />
+                </div>
                 <button
                     onClick={() => {
                         setSelectedClass(null);
@@ -236,14 +233,14 @@ const ClassList = () => {
                 </button>
             </div>
 
-            <div className="table-responsive flex-fill" style={{ overflowY: 'auto' }}>
-                <table className="table table-hover table-text-sm">
-                    <thead className="sticky-top bg-light">
+            <div className={t.tableWrap}>
+                <table className={`table table-hover mb-0 ${t.table}`} style={{ tableLayout: 'fixed' }}>
+                    <thead>
                         <tr>
                             <th scope="col">Class Name</th>
-                            <th scope="col">Subject</th>
-                            <th scope="col">Teacher</th>
-                            <th scope="col">Actions</th>
+                            <th scope="col" style={{ width: '16%' }}>Subject</th>
+                            <th scope="col" style={{ width: '16%' }}>Teacher</th>
+                            <th scope="col" style={{ width: '36%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -254,10 +251,11 @@ const ClassList = () => {
                                 subjects={subjects}
                                 teachers={teachers}
                                 handleOpenStudentModal={handleOpenStudentModal}
-                                confirmDeleteClass={confirmDeleteClass}
-                                handleViewStudents={handleViewStudents}
-                                confirmRemoveStudent={confirmRemoveStudent}
+                                confirmDeleteClass={handleDeleteClass}
+                                confirmRemoveStudent={handleRemoveStudent}
                                 handleEditClass={handleEditClass}
+                                expandedClasses={expandedClasses}
+                                handleExpandClass={handleExpandClass}
                             />
                         ))}
                     </tbody>
@@ -286,81 +284,6 @@ const ClassList = () => {
                 setStudentsToAdd={setStudentsToAdd}
                 handleAddStudents={handleAddStudents}
             />
-
-            {showViewStudentsModal && viewStudentsClass && (
-                <div
-                    className="modal show d-block"
-                    tabIndex="-1"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-                    onClick={() => setShowViewStudentsModal(false)}
-                >
-                    <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    Students in {viewStudentsClass.name}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    onClick={() => setShowViewStudentsModal(false)}
-                                    aria-label="Close"
-                                ></button>
-                            </div>
-                            <div className="modal-body" style={{ maxHeight: '60vh' }}>
-                                {viewStudentsClass.students &&
-                                viewStudentsClass.students.length > 0 ? (
-                                    <div className="list-group">
-                                        {viewStudentsClass.students.map((student, index) => (
-                                            <div
-                                                key={index}
-                                                className="list-group-item d-flex justify-content-between align-items-center"
-                                            >
-                                                <div>
-                                                    <strong>{student.name || 'No name'}</strong>
-                                                    <br />
-                                                    <small className="text-muted">
-                                                        {student.email}
-                                                    </small>
-                                                </div>
-                                                <button
-                                                    className="btn btn-sm btn-outline-danger"
-                                                    onClick={() => {
-                                                        confirmRemoveStudent(
-                                                            student,
-                                                            viewStudentsClass,
-                                                        );
-                                                        setViewStudentsClass((prev) => ({
-                                                            ...prev,
-                                                            students: prev.students.filter(
-                                                                (s) => s.email !== student.email,
-                                                            ),
-                                                        }));
-                                                    }}
-                                                >
-                                                    Remove
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-muted">No students in this class yet.</p>
-                                )}
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-secondary"
-                                    onClick={() => setShowViewStudentsModal(false)}
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
         </div>
     );
 };

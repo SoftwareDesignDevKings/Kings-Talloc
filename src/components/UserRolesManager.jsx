@@ -5,6 +5,17 @@ import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
 import styles from '@/styles/userRoles.module.css';
+import t from '@/styles/manageTable.module.css';
+
+const getRolePriority = (user) => {
+    const all = [user.defaultRole || user.role, ...(user.userRoles || [])];
+    if (all.includes('admin'))   return 1;
+    if (all.includes('teacher')) return 2;
+    if (all.some(r => r === 'tutor' || r === 'coach')) return 3;
+    return 4;
+};
+
+const sortUsers = (list) => [...list].sort((a, b) => getRolePriority(a) - getRolePriority(b));
 
 const UserRolesManager = () => {
     const [users, setUsers] = useState([]);
@@ -36,13 +47,7 @@ const UserRolesManager = () => {
             const querySnapshot = await getDocs(collection(db, 'users'));
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-            const sortedUsers = usersList.sort((a, b) => {
-                const roleOrder = { admin: 1, teacher: 2, tutor: 3, coach: 4, student: 5 };
-                const aRole = a.defaultRole || a.role;
-                const bRole = b.defaultRole || b.role;
-                return (roleOrder[aRole] || 6) - (roleOrder[bRole] || 6);
-            });
-
+            const sortedUsers = sortUsers(usersList);
             setUsers(sortedUsers);
             setFilteredUsers(sortedUsers);
         };
@@ -144,12 +149,7 @@ const UserRolesManager = () => {
 
             const querySnapshot = await getDocs(collection(db, 'users'));
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            const sortedUsers = usersList.sort((a, b) => {
-                const roleOrder = { admin: 1, teacher: 2, tutor: 3, coach: 4, student: 5 };
-                const aRole = a.defaultRole || a.role;
-                const bRole = b.defaultRole || b.role;
-                return (roleOrder[aRole] || 6) - (roleOrder[bRole] || 6);
-            });
+            const sortedUsers = sortUsers(usersList);
             setUsers(sortedUsers);
             setFilteredUsers(sortedUsers);
         } catch (error) {
@@ -217,7 +217,7 @@ const UserRolesManager = () => {
             const timesheetData = {
                 tutorEmail: userEmail,
                 tutorName: userName,
-                fileData: base64Data, // Store base64 encoded file
+                fileData: base64Data,
                 fileName: file.name,
                 fileType: file.type,
                 fileSize: file.size,
@@ -238,12 +238,13 @@ const UserRolesManager = () => {
     };
 
     return (
-        <div className={styles.managerContainer}>
+        <div className={t.container}>
             <h2 className="h4 mb-3 fw-bold text-tks-secondary">
                 Manage User Roles
             </h2>
-            <div className={styles.headerActions}>
-                <div className={styles.searchWrapper}>
+
+            <div className={t.headerActions}>
+                <div className={t.searchWrapper}>
                     <input
                         type="text"
                         placeholder="Search users..."
@@ -267,7 +268,7 @@ const UserRolesManager = () => {
                 </button>
             </div>
 
-            <div className="d-flex flex-wrap gap-2 mb-4">
+            <div className="d-flex flex-wrap gap-2 mb-3">
                 <a
                     href="/api/download-template?type=tutor"
                     download="Tutor_Timesheet_Template.docx"
@@ -276,13 +277,14 @@ const UserRolesManager = () => {
                     Tutor Template
                 </a>
             </div>
-            <div className={styles.tableContainer}>
-                <table className={`table table-hover mb-0 ${styles.roleTable}`}>
+
+            <div className={t.tableWrap}>
+                <table className={`table table-hover mb-0 ${t.table}`} style={{ tableLayout: 'fixed' }}>
                     <thead>
                         <tr>
                             <th scope="col">User</th>
-                            <th scope="col">Roles</th>
-                            <th scope="col" className="text-end">Actions</th>
+                            <th scope="col" style={{ width: '30%' }}>Roles</th>
+                            <th scope="col" style={{ width: '20%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -302,8 +304,8 @@ const UserRolesManager = () => {
                                         </span>
                                     ))}
                                 </td>
-                                <td>
-                                    <div className={styles.actionGroup}>
+                                <td className={t.actionCol}>
+                                    <div className={t.actionGroup}>
                                         {((user.defaultRole || user.role) === 'tutor' || user.userRoles?.includes('tutor')) && (
                                             <>
                                                 <input
@@ -331,9 +333,7 @@ const UserRolesManager = () => {
                                                             : 'btn-outline-success'
                                                     }`}
                                                 >
-                                                    {uploadingTimesheets[user.email]
-                                                        ? '...'
-                                                        : 'Upload'}
+                                                    {uploadingTimesheets[user.email] ? '...' : 'Upload'}
                                                 </label>
                                             </>
                                         )}
@@ -358,6 +358,7 @@ const UserRolesManager = () => {
                     </tbody>
                 </table>
             </div>
+
             {showModal && (
                 <div
                     className="modal fade"

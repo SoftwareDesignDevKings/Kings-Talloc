@@ -49,8 +49,9 @@ const ClassModal = ({
             <div className="mb-3">
                 <label className="form-label">Subject</label>
                 <Select
+                    key={isEditing ? 'edit' : 'new'}
                     options={subjects}
-                    value={subjects.find((subject) => subject.id === selectedSubject?.id)}
+                    value={subjects.find((subject) => subject.id === selectedSubject?.id) ?? null}
                     onChange={setSelectedSubject}
                     getOptionLabel={(option) => option.name}
                     getOptionValue={(option) => option.id}
@@ -64,8 +65,9 @@ const ClassModal = ({
             <div className="mb-3">
                 <label className="form-label">Teacher</label>
                 <Select
+                    key={isEditing ? 'edit' : 'new'}
                     options={teachers}
-                    value={teachers.find((teacher) => teacher.email === selectedTeacher?.email)}
+                    value={teachers.find((teacher) => teacher.email === selectedTeacher?.email) ?? null}
                     onChange={setSelectedTeacher}
                     getOptionLabel={(option) => option.name}
                     getOptionValue={(option) => option.email}

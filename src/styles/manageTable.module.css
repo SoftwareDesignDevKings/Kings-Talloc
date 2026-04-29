@@ -1,0 +1,136 @@
+/* Shared styles for Manage Role / Class / Subject table pages */
+
+.container {
+    padding: 1.5rem;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.headerActions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.searchWrapper {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* Scrollable table wrapper — no border, plain overflow container */
+.tableWrap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+/* Override Bootstrap's mb-0 removal to keep inner table flush */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+    padding: 0.625rem 1rem 0.3rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    border-bottom: 2px solid var(--tks-border, #e5e7eb);
+    white-space: nowrap;
+    color: var(--tks-text-primary, #111827);
+}
+
+.table tbody td {
+    padding: 0.875rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--tks-border-subtle, #f1f3f5);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* white-space: nowrap prevents button text wrapping in action cells */
+.actionCol {
+    white-space: nowrap;
+}
+
+.actionGroup {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+/* ── Expandable panel ────────────────────────────────────────────── */
+.table .expandRow td {
+    padding: 0;
+    border-bottom: none;
+}
+
+.expandPanel {
+    background: var(--tks-surface, #fafbff);
+    border-top: 1px solid var(--tks-border-subtle, #f1f3f5);
+}
+
+.expandPanelInner {
+    padding: 0.875rem 1.25rem;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.expandLabel {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tks-text-muted, #6b7280);
+    margin-bottom: 0.625rem;
+}
+
+/* ── Member items inside expanded rows ───────────────────────────── */
+.memberList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.memberItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--tks-border, #e5e7eb);
+    border-radius: 0.375rem;
+    background: white;
+}
+
+
+.memberName {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--tks-text-primary, #111827);
+}
+
+.memberEmail {
+    font-size: 0.78rem;
+    color: var(--tks-text-muted, #6b7280);
+    margin-top: 0.1rem;
+}
+
+.emptyMessage {
+    color: var(--tks-text-muted, #6b7280);
+    font-size: 0.875rem;
+    padding: 0.25rem 0;
+}
