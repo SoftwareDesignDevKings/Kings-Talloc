@@ -7,12 +7,12 @@ const SubjectRow = ({
     handleOpenTutorModal,
     confirmDeleteSubject,
     handleExpandSubject,
-    expandedSubject,
+    expandedSubjects,
     confirmRemoveTutor,
     handleEditSubject,
 }) => {
     const collapseId = `subject-collapse-${subject.id}`;
-    const isExpanded = expandedSubject === subject.id;
+    const isExpanded = expandedSubjects.has(subject.id);
 
     return (
         <>

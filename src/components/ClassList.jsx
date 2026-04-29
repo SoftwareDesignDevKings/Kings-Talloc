@@ -32,7 +32,7 @@ const ClassList = () => {
     const [studentsToAdd, setStudentsToAdd] = useState('');
     const [selectedClass, setSelectedClass] = useState(null);
     const [filteredClasses, setFilteredClasses] = useState([]);
-    const [expandedClass, setExpandedClass] = useState(null);
+    const [expandedClasses, setExpandedClasses] = useState(new Set());
 
     const fetchClasses = async () => {
         const querySnapshot = await getDocs(collection(db, 'classes'));
@@ -140,7 +140,7 @@ const ClassList = () => {
         if (classToDelete) {
             await deleteDoc(doc(db, 'classes', classToDelete.id));
             setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
-            if (expandedClass === classToDelete.id) setExpandedClass(null);
+            setExpandedClasses((prev) => { const s = new Set(prev); s.delete(classToDelete.id); return s; });
             addAlert('success', 'Class deleted successfully');
         }
     };
@@ -195,7 +195,11 @@ const ClassList = () => {
     };
 
     const handleExpandClass = (cls) => {
-        setExpandedClass(expandedClass === cls.id ? null : cls.id);
+        setExpandedClasses((prev) => {
+            const s = new Set(prev);
+            s.has(cls.id) ? s.delete(cls.id) : s.add(cls.id);
+            return s;
+        });
     };
 
     return (
@@ -247,7 +251,7 @@ const ClassList = () => {
                                 confirmDeleteClass={handleDeleteClass}
                                 confirmRemoveStudent={handleRemoveStudent}
                                 handleEditClass={handleEditClass}
-                                expandedClass={expandedClass}
+                                expandedClasses={expandedClasses}
                                 handleExpandClass={handleExpandClass}
                             />
                         ))}

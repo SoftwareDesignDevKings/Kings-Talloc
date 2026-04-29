@@ -30,7 +30,7 @@ const SubjectList = () => {
     const [showTutorModal, setShowTutorModal] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [tutorsToAdd, setTutorsToAdd] = useState('');
-    const [expandedSubject, setExpandedSubject] = useState(null);
+    const [expandedSubjects, setExpandedSubjects] = useState(new Set());
     const [filteredSubjects, setFilteredSubjects] = useState([]);
 
     useEffect(() => {
@@ -80,7 +80,6 @@ const SubjectList = () => {
         if (subjectToDelete) {
             await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
             setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
-            addAlert('success', 'Subject deleted successfully');
             if (expandedSubject === subjectToDelete.id) setExpandedSubject(null);
         }
     };
@@ -184,7 +183,11 @@ const SubjectList = () => {
     };
 
     const handleExpandSubject = (subject) => {
-        setExpandedSubject(expandedSubject === subject.id ? null : subject.id);
+        setExpandedSubjects((prev) => {
+            const s = new Set(prev);
+            s.has(subject.id) ? s.delete(subject.id) : s.add(subject.id);
+            return s;
+        });
     };
 
     return (
@@ -225,7 +228,7 @@ const SubjectList = () => {
                                 handleOpenTutorModal={openAddTutorModal}
                                 confirmDeleteSubject={openDeleteModal}
                                 handleExpandSubject={handleExpandSubject}
-                                expandedSubject={expandedSubject}
+                                expandedSubjects={expandedSubjects}
                                 confirmRemoveTutor={handleRemoveTutor}
                                 handleEditSubject={openEditModal}
                             />

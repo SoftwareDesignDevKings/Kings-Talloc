@@ -10,10 +10,10 @@ const ClassRow = ({
     handleEditClass,
     subjects,
     teachers,
-    expandedClass,
+    expandedClasses,
     handleExpandClass,
 }) => {
-    const isExpanded = expandedClass === cls.id;
+    const isExpanded = expandedClasses.has(cls.id);
     const collapseId = `class-collapse-${cls.id}`;
 
     const getSubjectName = (subjectId) => {
