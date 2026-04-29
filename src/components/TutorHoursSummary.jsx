@@ -95,7 +95,7 @@ const TutorHoursSummary = () => {
                 start: data.start.toDate(),
                 end: data.end.toDate(),
             };
-        })
+        });
 
         // Process recurring events - expand and filter to date range
         let recurringShifts = recurringSnapshot.docs.map((doc) => {
