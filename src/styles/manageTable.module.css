@@ -74,9 +74,9 @@
 }
 
 /* ── Expandable panel ────────────────────────────────────────────── */
-.expandRow td {
-    padding: 0 !important;
-    border-bottom: none !important;
+.table .expandRow td {
+    padding: 0;
+    border-bottom: none;
 }
 
 .expandPanel {
