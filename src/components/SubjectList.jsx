@@ -15,8 +15,10 @@ import {
 import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';
 import SubjectRow from './SubjectRow.jsx';
+import useAlert from '@/hooks/useAlert';
 
 const SubjectList = () => {
+    const { addAlert } = useAlert();
     const [subjects, setSubjects] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -56,9 +58,11 @@ const SubjectList = () => {
                 ),
             );
             setIsEditing(false);
+            addAlert('success', 'Subject updated successfully');
         } else {
             const docRef = await addDoc(collection(db, 'subjects'), subject);
             setSubjects([...subjects, { id: docRef.id, ...subject }]);
+            addAlert('success', 'Subject added successfully');
         }
         setShowModal(false);
     };
@@ -73,6 +77,7 @@ const SubjectList = () => {
         if (subjectToDelete) {
             await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
             setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
+            addAlert('success', 'Subject deleted successfully');
         }
     };
 
@@ -100,6 +105,7 @@ const SubjectList = () => {
         );
         setShowTutorModal(false);
         setTutorsToAdd('');
+        addAlert('success', 'Tutors added successfully');
     };
 
     const handleRemoveTutor = async (tutor, subject) => {
@@ -111,6 +117,7 @@ const SubjectList = () => {
                 sub.id === subject.id ? { ...sub, tutors: updatedTutors } : sub,
             ),
         );
+        addAlert('success', 'Tutor removed successfully');
     };
 
     const openAddModal = () => {
