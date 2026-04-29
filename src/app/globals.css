@@ -160,7 +160,6 @@ html .accordion {
 
 .fade-in {
     animation: fadeIn var(--transition-normal);
-    will-change: opacity, transform;
 }
 
 @keyframes fadeIn {
@@ -175,7 +174,6 @@ html .accordion {
 
 .spinner-border-custom {
     animation: spin 1.5s linear infinite;
-    will-change: transform;
 }
 
 /* Table row hover transition — Bootstrap doesn't set an easing here */
@@ -189,14 +187,6 @@ html .accordion {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
-}
-
-/* ─── Rendering performance ───────────────────────────────────────────── */
-
-/* Defer layout/paint for below-fold table rows */
-.table tbody tr {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 48px;
 }
 
 /* ─── Layout ──────────────────────────────────────────────────────────── */
