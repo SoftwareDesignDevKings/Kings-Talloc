@@ -5,24 +5,24 @@ import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
 import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
-import { calendarAvailabilitySplit } from "@/utils/calendarAvailability"
+import { calendarAvailabilitySplit, normaliseWorkType, getEnrolledSubjectIds, getEnrolledTutorEmails } from "@/utils/calendarAvailability"
 
 /**
  * Returns true if an availability's workType matches the selected filter.
- * 'tutoringOrWork' availabilities are included when filtering by 'tutoring' or 'work',
- * and vice-versa.
+ * Handles both the legacy string format and the current array format.
  */
 const matchesWorkTypeFilter = (availWorkType, filterWorkType) => {
+    const types = normaliseWorkType(availWorkType);
     if (filterWorkType === 'tutoringOrWork') {
-        return availWorkType === 'tutoring' || availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+        return types.includes('tutoring') || types.includes('work');
     }
     if (filterWorkType === 'tutoring') {
-        return availWorkType === 'tutoring' || availWorkType === 'tutoringOrWork';
+        return types.includes('tutoring');
     }
     if (filterWorkType === 'work') {
-        return availWorkType === 'work' || availWorkType === 'tutoringOrWork';
+        return types.includes('work');
     }
-    return availWorkType === filterWorkType;
+    return types.includes(filterWorkType);
 };
 
 /**
@@ -48,7 +48,7 @@ export const CalendarUIContextProvider = ({ children }) => {
     const userEmail = session.user.email;
 
     // Get calendar data
-    const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects } = useAppData();
+    const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects, classes } = useAppData();
 
     // cal strategy for filters and scope
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
@@ -209,22 +209,28 @@ export const CalendarUIContextProvider = ({ children }) => {
             }
         }
 
-        // students: filter by selected subject's tutors from CalendarUIContextProvider
-        if (userRole === 'student' && filterBySubject) {
-            const selectedSubject = subjects?.find(s => s.id === filterBySubject.value);
-            if (selectedSubject?.tutors) {
-                const subjectTutorEmails = selectedSubject.tutors.map(t => t.email);
-                filtered = filtered.filter(a => subjectTutorEmails.includes(a.tutor));
-            }
-        }
-
-        // students: only show tutoring availabilities (exclude coaching and work)
+        // students: restrict to tutoring availabilities and relevant tutors
         if (userRole === 'student') {
-            filtered = filtered.filter(a =>
-                a.workType === 'tutoring' ||
-                a.workType === 'tutoringOrWork' ||
-                a.workType === undefined
-            );
+            // tutoring workType only
+            filtered = filtered.filter(a => {
+                const types = normaliseWorkType(a.workType);
+                return types.length === 0 || types.includes('tutoring');
+            });
+
+            // manual subject filter takes precedence; otherwise auto-scope to enrolled classes
+            if (filterBySubject) {
+                const selectedSubject = subjects?.find(s => s.id === filterBySubject.value);
+                if (selectedSubject?.tutors) {
+                    const allowed = new Set(selectedSubject.tutors.map(t => t.email));
+                    filtered = filtered.filter(a => allowed.has(a.tutor));
+                }
+            } else {
+                const enrolledSubjectIds = getEnrolledSubjectIds(classes, userEmail);
+                const enrolledTutorEmails = getEnrolledTutorEmails(subjects, enrolledSubjectIds);
+                if (enrolledTutorEmails.size > 0) {
+                    filtered = filtered.filter(a => enrolledTutorEmails.has(a.tutor));
+                }
+            }
         }
 
         // filter by selected tutors from CalendarUIContextProvider
@@ -244,7 +250,7 @@ export const CalendarUIContextProvider = ({ children }) => {
         const splitAvailabilities = calendarAvailabilitySplit(filtered, calendarShifts);
 
         return splitAvailabilities;
-    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
+    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, classes, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
 
     // ─────────────────────────────────────
     // context values

@@ -85,46 +85,52 @@ const ClassList = () => {
         e.preventDefault();
         if (!selectedSubject) {
             addAlert('error', 'Please select a subject.');
-            return;
+            return false;
         }
         if (!selectedTeacher) {
             addAlert('error', 'Please select a teacher.');
-            return;
+            return false;
         }
 
-        if (isEditing) {
-            const classRef = doc(db, 'classes', selectedClass.id);
-            await updateDoc(classRef, {
-                name: className,
-                subject: selectedSubject.id,
-                teacherEmail: selectedTeacher.email,
-            });
-            setClasses(
-                classes.map((cls) =>
-                    cls.id === selectedClass.id
-                        ? {
-                              ...cls,
-                              name: className,
-                              subject: selectedSubject.id,
-                              teacherEmail: selectedTeacher.email,
-                          }
-                        : cls,
-                ),
-            );
-            setIsEditing(false);
-        } else {
-            await addDoc(collection(db, 'classes'), {
-                name: className,
-                subject: selectedSubject.id,
-                teacherEmail: selectedTeacher.email,
-            });
+        try {
+            if (isEditing) {
+                const classRef = doc(db, 'classes', selectedClass.id);
+                await updateDoc(classRef, {
+                    name: className,
+                    subject: selectedSubject.id,
+                    teacherEmail: selectedTeacher.email,
+                });
+                setClasses(
+                    classes.map((cls) =>
+                        cls.id === selectedClass.id
+                            ? {
+                                  ...cls,
+                                  name: className,
+                                  subject: selectedSubject.id,
+                                  teacherEmail: selectedTeacher.email,
+                              }
+                            : cls,
+                    ),
+                );
+                setIsEditing(false);
+            } else {
+                await addDoc(collection(db, 'classes'), {
+                    name: className,
+                    subject: selectedSubject.id,
+                    teacherEmail: selectedTeacher.email,
+                });
+            }
+            setClassName('');
+            setSelectedSubject(null);
+            setSelectedTeacher(null);
+            setShowModal(false);
+            addAlert('success', isEditing ? 'Class edited successfully' : 'Class added successfully');
+            fetchClasses();
+        } catch (err) {
+            console.error('Failed to save class:', err);
+            addAlert('error', 'Failed to save class. Please try again.');
+            return false;
         }
-        setClassName('');
-        setSelectedSubject(null);
-        setSelectedTeacher(null);
-        setShowModal(false);
-        addAlert('success', isEditing ? 'Class edited successfully' : 'Class added successfully');
-        fetchClasses();
     };
 
     const handleEditClass = (cls) => {

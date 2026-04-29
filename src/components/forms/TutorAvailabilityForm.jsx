@@ -13,6 +13,7 @@ import {
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
+import { normaliseWorkType } from '@/utils/calendarAvailability';
 import useAlert from '@/hooks/useAlert';
 
 const TutorAvailabilityForm = ({
@@ -146,14 +147,6 @@ const TutorAvailabilityForm = ({
     const handleWorkTypeChange = (selectedOptions) => {
         const values = selectedOptions ? selectedOptions.map(o => o.value) : [];
         setNewAvailability({ ...newAvailability, workType: values });
-    };
-
-    const normaliseWorkType = (workType) => {
-        if (typeof workType === 'string') {
-            if (workType === 'tutoringOrWork') return ['tutoring', 'work'];
-            return [workType];
-        }
-        return workType;
     };
 
     const getWorkTypeBadge = () => {
