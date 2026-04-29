@@ -49,8 +49,6 @@ const ClassRow = ({
                         <button
                             onClick={() => handleExpandClass(cls)}
                             className="btn btn-sm btn-outline-secondary"
-                            data-bs-toggle="collapse"
-                            data-bs-target={`#${collapseId}`}
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
                         >

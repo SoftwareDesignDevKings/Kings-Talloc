@@ -283,8 +283,8 @@ const UserRolesManager = () => {
                     <thead>
                         <tr>
                             <th scope="col">User</th>
-                            <th scope="col" style={{ width: '360px' }}>Roles</th>
-                            <th scope="col" style={{ width: '180px' }} className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '30%' }}>Roles</th>
+                            <th scope="col" style={{ width: '20%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
