@@ -32,6 +32,7 @@ const StudentEventForm = ({
     const isEditing = isEdit || isView; 
     // for backward compat with existing logic
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [tutorOptions, setTutorOptions] = useState([]);
     const [subjectOptions, setSubjectOptions] = useState([]);
     const [filteredTutors, setFilteredTutors] = useState([]);
@@ -239,10 +240,20 @@ const StudentEventForm = ({
 
     const onSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return false;
         if (!validateDates()) {
             return false; // Validation failed - don't close modal
         }
-        return await handleSubmit(e); // Pass through the result
+        setIsSubmitting(true);
+        try {
+            return await handleSubmit(e);
+        } catch (error) {
+            console.error('Failed to submit student event request:', error);
+            addAlert('error', 'Failed to submit event request');
+            return false;
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -253,6 +264,7 @@ const StudentEventForm = ({
             size="md"
             onSubmit={isView ? undefined : onSubmit}
             submitText={isEdit ? 'Save Changes' : 'Add Event'}
+            loading={isSubmitting}
             deleteButton={
                 isEdit
                     ? {

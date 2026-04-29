@@ -48,6 +48,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const [selectedClasses, setSelectedClasses] = useState(newEvent.classes || []);
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { addAlert } = useAlert();
 
     // fetch form data using custom hook
@@ -138,7 +139,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const onSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return false;
 
+        setIsSubmitting(true);
+        try {
         // Tutors/coaches may only update workStatus — send only that field to satisfy
         // the Firestore rule: hasOnly(['workStatus']). Skip full form validation: rules
         // like "can't mark a recurring event completed" are admin/teacher concerns and
@@ -273,9 +277,17 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             addAlert('error', `Failed to submit event: ${error.message}`);
             return false; // Error - don't close modal
         }
+        } catch (error) {
+            console.error('Failed to submit event:', error);
+            addAlert('error', `Failed to submit event: ${error.message}`);
+            return false;
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleDeleteClick = async () => {
+        if (isSubmitting) return false;
         // Check if this is a recurring event
         const isRecurring = eventToEdit.recurring || eventToEdit.isRecurringInstance;
 
@@ -285,6 +297,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             return false; // Don't close main modal yet - wait for confirmation
         } else {
             // Delete non-recurring event directly
+            setIsSubmitting(true);
             try {
                 await calendarEventHandleDelete(eventToEdit, 'this', {
                     setAllEvents: setCalendarShifts,
@@ -297,11 +310,15 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 console.error('Failed to delete event:', error);
                 addAlert('error', 'Failed to delete event');
                 return false; // Error - don't close modal
+            } finally {
+                setIsSubmitting(false);
             }
         }
     };
 
     const handleConfirmDelete = async (deleteOption) => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await calendarEventHandleDelete(eventToEdit, deleteOption, {
                 setAllEvents: setCalendarShifts,
@@ -316,6 +333,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             addAlert('error', 'Failed to delete event');
             setShowDeleteConfirm(false);
             // Don't close main modal on error
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -376,6 +395,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 size="lg"
                 onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
                 submitText={isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
+                loading={isSubmitting}
                 deleteButton={
                     isEdit
                         ? {
