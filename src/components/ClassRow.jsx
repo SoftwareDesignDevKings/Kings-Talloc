@@ -17,12 +17,12 @@ const ClassRow = ({
     const collapseId = `class-collapse-${cls.id}`;
 
     const getSubjectName = (subjectId) => {
-        const subject = subjects.find((s) => s.id === subjectId);
+        const subject = subjects.find((subject) => subject.id === subjectId);
         return subject ? subject.name : 'No Subject';
     };
 
     const getTeacherName = (teacherEmail) => {
-        const teacher = teachers.find((t) => t.email === teacherEmail);
+        const teacher = teachers.find((teacher) => teacher.email === teacherEmail);
         return teacher ? teacher.name : 'No Teacher';
     };
 

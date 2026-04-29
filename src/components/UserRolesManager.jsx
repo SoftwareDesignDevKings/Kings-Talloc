@@ -69,6 +69,7 @@ const UserRolesManager = () => {
 
     useEffect(() => {
         if (showModal && modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
+            // Initialize Bootstrap modal with accessibility features
             const modalInstance = new window.bootstrap.Modal(modalRef.current, {
                 backdrop: 'static',
                 keyboard: true,
@@ -76,6 +77,7 @@ const UserRolesManager = () => {
             });
             modalInstance.show();
 
+            // Handle modal close event
             const handleModalHidden = () => {
                 setShowModal(false);
                 setEmail('');
@@ -110,6 +112,7 @@ const UserRolesManager = () => {
         try {
             const userRef = doc(db, 'users', email);
 
+            // Check if user already exists (only when adding new user, not editing)
             if (!isEditing) {
                 const userDoc = await getDoc(userRef);
                 if (userDoc.exists()) {
@@ -121,19 +124,21 @@ const UserRolesManager = () => {
             await setDoc(userRef, {
                 email,
                 name,
-                role,
+                role, // Keep for backward compatibility
                 defaultRole: role,
                 userRoles
             }, { merge: true });
 
             addAlert('success', `Role of ${role} assigned to ${email}`);
 
+            // Close modal using Bootstrap API
             if (modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
                 const modalInstance = window.bootstrap.Modal.getInstance(modalRef.current);
                 if (modalInstance) {
                     modalInstance.hide();
                 }
             } else {
+                // Fallback if Bootstrap not loaded
                 setShowModal(false);
                 setEmail('');
                 setName('');
@@ -181,8 +186,8 @@ const UserRolesManager = () => {
     const handleEdit = (user) => {
         setEmail(user.email);
         setName(user.name);
-        setRole(user.defaultRole || user.role);
-        setUserRoles(user.userRoles || []);
+        setRole(user.defaultRole || user.role); // Use defaultRole if available, fallback to role
+        setUserRoles(user.userRoles || []); // Load existing userRoles or empty array
         setIsEditing(true);
         setShowModal(true);
     };
@@ -202,9 +207,12 @@ const UserRolesManager = () => {
         setUploadingTimesheets((prev) => ({ ...prev, [userEmail]: true }));
 
         try {
+            // Convert file to base64
             const base64Data = await fileToBase64(file);
             const fileSizeKB = (file.size / 1024).toFixed(2);
 
+            // Save timesheet data with base64 encoded file to Firestore
+            // Use email as document ID for easy lookup
             const timestamp = new Date().toISOString();
             const timesheetData = {
                 tutorEmail: userEmail,
@@ -217,6 +225,7 @@ const UserRolesManager = () => {
                 uploadedBy: 'teacher',
             };
 
+            // Use setDoc with email as document ID instead of addDoc
             await setDoc(doc(db, 'timesheets', userEmail), timesheetData);
 
             addAlert('success', `Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
@@ -413,6 +422,7 @@ const UserRolesManager = () => {
                                             onChange={(e) => {
                                                 const newDefault = e.target.value;
                                                 setRole(newDefault);
+                                                // strip any userRoles that aren't valid for the new defaultRole
                                                 const allowed = EXTRA_ROLES_BY_DEFAULT[newDefault] ?? [];
                                                 setUserRoles(prev => prev.filter(r => allowed.includes(r)));
                                             }}

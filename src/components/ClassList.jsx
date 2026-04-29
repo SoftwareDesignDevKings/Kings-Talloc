@@ -151,6 +151,7 @@ const ClassList = () => {
 
         const newStudents = await Promise.all(
             entries.map(async (entry) => {
+                // Check if entry has name:email format (from CSV) or just email (manual)
                 let email, name;
                 if (entry.includes(':')) {
                     [name, email] = entry.split(':').map((s) => s.trim());
@@ -162,9 +163,11 @@ const ClassList = () => {
                 const userRef = doc(db, 'users', email);
                 const userDoc = await getDoc(userRef);
                 if (!userDoc.exists()) {
+                    // User doesn't exist - use name from CSV or empty string
                     return { email, name };
                 } else {
                     const userData = userDoc.data();
+                    // Prefer name from database, fallback to CSV name, then empty
                     return { email, name: userData.name || name || '' };
                 }
             }),
