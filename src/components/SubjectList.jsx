@@ -79,22 +79,34 @@ const SubjectList = () => {
     };
 
     const handleAddTutors = async (emails) => {
-        const uniqueEmails = [...new Set(emails.filter((email) => email.trim() !== ''))];
+        const uniqueEmails = [
+            ...new Set(emails.map((email) => email.trim()).filter((email) => email !== '')),
+        ];
         if (uniqueEmails.length === 0) return;
 
         const batch = writeBatch(db);
         const usersCollection = collection(db, 'users');
         const existingUsersMap = new Map();
 
-        // Fetch existing users in chunks of 30 (Firestore 'in' query limit)
+        // fetch existing users in chunks of 30 (Firestore 'in' query limit) 
+        const chunks = [];
         for (let i = 0; i < uniqueEmails.length; i += 30) {
-            const chunk = uniqueEmails.slice(i, i + 30);
-            const q = query(usersCollection, where(documentId(), 'in', chunk));
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach((doc) => {
-                existingUsersMap.set(doc.id, doc.data());
-            });
+            chunks.push(uniqueEmails.slice(i, i + 30));
         }
+
+        // Promise.all to ensure they fire in parallel
+        const snapshots = await Promise.all(
+            chunks.map((chunk) => {
+                const q = query(usersCollection, where(documentId(), 'in', chunk));
+                return getDocs(q);
+            }),
+        );
+
+        snapshots.forEach((querySnapshot) => {
+            querySnapshot.forEach((docSnap) => {
+                existingUsersMap.set(docSnap.id, docSnap.data());
+            });
+        });
 
         const newTutors = uniqueEmails.map((email) => {
             if (existingUsersMap.has(email)) {
@@ -102,7 +114,7 @@ const SubjectList = () => {
                 return { email, name: userData.name || '' };
             } else {
                 const userRef = doc(db, 'users', email);
-                batch.set(userRef, { email, role: 'tutor' }, { merge: true });
+                batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor'}, { merge: true });
                 return { email, name: '' };
             }
         });
