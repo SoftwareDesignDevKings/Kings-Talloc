@@ -1,6 +1,7 @@
 import React from 'react';
+import Link from 'next/link';
 import { FiCalendar, FiUserCheck, FiClock, FiBookOpen } from '@/components/icons';
-import '../../src/app/globals.css'
+
 const LandingPage = () => {
     return (
         <div className="d-flex align-items-center justify-content-center min-vh-100 bg-white">
@@ -73,12 +74,14 @@ const LandingPage = () => {
                     </div>
                 </div>
                 <div className="text-center mt-5 fade-in" style={{ animationDelay: '200ms' }}>
-                    <a
-                        className="btn btn-outline-primary px-5 py-3 rounded-pill fw-medium"
+                    {/* Next.js Link prefetches /login in the background on hover/visibility */}
+                    <Link
                         href="/login"
+                        prefetch={true}
+                        className="btn btn-outline-primary px-5 py-3 rounded-pill fw-medium"
                     >
                         Get Started
-                    </a>
+                    </Link>
                 </div>
             </div>
         </div>

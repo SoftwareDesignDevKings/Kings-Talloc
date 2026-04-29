@@ -2,6 +2,7 @@
 
 import Sidebar from '@/components/Sidebar';
 import { usePathname } from 'next/navigation';
+import usePrefetchRoutes from '@/hooks/usePrefetchRoutes';
 
 /**
  * Main application layout for authenticated users
@@ -13,6 +14,7 @@ import { usePathname } from 'next/navigation';
  */
 const AppLayout = ({ session, userRole, children }) => {
     const pathname = usePathname();
+    usePrefetchRoutes(userRole);
     let dashboardTitle;
     if (userRole === 'student') {
         dashboardTitle = 'Student Dashboard';

@@ -8,7 +8,6 @@ import { headers } from 'next/headers';
 import LoadingPage from '@/components/LoadingPage';
 import VersionGuard from '@/components/VersionGuard';
 
-// Body / UI font — humanist sans, warm and legible at small sizes
 const figtree = Figtree({
     subsets: ['latin'],
     weight: ['400', '500', '600', '700'],
@@ -16,7 +15,6 @@ const figtree = Figtree({
     display: 'swap',
 });
 
-// Heading font — structured grotesque with editorial authority
 const chivo = Chivo({
     subsets: ['latin'],
     weight: ['600', '700', '800'],
@@ -40,18 +38,33 @@ export default async function RootLayout({ children }) {
     return (
         <html lang="en" className={`${figtree.variable} ${chivo.variable}`} suppressHydrationWarning>
             <head>
-                <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+                {/* DNS prefetch for external origins */}
+                <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+                <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+                <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+
+                {/* Preconnect to CDN for Bootstrap assets */}
+                <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+
+                {/* Preload Bootstrap CSS so the browser fetches it early */}
+                <link
+                    rel="preload"
+                    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+                    as="style"
+                    crossOrigin="anonymous"
+                />
                 <link
                     rel="stylesheet"
                     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+                    crossOrigin="anonymous"
                 />
                 <link
                     rel="stylesheet"
                     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+                    crossOrigin="anonymous"
                 />
             </head>
             <body suppressHydrationWarning>
-                {/* force version update */}
                 <VersionGuard />
 
                 <AppSessionContextProvider>

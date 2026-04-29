@@ -1,4 +1,6 @@
 const nextConfig = {
+    poweredByHeader: false,
+    compress: true,
     images: {
         remotePatterns: [
             {
@@ -21,21 +23,45 @@ const nextConfig = {
             },
         ],
     },
-    // Improve hot reload performance
     experimental: {
         optimizePackageImports: [
             'react-big-calendar',
             'react-select',
+            'react-icons',
+            'date-fns',
+            'luxon',
+            'react-datepicker',
+            'react-calendar',
         ],
     },
-    // Speed up Fast Refresh
     reactStrictMode: false,
     compiler: {
         removeConsole:
             process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
     },
-    // Empty turbopack config to silence the warning (Turbopack is the default in Next.js 16)
     turbopack: {},
+    async headers() {
+        return [
+            {
+                source: '/_next/static/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=31536000, immutable',
+                    },
+                ],
+            },
+            {
+                source: '/(.*)\\.(svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=86400, stale-while-revalidate=604800',
+                    },
+                ],
+            },
+        ];
+    },
 };
 
 export default nextConfig;
