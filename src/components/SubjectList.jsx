@@ -9,8 +9,10 @@ import {
     deleteDoc,
     updateDoc,
     doc,
-    getDoc,
-    setDoc,
+    query,
+    where,
+    documentId,
+    writeBatch,
 } from 'firebase/firestore';
 import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';
@@ -82,22 +84,62 @@ const SubjectList = () => {
     };
 
     const handleAddTutors = async (emails) => {
-        const newTutors = await Promise.all(
-            emails.map(async (email) => {
-                const userRef = doc(db, 'users', email);
-                const userDoc = await getDoc(userRef);
-                if (!userDoc.exists()) {
-                    await setDoc(userRef, { email, role: 'tutor' }, { merge: true });
-                    return { email, name: '' };
-                } else {
-                    const userData = userDoc.data();
-                    return { email, name: userData.name || '' };
-                }
+        const uniqueEmails = [
+            ...new Set(emails.map((email) => email.trim()).filter((email) => email !== '')),
+        ];
+        if (uniqueEmails.length === 0) return;
+        if (uniqueEmails.length > 499) {
+            addAlert('error', 'Too many tutors at once — please add 499 or fewer at a time.');
+            return;
+        }
+
+        const batch = writeBatch(db);
+        const usersCollection = collection(db, 'users');
+        const existingUsersMap = new Map();
+
+        // fetch existing users in chunks of 30 (Firestore 'in' query limit) 
+        const chunks = [];
+        for (let i = 0; i < uniqueEmails.length; i += 30) {
+            chunks.push(uniqueEmails.slice(i, i + 30));
+        }
+
+        // Promise.all to ensure they fire in parallel
+        const snapshots = await Promise.all(
+            chunks.map((chunk) => {
+                const q = query(usersCollection, where(documentId(), 'in', chunk));
+                return getDocs(q);
             }),
         );
+
+        snapshots.forEach((querySnapshot) => {
+            querySnapshot.forEach((docSnap) => {
+                existingUsersMap.set(docSnap.id, docSnap.data());
+            });
+        });
+
+        const newTutors = uniqueEmails.map((email) => {
+            if (existingUsersMap.has(email)) {
+                const userData = existingUsersMap.get(email);
+                return { email, name: userData.name || '' };
+            } else {
+                const userRef = doc(db, 'users', email);
+                batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor'}, { merge: true });
+                return { email, name: '' };
+            }
+        });
+
         const updatedTutors = [...(selectedSubject.tutors || []), ...newTutors];
         const subjectRef = doc(db, 'subjects', selectedSubject.id);
-        await updateDoc(subjectRef, { tutors: updatedTutors });
+        batch.update(subjectRef, { tutors: updatedTutors });
+
+        try {
+            await batch.commit();
+        } catch (err) {
+            console.error('Failed to add tutors:', err);
+            addAlert('error', 'Failed to save tutors. Please try again.');
+            return;
+        }
+
         setSubjects(
             subjects.map((sub) =>
                 sub.id === selectedSubject.id ? { ...sub, tutors: updatedTutors } : sub,
