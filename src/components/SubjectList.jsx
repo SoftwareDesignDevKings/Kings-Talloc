@@ -166,7 +166,7 @@ const SubjectList = () => {
                     onClick={openAddModal}
                     className="btn btn-outline-primary btn-sm text-nowrap"
                 >
-                    Add Subject
+                    {isEditing ? 'Edit Subject' : 'Add Subject'}
                 </button>
             </div>
 
