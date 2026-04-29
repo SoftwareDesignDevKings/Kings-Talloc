@@ -78,7 +78,7 @@ const SubjectList = () => {
         if (subjectToDelete) {
             await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
             setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
-            if (expandedSubject === subjectToDelete.id) setExpandedSubject(null);
+            addAlert('success', 'Subject deleted successfully');
         }
     };
 
