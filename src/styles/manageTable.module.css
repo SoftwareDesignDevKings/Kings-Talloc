@@ -65,12 +65,6 @@
     white-space: nowrap;
 }
 
-/* Fixed-width column that won't shift when content grows (e.g. role badges) */
-.fixedCol {
-    width: 220px;
-    min-width: 220px;
-}
-
 .actionGroup {
     display: flex;
     gap: 0.375rem;
