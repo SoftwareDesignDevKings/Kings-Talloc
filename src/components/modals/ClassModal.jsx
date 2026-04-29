@@ -49,7 +49,7 @@ const ClassModal = ({
             <div className="mb-3">
                 <label className="form-label">Subject</label>
                 <Select
-                    key={`subject-${isEditing ? selectedSubject?.id ?? 'edit' : 'new'}`}
+                    key={isEditing ? 'edit' : 'new'}
                     options={subjects}
                     value={subjects.find((subject) => subject.id === selectedSubject?.id) ?? null}
                     onChange={setSelectedSubject}
@@ -65,7 +65,7 @@ const ClassModal = ({
             <div className="mb-3">
                 <label className="form-label">Teacher</label>
                 <Select
-                    key={`teacher-${isEditing ? selectedTeacher?.email ?? 'edit' : 'new'}`}
+                    key={isEditing ? 'edit' : 'new'}
                     options={teachers}
                     value={teachers.find((teacher) => teacher.email === selectedTeacher?.email) ?? null}
                     onChange={setSelectedTeacher}
