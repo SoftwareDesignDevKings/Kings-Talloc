@@ -17,12 +17,12 @@ const ClassRow = ({
     const collapseId = `class-collapse-${cls.id}`;
 
     const getSubjectName = (subjectId) => {
-        const subject = subjects.find((subject) => subject.id === subjectId);
+        const subject = subjects.find((s) => s.id === subjectId);
         return subject ? subject.name : 'No Subject';
     };
 
     const getTeacherName = (teacherEmail) => {
-        const teacher = teachers.find((teacher) => teacher.email === teacherEmail);
+        const teacher = teachers.find((t) => t.email === teacherEmail);
         return teacher ? teacher.name : 'No Teacher';
     };
 
@@ -49,8 +49,6 @@ const ClassRow = ({
                         <button
                             onClick={() => handleExpandClass(cls)}
                             className="btn btn-sm btn-outline-secondary"
-                            data-bs-toggle="collapse"
-                            data-bs-target={`#${collapseId}`}
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
                         >
@@ -69,11 +67,15 @@ const ClassRow = ({
                 <td colSpan={4}>
                     <div
                         id={collapseId}
-                        className={`collapse${isExpanded ? ' show' : ''}`}
+                        role="region"
+                        aria-label={`Students in ${cls.name}`}
+                        className={`${t.collapseWrap}${isExpanded ? ` ${t.collapseOpen}` : ''}`}
                     >
-                        <div className={t.expandPanel}>
-                            <div className={t.expandPanelInner}>
-                                <StudentList cls={cls} confirmRemoveStudent={confirmRemoveStudent} />
+                        <div className={t.collapseInner}>
+                            <div className={t.expandPanel}>
+                                <div className={t.expandPanelInner}>
+                                    <StudentList cls={cls} confirmRemoveStudent={confirmRemoveStudent} />
+                                </div>
                             </div>
                         </div>
                     </div>
