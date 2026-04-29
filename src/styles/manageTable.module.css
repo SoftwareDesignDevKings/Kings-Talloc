@@ -37,9 +37,9 @@
 
 .table thead th {
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 1rem;
     letter-spacing: 0.01em;
-    padding: 0.875rem 1rem;
+    padding: 0.625rem 1rem 0.3rem;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -63,6 +63,12 @@
 .actionCol {
     width: 1%;
     white-space: nowrap;
+}
+
+/* Fixed-width column that won't shift when content grows (e.g. role badges) */
+.fixedCol {
+    width: 220px;
+    min-width: 220px;
 }
 
 .actionGroup {
