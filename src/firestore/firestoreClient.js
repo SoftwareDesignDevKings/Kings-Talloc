@@ -50,6 +50,7 @@ const db = getFirestore(app);
  */
 const storage = getStorage(app);
 
+// Connect to emulators in development mode (client-side only)
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
     try {
         connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
