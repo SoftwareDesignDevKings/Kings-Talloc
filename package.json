@@ -24,6 +24,7 @@
         "firebase": "^11.0.0",
         "firebase-admin": "^13.5.0",
         "googleapis": "^164.0.0",
+        "isomorphic-dompurify": "^2.30.0",
         "lodash": "^4.17.23",
         "lodash-es": "^4.17.23",
         "luxon": "^3.7.2",
@@ -37,7 +38,8 @@
         "react-csv": "^2.2.2",
         "react-datepicker": "^7.3.0",
         "react-dom": "^18",
-        "react-select": "^5.8.0"
+        "react-select": "^5.8.0",
+        "server-only": "^0.0.1"
     },
     "devDependencies": {
         "@firebase/rules-unit-testing": "^4.0.0",

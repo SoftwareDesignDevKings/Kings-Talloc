@@ -7,7 +7,7 @@
  * Only import from other API routes (server-side).
  */
 
-import { sanitizeHtml } from '@/lib/security/sanitizer';
+import { sanitiseHtml } from '@/lib/security/securityHelpers';
 
 const GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const TIMEZONE = 'Australia/Sydney';
@@ -41,7 +41,7 @@ const buildEventBody = (subject, description, startTime, endTime, attendeesEmail
         subject: subject,
         body: {
             contentType: 'HTML',
-            content: sanitizeHtml(description || ''),
+            content: sanitiseHtml(description || ''),
         },
         start: {
             dateTime: startTime,
@@ -315,7 +315,7 @@ export const msUpdateOccurrence = async (accessToken, occurrenceId, { subject, d
                 subject: subject,
                 body: {
                     contentType: 'HTML',
-                    content: sanitizeHtml(description || ''),
+                    content: sanitiseHtml(description || ''),
                 },
                 start: {
                     dateTime: startTime,
@@ -493,7 +493,7 @@ export const msSendEmail = async (accessToken, { targetEmail, subject, htmlConte
                     subject,
                     body: {
                         contentType: 'HTML',
-                        content: sanitizeHtml(htmlContent || ''),
+                        content: sanitiseHtml(htmlContent || ''),
                     },
                     toRecipients,
                 },
