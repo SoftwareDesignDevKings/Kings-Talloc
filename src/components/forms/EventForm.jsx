@@ -66,6 +66,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         setNewEvent((prev) => ({ ...prev, staff: selectedOptions }));
     }, [setNewEvent]);
 
+    const handleWorkTypeChange = useCallback((workType) => {
+        setNewEvent((prev) => ({ ...prev, workType }));
+    }, [setNewEvent]);
+
     const handleClassSelectChange = useCallback((selectedOptions) => {
         setSelectedClasses(selectedOptions);
         setNewEvent((prev) => ({ ...prev, classes: selectedOptions }));
@@ -95,6 +99,24 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         return true;
     };
 
+    const validateStaffRoles = () => {
+        const workType = newEvent.workType;
+        if (workType !== 'tutoring' && workType !== 'coaching') return true;
+
+        const requiredRole = workType === 'tutoring' ? 'tutor' : 'coach';
+        const invalidStaff = (newEvent.staff || []).filter((staffMember) => {
+            if (!staffMember.roles) return false;
+            return !staffMember.roles.includes(requiredRole);
+        });
+
+        if (invalidStaff.length > 0) {
+            const names = invalidStaff.map((s) => s.label).join(', ');
+            addAlert('error', `The following staff do not have the ${requiredRole} role: ${names}`);
+            return false;
+        }
+        return true;
+    };
+
     const validateForm = () => {
 
         // Validate dates first
@@ -107,6 +129,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 addAlert('error', 'At least one tutor must be assigned to the event.');
                 return false;
             }
+        }
+
+        if (!validateStaffRoles()) {
+            return false;
         }
 
         if (!newEvent.title) {
@@ -436,6 +462,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}
                         handleMinStudentsChange={handleMinStudentsChange}
+                        onWorkTypeChange={handleWorkTypeChange}
                         workTypeOptions={workTypeOptions}
                         workStatusOptions={workStatusOptions}
                         readOnly={isView}

@@ -9,27 +9,36 @@ import { useAppData } from '@/contexts/AppDataContext';
 export const useEventFormData = (newEvent) => {
     const { tutors, classes, students, calendarAvailabilities } = useAppData();
 
-    // For each tutor, check already-loaded availabilities to determine availability status
+    // For each tutor, check already-loaded availabilities to determine availability status.
+    // When workType is 'tutoring' or 'coaching', only show staff whose roles match.
     const staffOptions = useMemo(() => {
         const eventStart = new Date(newEvent.start);
         const eventEnd = new Date(newEvent.end);
+        const workType = newEvent.workType;
 
-        return tutors.map((tutor) => {
-            const matchingAvailability = calendarAvailabilities.find((avail) =>
-                avail.tutor === tutor.email &&
-                new Date(avail.start) <= eventStart &&
-                new Date(avail.end) >= eventEnd
+        let options = [];
+        for (const tutor of tutors) {
+            if (workType === 'tutoring' && !tutor.roles?.includes('tutor')) continue;
+            if (workType === 'coaching' && !tutor.roles?.includes('coach')) continue;
+
+            const matchingAvailability = calendarAvailabilities.find(
+                (avail) =>
+                    avail.tutor === tutor.email &&
+                    new Date(avail.start) <= eventStart &&
+                    new Date(avail.end) >= eventEnd
             );
 
-            return {
+            options.push({
                 value: tutor.email,
                 label: tutor.name,
+                roles: tutor.roles,
                 locationType: matchingAvailability
-                    ? (matchingAvailability.locationType || 'onsite')
+                    ? matchingAvailability.locationType || 'onsite'
                     : 'unavailable',
-            };
-        });
-    }, [tutors, calendarAvailabilities, newEvent.start, newEvent.end]);
+            });
+        }
+        return options;
+    }, [tutors, calendarAvailabilities, newEvent.start, newEvent.end, newEvent.workType]);
 
     const classOptions = useMemo(() =>
         classes.map((cls) => ({ value: cls.id, label: cls.name })),
