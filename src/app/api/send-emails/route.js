@@ -90,6 +90,15 @@ export async function POST(req) {
 
 /* ── HTML helpers ──────────────────────────────────────────────────────── */
 
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function formatDate(value) {
     const date = value?.toDate ? value.toDate() : new Date(value);
 
@@ -115,7 +124,7 @@ function buildEventRow(notification, index, total) {
                   </td>
                 </tr>
               </table>
-              <h3 style="margin:0 0 8px 0;color:#111827;font-size:16px;font-weight:700;">${notification.title}</h3>
+              <h3 style="margin:0 0 8px 0;color:#111827;font-size:16px;font-weight:700;">${escapeHtml(notification.title)}</h3>
               <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
                 <span style="color:#1e40af;font-weight:600;">When:</span>&nbsp; ${formatDate(notification.start)} &ndash; ${formatDate(notification.end)}
               </p>
@@ -137,7 +146,7 @@ function buildEventRow(notification, index, total) {
                   </td>
                 </tr>
               </table>
-              <h3 style="margin:0 0 10px 0;color:#111827;font-size:16px;font-weight:700;">${notification.title}</h3>
+              <h3 style="margin:0 0 10px 0;color:#111827;font-size:16px;font-weight:700;">${escapeHtml(notification.title)}</h3>
               <p style="margin:0 0 4px 0;color:#9ca3af;font-size:13px;text-decoration:line-through;">
                 ${formatDate(notification.previousStart)} &ndash; ${formatDate(notification.previousEnd)}
               </p>

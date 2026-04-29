@@ -38,7 +38,7 @@ const buildEventBody = (subject, description, startTime, endTime, attendeesEmail
     const eventBody = {
         subject: subject,
         body: {
-            contentType: 'HTML',
+            contentType: 'Text',
             content: description || '',
         },
         start: {
@@ -312,7 +312,7 @@ export const msUpdateOccurrence = async (accessToken, occurrenceId, { subject, d
             body: JSON.stringify({
                 subject: subject,
                 body: {
-                    contentType: 'HTML',
+                    contentType: 'Text',
                     content: description || '',
                 },
                 start: {
