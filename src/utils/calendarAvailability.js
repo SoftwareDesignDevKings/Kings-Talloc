@@ -12,6 +12,27 @@ export const normaliseWorkType = (workType) => {
 };
 
 /**
+ * Returns the Set of subject IDs covered by a student's enrolled classes.
+ */
+export const getEnrolledSubjectIds = (classes, userEmail) =>
+    new Set(
+        classes
+            .filter(cls => cls.students?.some(s => s.email === userEmail))
+            .map(cls => cls.subject)
+            .filter(Boolean)
+    );
+
+/**
+ * Returns the Set of tutor emails across a given set of subject IDs.
+ */
+export const getEnrolledTutorEmails = (subjects, enrolledSubjectIds) =>
+    new Set(
+        subjects
+            .filter(s => enrolledSubjectIds.has(s.id))
+            .flatMap(s => (s.tutors || []).map(t => t.email))
+    );
+
+/**
  * Split availabilities around booked events
  */
 export const calendarAvailabilitySplit = (availabilities, events) => {

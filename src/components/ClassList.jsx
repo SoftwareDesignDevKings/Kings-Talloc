@@ -29,6 +29,10 @@ const ClassList = () => {
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
+<<<<<<< HEAD
+=======
+    const { addAlert } = useAlert();
+>>>>>>> 7ee86ce (feat: filter by student's enrolled classSubject by default, then render depending on subject choice)
     const [studentsToAdd, setStudentsToAdd] = useState('');
     const [selectedClass, setSelectedClass] = useState(null);
     const [filteredClasses, setFilteredClasses] = useState([]);
@@ -86,46 +90,52 @@ const ClassList = () => {
         e.preventDefault();
         if (!selectedSubject) {
             addAlert('error', 'Please select a subject.');
-            return;
+            return false;
         }
         if (!selectedTeacher) {
             addAlert('error', 'Please select a teacher.');
-            return;
+            return false;
         }
 
-        if (isEditing) {
-            const classRef = doc(db, 'classes', selectedClass.id);
-            await updateDoc(classRef, {
-                name: className,
-                subject: selectedSubject.id,
-                teacherEmail: selectedTeacher.email,
-            });
-            setClasses(
-                classes.map((cls) =>
-                    cls.id === selectedClass.id
-                        ? {
-                              ...cls,
-                              name: className,
-                              subject: selectedSubject.id,
-                              teacherEmail: selectedTeacher.email,
-                          }
-                        : cls,
-                ),
-            );
-            setIsEditing(false);
-        } else {
-            await addDoc(collection(db, 'classes'), {
-                name: className,
-                subject: selectedSubject.id,
-                teacherEmail: selectedTeacher.email,
-            });
+        try {
+            if (isEditing) {
+                const classRef = doc(db, 'classes', selectedClass.id);
+                await updateDoc(classRef, {
+                    name: className,
+                    subject: selectedSubject.id,
+                    teacherEmail: selectedTeacher.email,
+                });
+                setClasses(
+                    classes.map((cls) =>
+                        cls.id === selectedClass.id
+                            ? {
+                                  ...cls,
+                                  name: className,
+                                  subject: selectedSubject.id,
+                                  teacherEmail: selectedTeacher.email,
+                              }
+                            : cls,
+                    ),
+                );
+                setIsEditing(false);
+            } else {
+                await addDoc(collection(db, 'classes'), {
+                    name: className,
+                    subject: selectedSubject.id,
+                    teacherEmail: selectedTeacher.email,
+                });
+            }
+            setClassName('');
+            setSelectedSubject(null);
+            setSelectedTeacher(null);
+            setShowModal(false);
+            addAlert('success', isEditing ? 'Class edited successfully' : 'Class added successfully');
+            fetchClasses();
+        } catch (err) {
+            console.error('Failed to save class:', err);
+            addAlert('error', 'Failed to save class. Please try again.');
+            return false;
         }
-        setClassName('');
-        setSelectedSubject(null);
-        setSelectedTeacher(null);
-        setShowModal(false);
-        addAlert('success', isEditing ? 'Class edited successfully' : 'Class added successfully');
-        fetchClasses();
     };
 
     const handleEditClass = (cls) => {

@@ -8,39 +8,54 @@ import { useAppData } from '@/contexts/AppDataContext';
 import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
 import CalendarLegend from './CalendarLegend.jsx';
 import useAuthSession from '@/hooks/useAuthSession';
+import { getEnrolledSubjectIds } from '@/utils/calendarAvailability';
 
 const CalendarFilterPanel = () => {
-    const { userRole } = useAuthSession();
-    const { tutors, subjects } = useAppData();
+    const { session, userRole } = useAuthSession();
+    const userEmail = session.user.email;
+    const { tutors, subjects, classes } = useAppData();
     const { filters, visibility, actions, calendarFilters, calendarScope } = useCalendarUI();
     const [isOpen, setIsOpen] = useState(true);
     const [showHowToModal, setShowHowToModal] = useState(false);
 
-    // Memoise subject options transformation
-    const subjectOptions = useMemo(() =>
-        
-        subjects?.map((subject) => ({
+    const enrolledSubjectIds = useMemo(() =>
+        userRole === 'student' ? getEnrolledSubjectIds(classes, userEmail) : new Set(),
+        [userRole, classes, userEmail]
+    );
+
+    const subjectOptions = useMemo(() => {
+        const options = (subjects ?? []).map(subject => ({
             value: subject.id,
             label: subject.name,
             tutors: subject.tutors,
-        })) || [],
-        [subjects]
-    );
+        }));
+        if (userRole !== 'student' || enrolledSubjectIds.size === 0) return options;
+        return options.filter(subject => enrolledSubjectIds.has(subject.value));
+    }, [subjects, userRole, enrolledSubjectIds]);
 
-    // Memoise tutor options transformation
     const tutorOptions = useMemo(() => {
-        if (userRole === 'student' && filters.filterBySubject) {
-            const selectedSubject = subjects?.find(s => s.id === filters.filterBySubject.value);
-            return selectedSubject?.tutors?.map((tutor) => ({
-                value: tutor.email,
-                label: tutor.name || tutor.email,
-            })) || [];
-        }
-        return tutors?.map((tutor) => ({
+        const mapTutorToOption = (tutor) => ({
             value: tutor.email,
             label: tutor.name || tutor.email,
-        })) || [];
-    }, [userRole, filters.filterBySubject, subjects, tutors]);
+        });
+
+        if (userRole === 'student') {
+            if (filters.filterBySubject) {
+                const selectedSubject = (subjects ?? []).find(s => s.id === filters.filterBySubject.value);
+                return selectedSubject?.tutors?.map(mapTutorToOption) ?? [];
+            }
+            const tutorMap = new Map();
+            for (const subject of (subjects ?? [])) {
+                if (!enrolledSubjectIds.has(subject.id)) continue;
+                for (const tutor of subject.tutors || []) {
+                    tutorMap.set(tutor.email, tutor.name || tutor.email);
+                }
+            }
+            return [...tutorMap].map(([email, name]) => ({ value: email, label: name }));
+        }
+
+        return (tutors ?? []).map(mapTutorToOption);
+    }, [userRole, filters.filterBySubject, subjects, tutors, enrolledSubjectIds]);
 
     // prepare work type options for availabilities
     const availabilityWorkTypeOptions = [
@@ -121,7 +136,7 @@ const CalendarFilterPanel = () => {
                                 options={tutorOptions}
                                 value={filters.filterByTutor}
                                 onChange={actions.setFilterByTutor}
-                                isDisabled={userRole === 'student' && !filters.filterBySubject}
+                                isDisabled={userRole === 'student' && tutorOptions.length === 0}
                             />
                         </div>
                     )}
