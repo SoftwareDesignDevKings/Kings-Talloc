@@ -230,10 +230,10 @@ const ClassList = () => {
                 <table className={`table table-hover mb-0 ${t.table}`}>
                     <thead>
                         <tr>
-                            <th scope="col" className={t.actionCol}>Actions</th>
                             <th scope="col">Class Name</th>
                             <th scope="col">Subject</th>
                             <th scope="col">Teacher</th>
+                            <th scope="col" className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>

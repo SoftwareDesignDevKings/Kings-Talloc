@@ -17,6 +17,7 @@ const SubjectRow = ({
     return (
         <>
             <tr>
+                <td>{subject.name}</td>
                 <td className={t.actionCol}>
                     <div className={t.actionGroup}>
                         <button
@@ -49,7 +50,6 @@ const SubjectRow = ({
                         </button>
                     </div>
                 </td>
-                <td>{subject.name}</td>
             </tr>
             <tr className={t.expandRow}>
                 <td colSpan={2}>
