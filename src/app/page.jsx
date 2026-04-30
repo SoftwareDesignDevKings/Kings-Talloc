@@ -74,7 +74,6 @@ const LandingPage = () => {
                     </div>
                 </div>
                 <div className="text-center mt-5 fade-in" style={{ animationDelay: '200ms' }}>
-                    {/* Next.js Link prefetches /login in the background on hover/visibility */}
                     <Link
                         href="/login"
                         prefetch={true}

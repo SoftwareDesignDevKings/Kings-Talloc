@@ -1,6 +1,5 @@
 const nextConfig = {
     poweredByHeader: false,
-    compress: true,
     images: {
         remotePatterns: [
             {
@@ -39,18 +38,8 @@ const nextConfig = {
         removeConsole:
             process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
     },
-    turbopack: {},
     async headers() {
         return [
-            {
-                source: '/_next/static/(.*)',
-                headers: [
-                    {
-                        key: 'Cache-Control',
-                        value: 'public, max-age=31536000, immutable',
-                    },
-                ],
-            },
             {
                 source: '/(.*)\\.(svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)',
                 headers: [
