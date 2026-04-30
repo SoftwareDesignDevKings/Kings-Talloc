@@ -45,150 +45,190 @@ test.describe('Admin Workflow @admin', () => {
             await expect(page.getByText('No tutors added to this')).toBeVisible();
         });
 
-        // test('should manage classes and student enrollment', async ({ page }) => {
-        //     await expect(page.getByRole('link', { name: 'Manage Classes' })).toBeVisible();
-        //     await page.getByRole('link', { name: 'Manage Classes' }).click();
+        test('should manage classes and student enrollment', async ({ page }) => {
+            await expect(page.getByRole('link', { name: 'Manage Classes' })).toBeVisible();
+            await page.getByRole('link', { name: 'Manage Classes' }).click();
 
-        //     // Add Class (Handling react-select dropdowns safely)
+            // Add Class (Handling react-select dropdowns safely)
 
-        //     await expect(page.getByRole('button', { name: 'Add Class' })).toBeVisible();
-        //     await page.getByRole('button', { name: 'Add Class' }).click();
+            await expect(page.getByRole('button', { name: 'Add Class' })).toBeVisible();
+            await page.getByRole('button', { name: 'Add Class' }).click();
 
-        //     await page.getByRole('dialog').getByRole('textbox').fill('Software');
+            await page.getByRole('dialog').getByRole('textbox').fill('Software');
 
-        //     // Select Subject
-        //     await page.locator('.select__input-container').first().click();
-        //     await expect(page.getByRole('option', { name: 'Software Engineering' }).first()).toBeVisible();
-        //     await page.getByRole('option', { name: 'Software Engineering' }).first().click();
+            // Select Subject
+            await page.locator('.select__input-container').first().click();
+            await expect(page.getByRole('option', { name: 'Software Engineering' }).first()).toBeVisible();
+            await page.getByRole('option', { name: 'Software Engineering' }).first().click();
 
-        //     // Select Teacher
-        //     await page.locator('.select__input-container').nth(1).click();
+            // Select Teacher
+            await page.locator('.select__input-container').nth(1).click();
 
-        //     await expect(page.getByRole('option', { name: 'Michael Ienna' }).first()).toBeVisible();
-        //     await page.getByRole('option', { name: 'Michael Ienna' }).first().click();
+            await expect(page.getByRole('option', { name: 'Michael Ienna' }).first()).toBeVisible();
+            await page.getByRole('option', { name: 'Michael Ienna' }).first().click();
 
-        //     await page.getByRole('dialog').getByRole('button', { name: 'Add Class' }).click();
+            await page.getByRole('dialog').getByRole('button', { name: 'Add Class' }).click();
 
-        //     // Add Student
-        //     await expect(page.getByRole('button', { name: 'Expand to view students' })).toBeVisible();
-        //     await page.getByRole('button', { name: 'Expand to view students' }).click();
+            // Add Student
+            await expect(page.getByRole('button', { name: 'Expand to view students' })).toBeVisible();
+            await page.getByRole('button', { name: 'Expand to view students' }).click();
 
-        //     await expect(page.getByRole('button', { name: 'Add Students' })).toBeVisible();
-        //     await page.getByRole('button', { name: 'Add Students' }).click();
+            await expect(page.getByRole('button', { name: 'Add Students' })).toBeVisible();
+            await page.getByRole('button', { name: 'Add Students' }).click();
             
-        //     await expect(page.getByRole('textbox', { name: 'Enter emails' })).toBeVisible();
-        //     await page.getByRole('textbox', { name: 'Enter emails' }).fill('student@kings.edu.au');
-        //     await page.getByRole('dialog').getByRole('button', { name: 'Add Students' }).click();
+            await expect(page.getByRole('textbox', { name: 'Enter emails' })).toBeVisible();
+            await page.getByRole('textbox', { name: 'Enter emails' }).fill('student@kings.edu.au');
+            await page.getByRole('dialog').getByRole('button', { name: 'Add Students' }).click();
 
-        //     await expect(page.getByText('student@kings.edu.au')).toBeVisible();
-        // });
+            await expect(page.getByText('student@kings.edu.au')).toBeVisible();
+        });
     });
 
     // ==========================================
     // SUITE 2: Scheduling & MS Teams
     // ==========================================
-    // test.describe('Calendar & Scheduling', () => {
-    //     test.beforeEach(async ({ page }) => {
-    //         await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
-    //         await page.getByRole('link', { name: 'Calendar' }).click();
-    //     });
+    test.describe('Calendar & Scheduling', () => {
+        test.beforeEach(async ({ page }) => {
+            await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
+            await page.getByRole('link', { name: 'Calendar' }).click();
+        });
 
-    //     test('should create an event with a mocked MS Teams link', async ({ page }) => {
-    //         // Intercept MS Teams API call
-    //         await page.route('**/api/microsoft/**', async (route) => {
-    //             await route.fulfill({
-    //                 status: 200,
-    //                 contentType: 'application/json',
-    //                 body: JSON.stringify({
-    //                     joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock',
-    //                 }),
-    //             });
-    //         });
+        test('should create an event with a mocked MS Teams link', async ({ page }) => {
+            await page.route('**/api/microsoft/**', async (route) => {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock',
+                    }),
+                });
+            });
 
-    //         // Open creation modal (Targeting the calendar grid safely)
-    //         await page.locator('.rbc-events-container').first().click();
-    //         await page.getByRole('textbox', { name: 'Event title' }).fill('Software');
+            await page.locator('.rbc-events-container').first().click();
+            await page.getByRole('textbox', { name: 'Event title' }).fill('Software');
 
-    //         // Add Teams & Participants
-    //         await page.getByRole('button', { name: 'Add online Teams meeting' }).click();
-    //         await page.getByRole('button', { name: 'Participants' }).click();
+            await page.getByRole('button', { name: 'Participants' }).click();
+            await page.locator('.select__input-container').first().click();
+            await page.getByRole('option', { name: /Viraj Patel/i }).click();
 
-    //         // Select Tutor
-    //         await page.locator('.select__input-container').first().click();
-    //         await page.getByRole('option', { name: /Viraj Patel/i }).click();
+            await page.getByRole('button', { name: 'General Information' }).click();
+            await page.getByRole('button', { name: 'Add online Teams meeting' }).click();
 
-    //         await page.getByRole('button', { name: 'Add Event' }).click();
-    //         await expect(page.getByText('Teams meeting created')).toBeVisible();
+            await page.getByRole('button', { name: 'Add Event' }).click();
+            await expect(page.getByText('Teams meeting created')).toBeVisible();
 
-    //         // Verify the link is attached to the event
-    //         await page.getByRole('button', { name: /Software \(VP\)/ }).click();
-    //         await expect(page.getByRole('link', { name: /Join Now/i })).toBeVisible();
-    //         await expect(page.getByRole('link', { name: /Join Now/i })).toHaveAttribute(
-    //             'href',
-    //             'https://teams.microsoft.com/l/meetup-join/mock',
-    //         );
-    //     });
+            await page.getByRole('button', { name: /Software \(VP\)/ }).click();
+            await expect(page.getByRole('link', { name: /Join Now/i })).toBeVisible();
+            await expect(page.getByRole('link', { name: /Join Now/i })).toHaveAttribute(
+                'href',
+                'https://teams.microsoft.com/l/meetup-join/mock',
+            );
+        });
 
-    //     test('should edit workTypes, statuses, and delete events', async ({ page }) => {
-    //         await page
-    //             .getByRole('button', { name: /Software \(VP\)/ })
-    //             .first()
-    //             .click();
-    //         await page.getByRole('button', { name: 'Settings & Status' }).click();
+        test('should edit workTypes, statuses, and delete events', async ({ page }) => {
+            await page.route('**/api/microsoft/**', async (route) => {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock',
+                    }),
+                });
+            });
 
-    //         // Change Work Type
-    //         await page.locator('.select__input-container').first().click();
-    //         await page.getByRole('option', { name: 'Tutoring' }).click();
+            // Create a fresh event (DB was cleared by beforeEach)
+            await page.locator('.rbc-events-container').first().click();
+            await page.getByRole('textbox', { name: 'Event title' }).fill('Software Lesson');
+            await page.getByRole('button', { name: 'Participants' }).click();
+            await page.locator('.select__input-container').first().click();
+            await page.getByRole('option', { name: /Viraj Patel/i }).click();
+            await page.getByRole('button', { name: 'Add Event' }).click();
+            await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeVisible();
 
-    //         // Change Status
-    //         await page.locator('.select__input-container').nth(1).click();
-    //         await page.getByRole('option', { name: 'Completed' }).click();
+            // Change Work Type → Tutoring
+            await page.getByRole('button', { name: /Software Lesson/ }).first().click();
+            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await page.locator('.select__input-container').first().click();
+            await page.getByRole('option', { name: 'Tutoring' }).click();
+            await page.getByRole('button', { name: 'Save Changes' }).click();
 
-    //         await page.getByRole('button', { name: 'Save Changes' }).click();
-    //         await expect(page.getByText('Teams meeting updated')).toBeVisible();
+            // Re-open and verify Work Type persisted
+            await page.getByRole('button', { name: /Software Lesson/ }).first().click();
+            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await expect(page.getByText('Work TypeTutoring')).toBeVisible();
 
-    //         // Deletion
-    //         await page
-    //             .getByRole('button', { name: /Software \(VP\)/ })
-    //             .first()
-    //             .click();
-    //         await page.getByRole('button', { name: 'Delete' }).click();
-    //         await expect(page.getByRole('button', { name: /Software \(VP\)/ })).toBeHidden();
-    //     });
+            // Change Status → Completed
+            await page.locator('.select__input-container').nth(1).click();
+            await page.getByRole('option', { name: 'Completed', exact: true }).click();
+            await page.getByRole('button', { name: 'Save Changes' }).click();
 
-    //     test('should create and verify recurring shifts', async ({ page }) => {
-    //         await page.locator('.rbc-events-container').first().click();
-    //         await page.getByRole('textbox', { name: 'Event title' }).fill('Weekly Sync');
+            // Re-open and verify Status persisted
+            await page.getByRole('button', { name: /Software Lesson/ }).first().click();
+            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await expect(page.locator('div').filter({ hasText: /^Completed$/ }).nth(1)).toBeVisible();
 
-    //         await page.getByLabel(/recurring/i).check();
-    //         await page.getByLabel('Repeat Every').fill('1');
-    //         await page.getByRole('button', { name: 'Add Event' }).click();
+            // Delete
+            await page.getByRole('button', { name: 'Delete' }).click();
+            await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeHidden();
+        });
 
-    //         // Verify current week
-    //         await expect(page.getByRole('button', { name: /Weekly Sync/ })).toBeVisible();
+        test('should create and verify recurring shifts', async ({ page }) => {
+            await page.locator('.rbc-events-container').first().click();
+            await page.getByRole('textbox', { name: 'Event title' }).fill('Weekly Sync');
 
-    //         // Navigate to next week and verify
-    //         await page.getByRole('button', { name: 'Next', exact: true }).click();
-    //         await expect(page.getByRole('button', { name: /Weekly Sync/ })).toBeVisible();
-    //     });
-    // });
+            await page.getByRole('button', { name: 'Fortnightly' }).click();
+            await page.getByRole('spinbutton', { name: 'Occurrences *' }).fill('3');
+            await page.getByRole('button', { name: 'Add Event' }).click();
 
-    // // ==========================================
-    // // SUITE 3: Reporting & Analytics
-    // // ==========================================
-    // test.describe('Reporting', () => {
-    //     test('should calculate and display correct tutor hours', async ({ page }) => {
-    //         await expect(page.getByRole('link', { name: 'Tutor Hours' })).toBeVisible();
-    //         await page.getByRole('link', { name: 'Tutor Hours' }).click();
+            await expect(page.getByRole('button', { name: /Weekly Sync/ })).toBeVisible();
 
-    //         // Verify Tutor is listed
-    //         await expect(page.getByRole('cell', { name: 'Viraj Patel' })).toBeVisible();
+            await page.getByRole('button', { name: 'Next', exact: true }).click();
+            await expect(page.getByRole('button', { name: /Weekly Sync/ })).toBeVisible();
+        });
+    });
 
-    //         // Click to view breakdown
-    //         await page.getByRole('cell', { name: 'Viraj Patel' }).click();
+    // ==========================================
+    // SUITE 3: Reporting & Analytics
+    // ==========================================
+    test.describe('Reporting & Analytics', () => {
+        test.beforeEach(async ({ page }) => {
+            await page.route('**/api/microsoft/**', async (route) => {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock',
+                    }),
+                });
+            });
 
-    //         await expect(page.getByRole('cell', { name: '0.50' }).first()).toBeVisible();
-    //         await expect(page.getByRole('cell', { name: '0.00' })).toBeVisible();
-    //     });
-    // });
+            // Create a completed shift so Tutor Hours has data to display
+            await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
+            await page.getByRole('link', { name: 'Calendar' }).click();
+            await page.locator('.rbc-events-container').first().click();
+            await page.getByRole('textbox', { name: 'Event title' }).fill('Reporting Shift');
+            await page.getByRole('button', { name: 'Participants' }).click();
+            await page.locator('.select__input-container').first().click();
+            await page.getByRole('option', { name: /Viraj Patel/i }).click();
+            await page.getByRole('button', { name: 'Add Event' }).click();
+            await expect(page.getByRole('button', { name: /Reporting Shift/ })).toBeVisible();
+
+            await page.getByRole('button', { name: /Reporting Shift/ }).first().click();
+            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await page.locator('.select__input-container').nth(1).click();
+            await page.getByRole('option', { name: 'Completed', exact: true }).click();
+            await page.getByRole('button', { name: 'Save Changes' }).click();
+        });
+
+        test('should calculate and display correct tutor hours', async ({ page }) => {
+            await expect(page.getByRole('link', { name: 'Tutor Hours' })).toBeVisible();
+            await page.getByRole('link', { name: 'Tutor Hours' }).click();
+
+            await expect(page.getByRole('cell', { name: 'Viraj Patel' })).toBeVisible();
+            await page.getByRole('cell', { name: 'Viraj Patel' }).click();
+
+            await expect(page.getByRole('cell', { name: '0.50' }).first()).toBeVisible();
+            await expect(page.getByRole('cell', { name: '0.00' })).toBeVisible();
+        });
+    });
 });

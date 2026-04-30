@@ -9,6 +9,7 @@ const RESET = '\x1b[0m';
 process.env.NODE_ENV = 'development';
 
 setup('authenticate users', async ({ browser }) => {
+    setup.setTimeout(120000);
     if (!fs.existsSync('tests/e2e/.auth')) {
         fs.mkdirSync('tests/e2e/.auth', { recursive: true });
     }
@@ -65,9 +66,9 @@ setup('authenticate users', async ({ browser }) => {
             console.log(`${TEAL} Authenticated ${user.role}${RESET}`);
         } catch (error) {
             console.error(`Failed to authenticate ${user.role}:`, error);
-            await page.screenshot({ path: `tests/e2e/.auth/failed-${user.role}.png` });
+            await page.screenshot({ path: `tests/e2e/.auth/failed-${user.role}.png` }).catch(() => {});
         } finally {
-            await context.close();
+            await context.close().catch(() => {});
         }
     }
 });
