@@ -16,7 +16,7 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '20.17.0'
+                  node-version: '20.19.0'
                   cache: 'npm'
 
             - name: Setup Java
@@ -48,4 +48,11 @@ jobs:
             - name: Run Playwright e2e tests
               run: npm run test:e2e
               env:
-                  FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+                NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyDUMMY_DUMMY_DUMMY_DUMMY_DUMMY
+                NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: demo-talloc.firebaseapp.com
+                NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-talloc
+                NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: demo-talloc.appspot.com
+                NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
+                NEXT_PUBLIC_FIREBASE_APP_ID: "1:000000000000:web:000000000000000000"
+                NEXTAUTH_SECRET: Dummy-Secret
+                NEXTAUTH_URL: http://localhost:3000
