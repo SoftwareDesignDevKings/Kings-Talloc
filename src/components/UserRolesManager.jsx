@@ -92,7 +92,6 @@ const UserRolesManager = () => {
 
             return () => {
                 modalInstance.hide();
-                // eslint-disable-next-line react-hooks/exhaustive-deps
                 modalElement.removeEventListener('hidden.bs.modal', handleModalHidden);
             };
         }
