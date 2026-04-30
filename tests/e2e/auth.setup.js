@@ -20,25 +20,25 @@ setup('authenticate users', async ({ browser }) => {
         const page = await context.newPage();
         
         try {
-            console.log(`\x1b[36m Authenticating ${user.role}...\x1b[0m`);
+            console.log(`${TEAL}Authenticating ${user.role}...${RESET}`);
             
             await page.goto('/login');
         
             let buttonLabel;
             if (emailKey === 'computing@kings.edu.au') {
-                buttonLabel = '🔧 Admin (Teacher)';
+                buttonLabel = 'Teacher + Admin';
             } else if (emailKey === 'tutor@kings.edu.au') {
-                buttonLabel = '👨‍🏫 Tutor';
+                buttonLabel = 'Tutor';
             } else if (emailKey === 'tutorAdmin@kings.edu.au') {
-                buttonLabel = '👨‍🏫 Tutor + Admin';
+                buttonLabel = 'Tutor + Admin';
             } else if (emailKey === 'teacher@kings.edu.au') {
-                buttonLabel = '📚 Teacher';
+                buttonLabel = 'Teacher';
             } else if (emailKey === 'coach@kings.edu.au') {
-                buttonLabel = '⚽ Coach + Tutor';
+                buttonLabel = 'Coach';
+            } else if (emailKey === 'coachTutor@kings.edu.au') {
+                buttonLabel = 'Coach + Tutor';
             } else if (emailKey === 'student@kings.edu.au') {
-                buttonLabel = '🎓 Student';
-            } else {
-                buttonLabel = user.name;
+                buttonLabel = 'Student';
             }
             
             // click the dev button
@@ -69,38 +69,3 @@ setup('authenticate users', async ({ browser }) => {
         }
     }
 });
-// setup('authenticate users', async ({ browser }) => {
-//     if (!fs.existsSync('e2e/.auth')) {
-//         fs.mkdirSync('e2e/.auth', { recursive: true });
-//     }
-
-//     for (const emailKey in TEST_USERS) {
-//         const user = TEST_USERS[emailKey]; 
-        
-//         // Use a fresh context for every user to prevent session sharing
-//         const context = await browser.newContext();
-//         const page = await context.newPage();
-        
-//         try {
-
-//             console.log(`\x1b[36m🔑 Authenticating ${user.role}...\x1b[0m`);
-            
-//             await page.goto('/login');
-//             await page.click('button:has-text("Sign in with Microsoft SSO")');
-
-//             // Wait for the SSO callback and dashboard landing
-//             await page.waitForURL('/dashboard', { timeout: 15000 });
-
-//             // Save the specific context state (cookies/localstorage)
-//             await context.storageState({ 
-//                 path: `e2e/.auth/${user.role}.json` 
-//             });
-
-//             console.log(`${TEAL} Authenticated ${user.role}${RESET}`);
-//         } catch (error) {
-//             console.error(`Failed to authenticate ${user.role}:`, error);
-//         } finally {
-//             await context.close();
-//         }
-//     }
-// });
