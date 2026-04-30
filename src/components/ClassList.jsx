@@ -15,6 +15,13 @@ import ClassRow from './ClassRow.jsx';
 import ClassModal from './modals/ClassModal.jsx';
 import AddStudentsModal from './modals/AddStudentsModal.jsx';
 import useAlert from '@/hooks/useAlert';
+import useToggleSet from '@/hooks/useToggleSet';
+import { checkDuplicateName } from '@/utils/validation';
+import {
+    parseStudentEntries,
+    filterNewStudentEntries,
+    extractEmailFromEntry,
+} from '@/utils/emailUtils';
 import t from '@/styles/manageTable.module.css';
 
 const ClassList = () => {
@@ -32,7 +39,7 @@ const ClassList = () => {
     const [studentsToAdd, setStudentsToAdd] = useState('');
     const [selectedClass, setSelectedClass] = useState(null);
     const [filteredClasses, setFilteredClasses] = useState([]);
-    const [expandedClasses, setExpandedClasses] = useState(new Set());
+    const [expandedClasses, toggleExpandedClass, removeExpandedClass] = useToggleSet();
 
     const fetchClasses = async () => {
         const querySnapshot = await getDocs(collection(db, 'classes'));
@@ -92,6 +99,11 @@ const ClassList = () => {
             return false;
         }
 
+        if (checkDuplicateName(classes, className, selectedClass?.id)) {
+            addAlert('error', 'A class with this name already exists.');
+            return false;
+        }
+
         try {
             if (isEditing) {
                 const classRef = doc(db, 'classes', selectedClass.id);
@@ -132,7 +144,7 @@ const ClassList = () => {
             return false;
         }
     };
-
+    
     const handleEditClass = (cls) => {
         setSelectedClass(cls);
         setClassName(cls.name);
@@ -144,48 +156,60 @@ const ClassList = () => {
 
     const handleDeleteClass = async (classToDelete) => {
         if (classToDelete) {
-            await deleteDoc(doc(db, 'classes', classToDelete.id));
-            setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
-            setExpandedClasses((prev) => { const s = new Set(prev); s.delete(classToDelete.id); return s; });
-            addAlert('success', 'Class deleted successfully');
+            try {
+                await deleteDoc(doc(db, 'classes', classToDelete.id));
+                setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
+                removeExpandedClass(classToDelete.id);
+                addAlert('success', 'Class deleted successfully');
+            } catch (err) {
+                console.error('Failed to delete class:', err);
+                addAlert('error', 'Failed to delete class. Please try again.');
+            }
         }
     };
 
     const handleAddStudents = async (e) => {
         e.preventDefault();
-        const entries = studentsToAdd.split(',').map((entry) => entry.trim());
-
-        const newStudents = await Promise.all(
-            entries.map(async (entry) => {
-                // Check if entry has name:email format (from CSV) or just email (manual)
-                let email, name;
-                if (entry.includes(':')) {
-                    [name, email] = entry.split(':').map((s) => s.trim());
-                } else {
-                    email = entry;
-                    name = '';
-                }
-
-                const userRef = doc(db, 'users', email);
-                const userDoc = await getDoc(userRef);
-                if (!userDoc.exists()) {
-                    // User doesn't exist - use name from CSV or empty string
-                    return { email, name };
-                } else {
-                    const userData = userDoc.data();
-                    // Prefer name from database, fallback to CSV name, then empty
-                    return { email, name: userData.name || name || '' };
-                }
-            }),
+        const rawEntries = parseStudentEntries(studentsToAdd);
+        const uniqueEntries = filterNewStudentEntries(
+            rawEntries,
+            (selectedClass.students || []).map((s) => s.email),
         );
-        const updatedStudents = [...(selectedClass.students || []), ...newStudents];
-        const classRef = doc(db, 'classes', selectedClass.id);
-        await updateDoc(classRef, { students: updatedStudents });
-        setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
-        setStudentsToAdd('');
-        setShowStudentModal(false);
-        addAlert('success', 'Students added successfully');
-        fetchClasses();
+
+        if (uniqueEntries.length === 0) {
+            addAlert('error', 'All provided emails are already enrolled in this class.');
+            return false;
+        }
+
+        try {
+            const newStudents = await Promise.all(
+                uniqueEntries.map(async (entry) => {
+                    const email = extractEmailFromEntry(entry);
+                    const name = entry.includes(':') ? entry.split(':')[0].trim() : '';
+
+                    const userRef = doc(db, 'users', email);
+                    const userDoc = await getDoc(userRef);
+                    if (!userDoc.exists()) {
+                        return { email, name };
+                    } else {
+                        const userData = userDoc.data();
+                        return { email, name: userData.name || name || '' };
+                    }
+                }),
+            );
+            const updatedStudents = [...(selectedClass.students || []), ...newStudents];
+            const classRef = doc(db, 'classes', selectedClass.id);
+            await updateDoc(classRef, { students: updatedStudents });
+            setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
+            setStudentsToAdd('');
+            setShowStudentModal(false);
+            await fetchClasses();
+            addAlert('success', 'Students added successfully');
+        } catch (err) {
+            console.error('Failed to add students:', err);
+            addAlert('error', 'Failed to add students. Please try again.');
+            return false;
+        }
     };
 
     const handleRemoveStudent = async (classToUpdate, studentToRemove) => {
@@ -203,13 +227,7 @@ const ClassList = () => {
         setShowStudentModal(true);
     };
 
-    const handleExpandClass = (cls) => {
-        setExpandedClasses((prev) => {
-            const s = new Set(prev);
-            s.has(cls.id) ? s.delete(cls.id) : s.add(cls.id);
-            return s;
-        });
-    };
+    const handleExpandClass = (cls) => toggleExpandedClass(cls.id);
 
     return (
         <div className={t.container}>

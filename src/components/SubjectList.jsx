@@ -18,6 +18,9 @@ import SubjectModal from './modals/SubjectModal.jsx';
 import AddTutorsModal from './modals/AddTutorsModal.jsx';
 import SubjectRow from './SubjectRow.jsx';
 import useAlert from '@/hooks/useAlert';
+import useToggleSet from '@/hooks/useToggleSet';
+import { checkDuplicateName } from '@/utils/validation';
+import { filterNewEmails } from '@/utils/emailUtils';
 import t from '@/styles/manageTable.module.css';
 
 const SubjectList = () => {
@@ -30,7 +33,7 @@ const SubjectList = () => {
     const [showTutorModal, setShowTutorModal] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [tutorsToAdd, setTutorsToAdd] = useState('');
-    const [expandedSubjects, setExpandedSubjects] = useState(new Set());
+    const [expandedSubjects, toggleExpandedSubject, removeExpandedSubject] = useToggleSet();
     const [filteredSubjects, setFilteredSubjects] = useState([]);
 
     useEffect(() => {
@@ -52,22 +55,33 @@ const SubjectList = () => {
     }, [searchTerm, subjects]);
 
     const handleAddSubject = async (subject) => {
-        if (isEditing) {
-            const subjectRef = doc(db, 'subjects', currentSubject.id);
-            await updateDoc(subjectRef, subject);
-            setSubjects(
-                subjects.map((sub) =>
-                    sub.id === currentSubject.id ? { ...sub, ...subject } : sub,
-                ),
-            );
-            setIsEditing(false);
-            addAlert('success', 'Subject updated successfully');
-        } else {
-            const docRef = await addDoc(collection(db, 'subjects'), subject);
-            setSubjects([...subjects, { id: docRef.id, ...subject }]);
-            addAlert('success', 'Subject added successfully');
+        if (checkDuplicateName(subjects, subject.name, currentSubject?.id)) {
+            addAlert('error', 'A subject with this name already exists.');
+            return false;
         }
-        setShowModal(false);
+
+        try {
+            if (isEditing) {
+                const subjectRef = doc(db, 'subjects', currentSubject.id);
+                await updateDoc(subjectRef, subject);
+                setSubjects(
+                    subjects.map((sub) =>
+                        sub.id === currentSubject.id ? { ...sub, ...subject } : sub,
+                    ),
+                );
+                setIsEditing(false);
+                addAlert('success', 'Subject updated successfully');
+            } else {
+                const docRef = await addDoc(collection(db, 'subjects'), subject);
+                setSubjects([...subjects, { id: docRef.id, ...subject }]);
+                addAlert('success', 'Subject added successfully');
+            }
+            setShowModal(false);
+        } catch (err) {
+            console.error('Failed to save subject:', err);
+            addAlert('error', 'Failed to save subject. Please try again.');
+            return false;
+        }
     };
 
     const handleEditSubject = (subject) => {
@@ -78,18 +92,27 @@ const SubjectList = () => {
 
     const handleDeleteSubject = async (subjectToDelete) => {
         if (subjectToDelete) {
-            await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
-            setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
-            setExpandedSubjects((prev) => { const s = new Set(prev); s.delete(subjectToDelete.id); return s; });
-            addAlert('success', 'Subject deleted successfully');
+            try {
+                await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
+                setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
+                removeExpandedSubject(subjectToDelete.id);
+                addAlert('success', 'Subject deleted successfully');
+            } catch (err) {
+                console.error('Failed to delete subject:', err);
+                addAlert('error', 'Failed to delete subject. Please try again.');
+            }
         }
     };
 
     const handleAddTutors = async (emails) => {
-        const uniqueEmails = [
-            ...new Set(emails.map((email) => email.trim()).filter((email) => email !== '')),
-        ];
-        if (uniqueEmails.length === 0) return;
+        const uniqueEmails = filterNewEmails(
+            emails,
+            (selectedSubject.tutors || []).map((t) => t.email),
+        );
+        if (uniqueEmails.length === 0) {
+            addAlert('error', 'All provided emails are already assigned to this subject.');
+            return;
+        }
         if (uniqueEmails.length > 499) {
             addAlert('error', 'Too many tutors at once — please add 499 or fewer at a time.');
             return;
@@ -99,69 +122,72 @@ const SubjectList = () => {
         const usersCollection = collection(db, 'users');
         const existingUsersMap = new Map();
 
-        // fetch existing users in chunks of 30 (Firestore 'in' query limit) 
+        // fetch existing users in chunks of 30 (Firestore 'in' query limit)
         const chunks = [];
         for (let i = 0; i < uniqueEmails.length; i += 30) {
             chunks.push(uniqueEmails.slice(i, i + 30));
         }
 
-        // Promise.all to ensure they fire in parallel
-        const snapshots = await Promise.all(
-            chunks.map((chunk) => {
-                const q = query(usersCollection, where(documentId(), 'in', chunk));
-                return getDocs(q);
-            }),
-        );
-
-        snapshots.forEach((querySnapshot) => {
-            querySnapshot.forEach((docSnap) => {
-                existingUsersMap.set(docSnap.id, docSnap.data());
-            });
-        });
-
-        const newTutors = uniqueEmails.map((email) => {
-            if (existingUsersMap.has(email)) {
-                const userData = existingUsersMap.get(email);
-                return { email, name: userData.name || '' };
-            } else {
-                const userRef = doc(db, 'users', email);
-                batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor'}, { merge: true });
-                return { email, name: '' };
-            }
-        });
-
-        const updatedTutors = [...(selectedSubject.tutors || []), ...newTutors];
-        const subjectRef = doc(db, 'subjects', selectedSubject.id);
-        batch.update(subjectRef, { tutors: updatedTutors });
-
         try {
+            const snapshots = await Promise.all(
+                chunks.map((chunk) => {
+                    const q = query(usersCollection, where(documentId(), 'in', chunk));
+                    return getDocs(q);
+                }),
+            );
+
+            snapshots.forEach((querySnapshot) => {
+                querySnapshot.forEach((docSnap) => {
+                    existingUsersMap.set(docSnap.id, docSnap.data());
+                });
+            });
+
+            const newTutors = uniqueEmails.map((email) => {
+                if (existingUsersMap.has(email)) {
+                    const userData = existingUsersMap.get(email);
+                    return { email, name: userData.name || '' };
+                } else {
+                    const userRef = doc(db, 'users', email);
+                    batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor' }, { merge: true });
+                    return { email, name: '' };
+                }
+            });
+
+            const updatedTutors = [...(selectedSubject.tutors || []), ...newTutors];
+            const subjectRef = doc(db, 'subjects', selectedSubject.id);
+            batch.update(subjectRef, { tutors: updatedTutors });
+
             await batch.commit();
+
+            setSubjects(
+                subjects.map((sub) =>
+                    sub.id === selectedSubject.id ? { ...sub, tutors: updatedTutors } : sub,
+                ),
+            );
+            setShowTutorModal(false);
+            setTutorsToAdd('');
+            addAlert('success', 'Tutors added successfully');
         } catch (err) {
             console.error('Failed to add tutors:', err);
             addAlert('error', 'Failed to save tutors. Please try again.');
-            return;
         }
-
-        setSubjects(
-            subjects.map((sub) =>
-                sub.id === selectedSubject.id ? { ...sub, tutors: updatedTutors } : sub,
-            ),
-        );
-        setShowTutorModal(false);
-        setTutorsToAdd('');
-        addAlert('success', 'Tutors added successfully');
     };
 
     const handleRemoveTutor = async (tutor, subject) => {
         const updatedTutors = subject.tutors.filter((t) => t.email !== tutor.email);
         const subjectRef = doc(db, 'subjects', subject.id);
-        await updateDoc(subjectRef, { tutors: updatedTutors });
-        setSubjects(
-            subjects.map((sub) =>
-                sub.id === subject.id ? { ...sub, tutors: updatedTutors } : sub,
-            ),
-        );
-        addAlert('success', 'Tutor removed successfully');
+        try {
+            await updateDoc(subjectRef, { tutors: updatedTutors });
+            setSubjects(
+                subjects.map((sub) =>
+                    sub.id === subject.id ? { ...sub, tutors: updatedTutors } : sub,
+                ),
+            );
+            addAlert('success', 'Tutor removed successfully');
+        } catch (err) {
+            console.error('Failed to remove tutor:', err);
+            addAlert('error', 'Failed to remove tutor. Please try again.');
+        }
     };
 
     const openAddModal = () => {
@@ -170,26 +196,12 @@ const SubjectList = () => {
         setShowModal(true);
     };
 
-    const openEditModal = (subject) => {
-        handleEditSubject(subject);
-    };
-
-    const openDeleteModal = (subject) => {
-        handleDeleteSubject(subject);
-    };
-
     const openAddTutorModal = (subject) => {
         setSelectedSubject(subject);
         setShowTutorModal(true);
     };
 
-    const handleExpandSubject = (subject) => {
-        setExpandedSubjects((prev) => {
-            const s = new Set(prev);
-            s.has(subject.id) ? s.delete(subject.id) : s.add(subject.id);
-            return s;
-        });
-    };
+    const handleExpandSubject = (subject) => toggleExpandedSubject(subject.id);
 
     return (
         <div className={t.container}>
@@ -209,7 +221,7 @@ const SubjectList = () => {
                     onClick={openAddModal}
                     className="btn btn-outline-primary btn-sm text-nowrap"
                 >
-                    {isEditing ? 'Edit Subject' : 'Add Subject'}
+                    Add Subject
                 </button>
             </div>
 
@@ -227,11 +239,11 @@ const SubjectList = () => {
                                 key={subject.id}
                                 subject={subject}
                                 handleOpenTutorModal={openAddTutorModal}
-                                confirmDeleteSubject={openDeleteModal}
+                                confirmDeleteSubject={handleDeleteSubject}
                                 handleExpandSubject={handleExpandSubject}
                                 expandedSubjects={expandedSubjects}
                                 confirmRemoveTutor={handleRemoveTutor}
-                                handleEditSubject={openEditModal}
+                                handleEditSubject={handleEditSubject}
                             />
                         ))}
                     </tbody>
