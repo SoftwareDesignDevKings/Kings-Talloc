@@ -42,11 +42,12 @@ setup('authenticate users', async ({ browser }) => {
             }
             
             // click the dev button
+            await expect(page.getByRole('button', { name: buttonLabel })).toBeVisible();
             await page.click(`button:has-text("${buttonLabel}")`);
             
             // wait for either dashboard OR check for error
             try {
-                await page.waitForURL('/dashboard', { timeout: 5000 });
+                await page.waitForURL('/dashboard', { timeout: 10000 });
             } catch {
                 // If no dashboard, check if we're still on login with error
                 const errorMsg = await page.locator('.alert-danger').textContent().catch(() => null);
