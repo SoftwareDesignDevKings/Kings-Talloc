@@ -40,9 +40,7 @@ trap cleanup SIGINT SIGTERM EXIT
 # Start Firebase Emulators with dev config (open rules, safe from production)
 echo -e "${BLUE}🔥 Starting Firebase emulators with dev config...${NC}"
 cd firebase
-# Use FIREBASE_PROJECT env var if set, otherwise default to demo-test.
-# demo-* projects work with emulators without a real Firebase account.
-firebase emulators:start --config firebase.emulator.json --project "${FIREBASE_PROJECT:-demo-test}" &
+firebase emulators:start --config firebase.emulator.json --project demo-talloc &
 EMULATOR_PID=$!
 cd ..
 

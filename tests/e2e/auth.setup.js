@@ -20,7 +20,7 @@ setup('authenticate users', async ({ browser }) => {
         const page = await context.newPage();
         
         try {
-            console.log(`${TEAL}Authenticating ${user.role}...${RESET}`);
+            // console.log(`${TEAL}Authenticating ${user.role}...${RESET}`);
             
             await page.goto('/login');
         
@@ -42,8 +42,9 @@ setup('authenticate users', async ({ browser }) => {
             }
             
             // click the dev button
-            await expect(page.getByRole('button', { name: buttonLabel })).toBeVisible();
-            await page.click(`button:has-text("${buttonLabel}")`);
+            const devButton = page.getByRole('button', { name: buttonLabel, exact: true });
+            await expect(devButton).toBeVisible();
+            await devButton.click();
             
             // wait for either dashboard OR check for error
             try {
