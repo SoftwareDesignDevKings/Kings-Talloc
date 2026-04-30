@@ -12,14 +12,16 @@ const MAINTENANCE_MODE = false;
 export async function middleware(req) {
 
     const { pathname } = req.nextUrl;
-
-    // return if rateLimitResponse is created
-    const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
-    if (rateLimitResponse) {
-        return rateLimitResponse;
+    try {
+        const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
+        if (rateLimitResponse) {
+            return rateLimitResponse;
+        }
+    } catch (err) {
+        console.error('Rate limiter error:', err);
     }
 
-    const response = await implementCspWrapper(req)
+    const response = await implementCspWrapper(req);
 
     // Maintenance mode  ENABLED - redirect everyone to /maintenance
     if (MAINTENANCE_MODE && pathname !== '/maintenance') {

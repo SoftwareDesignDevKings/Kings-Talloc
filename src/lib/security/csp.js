@@ -1,3 +1,0 @@
-
-import { contentSecurityPolicy } from "./secConfig";
-
