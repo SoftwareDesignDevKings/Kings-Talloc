@@ -101,8 +101,8 @@ const ClassList = () => {
 
         if (checkDuplicateName(classes, className, selectedClass?.id)) {
             addAlert('error', 'A class with this name already exists.');
-            return;
-        }        
+            return false;
+        }
 
         try {
             if (isEditing) {

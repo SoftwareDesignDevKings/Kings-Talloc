@@ -86,10 +86,15 @@ const SubjectList = () => {
 
     const handleDeleteSubject = async (subjectToDelete) => {
         if (subjectToDelete) {
-            await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
-            setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
-            removeExpandedSubject(subjectToDelete.id);
-            addAlert('success', 'Subject deleted successfully');
+            try {
+                await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
+                setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
+                removeExpandedSubject(subjectToDelete.id);
+                addAlert('success', 'Subject deleted successfully');
+            } catch (err) {
+                console.error('Failed to delete subject:', err);
+                addAlert('error', 'Failed to delete subject. Please try again.');
+            }
         }
     };
 
