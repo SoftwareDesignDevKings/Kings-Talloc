@@ -60,22 +60,28 @@ const SubjectList = () => {
             return false;
         }
 
-        if (isEditing) {
-            const subjectRef = doc(db, 'subjects', currentSubject.id);
-            await updateDoc(subjectRef, subject);
-            setSubjects(
-                subjects.map((sub) =>
-                    sub.id === currentSubject.id ? { ...sub, ...subject } : sub,
-                ),
-            );
-            setIsEditing(false);
-            addAlert('success', 'Subject updated successfully');
-        } else {
-            const docRef = await addDoc(collection(db, 'subjects'), subject);
-            setSubjects([...subjects, { id: docRef.id, ...subject }]);
-            addAlert('success', 'Subject added successfully');
+        try {
+            if (isEditing) {
+                const subjectRef = doc(db, 'subjects', currentSubject.id);
+                await updateDoc(subjectRef, subject);
+                setSubjects(
+                    subjects.map((sub) =>
+                        sub.id === currentSubject.id ? { ...sub, ...subject } : sub,
+                    ),
+                );
+                setIsEditing(false);
+                addAlert('success', 'Subject updated successfully');
+            } else {
+                const docRef = await addDoc(collection(db, 'subjects'), subject);
+                setSubjects([...subjects, { id: docRef.id, ...subject }]);
+                addAlert('success', 'Subject added successfully');
+            }
+            setShowModal(false);
+        } catch (err) {
+            console.error('Failed to save subject:', err);
+            addAlert('error', 'Failed to save subject. Please try again.');
+            return false;
         }
-        setShowModal(false);
     };
 
     const handleEditSubject = (subject) => {
@@ -122,76 +128,72 @@ const SubjectList = () => {
             chunks.push(uniqueEmails.slice(i, i + 30));
         }
 
-        const snapshots = await Promise.all(
-            chunks.map((chunk) => {
-                const q = query(usersCollection, where(documentId(), 'in', chunk));
-                return getDocs(q);
-            }),
-        );
-
-        snapshots.forEach((querySnapshot) => {
-            querySnapshot.forEach((docSnap) => {
-                existingUsersMap.set(docSnap.id, docSnap.data());
-            });
-        });
-
-        const newTutors = uniqueEmails.map((email) => {
-            if (existingUsersMap.has(email)) {
-                const userData = existingUsersMap.get(email);
-                return { email, name: userData.name || '' };
-            } else {
-                const userRef = doc(db, 'users', email);
-                batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor' }, { merge: true });
-                return { email, name: '' };
-            }
-        });
-
-        const updatedTutors = [...(selectedSubject.tutors || []), ...newTutors];
-        const subjectRef = doc(db, 'subjects', selectedSubject.id);
-        batch.update(subjectRef, { tutors: updatedTutors });
-
         try {
+            const snapshots = await Promise.all(
+                chunks.map((chunk) => {
+                    const q = query(usersCollection, where(documentId(), 'in', chunk));
+                    return getDocs(q);
+                }),
+            );
+
+            snapshots.forEach((querySnapshot) => {
+                querySnapshot.forEach((docSnap) => {
+                    existingUsersMap.set(docSnap.id, docSnap.data());
+                });
+            });
+
+            const newTutors = uniqueEmails.map((email) => {
+                if (existingUsersMap.has(email)) {
+                    const userData = existingUsersMap.get(email);
+                    return { email, name: userData.name || '' };
+                } else {
+                    const userRef = doc(db, 'users', email);
+                    batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor' }, { merge: true });
+                    return { email, name: '' };
+                }
+            });
+
+            const updatedTutors = [...(selectedSubject.tutors || []), ...newTutors];
+            const subjectRef = doc(db, 'subjects', selectedSubject.id);
+            batch.update(subjectRef, { tutors: updatedTutors });
+
             await batch.commit();
+
+            setSubjects(
+                subjects.map((sub) =>
+                    sub.id === selectedSubject.id ? { ...sub, tutors: updatedTutors } : sub,
+                ),
+            );
+            setShowTutorModal(false);
+            setTutorsToAdd('');
+            addAlert('success', 'Tutors added successfully');
         } catch (err) {
             console.error('Failed to add tutors:', err);
             addAlert('error', 'Failed to save tutors. Please try again.');
-            return;
         }
-
-        setSubjects(
-            subjects.map((sub) =>
-                sub.id === selectedSubject.id ? { ...sub, tutors: updatedTutors } : sub,
-            ),
-        );
-        setShowTutorModal(false);
-        setTutorsToAdd('');
-        addAlert('success', 'Tutors added successfully');
     };
 
     const handleRemoveTutor = async (tutor, subject) => {
         const updatedTutors = subject.tutors.filter((t) => t.email !== tutor.email);
         const subjectRef = doc(db, 'subjects', subject.id);
-        await updateDoc(subjectRef, { tutors: updatedTutors });
-        setSubjects(
-            subjects.map((sub) =>
-                sub.id === subject.id ? { ...sub, tutors: updatedTutors } : sub,
-            ),
-        );
-        addAlert('success', 'Tutor removed successfully');
+        try {
+            await updateDoc(subjectRef, { tutors: updatedTutors });
+            setSubjects(
+                subjects.map((sub) =>
+                    sub.id === subject.id ? { ...sub, tutors: updatedTutors } : sub,
+                ),
+            );
+            addAlert('success', 'Tutor removed successfully');
+        } catch (err) {
+            console.error('Failed to remove tutor:', err);
+            addAlert('error', 'Failed to remove tutor. Please try again.');
+        }
     };
 
     const openAddModal = () => {
         setCurrentSubject(null);
         setIsEditing(false);
         setShowModal(true);
-    };
-
-    const openEditModal = (subject) => {
-        handleEditSubject(subject);
-    };
-
-    const openDeleteModal = (subject) => {
-        handleDeleteSubject(subject);
     };
 
     const openAddTutorModal = (subject) => {
@@ -219,7 +221,7 @@ const SubjectList = () => {
                     onClick={openAddModal}
                     className="btn btn-outline-primary btn-sm text-nowrap"
                 >
-                    {isEditing ? 'Edit Subject' : 'Add Subject'}
+                    Add Subject
                 </button>
             </div>
 
@@ -237,11 +239,11 @@ const SubjectList = () => {
                                 key={subject.id}
                                 subject={subject}
                                 handleOpenTutorModal={openAddTutorModal}
-                                confirmDeleteSubject={openDeleteModal}
+                                confirmDeleteSubject={handleDeleteSubject}
                                 handleExpandSubject={handleExpandSubject}
                                 expandedSubjects={expandedSubjects}
                                 confirmRemoveTutor={handleRemoveTutor}
-                                handleEditSubject={openEditModal}
+                                handleEditSubject={handleEditSubject}
                             />
                         ))}
                     </tbody>

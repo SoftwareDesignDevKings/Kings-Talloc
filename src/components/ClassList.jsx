@@ -203,8 +203,8 @@ const ClassList = () => {
             setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
             setStudentsToAdd('');
             setShowStudentModal(false);
+            await fetchClasses();
             addAlert('success', 'Students added successfully');
-            fetchClasses();
         } catch (err) {
             console.error('Failed to add students:', err);
             addAlert('error', 'Failed to add students. Please try again.');
