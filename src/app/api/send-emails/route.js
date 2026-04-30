@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/security/authConfig';
 import { getMicrosoftAccessToken } from '@/lib/microsoft/tokenUtils';
 import { msSendEmail } from '@/app/api/microsoft/msGraphFunctions';
 import { DateTime } from 'luxon';
+import { sanitiseHtml } from '@/lib/security/securityHelpers';
 
 export async function POST(req) {
     const session = await getServerSession(authOptions);
@@ -115,7 +116,7 @@ function buildEventRow(notification, index, total) {
                   </td>
                 </tr>
               </table>
-              <h3 style="margin:0 0 8px 0;color:#111827;font-size:16px;font-weight:700;">${notification.title}</h3>
+              <h3 style="margin:0 0 8px 0;color:#111827;font-size:16px;font-weight:700;">${sanitiseHtml(notification.title)}</h3>
               <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
                 <span style="color:#1e40af;font-weight:600;">When:</span>&nbsp; ${formatDate(notification.start)} &ndash; ${formatDate(notification.end)}
               </p>
@@ -137,7 +138,7 @@ function buildEventRow(notification, index, total) {
                   </td>
                 </tr>
               </table>
-              <h3 style="margin:0 0 10px 0;color:#111827;font-size:16px;font-weight:700;">${notification.title}</h3>
+              <h3 style="margin:0 0 10px 0;color:#111827;font-size:16px;font-weight:700;">${sanitiseHtml(notification.title)}</h3>
               <p style="margin:0 0 4px 0;color:#9ca3af;font-size:13px;text-decoration:line-through;">
                 ${formatDate(notification.previousStart)} &ndash; ${formatDate(notification.previousEnd)}
               </p>

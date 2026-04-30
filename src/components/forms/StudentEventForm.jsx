@@ -41,11 +41,10 @@ const StudentEventForm = ({
     );
     const [selectedSubject, setSelectedSubject] = useState(newEvent.subject || null);
     const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
-    const [selectedStudent] = useState(
+    const selectedStudent =
         newEvent.students && newEvent.students.length > 0
             ? newEvent.students[0]
-            : { value: studentEmail, label: studentEmail },
-    );
+            : { value: studentEmail, label: studentEmail };
     const { addAlert } = useAlert();
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
