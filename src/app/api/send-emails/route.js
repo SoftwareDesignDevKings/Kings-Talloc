@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/security/authConfig';
 import { getMicrosoftAccessToken } from '@/lib/microsoft/tokenUtils';
 import { msSendEmail } from '@/app/api/microsoft/msGraphFunctions';
 import { DateTime } from 'luxon';
-import { sanitiseHtml } from '@/lib/security/securityHelpers';
+import { sanitiseHtml } from '@/lib/security/securityWrappers';
 
 export async function POST(req) {
     const session = await getServerSession(authOptions);
