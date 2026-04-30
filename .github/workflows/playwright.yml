@@ -10,6 +10,17 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    env:
+      # Firebase emulator demo project — no real account needed
+      FIREBASE_PROJECT: demo-test
+      NEXT_PUBLIC_FIREBASE_API_KEY: demo-api-key
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: localhost
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-test
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: demo-test.appspot.com
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
+      NEXT_PUBLIC_FIREBASE_APP_ID: demo-app-id
+      NEXTAUTH_SECRET: ci-playwright-test-secret
+      NEXTAUTH_URL: http://localhost:3000
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -23,7 +34,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/firebase/emulators
-        key: firebase-emulators-${{ runner.os }}
+        key: firebase-emulators-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          firebase-emulators-${{ runner.os }}-
     - name: Download Firebase emulator binaries
       run: firebase setup:emulators:firestore
     - name: Install Playwright Browsers
