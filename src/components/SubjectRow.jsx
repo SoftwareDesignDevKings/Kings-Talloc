@@ -40,7 +40,7 @@ const SubjectRow = ({
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
                         >
-                            {isExpanded ? 'Collapse' : 'Expand to view tutors'}
+                            {isExpanded ? 'Collapse' : 'Expand Tutors'}
                         </button>
                         <button
                             onClick={() => confirmDeleteSubject(subject)}
