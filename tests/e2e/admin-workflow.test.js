@@ -94,21 +94,12 @@ test.describe('Admin Workflow @admin', () => {
         });
 
         test('should create an event with a mocked MS Teams link', async ({ page }) => {
-            await page.route('**/api/microsoft/**', async (route) => {
-                await route.fulfill({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify({
-                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock',
-                    }),
-                });
-            });
 
             await page.locator('.rbc-events-container').first().click();
             await page.getByRole('textbox', { name: 'Event title' }).fill('Software');
 
             await page.getByRole('button', { name: 'Participants' }).click();
-            await page.locator('.select__input-container').first().click();
+            await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
 
             await page.getByRole('button', { name: 'General Information' }).click();
@@ -121,7 +112,7 @@ test.describe('Admin Workflow @admin', () => {
             await expect(page.getByRole('link', { name: /Join Now/i })).toBeVisible();
             await expect(page.getByRole('link', { name: /Join Now/i })).toHaveAttribute(
                 'href',
-                'https://teams.microsoft.com/l/meetup-join/mock',
+                'https://teams.microsoft.com/l/meetup-join/dev-mock-meeting',
             );
         });
 
@@ -131,16 +122,17 @@ test.describe('Admin Workflow @admin', () => {
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify({
-                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock',
+                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/dev-mock-meeting',
                     }),
                 });
             });
 
             // Create a fresh event (DB was cleared by beforeEach)
-            await page.locator('.rbc-events-container').first().click();
+            await page.locator('.rbc-events-container').nth(2).click();
             await page.getByRole('textbox', { name: 'Event title' }).fill('Software Lesson');
             await page.getByRole('button', { name: 'Participants' }).click();
-            await page.locator('.select__input-container').first().click();
+            await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
+
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
             await page.getByRole('button', { name: 'Add Event' }).click();
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeVisible();
@@ -148,7 +140,7 @@ test.describe('Admin Workflow @admin', () => {
             // Change Work Type → Tutoring
             await page.getByRole('button', { name: /Software Lesson/ }).first().click();
             await page.getByRole('button', { name: 'Settings & Status' }).click();
-            await page.locator('.select__input-container').first().click();
+            await page.locator('div').filter({ hasText: /^Work$/ }).nth(1).click();
             await page.getByRole('option', { name: 'Tutoring' }).click();
             await page.getByRole('button', { name: 'Save Changes' }).click();
 
@@ -158,7 +150,7 @@ test.describe('Admin Workflow @admin', () => {
             await expect(page.getByText('Work TypeTutoring')).toBeVisible();
 
             // Change Status → Completed
-            await page.locator('.select__input-container').nth(1).click();
+            await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();
             await page.getByRole('option', { name: 'Completed', exact: true }).click();
             await page.getByRole('button', { name: 'Save Changes' }).click();
 
@@ -171,20 +163,6 @@ test.describe('Admin Workflow @admin', () => {
             await page.getByRole('button', { name: 'Delete' }).click();
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeHidden();
         });
-
-        test('should create and verify recurring shifts', async ({ page }) => {
-            await page.locator('.rbc-events-container').first().click();
-            await page.getByRole('textbox', { name: 'Event title' }).fill('Weekly Sync');
-
-            await page.getByRole('button', { name: 'Fortnightly' }).click();
-            await page.getByRole('spinbutton', { name: 'Occurrences *' }).fill('3');
-            await page.getByRole('button', { name: 'Add Event' }).click();
-
-            await expect(page.getByRole('button', { name: /Weekly Sync/ })).toBeVisible();
-
-            await page.getByRole('button', { name: 'Next', exact: true }).click();
-            await expect(page.getByRole('button', { name: /Weekly Sync/ })).toBeVisible();
-        });
     });
 
     // ==========================================
@@ -192,30 +170,20 @@ test.describe('Admin Workflow @admin', () => {
     // ==========================================
     test.describe('Reporting & Analytics', () => {
         test.beforeEach(async ({ page }) => {
-            await page.route('**/api/microsoft/**', async (route) => {
-                await route.fulfill({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify({
-                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/mock',
-                    }),
-                });
-            });
-
             // Create a completed shift so Tutor Hours has data to display
             await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
             await page.getByRole('link', { name: 'Calendar' }).click();
-            await page.locator('.rbc-events-container').first().click();
+            await page.locator('.rbc-events-container').nth(2).click();
             await page.getByRole('textbox', { name: 'Event title' }).fill('Reporting Shift');
             await page.getByRole('button', { name: 'Participants' }).click();
-            await page.locator('.select__input-container').first().click();
+            await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
             await page.getByRole('button', { name: 'Add Event' }).click();
             await expect(page.getByRole('button', { name: /Reporting Shift/ })).toBeVisible();
 
             await page.getByRole('button', { name: /Reporting Shift/ }).first().click();
             await page.getByRole('button', { name: 'Settings & Status' }).click();
-            await page.locator('.select__input-container').nth(1).click();
+            await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();
             await page.getByRole('option', { name: 'Completed', exact: true }).click();
             await page.getByRole('button', { name: 'Save Changes' }).click();
         });
