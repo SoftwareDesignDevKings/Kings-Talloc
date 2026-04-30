@@ -142,7 +142,7 @@ const ClassList = () => {
             console.error('Failed to save class:', err);
             addAlert('error', 'Failed to save class. Please try again.');
             return false;
-        };
+        }
     };
     
     const handleEditClass = (cls) => {
@@ -156,10 +156,15 @@ const ClassList = () => {
 
     const handleDeleteClass = async (classToDelete) => {
         if (classToDelete) {
-            await deleteDoc(doc(db, 'classes', classToDelete.id));
-            setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
-            removeExpandedClass(classToDelete.id);
-            addAlert('success', 'Class deleted successfully');
+            try {
+                await deleteDoc(doc(db, 'classes', classToDelete.id));
+                setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
+                removeExpandedClass(classToDelete.id);
+                addAlert('success', 'Class deleted successfully');
+            } catch (err) {
+                console.error('Failed to delete class:', err);
+                addAlert('error', 'Failed to delete class. Please try again.');
+            }
         }
     };
 
@@ -173,32 +178,38 @@ const ClassList = () => {
 
         if (uniqueEntries.length === 0) {
             addAlert('error', 'All provided emails are already enrolled in this class.');
-            return;
+            return false;
         }
 
-        const newStudents = await Promise.all(
-            uniqueEntries.map(async (entry) => {
-                const email = extractEmailFromEntry(entry);
-                const name = entry.includes(':') ? entry.split(':')[0].trim() : '';
+        try {
+            const newStudents = await Promise.all(
+                uniqueEntries.map(async (entry) => {
+                    const email = extractEmailFromEntry(entry);
+                    const name = entry.includes(':') ? entry.split(':')[0].trim() : '';
 
-                const userRef = doc(db, 'users', email);
-                const userDoc = await getDoc(userRef);
-                if (!userDoc.exists()) {
-                    return { email, name };
-                } else {
-                    const userData = userDoc.data();
-                    return { email, name: userData.name || name || '' };
-                }
-            }),
-        );
-        const updatedStudents = [...(selectedClass.students || []), ...newStudents];
-        const classRef = doc(db, 'classes', selectedClass.id);
-        await updateDoc(classRef, { students: updatedStudents });
-        setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
-        setStudentsToAdd('');
-        setShowStudentModal(false);
-        addAlert('success', 'Students added successfully');
-        fetchClasses();
+                    const userRef = doc(db, 'users', email);
+                    const userDoc = await getDoc(userRef);
+                    if (!userDoc.exists()) {
+                        return { email, name };
+                    } else {
+                        const userData = userDoc.data();
+                        return { email, name: userData.name || name || '' };
+                    }
+                }),
+            );
+            const updatedStudents = [...(selectedClass.students || []), ...newStudents];
+            const classRef = doc(db, 'classes', selectedClass.id);
+            await updateDoc(classRef, { students: updatedStudents });
+            setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
+            setStudentsToAdd('');
+            setShowStudentModal(false);
+            addAlert('success', 'Students added successfully');
+            fetchClasses();
+        } catch (err) {
+            console.error('Failed to add students:', err);
+            addAlert('error', 'Failed to add students. Please try again.');
+            return false;
+        }
     };
 
     const handleRemoveStudent = async (classToUpdate, studentToRemove) => {

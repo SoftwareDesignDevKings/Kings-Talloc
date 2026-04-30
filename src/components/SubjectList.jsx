@@ -57,7 +57,7 @@ const SubjectList = () => {
     const handleAddSubject = async (subject) => {
         if (checkDuplicateName(subjects, subject.name, currentSubject?.id)) {
             addAlert('error', 'A subject with this name already exists.');
-            return;
+            return false;
         }
 
         if (isEditing) {
