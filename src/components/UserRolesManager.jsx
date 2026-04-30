@@ -69,8 +69,9 @@ const UserRolesManager = () => {
 
     useEffect(() => {
         if (showModal && modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
+            const modalElement = modalRef.current;
             // Initialize Bootstrap modal with accessibility features
-            const modalInstance = new window.bootstrap.Modal(modalRef.current, {
+            const modalInstance = new window.bootstrap.Modal(modalElement, {
                 backdrop: 'static',
                 keyboard: true,
                 focus: true,
@@ -87,12 +88,11 @@ const UserRolesManager = () => {
                 setIsEditing(false);
             };
 
-            modalRef.current.addEventListener('hidden.bs.modal', handleModalHidden);
+            modalElement.addEventListener('hidden.bs.modal', handleModalHidden);
 
             return () => {
                 modalInstance.hide();
-                // eslint-disable-next-line react-hooks/exhaustive-deps
-                modalRef.current?.removeEventListener('hidden.bs.modal', handleModalHidden);
+                modalElement.removeEventListener('hidden.bs.modal', handleModalHidden);
             };
         }
     }, [showModal]);
@@ -124,7 +124,7 @@ const UserRolesManager = () => {
             await setDoc(userRef, {
                 email,
                 name,
-                role, // Keep for backward compatibility
+                role, // Legacy single-role mirror for older readers still expecting `users.role`; canonical fields are `defaultRole` + `userRoles`. Remove after all readers migrate.
                 defaultRole: role,
                 userRoles
             }, { merge: true });
