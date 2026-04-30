@@ -24,7 +24,7 @@ export const AuthContextProvider = ({ children }) => {
     const [userRole, setUserRole] = useState('student');
     const [userRoles, setUserRoles] = useState([]);
     
-    const [device, setDevice] = useState("desktop")
+    const [device, setDevice] = useState("desktop");
 
     const pathname = usePathname();
 

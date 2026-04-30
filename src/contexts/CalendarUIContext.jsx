@@ -44,7 +44,7 @@ export const useCalendarUI = () => {
  * UI Provider to persist on re-renders across different page.jsx
  */
 export const CalendarUIContextProvider = ({ children }) => {
-    const { session, userRole, userRoles } = useAuthSession();
+    const { session, userRole } = useAuthSession();
     const userEmail = session.user.email;
 
     // Get calendar data

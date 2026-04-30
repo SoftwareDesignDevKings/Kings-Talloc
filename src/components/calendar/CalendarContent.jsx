@@ -51,7 +51,7 @@ const MemoisedCalendarTimeSlot = memo(CustomTimeslot);
 /* ───────────────────────────────────────────────────────────── */
 
 const CalendarContent = () => {
-    const { session, userRole, userRoles, device } = useAuthSession();
+    const { session, userRole, device } = useAuthSession();
     const strategy = useCalendarStrategy(session.user.email, userRole);
     const { addAlert } = useAlert();
 

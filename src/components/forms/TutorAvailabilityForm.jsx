@@ -149,23 +149,6 @@ const TutorAvailabilityForm = ({
         setNewAvailability({ ...newAvailability, workType: values });
     };
 
-    const getWorkTypeBadge = () => {
-        const workTypes = normaliseWorkType(newAvailability.workType);
-        const badges = {
-            tutoring: <span key="tutoring" className="badge bg-primary me-1">Tutoring</span>,
-            coaching: <span key="coaching" className="badge bg-info me-1">Coaching</span>,
-            work: <span key="work" className="badge bg-secondary me-1">Work</span>,
-        };
-        return workTypes.map(type => badges[type] || null);
-    };
-
-    const getLocationBadge = () => {
-        const location = newAvailability.locationType;
-        if (location === 'onsite') return <span className="badge bg-success">🏫 Onsite</span>;
-        if (location === 'remote') return <span className="badge bg-info">💻 Remote</span>;
-        return null;
-    };
-
     return (
         <BaseModal
             show={true}

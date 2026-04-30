@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { FcGoogle, SiMicrosoft } from '@/components/icons';
+import { SiMicrosoft } from '@/components/icons';
 import { AppLogin } from '@/lib/security/clientAuth';
 
 // Dev bypass users (matches authOptions.js)

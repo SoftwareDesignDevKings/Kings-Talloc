@@ -39,7 +39,7 @@ export const useAppData = () => {
  * Keeps data separate from UI state to minimize re-renders.
  */
 export const AppDataContextProvider = ({ children }) => {
-    const { session, userRole, userRoles } = useAuthSession();
+    const { session, userRole } = useAuthSession();
     const userEmail = session?.user?.email;
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
 

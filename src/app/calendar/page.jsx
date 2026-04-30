@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import LoadingSpinner from '@/components/LoadingSpinner.jsx';
 

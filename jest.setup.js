@@ -123,7 +123,6 @@ if (isBrowserEnv) {
         deleteDoc: jest.fn(),
         onSnapshot: jest.fn(),
         setDoc: jest.fn(),
-        deleteDoc: jest.fn(),
     }));
 
     global.matchMedia =

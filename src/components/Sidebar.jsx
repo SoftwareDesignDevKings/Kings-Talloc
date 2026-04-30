@@ -30,7 +30,7 @@ const ROLE_LABELS = {
 };
 
 const Sidebar = ({ user, userRole }) => {
-    const { session, userRoles, availableRoles, switchRole } = useAuthSession();
+    const { session, userRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const pathname = usePathname();
 

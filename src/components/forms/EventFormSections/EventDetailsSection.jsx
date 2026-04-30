@@ -210,7 +210,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                             handleWeeklyRecurringToggle()
                                             setIsRecurring(true)
                                         }}
-                                        disabled={readOnly || isEditing}
+                                        disabled={isEditing}
                                         aria-pressed={newEvent.recurring === 'weekly'}
                                     >
                                         Weekly
@@ -222,7 +222,7 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                             handleFortnightlyRecurringToggle()
                                             setIsRecurring(true)
                                         }}
-                                        disabled={readOnly || isEditing}
+                                        disabled={isEditing}
                                         aria-pressed={newEvent.recurring === 'fortnightly'}
                                     >
                                         Fortnightly
@@ -254,7 +254,6 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                                         value={newEvent.occurenceNum || ''}
                                         onChange={handleOccurenceNumChange}
                                         onBlur={handleOccurenceNumBlur}
-                                        disabled={readOnly}
                                         min="2"
                                         placeholder="Min 2"
                                     />

@@ -1,4 +1,3 @@
-import Google from 'next-auth/providers/google';
 import AzureAD from 'next-auth/providers/azure-ad';
 import Credentials from 'next-auth/providers/credentials';
 import crypto from "crypto";

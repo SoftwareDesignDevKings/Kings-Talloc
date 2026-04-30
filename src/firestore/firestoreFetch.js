@@ -128,7 +128,7 @@ export const firestoreFetchAvailabilities = (setCalendarAvailabilities, calendar
         availabilitiesRef,
         where('start', '>=', Timestamp.fromDate(calendarDateRange.start)),
         where('start', '<=', Timestamp.fromDate(calendarDateRange.end)),
-        ...strategyFbFilters.map(({ fbField, fbOperation, fbValue }) => where(fbField, fbOperation, fbValue))
+        ...buildAccessFilters(strategyFbFilters)
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -163,7 +163,7 @@ export const firestoreFetchStudentRequests = (setCalendarStudentRequests, calend
         requestsRef,
         where('start', '>=', Timestamp.fromDate(calendarDateRange.start)),
         where('start', '<=', Timestamp.fromDate(calendarDateRange.end)),
-        ...strategyFbFilters.map(({ fbField, fbOperation, fbValue }) => where(fbField, fbOperation, fbValue))
+        ...buildAccessFilters(strategyFbFilters)
     );
 
     return onSnapshot(q, (snapshot) => {

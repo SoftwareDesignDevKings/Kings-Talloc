@@ -227,7 +227,7 @@ export async function POST(req) {
         const startDateSyd = DateTime.fromISO(startDateUTC).setZone(SYDNEY_ZONE).startOf('day');
         const endDateSyd = DateTime.fromISO(endDateUTC).setZone(SYDNEY_ZONE).endOf('day');
 
-        let timesheet = await generateTimeSheet(timesheetType, tutorEmail, tutorName, startDateSyd, endDateSyd)
+        let timesheet = await generateTimeSheet(timesheetType, tutorEmail, tutorName, startDateSyd, endDateSyd);
         if (timesheet.error) {
             return new Response(JSON.stringify(timesheet.data ?? { error: timesheet.error }), { status: timesheet.status ?? 500 });
         }
