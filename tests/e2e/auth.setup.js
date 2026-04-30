@@ -1,4 +1,4 @@
-import { test as setup } from '@playwright/test';
+import { test as setup, expect} from '@playwright/test';
 import { TEST_USERS } from '@/lib/security/testUsers';
 import fs from 'fs';
 

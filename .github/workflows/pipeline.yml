@@ -41,3 +41,8 @@ jobs:
               run: npm run test:firebase
               env:
                   FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+            - name: Run Playwright e2e tests
+              run: npm run test:e2e
+              env:
+                  FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-process.env.NODE_ENV = 'development';
 
 test.describe('Admin Workflow @admin', () => {
     test.beforeEach(async ({ page }) => {
@@ -16,9 +15,15 @@ test.describe('Admin Workflow @admin', () => {
             await page.getByRole('link', { name: 'Manage Subjects' }).click();
 
             // Add Subject
+            await expect(page.getByRole('button', { name: 'Add Subject' })).toBeVisible();
             await page.getByRole('button', { name: 'Add Subject' }).click();
+
+            await expect(page.getByRole('dialog').getByRole('textbox')).toBeVisible();
             await page.getByRole('dialog').getByRole('textbox').fill('Software Engineering');
+
+            await expect(page.getByRole('dialog').getByRole('button', { name: 'Add Subject' })).toBeVisible();
             await page.getByRole('dialog').getByRole('button', { name: 'Add Subject' }).click();
+            
             await expect(
                 page.getByRole('cell', { name: 'Software Engineering' })
             ).toBeVisible();
