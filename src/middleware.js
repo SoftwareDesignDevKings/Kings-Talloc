@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-import buildCsp from '@lib/security/csp';
+import { implementCspWrapper, implementRateLimiterWrapper } from './lib/security/securityWrappers';
 
 // ===== MAINTENANCE MODE =====
 // Set to true to enable maintenance mode (redirects all users to /maintenance)
@@ -10,19 +10,20 @@ const MAINTENANCE_MODE = false;
 // ============================
 
 export async function middleware(req) {
-    const nonce = btoa(crypto.randomUUID());
-
-    // forward nonce on the request so server components can read it via headers()
-    const requestHeaders = new Headers(req.headers);
-    requestHeaders.set('x-nonce', nonce);
-
-    const res = NextResponse.next({ request: { headers: requestHeaders } });
-    res.headers.set("Content-Security-Policy", buildCsp(nonce));
-    res.headers.set("x-nonce", nonce);
 
     const { pathname } = req.nextUrl;
+    try {
+        const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
+        if (rateLimitResponse) {
+            return rateLimitResponse;
+        }
+    } catch (err) {
+        console.error('Rate limiter error:', err);
+    }
 
-    // Maintenance mode ENABLED - redirect everyone to /maintenance
+    const response = await implementCspWrapper(req);
+
+    // Maintenance mode  ENABLED - redirect everyone to /maintenance
     if (MAINTENANCE_MODE && pathname !== '/maintenance') {
         return NextResponse.redirect(new URL('/maintenance', req.url));
     }
@@ -34,7 +35,7 @@ export async function middleware(req) {
 
     // IF PUBLIC ENDPOINT (or redirect on login, no security checks)
     if (pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth')) {
-        return res;
+        return response;
     }
 
     const secret = process.env.NEXTAUTH_SECRET;
@@ -75,7 +76,7 @@ export async function middleware(req) {
     }
 
     // token exists, allow the request
-    return res;
+    return response;
 }
 
 // pefine the paths that the middleware will apply to
@@ -91,3 +92,4 @@ export const config = {
         '/api/:path*'
     ]
 };
+

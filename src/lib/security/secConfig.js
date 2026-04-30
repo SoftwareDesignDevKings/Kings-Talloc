@@ -1,7 +1,24 @@
+import { Ratelimit } from '@upstash/ratelimit';                                                                         
+import { Redis } from '@upstash/redis';
+
+/**
+ * Rate-limiter
+ * @description implement a Sliding Window strategy (10 req / 10s) via Vercel KV
+ */
+export const rateLimitConfig = new Ratelimit({
+    redis: new Redis({
+        url: process.env.KV_REST_API_URL,
+        token: process.env.KV_REST_API_TOKEN,
+    }),
+
+    limiter: Ratelimit.slidingWindow(10, "10 s"),
+    analytics: true,
+});
+
 /**
  * App Content Security Policy (CSP)
  */
-const contentSecurityPolicy = {
+export const contentSecurityPolicyConfig = {
     "default-src": ["'self'"],
 
     "script-src": [
@@ -62,45 +79,3 @@ const contentSecurityPolicy = {
     "upgrade-insecure-requests": []
 };
 
-
-/**
- * Build CSP string with nonce
- */
-export const buildCsp = (nonce) => {
-    let cspString = "";
-
-    for (const directive in contentSecurityPolicy) {
-        // skip upgrade-insecure-requests in dev (breaks localhost in Safari)
-        if (directive === "upgrade-insecure-requests" && process.env.NODE_ENV === 'development') {
-            continue;
-        }
-
-        const values = [...contentSecurityPolicy[directive]];
-
-        // scripts - add a nonce
-        if (directive === "script-src") {
-            values.push(`'nonce-${nonce}'`);
-            // Dev: Next.js HMR needs unsafe-eval
-            if (process.env.NODE_ENV === 'development') {
-                values.push("'unsafe-eval'");
-            }
-        }
-
-        // development: add localhost/websocket for Next.js HMR & Firebase emulators
-        if (process.env.NODE_ENV === 'development' && directive === "connect-src") {
-            values.push(
-                "ws://localhost:*",
-                "wss://localhost:*",
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "ws://127.0.0.1:*"
-            );
-        }
-
-        cspString += `${directive} ${values.join(" ")}; `;
-    }
-
-    return cspString.trim();
-};
-
-export default buildCsp;
