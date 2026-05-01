@@ -1,22 +1,22 @@
 import { test, expect } from '@playwright/test';
 import { clearFirestoreEmulator } from './wrapperFunctions.js';
 
-test.describe('Tutor Workflow @tutorOnly', () => {
+test.describe('Coach Workflow @coachOnly', () => {
     test.beforeAll(async () => {
         await clearFirestoreEmulator();
     });
 
-    test('tutor adds availability, admin converts to shift, tutor marks completed', async ({ page, browser }) => {
-        // ===== STEP 1: Tutor adds availability =====
+    test('coach adds availability, admin converts to shift, coach marks completed', async ({ page, browser }) => {
+        // ===== STEP 1: Coach adds availability =====
         await page.goto('/dashboard');
         await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
         await page.getByRole('link', { name: 'Calendar' }).click();
 
-        await page.locator('.rbc-events-container').nth(2).click();
+        await page.locator('.rbc-events-container').nth(3).click();
 
         await page.locator('div').filter({ hasText: /^Work$/ }).nth(1).click();
-        await expect(page.getByRole('option', { name: 'Tutoring' })).toBeVisible();
-        await page.getByRole('option', { name: 'Tutoring' }).click();
+        await expect(page.getByRole('option', { name: 'Coaching' })).toBeVisible();
+        await page.getByRole('option', { name: 'Coaching' }).click();
 
         await page.locator('div').filter({ hasText: /^Onsite$/ }).nth(1).click();
         await expect(page.getByRole('option', { name: 'Remote' })).toBeVisible();
@@ -40,33 +40,33 @@ test.describe('Tutor Workflow @tutorOnly', () => {
             await expect(adminPage.getByRole('link', { name: 'Calendar' })).toBeVisible();
             await adminPage.getByRole('link', { name: 'Calendar' }).click();
 
-            await adminPage.locator('.rbc-events-container').nth(2).click();
+            await adminPage.locator('.rbc-events-container').nth(3).click();
 
-            await adminPage.getByRole('textbox', { name: 'Event title' }).fill('Tutor Workflow Shift');
+            await adminPage.getByRole('textbox', { name: 'Event title' }).fill('Coach Workflow Shift');
             await adminPage.getByRole('button', { name: 'Participants' }).click();
             await adminPage.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
 
-            await adminPage.getByRole('option', { name: /Viraj Patel/i }).click();
+            await adminPage.getByRole('option', { name: /Max Burykin/i }).click();
             await adminPage.getByRole('button', { name: 'Add Event' }).click();
-            await expect(adminPage.getByRole('button', { name: /Tutor Workflow Shift/ })).toBeVisible();
+            await expect(adminPage.getByRole('button', { name: /Coach Workflow Shift/ })).toBeVisible();
         } finally {
             await adminContext.close();
         }
 
-        // ===== STEP 3: Tutor opens the shift and marks it Completed =====
+        // ===== STEP 3: Coach opens the shift and marks it Completed =====
         await page.reload();
         await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
         await page.getByRole('link', { name: 'Calendar' }).click();
 
-        await expect(page.getByRole('button', { name: /Tutor Workflow Shift/ })).toBeVisible();
-        await page.getByRole('button', { name: /Tutor Workflow Shift/ }).first().click();
+        await expect(page.getByRole('button', { name: /Coach Workflow Shift/ })).toBeVisible();
+        await page.getByRole('button', { name: /Coach Workflow Shift/ }).first().click();
 
         await page.getByRole('button', { name: 'Settings & Status' }).click();
         await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();
         await page.getByRole('option', { name: 'Completed', exact: true }).click();
         await page.getByRole('button', { name: 'Save Status' }).click();
 
-        await page.getByRole('button', { name: /Tutor Workflow Shift/ }).first().click();
+        await page.getByRole('button', { name: /Coach Workflow Shift/ }).first().click();
         await page.getByRole('button', { name: 'Settings & Status' }).click();
         await expect(page.locator('div').filter({ hasText: /^Completed$/ }).nth(1)).toBeVisible();
     });
@@ -76,7 +76,7 @@ test.describe('Tutor Workflow @tutorOnly', () => {
         await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
         await page.getByRole('link', { name: 'Calendar' }).click();
 
-        await page.locator('.rbc-events-container').nth(3).click();
+        await page.locator('.rbc-events-container').nth(4).click();
         await page.getByRole('button', { name: 'Add Availability' }).click();
 
         const availabilityButton = page

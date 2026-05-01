@@ -21,16 +21,16 @@ export default defineConfig({
 
         {
             name: 'admin-tests',
-            grep: /@admin/,
+            grep: /@teacherAdmin/,
             use: {
                 ...devices['Desktop Chrome'],
-                storageState: 'tests/e2e/.auth/admin.json'
+                storageState: 'tests/e2e/.auth/teacherAdmin.json'
             },
             dependencies: ['setup']
         },
         {
             name: 'teacher-tests',
-            grep: /@teacher/,
+            grep: /@teacherOnly/,
             use: {
                 ...devices['Desktop Chrome'],
                 storageState: 'tests/e2e/.auth/teacher.json'
@@ -39,7 +39,7 @@ export default defineConfig({
         },
         {
             name: 'tutor-tests',
-            grep: /@tutor/,
+            grep: /@tutorOnly/,
             use: {
                 ...devices['Desktop Chrome'],
                 storageState: 'tests/e2e/.auth/tutor.json'
@@ -48,7 +48,7 @@ export default defineConfig({
         },
         {
             name: 'coach-tests',
-            grep: /@coach/,
+            grep: /@coachOnly/,
             use: {
                 ...devices['Desktop Chrome'],
                 storageState: 'tests/e2e/.auth/coach.json'
@@ -57,7 +57,7 @@ export default defineConfig({
         },
         {
             name: 'student-tests',
-            grep: /@student/,
+            grep: /@studentOnly/,
             use: {
                 ...devices['Desktop Chrome'],
                 storageState: 'tests/e2e/.auth/student.json'

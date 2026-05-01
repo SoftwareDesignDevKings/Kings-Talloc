@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Admin Workflow @admin', () => {
+test.describe('Admin Workflow @teacherAdmin', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:3000/dashboard');
+        await page.goto('/dashboard');
     });
 
     // ==========================================
@@ -118,7 +118,7 @@ test.describe('Admin Workflow @admin', () => {
 
 
             // Create a fresh event (DB was cleared by beforeEach)
-            await page.locator('.rbc-events-container').nth(2).click();
+            await page.locator('.rbc-events-container').nth(1).click();
             await page.getByRole('textbox', { name: 'Event title' }).fill('Software Lesson');
             await page.getByRole('button', { name: 'Participants' }).click();
             await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
@@ -163,7 +163,7 @@ test.describe('Admin Workflow @admin', () => {
             // Create a completed shift so Tutor Hours has data to display
             await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
             await page.getByRole('link', { name: 'Calendar' }).click();
-            await page.locator('.rbc-events-container').nth(2).click();
+            await page.locator('.rbc-events-container').nth(1).click();
             await page.getByRole('textbox', { name: 'Event title' }).fill('Reporting Shift');
             await page.getByRole('button', { name: 'Participants' }).click();
             await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
