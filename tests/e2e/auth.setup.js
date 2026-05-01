@@ -21,25 +21,31 @@ setup('authenticate users', async ({ browser }) => {
         const page = await context.newPage();
         
         try {
-            // console.log(`${TEAL}Authenticating ${user.role}...${RESET}`);
             
             await page.goto('/login');
         
-            let buttonLabel;
+            let buttonLabel, userRoleForLabel;
             if (emailKey === 'computing@kings.edu.au') {
                 buttonLabel = 'Teacher + Admin';
+                userRoleForLabel = 'teacherAdmin';
             } else if (emailKey === 'tutor@kings.edu.au') {
                 buttonLabel = 'Tutor';
+                userRoleForLabel = 'tutor';
             } else if (emailKey === 'tutorAdmin@kings.edu.au') {
                 buttonLabel = 'Tutor + Admin';
+                userRoleForLabel = 'tutorAdmin';
             } else if (emailKey === 'teacher@kings.edu.au') {
                 buttonLabel = 'Teacher';
+                userRoleForLabel = 'teacher';
             } else if (emailKey === 'coach@kings.edu.au') {
                 buttonLabel = 'Coach';
+                userRoleForLabel = 'coach';
             } else if (emailKey === 'coachTutor@kings.edu.au') {
                 buttonLabel = 'Coach + Tutor';
+                userRoleForLabel = 'coachTutor';
             } else if (emailKey === 'student@kings.edu.au') {
                 buttonLabel = 'Student';
+                userRoleForLabel = 'student';
             }
             
             // click the dev button
@@ -60,13 +66,13 @@ setup('authenticate users', async ({ browser }) => {
             }
 
             await context.storageState({
-                path: `tests/e2e/.auth/${user.role}.json`
+                path: `tests/e2e/.auth/${userRoleForLabel}.json`
             });
 
-            console.log(`${TEAL} Authenticated ${user.role}${RESET}`);
+            console.log(`${TEAL} Authenticated ${userRoleForLabel}${RESET}`);
         } catch (error) {
-            console.error(`Failed to authenticate ${user.role}:`, error);
-            await page.screenshot({ path: `tests/e2e/.auth/failed-${user.role}.png` }).catch(() => {});
+            console.error(`Failed to authenticate ${userRoleForLabel}:`, error);
+            await page.screenshot({ path: `tests/e2e/.auth/failed-${userRoleForLabel}.png` }).catch(() => {});
         } finally {
             await context.close().catch(() => {});
         }
