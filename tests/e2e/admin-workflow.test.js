@@ -115,15 +115,7 @@ test.describe('Admin Workflow @admin', () => {
         });
 
         test('should edit workTypes, statuses, and delete events', async ({ page }) => {
-            await page.route('**/api/microsoft/**', async (route) => {
-                await route.fulfill({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify({
-                        joinUrl: 'https://teams.microsoft.com/l/meetup-join/dev-mock-meeting',
-                    }),
-                });
-            });
+
 
             // Create a fresh event (DB was cleared by beforeEach)
             await page.locator('.rbc-events-container').nth(2).click();
