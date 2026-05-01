@@ -255,7 +255,6 @@ const SubjectList = () => {
                 setShowModal={setShowModal}
                 subject={currentSubject}
                 handleSubmit={handleAddSubject}
-                isEditing={isEditing}
             />
             <AddTutorsModal
                 showTutorModal={showTutorModal}
