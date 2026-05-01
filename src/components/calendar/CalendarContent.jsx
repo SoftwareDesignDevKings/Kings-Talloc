@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
@@ -73,6 +73,13 @@ const CalendarContent = () => {
 
     // track the calendar's displayed date to keep it in sync with the data provider
     const [calendarDate, setCalendarDate] = useState(() => calendarDateRange.start);
+    const [calendarView, setCalendarView] = useState(Views.WEEK);
+
+    useEffect(() => {
+        if (device === 'mobile') {                                                                           
+            setCalendarView(Views.DAY);                                                                        
+        }
+    }, [device]);
 
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIContextProvider */
@@ -396,8 +403,6 @@ const CalendarContent = () => {
         />
     );
 
-    // render different views depending on device
-    const defaultView = device === 'mobile' ? Views.DAY : Views.WEEK;
     const rbcViews = device === 'mobile' ? [Views.DAY, Views.WEEK] : [Views.DAY, Views.WEEK, Views.MONTH];
 
     return (
@@ -416,7 +421,8 @@ const CalendarContent = () => {
 
                         date={calendarDate}
                         onNavigate={handleNavigate}
-                        defaultView={defaultView}
+                        view={calendarView}
+                        onView={setCalendarView}
                         views={rbcViews}
 
                         draggableAccessor={canDragEvent}

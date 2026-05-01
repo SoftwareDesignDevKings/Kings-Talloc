@@ -52,7 +52,7 @@ const ClassRow = ({
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
                         >
-                            {isExpanded ? 'Collapse' : 'Expand to view students'}
+                            {isExpanded ? 'Collapse' : 'Expand Students'}
                         </button>
                         <button
                             onClick={() => confirmDeleteClass(cls)}

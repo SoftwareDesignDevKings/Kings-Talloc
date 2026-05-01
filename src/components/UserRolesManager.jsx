@@ -282,27 +282,29 @@ const UserRolesManager = () => {
                 <table className={`table table-hover mb-0 ${t.table}`} style={{ tableLayout: 'fixed' }}>
                     <thead>
                         <tr>
-                            <th scope="col">User</th>
+                            <th scope="col" style={{ width: '35%' }}>User</th>
                             <th scope="col" style={{ width: '30%' }}>Roles</th>
-                            <th scope="col" style={{ width: '20%' }} className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '35%' }} className={t.actionCol}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.map((user) => (
                             <tr key={user.id}>
-                                <td>
-                                    <div className="fw-bold">{user.name}</div>
-                                    <div className="text-muted small">{user.email}</div>
+                                <td style={{ overflow: 'hidden' }}>
+                                    <div className="fw-bold text-truncate">{user.name}</div>
+                                    <div className="text-muted small text-truncate">{user.email}</div>
                                 </td>
                                 <td>
-                                    <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
-                                        {(user.defaultRole || user.role).toUpperCase()}
-                                    </span>
-                                    {user.userRoles && user.userRoles.map(r => (
-                                        <span key={r} className={styles.roleBadge}>
-                                            {r.toUpperCase()}
+                                    <div className="d-flex flex-column flex-sm-row flex-wrap align-items-start gap-1">
+                                        <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
+                                            {(user.defaultRole || user.role).toUpperCase()}
                                         </span>
-                                    ))}
+                                        {user.userRoles && user.userRoles.map(r => (
+                                            <span key={r} className={styles.roleBadge}>
+                                                {r.toUpperCase()}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </td>
                                 <td className={t.actionCol}>
                                     <div className={t.actionGroup}>

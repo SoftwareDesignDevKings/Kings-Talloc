@@ -28,6 +28,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: auto;
     scrollbar-gutter: stable;
 }
 
@@ -60,17 +61,31 @@
     border-bottom: none;
 }
 
-/* white-space: nowrap prevents button text wrapping in action cells */
 .actionCol {
     white-space: nowrap;
 }
 
+@media (max-width: 575px) {
+    .actionCol {
+        white-space: normal;
+        width: auto !important;
+    }
+}
+
 .actionGroup {
     display: flex;
+    flex-direction: column;
     gap: 0.375rem;
-    justify-content: flex-end;
-    align-items: center;
-    flex-wrap: nowrap;
+    align-items: flex-end;
+}
+
+@media (min-width: 576px) {
+    .actionGroup {
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+    }
 }
 
 /* ── Expandable panel ────────────────────────────────────────────── */

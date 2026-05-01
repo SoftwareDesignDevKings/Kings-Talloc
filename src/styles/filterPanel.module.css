@@ -83,6 +83,13 @@
     width: 0;
 }
 
+@media (max-width: 767px) {
+    .filterPanelContainer.open {
+        width: 0;
+        overflow: hidden;
+    }
+}
+
 /* Section label above toggle rows */
 .filterSectionLabel {
     font-size: 0.6875rem;
