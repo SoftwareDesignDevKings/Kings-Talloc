@@ -29,8 +29,8 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             ).toBeVisible();
 
             // Add & Remove Tutors
-            await expect(page.getByRole('button', { name: 'Expand to view tutors' })).toBeVisible();
-            await page.getByRole('button', { name: 'Expand to view tutors' }).click();
+            await expect(page.getByRole('button', { name: 'Expand Tutors' })).toBeVisible();
+            await page.getByRole('button', { name: 'Expand Tutors' }).click();
 
             await expect(page.getByRole('button', { name: 'Add Tutors' })).toBeVisible();
             await page.getByRole('button', { name: 'Add Tutors' }).click();
@@ -71,8 +71,8 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('dialog')).toBeHidden();
 
             // Add Student
-            await expect(page.getByRole('button', { name: 'Expand to view students' })).toBeVisible();
-            await page.getByRole('button', { name: 'Expand to view students' }).click();
+            await expect(page.getByRole('button', { name: 'Expand Students' })).toBeVisible();
+            await page.getByRole('button', { name: 'Expand Students' }).click();
 
             await expect(page.getByRole('button', { name: 'Add Students' })).toBeVisible();
             await page.getByRole('button', { name: 'Add Students' }).click();
