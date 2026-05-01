@@ -73,15 +73,13 @@ const CalendarContent = () => {
 
     // track the calendar's displayed date to keep it in sync with the data provider
     const [calendarDate, setCalendarDate] = useState(() => calendarDateRange.start);
-    const [calendarView, setCalendarView] = useState(() =>
-        window.innerWidth < 768 ? Views.DAY : Views.WEEK
-    );
+    const [calendarView, setCalendarView] = useState(Views.WEEK);
 
     useEffect(() => {
         if (device === 'mobile') {                                                                           
             setCalendarView(Views.DAY);                                                                        
         }
-    }, [device])
+    }, [device]);
 
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIContextProvider */
@@ -405,7 +403,7 @@ const CalendarContent = () => {
         />
     );
 
-    const rbcViews = window.innerWidth < 768 ? [Views.DAY, Views.WEEK] : [Views.DAY, Views.WEEK, Views.MONTH];
+    const rbcViews = device === 'mobile' ? [Views.DAY, Views.WEEK] : [Views.DAY, Views.WEEK, Views.MONTH];
 
     return (
         <div className="d-flex h-100 w-100">
