@@ -6,6 +6,10 @@ export default defineConfig({
     workers: 1,
     retries: process.env.CI ? 2 : 0,
 
+    expect: {
+        timeout: 15000
+    },
+
     use: {
         baseURL: 'http://localhost:3000',
         headless: true,

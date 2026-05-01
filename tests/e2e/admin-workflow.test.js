@@ -22,7 +22,8 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             await expect(page.getByRole('dialog').getByRole('button', { name: 'Add Subject' })).toBeVisible();
             await page.getByRole('dialog').getByRole('button', { name: 'Add Subject' }).click();
-            
+
+            await expect(page.getByRole('dialog')).toBeHidden();
             await expect(
                 page.getByRole('cell', { name: 'Software Engineering' })
             ).toBeVisible();
@@ -66,6 +67,8 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await page.getByRole('option', { name: 'Michael Ienna' }).first().click();
 
             await page.getByRole('dialog').getByRole('button', { name: 'Add Class' }).click();
+
+            await expect(page.getByRole('dialog')).toBeHidden();
 
             // Add Student
             await expect(page.getByRole('button', { name: 'Expand to view students' })).toBeVisible();
