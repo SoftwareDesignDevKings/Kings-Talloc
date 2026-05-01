@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { clearFirestoreEmulator } from './wrapperFunctions.js';
 
 test.describe('Admin Workflow @admin', () => {
     test.beforeEach(async ({ page }) => {
-        await clearFirestoreEmulator();  
-        await page.goto('http://localhost:3000/dashboard');                                                              
+        await page.goto('http://localhost:3000/dashboard');
     });
 
     // ==========================================
