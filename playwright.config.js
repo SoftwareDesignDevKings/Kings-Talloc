@@ -27,6 +27,60 @@ export default defineConfig({
                 storageState: 'tests/e2e/.auth/admin.json'
             },
             dependencies: ['setup']
+        },
+        {
+            name: 'teacher-tests',
+            grep: /@teacher/,
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: 'tests/e2e/.auth/teacher.json'
+            },
+            dependencies: ['setup']
+        },
+        {
+            name: 'tutor-tests',
+            grep: /@tutor/,
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: 'tests/e2e/.auth/tutor.json'
+            },
+            dependencies: ['setup']
+        },
+        {
+            name: 'coach-tests',
+            grep: /@coach/,
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: 'tests/e2e/.auth/coach.json'
+            },
+            dependencies: ['setup']
+        },
+        {
+            name: 'student-tests',
+            grep: /@student/,
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: 'tests/e2e/.auth/student.json'
+            },
+            dependencies: ['setup']
+        },
+        {
+            name: 'coachTutor-tests',
+            grep: /@coachTutor/,
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: 'tests/e2e/.auth/coachTutor.json'
+            },
+            dependencies: ['setup']
+        },
+        {
+            name: 'tutorAdmin-tests',
+            grep: /@tutorAdmin/,
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: 'tests/e2e/.auth/tutorAdmin.json'
+            },
+            dependencies: ['setup']
         }
     ],
 
