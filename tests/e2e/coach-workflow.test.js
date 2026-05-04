@@ -77,7 +77,7 @@ test.describe('Coach Workflow @coachOnly', () => {
         await expect(page.locator('div').filter({ hasText: /^Completed$/ }).nth(1)).toBeVisible();
     });
 
-    test('tutor adds availability, tutor delete availability', async ({ page }) => {
+    test('coach adds availability, coach delete availability', async ({ page }) => {
         await page.goto('/dashboard');
 
         await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();

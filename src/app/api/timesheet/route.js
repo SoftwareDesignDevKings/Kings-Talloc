@@ -25,7 +25,7 @@ async function fetchUserShifts(userEmail, startDateSyd, endDateSyd, timesheetTyp
                  .where('workStatus', '==', 'completed');
 
     query = query.where('emailsList', 'array-contains', userEmail);
-    if (timesheetType == "coach") {
+    if (timesheetType === "coach") {
         query = query.where('workType', '==', 'coaching');
     } else {
         query = query.where('workType', 'in', ['tutoring', 'work', 'tutoringOrWork']);
@@ -143,7 +143,7 @@ const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDate
     } 
     
     let shifts;
-    if (timesheetType == "tutor") {    
+    if (timesheetType === "tutor") {    
         shifts = await fetchUserShifts(tutorEmail, startDateSyd, endDateSyd, "tutor");
     } else {
         shifts = await fetchUserShifts(tutorEmail, startDateSyd, endDateSyd, "coach");
@@ -155,9 +155,9 @@ const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDate
 
     const TUTOR_MIN_THRESHOLD = 3;
     const COACH_MIN_THRESHOLD = 2;
-    if (timesheetType == "tutor" && rawTotalHours < TUTOR_MIN_THRESHOLD) { 
+    if (timesheetType === "tutor" && rawTotalHours < TUTOR_MIN_THRESHOLD) { 
         return { error: `Not enough tutor hours for ${tutorName} — minimum 3hrs required).`, status: 400 };
-    } else if (timesheetType == "coach" && rawTotalHours < COACH_MIN_THRESHOLD) {
+    } else if (timesheetType === "coach" && rawTotalHours < COACH_MIN_THRESHOLD) {
         return { error: `Not enough coach hours for ${tutorName} — minimum 2hrs required).`, status: 400 };
     }
 
@@ -179,10 +179,12 @@ const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDate
         const key = day.toLowerCase();
         const data = dailyAllocation[day];
         let commenced = '', finished = '', breakHours = '';
+        let breakTimeValue = 0;
 
         if (data) {
             const totalHours = data.hoursForThisDay;
             const breakTime = calculateBreakTime(totalHours);
+            breakTimeValue = breakTime;
 
             const start = dateLuxon.set({ hour: 8, minute: 0, second: 0 });
             const end = start.plus({ hours: totalHours + breakTime });
@@ -197,7 +199,7 @@ const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDate
         templateData[`${key}Finished`] = finished;
         templateData[`${key}Break`] = breakHours;
 
-        templateData[`${key}Total`] = data ? data.hoursForThisDay.toFixed(2) - breakHours : ''; 
+        templateData[`${key}Total`] = data ? (data.hoursForThisDay - breakTimeValue).toFixed(2) : ''; 
     }
 
     const buffer = renderDocx(fileData, templateData);
