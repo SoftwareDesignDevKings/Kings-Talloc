@@ -197,7 +197,7 @@ const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDate
         templateData[`${key}Finished`] = finished;
         templateData[`${key}Break`] = breakHours;
 
-        templateData[`${key}Total`] = data ? data.hoursForThisDay.toFixed(2) : '';
+        templateData[`${key}Total`] = data ? data.hoursForThisDay.toFixed(2) - breakHours : ''; 
     }
 
     const buffer = renderDocx(fileData, templateData);
