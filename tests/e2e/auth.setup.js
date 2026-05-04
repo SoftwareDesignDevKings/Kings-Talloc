@@ -15,7 +15,6 @@ setup('authenticate users', async ({ browser }) => {
     }
 
     for (const emailKey in TEST_USERS) {
-        const user = TEST_USERS[emailKey]; 
         
         const context = await browser.newContext();
         const page = await context.newPage();
