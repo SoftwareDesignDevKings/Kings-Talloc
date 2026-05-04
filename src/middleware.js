@@ -12,17 +12,22 @@ const MAINTENANCE_MODE = false;
 export async function middleware(req) {
 
     const { pathname } = req.nextUrl;
+    const response = await implementCspWrapper(req);
     if (process.env.NODE_ENV === 'production') {
         try {
             const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
-            if (rateLimitResponse) return rateLimitResponse;
+            if (rateLimitResponse) {
+                response.headers.forEach((value, key) => {
+                    if (!rateLimitResponse.headers.has(key)) {
+                        rateLimitResponse.headers.set(key, value);
+                    }
+                });
+                return rateLimitResponse;
+            }
         } catch (err) {
             console.error('Rate limiter error:', err);
         }
     }
-
-
-    const response = await implementCspWrapper(req);
 
     // Maintenance mode  ENABLED - redirect everyone to /maintenance
     if (MAINTENANCE_MODE && pathname !== '/maintenance') {
@@ -35,7 +40,11 @@ export async function middleware(req) {
     }
 
     // IF PUBLIC ENDPOINT (or redirect on login, no security checks)
-    if (pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth')) {
+    const publicExactPaths = ['/login', '/', '/maintenance'];
+    const publicPathPrefixes = ['/api/auth'];
+    const isPublicEndpoint = publicExactPaths.includes(pathname)
+        || publicPathPrefixes.some(prefix => pathname.startsWith(prefix));
+    if (isPublicEndpoint) {
         return response;
     }
 
@@ -50,6 +59,12 @@ export async function middleware(req) {
         return NextResponse.redirect(new URL('/login', req.url));
     }
 
+    // Role fields in token:
+    // - defaultRole: canonical "active" role selected for this session (preferred when present).
+    // - role: legacy/single-role fallback kept for backward compatibility with older tokens.
+    // - userRoles: full list of assigned roles used for multi-role authorization checks.
+    // We prefer defaultRole over role to preserve explicit session role selection, while still
+    // supporting older token payloads; userRoles defaults to [] so `.includes`/`.some` remain safe.
     const userRole = token.defaultRole || token.role;
     const userRoles = token.userRoles || [];
 
