@@ -60,6 +60,9 @@ const DashboardOverview = () => {
         let tutoringHours = 0;
         let coachingHours = 0;
         let workHours = 0;
+        let completedTutoringHours = 0;
+        let completedCoachingHours = 0;
+        let completedWorkHours = 0;
         let needsConfirmation = 0;
         const uniqueStudentEmails = new Set();
         const uniqueTutorEmailsToday = new Set();
@@ -105,6 +108,17 @@ const DashboardOverview = () => {
                 workHours += hours;
             } else {
                 tutoringHours += hours;
+            }
+
+            // 4b. Completed hours (any shift marked as completed)
+            if (event.workStatus === 'completed') {
+                if (event.workType === 'coaching') {
+                    completedCoachingHours += hours;
+                } else if (event.workType === 'work') {
+                    completedWorkHours += hours;
+                } else {
+                    completedTutoringHours += hours;
+                }
             }
 
             // 5. Unique Students (for Tutor View)
@@ -187,6 +201,11 @@ const DashboardOverview = () => {
                 tutoring: Math.round(tutoringHours * 10) / 10,
                 coaching: Math.round(coachingHours * 10) / 10,
                 work: Math.round(workHours * 10) / 10,
+            },
+            completedHours: {
+                tutoring: Math.round(completedTutoringHours * 10) / 10,
+                coaching: Math.round(completedCoachingHours * 10) / 10,
+                work: Math.round(completedWorkHours * 10) / 10,
             },
             completedShifts,
             uncompletedShifts,

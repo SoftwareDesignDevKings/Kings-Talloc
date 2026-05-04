@@ -3,7 +3,7 @@ import { FiClock, FiChevronDown } from '@/components/icons';
 import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
 import PendingApprovalItem from './PendingApprovalItem';
 
-const PendingApprovalsCard = ({ count, pendingRequests, onUpdate, readOnly = false }) => {
+const PendingApprovalsCard = ({ count, pendingRequests, onUpdate, readOnly = false, colClass = 'col-12 col-md-4 col-lg-3' }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const cardRef = useRef(null);
@@ -37,16 +37,16 @@ const PendingApprovalsCard = ({ count, pendingRequests, onUpdate, readOnly = fal
     }, [isOpen]);
 
     return (
-        <div ref={cardRef} className="col-12 col-md-4 col-lg-3 fade">
-            <div ref={dropdownRef} className="position-relative">
+        <div ref={cardRef} className={`${colClass} fade`}>
+            <div ref={dropdownRef} className="position-relative h-100">
                 <div
-                    className="card border-0 shadow-sm"
+                    className="card border-0 shadow-sm h-100"
                     role="button"
                     onClick={() => setIsOpen(!isOpen)}
                     aria-expanded={isOpen}
                 >
-                    <div className="card-body">
-                        <div className="d-flex align-items-center">
+                    <div className="card-body d-flex align-items-center">
+                        <div className="d-flex align-items-center w-100">
                             <div className="flex-shrink-0">
                                 <div className="bg-warning bg-opacity-10 rounded p-3">
                                     <FiClock className="text-warning" size={24} />
