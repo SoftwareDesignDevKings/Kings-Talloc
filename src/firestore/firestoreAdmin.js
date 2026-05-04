@@ -8,7 +8,11 @@ if (process.env.NODE_ENV === 'development') {
 
 // initialise Firebase Admin SDK
 if (!admin.apps.length) {
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    if (process.env.NODE_ENV === 'development') {
+        admin.initializeApp({
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-no-project',
+        });
+    } else if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         console.log(
             'FIREBASE_SERVICE_ACCOUNT_KEY is not set. Skipping Firebase Admin initialisation.',
         );

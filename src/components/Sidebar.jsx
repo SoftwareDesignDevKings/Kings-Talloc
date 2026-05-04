@@ -9,10 +9,10 @@ import {
     FiUser,
     FiChevronLeft,
     FiChevronRight,
-    FiBookOpen,
     FiHome,
     FiLogOut,
     FiUserCheck,
+    FiSettings,
 } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -119,27 +119,27 @@ const Sidebar = ({ user, userRole }) => {
                                 </Link>
                             </li>
                         )}
+                        {isAdmin && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/admin/canvas"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/admin/canvas') ? styles.activeNavLink : ''}`}
+                                >
+                                    <FiSettings className={styles.navIcon} />
+                                    <span className={styles.navLabel}>Canvas Admin</span>
+                                </Link>
+                            </li>
+                        )}
                         {isAdminOrTeacher && (
-                            <>
-                                <li className={styles.navItem}>
-                                    <Link
-                                        href="/classes"
-                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
-                                    >
-                                        <FiBook className={styles.navIcon} />
-                                        <span className={styles.navLabel}>Manage Classes</span>
-                                    </Link>
-                                </li>
-                                <li className={styles.navItem}>
-                                    <Link
-                                        href="/subjects"
-                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/subjects') ? styles.activeNavLink : ''}`}
-                                    >
-                                        <FiBookOpen className={styles.navIcon} />
-                                        <span className={styles.navLabel}>Manage Subjects</span>
-                                    </Link>
-                                </li>
-                            </>
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/classes"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
+                                >
+                                    <FiBook className={styles.navIcon} />
+                                    <span className={styles.navLabel}>Canvas Classes</span>
+                                </Link>
+                            </li>
                         )}
                         {isTutorHoursRole && (
                             <li className={styles.navItem}>

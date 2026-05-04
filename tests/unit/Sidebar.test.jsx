@@ -43,7 +43,7 @@ describe('Sidebar', () => {
 
         expect(screen.getByText('Calendar')).toBeInTheDocument();
         expect(screen.queryByText('User Roles')).not.toBeInTheDocument();
-        expect(screen.queryByText('Manage Classes')).not.toBeInTheDocument();
+        expect(screen.queryByText('Canvas Classes')).not.toBeInTheDocument();
         expect(screen.queryByText('Manage Subjects')).not.toBeInTheDocument();
         expect(screen.queryByText('Tutor Hours')).not.toBeInTheDocument();
     });
@@ -61,8 +61,8 @@ describe('Sidebar', () => {
 
         expect(screen.getByText('Calendar')).toBeInTheDocument();
         expect(screen.queryByText('User Roles')).not.toBeInTheDocument(); // Only for admin
-        expect(screen.getByText('Manage Classes')).toBeInTheDocument();
-        expect(screen.getByText('Manage Subjects')).toBeInTheDocument();
+        expect(screen.getByText('Canvas Classes')).toBeInTheDocument();
+        expect(screen.queryByText('Manage Subjects')).not.toBeInTheDocument();
         expect(screen.queryByText('Tutor Hours')).not.toBeInTheDocument(); // Only for admin, tutor, coach
     });
 
@@ -71,7 +71,7 @@ describe('Sidebar', () => {
 
         expect(screen.getByRole('link', { name: /calendar/i })).toHaveAttribute('href', '/calendar');
         expect(screen.getByRole('link', { name: /manage users/i })).toHaveAttribute('href', '/userRoles');
-        expect(screen.getByRole('link', { name: /manage classes/i })).toHaveAttribute('href', '/classes');
+        expect(screen.getByRole('link', { name: /canvas classes/i })).toHaveAttribute('href', '/classes');
     });
 
     it('displays user name when provided', () => {

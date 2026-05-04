@@ -41,7 +41,10 @@ export const useEventFormData = (newEvent) => {
     }, [tutors, calendarAvailabilities, newEvent.start, newEvent.end, newEvent.workType]);
 
     const classOptions = useMemo(() =>
-        classes.map((cls) => ({ value: cls.id, label: cls.name })),
+        classes.map((cls) => ({
+            value: cls.id,
+            label: cls.courseCode ? `${cls.name} (${cls.courseCode})` : cls.name,
+        })),
         [classes]
     );
 

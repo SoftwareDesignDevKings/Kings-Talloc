@@ -284,7 +284,7 @@ const UserRolesManager = () => {
                         <tr>
                             <th scope="col" style={{ width: '35%' }}>User</th>
                             <th scope="col" style={{ width: '30%' }}>Roles</th>
-                            <th scope="col" style={{ width: '35%' }} className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '35%', textAlign: 'right' }} className={t.actionCol}><span className="visually-hidden">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -306,8 +306,8 @@ const UserRolesManager = () => {
                                         ))}
                                     </div>
                                 </td>
-                                <td className={t.actionCol}>
-                                    <div className={t.actionGroup}>
+                                <td className={t.actionCol} style={{ textAlign: 'right' }}>
+                                    <div className={t.actionGroup} style={{ justifyContent: 'flex-end' }}>
                                         {((user.defaultRole || user.role) === 'tutor' || user.userRoles?.includes('tutor')) && (
                                             <>
                                                 <input

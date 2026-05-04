@@ -136,6 +136,37 @@ service cloud.firestore {
       allow write: if isAdminOrTeacher();
     }
 
+    // Canvas course whitelist — admins/teachers select which Canvas courses are synced
+    match /canvasCourseWhitelist/{courseId} {
+      allow read, create, update, delete: if isAdminOrTeacher();
+    }
+
+    // Canvas cache/read model — written by server-side sync via Admin SDK
+    match /canvasCourses/{courseId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /canvasUsers/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /canvasEnrollments/{enrollmentId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /canvasSyncLog/{logId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
+    match /canvasSyncState/{stateId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
     // Timesheets (templates) — admin only (API route also enforces this)
     match /timesheets/{timesheetId} {
       allow read: if isAuthenticated();

@@ -149,9 +149,17 @@ const StudentRequestsDropdown = () => {
                                             {format(request.start, 'd MMM yyyy h:mm a')} -{' '}
                                             {format(request.end, 'h:mm a')}
                                         </div>
-                                        {request.subject && (
+                                        {request.classes?.length > 0 && (
                                             <div className="text-muted">
-                                                Subject:{' '}
+                                                Class:{' '}
+                                                {request.classes
+                                                    .map((cls) => cls.label || cls.name || cls.value || cls)
+                                                    .join(', ')}
+                                            </div>
+                                        )}
+                                        {!request.classes?.length && request.subject && (
+                                            <div className="text-muted">
+                                                Legacy subject:{' '}
                                                 {typeof request.subject === 'string'
                                                     ? request.subject
                                                     : request.subject.label}

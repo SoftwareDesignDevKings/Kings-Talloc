@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 const ROLE_ROUTES = {
-    admin:   ['/dashboard', '/calendar', '/userRoles', '/classes', '/subjects', '/tutorHours'],
-    teacher: ['/dashboard', '/calendar', '/classes', '/subjects'],
+    admin:   ['/dashboard', '/calendar', '/userRoles', '/classes', '/tutorHours'],
+    teacher: ['/dashboard', '/calendar', '/classes'],
     tutor:   ['/dashboard', '/calendar', '/tutorHours'],
     coach:   ['/dashboard', '/calendar', '/tutorHours'],
     student: ['/dashboard', '/calendar'],

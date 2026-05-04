@@ -205,25 +205,67 @@ export const fetchCacheTutors = () =>
     });
 
 export const fetchCacheSubjects = () =>
-    getCachedOrFetch('subjects', async () => {
-        const snapshot = await getDocs(collection(db, 'subjects'));
-        return snapshot.docs.map((doc) => {
-            const data = doc.data();
-            return { id: doc.id, name: data.name, tutors: data.tutors || [] };
-        });
-    });
+    getCachedOrFetch('subjects', async () => []);
 
 export const fetchCacheClasses = () =>
     getCachedOrFetch('classes', async () => {
-        const snapshot = await getDocs(collection(db, 'classes'));
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const [coursesSnapshot, enrollmentsSnapshot] = await Promise.all([
+            getDocs(collection(db, 'canvasCourses')),
+            getDocs(collection(db, 'canvasEnrollments')),
+        ]);
+
+        const studentsByCourse = new Map();
+        enrollmentsSnapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            const courseId = String(data.courseId || '');
+            if (!courseId) return;
+            const students = studentsByCourse.get(courseId) || [];
+            students.push({
+                id: data.userId,
+                canvasUserId: data.userId,
+                enrollmentId: docSnap.id,
+                email: data.email || data.emailLower || '',
+                name: data.userName || data.email || data.emailLower || '',
+                sortableName: data.sortableName || '',
+                enrollmentState: data.enrollmentState || '',
+                lastActivityAt: data.lastActivityAt || null,
+                currentScore: data.currentScore ?? null,
+                currentGrade: data.currentGrade || null,
+                finalScore: data.finalScore ?? null,
+                finalGrade: data.finalGrade || null,
+            });
+            studentsByCourse.set(courseId, students);
+        });
+
+        return coursesSnapshot.docs.map((docSnap) => {
+            const data = docSnap.data();
+            return {
+                id: docSnap.id,
+                name: data.name || '',
+                courseCode: data.courseCode || '',
+                workflowState: data.workflowState || '',
+                syncedAt: data.syncedAt || null,
+                rosterSyncedAt: data.rosterSyncedAt || null,
+                blueprintCourseId: data.blueprintCourseId || null,
+                blueprintCourseName: data.blueprintCourseName || null,
+                blueprintCourseCode: data.blueprintCourseCode || null,
+                students: studentsByCourse.get(docSnap.id) || [],
+            };
+        });
     });
 
 export const fetchCacheStudents = () =>
     getCachedOrFetch('students', async () => {
-        const snapshot = await getDocs(collection(db, 'students'));
+        const snapshot = await getDocs(collection(db, 'canvasUsers'));
         return snapshot.docs.map((doc) => {
-            const { email, name } = doc.data();
-            return { email, name: name || email };
+            const { email, name, sortableName, sisId } = doc.data();
+            return {
+                id: doc.id,
+                canvasUserId: doc.id,
+                email,
+                name: name || email,
+                sortableName,
+                sisId,
+            };
         });
     });

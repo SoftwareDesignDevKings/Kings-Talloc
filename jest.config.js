@@ -12,12 +12,13 @@ const customJestConfig = {
     testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/tests/e2e/'],
     moduleNameMapper: {
         // Handle module aliases (same as in your jsconfig.json paths)
-        '^@/(.*)$': '<rootDir>/$1',
-        '^@components/(.*)$': '<rootDir>/components/$1',
-        '^@hooks/(.*)$': '<rootDir>/hooks/$1',
-        '^@providers/(.*)$': '<rootDir>/providers/$1',
-        '^@contexts/(.*)$': '<rootDir>/contexts/$1',
-        '^@middleware/(.*)$': '<rootDir>/middleware/$1',
+        '^@/(.*)$': '<rootDir>/src/$1',
+        '^@components/(.*)$': '<rootDir>/src/components/$1',
+        '^@hooks/(.*)$': '<rootDir>/src/hooks/$1',
+        '^@providers/(.*)$': '<rootDir>/src/providers/$1',
+        '^@contexts/(.*)$': '<rootDir>/src/contexts/$1',
+        '^@middleware/(.*)$': '<rootDir>/src/middleware/$1',
+        '^@lib/(.*)$': '<rootDir>/src/lib/$1',
     },
     transformIgnorePatterns: ['node_modules/(?!(@firebase/rules-unit-testing)/)'],
     transform: {

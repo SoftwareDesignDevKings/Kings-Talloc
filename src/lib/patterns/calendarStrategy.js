@@ -48,7 +48,7 @@ export const adminCalendarStrategy = () => ({
     // panel filters
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: true,
     },
@@ -100,7 +100,7 @@ export const teacherCalendarStrategy = () => ({
 
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: true,
     },
@@ -154,7 +154,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
     // panel filters
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: true,
     },
@@ -212,7 +212,7 @@ export const studentCalendarStrategy = (userEmail) => ({
     // students cannot accesss tutor avail type
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: false,
     },

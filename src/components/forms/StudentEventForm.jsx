@@ -23,7 +23,6 @@ const StudentEventForm = ({
         calendarStudentRequests,
         calendarAvailabilities,
         tutors,
-        subjects
     } = useAppData();
     
     // derive mode flags
@@ -34,12 +33,10 @@ const StudentEventForm = ({
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [tutorOptions, setTutorOptions] = useState([]);
-    const [subjectOptions, setSubjectOptions] = useState([]);
     const [filteredTutors, setFilteredTutors] = useState([]);
     const [selectedTutor, setSelectedTutor] = useState(
         newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null,
     );
-    const [selectedSubject, setSelectedSubject] = useState(newEvent.subject || null);
     const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
     const selectedStudent =
         newEvent.students && newEvent.students.length > 0
@@ -56,13 +53,7 @@ const StudentEventForm = ({
             label: tutor.name || tutor.email,
         }));
         setTutorOptions(tutorList);
-
-        const subjectList = subjects.map((subject) => ({
-            value: subject.id,
-            label: subject.name,
-        }));
-        setSubjectOptions(subjectList);
-    }, [tutors, subjects]);
+    }, [tutors]);
 
     useEffect(() => {
         if (!isEditing) {
@@ -92,11 +83,6 @@ const StudentEventForm = ({
         setNewEvent(prev => ({ ...prev, staff: [selectedOption] }));
     };
 
-    const handleSubjectChange = (selectedOption) => {
-        setSelectedSubject(selectedOption);
-        setNewEvent(prev => ({ ...prev, subject: selectedOption }));
-    };
-
     const handlePreferenceClick = (preference) => {
         setSelectedPreference(preference);
         setNewEvent(prev => ({ ...prev, preference }));
@@ -107,9 +93,9 @@ const StudentEventForm = ({
         const end = new Date(newEvent.end);
         if (!isAfter(end, start)) {
             addAlert('error', 'End date must be after the start date.');
-            return false; // Validation failed
+            return false;
         }
-        return true; // Validation passed
+        return true;
     };
 
     const filterTutorsByAvailability = (start, end) => {
@@ -166,7 +152,8 @@ const StudentEventForm = ({
             studentEmails: (newEvent.students || []).map(s => s.value || s), 
             // firebase sec rules require students maped to their value 
             staff: newEvent.staff || [],
-            subject: newEvent.subject,
+            classes: newEvent.classes || [],
+            subject: null,
             preference: newEvent.preference,
             createdByStudent: true,
             approvalStatus: newEvent.approvalStatus || 'pending',
@@ -307,22 +294,6 @@ const StudentEventForm = ({
                     disabled={isView}
                     aria-label="Event end time"
                     aria-required="true"
-                />
-            </div>
-            <div className="mb-3">
-                <label htmlFor="subject" className="form-label">
-                    Subject
-                </label>
-                <Select
-                    name="subject"
-                    options={subjectOptions}
-                    value={selectedSubject}
-                    onChange={handleSubjectChange}
-                    classNamePrefix="select"
-                    placeholder="Select a subject"
-                    isDisabled={isView}
-                    aria-label="Select subject"
-                    inputId="subject"
                 />
             </div>
             <div className="mb-3">

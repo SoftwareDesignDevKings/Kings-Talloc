@@ -5,7 +5,7 @@ import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
 import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
-import { calendarAvailabilitySplit, normaliseWorkType, getEnrolledSubjectIds, getEnrolledTutorEmails } from "@/utils/calendarAvailability"
+import { calendarAvailabilitySplit, normaliseWorkType } from "@/utils/calendarAvailability"
 
 /**
  * Returns true if an availability's workType matches the selected filter.
@@ -48,7 +48,7 @@ export const CalendarUIContextProvider = ({ children }) => {
     const userEmail = session.user.email;
 
     // Get calendar data
-    const { calendarShifts, calendarAvailabilities, calendarStudentRequests, subjects, classes } = useAppData();
+    const { calendarShifts, calendarAvailabilities, calendarStudentRequests } = useAppData();
 
     // cal strategy for filters and scope
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
@@ -217,20 +217,8 @@ export const CalendarUIContextProvider = ({ children }) => {
                 return types.length === 0 || types.includes('tutoring');
             });
 
-            // manual subject filter takes precedence; otherwise auto-scope to enrolled classes
-            if (filterBySubject) {
-                const selectedSubject = subjects?.find(s => s.id === filterBySubject.value);
-                if (selectedSubject?.tutors) {
-                    const allowed = new Set(selectedSubject.tutors.map(t => t.email));
-                    filtered = filtered.filter(a => allowed.has(a.tutor));
-                }
-            } else {
-                const enrolledSubjectIds = getEnrolledSubjectIds(classes, userEmail);
-                const enrolledTutorEmails = getEnrolledTutorEmails(subjects, enrolledSubjectIds);
-                if (enrolledTutorEmails.size > 0) {
-                    filtered = filtered.filter(a => enrolledTutorEmails.has(a.tutor));
-                }
-            }
+            // Canvas owns classes/rosters; Talloc no longer restricts student availability
+            // visibility by subject or class. Students can see all tutoring availabilities.
         }
 
         // filter by selected tutors from CalendarUIContextProvider
@@ -250,7 +238,7 @@ export const CalendarUIContextProvider = ({ children }) => {
         const splitAvailabilities = calendarAvailabilitySplit(filtered, calendarShifts);
 
         return splitAvailabilities;
-    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, subjects, classes, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
+    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
 
     // ─────────────────────────────────────
     // context values

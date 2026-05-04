@@ -12,6 +12,7 @@ const StudentRequestSection = ({
 
     // Auto-expand for student requests (when opened by teacher)
     const isExpanded = true;
+    const classLabel = newEvent.classes?.[0]?.label || newEvent.classes?.[0]?.name;
 
     return (
         <div className="accordion-item">
@@ -41,10 +42,21 @@ const StudentRequestSection = ({
                 <div className="accordion-body p-4">
                     <div className="p-3 bg-light rounded mb-4">
                         <div className="row g-3">
-                            {newEvent.subject && (
+                            {classLabel && (
                                 <div className="col-6 border-end">
                                     <label className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
-                                        <MdMenuBook /> Subject
+                                        <MdMenuBook /> Class
+                                    </label>
+                                    <div className="fw-bold text-primary">
+                                        {classLabel}
+                                    </div>
+                                </div>
+                            )}
+
+                            {!classLabel && newEvent.subject && (
+                                <div className="col-6 border-end">
+                                    <label className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
+                                        <MdMenuBook /> Legacy Subject
                                     </label>
                                     <div className="fw-bold text-primary">
                                         {newEvent.subject.label || newEvent.subject}

@@ -32,9 +32,17 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly 
                     {format(request.start, 'MMM d, yyyy h:mm a')}{' '}
                     - {format(request.end, 'h:mm a')}
                 </div>
-                {request.subject && (
+                {request.classes?.length > 0 && (
                     <div>
-                        Subject:{' '}
+                        Class:{' '}
+                        {request.classes
+                            .map((cls) => cls.label || cls.name || cls.value || cls)
+                            .join(', ')}
+                    </div>
+                )}
+                {!request.classes?.length && request.subject && (
+                    <div>
+                        Legacy subject:{' '}
                         {typeof request.subject === 'string'
                             ? request.subject
                             : request.subject.label}

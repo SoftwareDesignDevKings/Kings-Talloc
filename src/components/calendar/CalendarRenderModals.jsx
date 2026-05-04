@@ -54,6 +54,7 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
         setShowModal: onClose,
         setShowStudentModal: onClose,
         userEmail,
+        studentEmail: userEmail,
         userRole,
         userRoles,
     };

@@ -60,7 +60,7 @@ export async function middleware(req) {
     }
 
     // admin + teacher routes
-    const adminTeacherRoutes = ['/classes', '/subjects'];
+    const adminTeacherRoutes = ['/classes'];
     const isAdminTeacherRoute = adminTeacherRoutes.some(route => pathname.startsWith(route));
     const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher' || userRoles.includes('admin') || userRoles.includes('teacher');
     if (isAdminTeacherRoute && !isAdminOrTeacher) {
@@ -86,10 +86,8 @@ export const config = {
         '/userRoles/:path*',
         '/calendar/:path*',
         '/classes/:path*',
-        '/subjects/:path*',
         '/tutorHours/:path*',
         '/maintenance',
         '/api/:path*'
     ]
 };
-

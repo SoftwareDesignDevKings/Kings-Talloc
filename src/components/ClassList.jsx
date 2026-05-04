@@ -1,260 +1,40 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { db } from '@/firestore/firestoreClient.js';
-import {
-    collection,
-    getDocs,
-    addDoc,
-    deleteDoc,
-    updateDoc,
-    doc,
-    getDoc,
-} from 'firebase/firestore';
+import React, { useMemo, useState } from 'react';
 import ClassRow from './ClassRow.jsx';
-import ClassModal from './modals/ClassModal.jsx';
-import AddStudentsModal from './modals/AddStudentsModal.jsx';
-import useAlert from '@/hooks/useAlert';
 import useToggleSet from '@/hooks/useToggleSet';
-import { checkDuplicateName } from '@/utils/validation';
-import {
-    parseStudentEntries,
-    filterNewStudentEntries,
-    extractEmailFromEntry,
-} from '@/utils/emailUtils';
+import { useAppData } from '@/contexts/AppDataContext';
 import t from '@/styles/manageTable.module.css';
 
 const ClassList = () => {
-    const { addAlert } = useAlert();
-    const [classes, setClasses] = useState([]);
-    const [subjects, setSubjects] = useState([]);
-    const [teachers, setTeachers] = useState([]);
+    const { classes } = useAppData();
     const [searchTerm, setSearchTerm] = useState('');
-    const [showModal, setShowModal] = useState(false);
-    const [showStudentModal, setShowStudentModal] = useState(false);
-    const [className, setClassName] = useState('');
-    const [selectedSubject, setSelectedSubject] = useState(null);
-    const [selectedTeacher, setSelectedTeacher] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [studentsToAdd, setStudentsToAdd] = useState('');
-    const [selectedClass, setSelectedClass] = useState(null);
-    const [filteredClasses, setFilteredClasses] = useState([]);
-    const [expandedClasses, toggleExpandedClass, removeExpandedClass] = useToggleSet();
+    const [expandedClasses, toggleExpandedClass] = useToggleSet();
 
-    const fetchClasses = async () => {
-        const querySnapshot = await getDocs(collection(db, 'classes'));
-        const classesList = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
-        setClasses(classesList);
-        setFilteredClasses(classesList);
-    };
-
-    const fetchSubjects = async () => {
-        const querySnapshot = await getDocs(collection(db, 'subjects'));
-        const subjectsList = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            name: doc.data().name,
-        }));
-        setSubjects(subjectsList);
-    };
-
-    const fetchTeachers = async () => {
-        const querySnapshot = await getDocs(collection(db, 'users'));
-        const teachersList = querySnapshot.docs
-            .map((doc) => ({
-                email: doc.id,
-                ...doc.data(),
-            }))
-            .filter(
-                (user) =>
-                    user.defaultRole === 'teacher' ||
-                    (Array.isArray(user.userRoles) && user.userRoles.includes('teacher')),
-            );
-        setTeachers(teachersList);
-    };
-
-    useEffect(() => {
-        fetchClasses();
-        fetchSubjects();
-        fetchTeachers();
-    }, []);
-
-    useEffect(() => {
-        const results = classes.filter((cls) =>
-            cls.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    const filteredClasses = useMemo(() => {
+        const search = searchTerm.trim().toLowerCase();
+        if (!search) return classes;
+        return classes.filter((cls) =>
+            [cls.name, cls.courseCode]
+                .filter(Boolean)
+                .some((value) => value.toLowerCase().includes(search)),
         );
-        setFilteredClasses(results);
-    }, [searchTerm, classes]);
-
-    const handleAddClass = async (e) => {
-        e.preventDefault();
-        if (!selectedSubject) {
-            addAlert('error', 'Please select a subject.');
-            return false;
-        }
-        if (!selectedTeacher) {
-            addAlert('error', 'Please select a teacher.');
-            return false;
-        }
-
-        if (checkDuplicateName(classes, className, selectedClass?.id)) {
-            addAlert('error', 'A class with this name already exists.');
-            return false;
-        }
-
-        try {
-            if (isEditing) {
-                const classRef = doc(db, 'classes', selectedClass.id);
-                await updateDoc(classRef, {
-                    name: className,
-                    subject: selectedSubject.id,
-                    teacherEmail: selectedTeacher.email,
-                });
-                setClasses(
-                    classes.map((cls) =>
-                        cls.id === selectedClass.id
-                            ? {
-                                  ...cls,
-                                  name: className,
-                                  subject: selectedSubject.id,
-                                  teacherEmail: selectedTeacher.email,
-                              }
-                            : cls,
-                    ),
-                );
-                setIsEditing(false);
-            } else {
-                await addDoc(collection(db, 'classes'), {
-                    name: className,
-                    subject: selectedSubject.id,
-                    teacherEmail: selectedTeacher.email,
-                });
-            }
-            setClassName('');
-            setSelectedSubject(null);
-            setSelectedTeacher(null);
-            setShowModal(false);
-            addAlert('success', isEditing ? 'Class edited successfully' : 'Class added successfully');
-            fetchClasses();
-        } catch (err) {
-            console.error('Failed to save class:', err);
-            addAlert('error', 'Failed to save class. Please try again.');
-            return false;
-        }
-    };
-    
-    const handleEditClass = (cls) => {
-        setSelectedClass(cls);
-        setClassName(cls.name);
-        setSelectedSubject(subjects.find((subject) => subject.id === cls.subject));
-        setSelectedTeacher(teachers.find((teacher) => teacher.email === cls.teacherEmail));
-        setIsEditing(true);
-        setShowModal(true);
-    };
-
-    const handleDeleteClass = async (classToDelete) => {
-        if (classToDelete) {
-            try {
-                await deleteDoc(doc(db, 'classes', classToDelete.id));
-                setClasses(classes.filter((cls) => cls.id !== classToDelete.id));
-                removeExpandedClass(classToDelete.id);
-                addAlert('success', 'Class deleted successfully');
-            } catch (err) {
-                console.error('Failed to delete class:', err);
-                addAlert('error', 'Failed to delete class. Please try again.');
-            }
-        }
-    };
-
-    const handleAddStudents = async (e) => {
-        e.preventDefault();
-        const rawEntries = parseStudentEntries(studentsToAdd);
-        const uniqueEntries = filterNewStudentEntries(
-            rawEntries,
-            (selectedClass.students || []).map((s) => s.email),
-        );
-
-        if (uniqueEntries.length === 0) {
-            addAlert('error', 'All provided emails are already enrolled in this class.');
-            return false;
-        }
-
-        try {
-            const newStudents = await Promise.all(
-                uniqueEntries.map(async (entry) => {
-                    const email = extractEmailFromEntry(entry);
-                    const name = entry.includes(':') ? entry.split(':')[0].trim() : '';
-
-                    const userRef = doc(db, 'users', email);
-                    const userDoc = await getDoc(userRef);
-                    if (!userDoc.exists()) {
-                        return { email, name };
-                    } else {
-                        const userData = userDoc.data();
-                        return { email, name: userData.name || name || '' };
-                    }
-                }),
-            );
-            const updatedStudents = [...(selectedClass.students || []), ...newStudents];
-            const classRef = doc(db, 'classes', selectedClass.id);
-            await updateDoc(classRef, { students: updatedStudents });
-            setSelectedClass((prev) => ({ ...prev, students: updatedStudents }));
-            setStudentsToAdd('');
-            setShowStudentModal(false);
-            await fetchClasses();
-            addAlert('success', 'Students added successfully');
-        } catch (err) {
-            console.error('Failed to add students:', err);
-            addAlert('error', 'Failed to add students. Please try again.');
-            return false;
-        }
-    };
-
-    const handleRemoveStudent = async (classToUpdate, studentToRemove) => {
-        const updatedStudents = classToUpdate.students.filter(
-            (s) => s.email !== studentToRemove.email,
-        );
-        const classRef = doc(db, 'classes', classToUpdate.id);
-        await updateDoc(classRef, { students: updatedStudents });
-        addAlert('success', 'Student removed successfully');
-        fetchClasses();
-    };
-
-    const handleOpenStudentModal = (cls) => {
-        setSelectedClass(cls);
-        setShowStudentModal(true);
-    };
-
-    const handleExpandClass = (cls) => toggleExpandedClass(cls.id);
+    }, [classes, searchTerm]);
 
     return (
         <div className={t.container}>
-            <h2 className="h4 mb-3 fw-bold text-tks-secondary">Manage Classes</h2>
+            <h2 className="h4 mb-3 fw-bold text-tks-secondary">Canvas Classes</h2>
 
             <div className={t.headerActions}>
                 <div className={t.searchWrapper}>
                     <input
                         type="text"
-                        placeholder="Search by class name"
+                        placeholder="Search by Canvas class or code"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="form-control"
                     />
                 </div>
-                <button
-                    onClick={() => {
-                        setSelectedClass(null);
-                        setIsEditing(false);
-                        setShowModal(true);
-                        setSelectedSubject(null);
-                        setSelectedTeacher(null);
-                    }}
-                    className="btn btn-outline-primary btn-sm text-nowrap"
-                >
-                    Add Class
-                </button>
             </div>
 
             <div className={t.tableWrap}>
@@ -262,9 +42,9 @@ const ClassList = () => {
                     <thead>
                         <tr>
                             <th scope="col">Class Name</th>
-                            <th scope="col" style={{ width: '16%' }}>Subject</th>
-                            <th scope="col" style={{ width: '16%' }}>Teacher</th>
-                            <th scope="col" style={{ width: '36%' }} className={t.actionCol}>Actions</th>
+                            <th scope="col" style={{ width: '18%' }}>Code</th>
+                            <th scope="col" style={{ width: '14%' }}>Students</th>
+                            <th scope="col" style={{ width: '18%', textAlign: 'right' }} className={t.actionCol}><span className="visually-hidden">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -272,42 +52,20 @@ const ClassList = () => {
                             <ClassRow
                                 key={cls.id}
                                 cls={cls}
-                                subjects={subjects}
-                                teachers={teachers}
-                                handleOpenStudentModal={handleOpenStudentModal}
-                                confirmDeleteClass={handleDeleteClass}
-                                confirmRemoveStudent={handleRemoveStudent}
-                                handleEditClass={handleEditClass}
                                 expandedClasses={expandedClasses}
-                                handleExpandClass={handleExpandClass}
+                                handleExpandClass={() => toggleExpandedClass(cls.id)}
                             />
                         ))}
+                        {filteredClasses.length === 0 && (
+                            <tr>
+                                <td colSpan={4} className="text-muted text-center py-4">
+                                    No Canvas classes synced yet.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
-
-            <ClassModal
-                showModal={showModal}
-                setShowModal={setShowModal}
-                className={className}
-                setClassName={setClassName}
-                handleAddClass={handleAddClass}
-                subjects={subjects}
-                selectedSubject={selectedSubject}
-                setSelectedSubject={setSelectedSubject}
-                teachers={teachers}
-                selectedTeacher={selectedTeacher}
-                setSelectedTeacher={setSelectedTeacher}
-                isEditing={isEditing}
-            />
-            <AddStudentsModal
-                showStudentModal={showStudentModal}
-                setShowStudentModal={setShowStudentModal}
-                selectedClass={selectedClass}
-                studentsToAdd={studentsToAdd}
-                setStudentsToAdd={setStudentsToAdd}
-                handleAddStudents={handleAddStudents}
-            />
         </div>
     );
 };

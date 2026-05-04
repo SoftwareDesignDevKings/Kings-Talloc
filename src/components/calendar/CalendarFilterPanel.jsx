@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import Select from 'react-select';
 import { FiChevronLeft, FiChevronRight, FaInfoCircle } from '@/components/icons';
 import styles from '@/styles/filterPanel.module.css';
@@ -8,30 +8,13 @@ import { useAppData } from '@/contexts/AppDataContext';
 import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
 import CalendarLegend from './CalendarLegend.jsx';
 import useAuthSession from '@/hooks/useAuthSession';
-import { getEnrolledSubjectIds } from '@/utils/calendarAvailability';
 
 const CalendarFilterPanel = () => {
-    const { session, userRole } = useAuthSession();
-    const userEmail = session.user.email;
-    const { tutors, subjects, classes } = useAppData();
+    const { userRole } = useAuthSession();
+    const { tutors } = useAppData();
     const { filters, visibility, actions, calendarFilters, calendarScope } = useCalendarUI();
     const [isOpen, setIsOpen] = useState(true);
     const [showHowToModal, setShowHowToModal] = useState(false);
-
-    const enrolledSubjectIds = useMemo(() =>
-        userRole === 'student' ? getEnrolledSubjectIds(classes, userEmail) : new Set(),
-        [userRole, classes, userEmail]
-    );
-
-    const subjectOptions = useMemo(() => {
-        const options = (subjects ?? []).map(subject => ({
-            value: subject.id,
-            label: subject.name,
-            tutors: subject.tutors,
-        }));
-        if (userRole !== 'student' || enrolledSubjectIds.size === 0) return options;
-        return options.filter(subject => enrolledSubjectIds.has(subject.value));
-    }, [subjects, userRole, enrolledSubjectIds]);
 
     const tutorOptions = useMemo(() => {
         const mapTutorToOption = (tutor) => ({
@@ -39,23 +22,8 @@ const CalendarFilterPanel = () => {
             label: tutor.name || tutor.email,
         });
 
-        if (userRole === 'student') {
-            if (filters.filterBySubject) {
-                const selectedSubject = (subjects ?? []).find(s => s.id === filters.filterBySubject.value);
-                return selectedSubject?.tutors?.map(mapTutorToOption) ?? [];
-            }
-            const tutorMap = new Map();
-            for (const subject of (subjects ?? [])) {
-                if (!enrolledSubjectIds.has(subject.id)) continue;
-                for (const tutor of subject.tutors || []) {
-                    tutorMap.set(tutor.email, tutor.name || tutor.email);
-                }
-            }
-            return [...tutorMap].map(([email, name]) => ({ value: email, label: name }));
-        }
-
         return (tutors ?? []).map(mapTutorToOption);
-    }, [userRole, filters.filterBySubject, subjects, tutors, enrolledSubjectIds]);
+    }, [tutors]);
 
     // prepare work type options for availabilities
     const availabilityWorkTypeOptions = [
@@ -70,12 +38,6 @@ const CalendarFilterPanel = () => {
         actions.setShowAllEvents(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    // Memoise subject change handler to prevent re-renders
-    const handleSubjectChange = useCallback((newSubject) => {
-        actions.setFilterBySubject(newSubject);
-        actions.setFilterByTutor(null);
-    }, [actions]);
 
     return (
         <div
@@ -112,20 +74,6 @@ const CalendarFilterPanel = () => {
                     </div>
 
                     {/* ───── Dropdown filters ───── */}
-
-                    {/* Subject filter - Students only */}
-                    {userRole === 'student' && (
-                        <div className="mb-3">
-                            <Select
-                                placeholder="Select a subject"
-                                classNamePrefix="select"
-                                isClearable
-                                options={subjectOptions}
-                                value={filters.filterBySubject}
-                                onChange={handleSubjectChange}
-                            />
-                        </div>
-                    )}
 
                     {calendarFilters.canFilterByTutor && (
                         <div className="mb-3">

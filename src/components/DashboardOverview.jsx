@@ -29,9 +29,7 @@ const DashboardOverview = () => {
 
     useEffect(() => {
         if (userRole !== 'teacher' || !session.user.email) return;
-        fetchCacheClasses().then(classes =>
-            setTeacherClasses(classes.filter(c => c.teacherEmail === session.user.email))
-        );
+        fetchCacheClasses().then(setTeacherClasses);
     }, [userRole, session.user.email]);
 
     // Ensure we are viewing the current week when on the dashboard
@@ -63,7 +61,7 @@ const DashboardOverview = () => {
         let needsConfirmation = 0;
         const uniqueStudentEmails = new Set();
         const uniqueTutorEmailsToday = new Set();
-        const subjectCounts = new Map();
+        const classCounts = new Map();
 
         // Pending Requests
         // Note: AppDataProvider only fetches requests for the current view range. 
@@ -123,17 +121,17 @@ const DashboardOverview = () => {
                 if (!hasResponse) needsConfirmation++;
             }
 
-            // 7. Subject Counts (for Teacher View)
-            if (event.subject) {
-                const subjectName = typeof event.subject === 'string' 
-                    ? event.subject 
-                    : event.subject.label || event.subject.value || 'Unknown';
-                subjectCounts.set(subjectName, (subjectCounts.get(subjectName) || 0) + 1);
+            // 7. Class Counts (for Teacher View)
+            if (event.classes?.length) {
+                event.classes.forEach((cls) => {
+                    const className = cls.label || cls.name || cls.value || 'Unknown';
+                    classCounts.set(className, (classCounts.get(className) || 0) + 1);
+                });
             }
         });
 
-        // Top Subjects
-        const topSubjects = Array.from(subjectCounts.entries())
+        // Top Classes
+        const topSubjects = Array.from(classCounts.entries())
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count)
             .slice(0, 3);

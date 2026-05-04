@@ -129,4 +129,3 @@ export const syncNextFbAuth = async (session, status) => {
         };
     }
 };
-
