@@ -80,7 +80,7 @@ export async function middleware(req) {
     return response;
 }
 
-// pefine the paths that the middleware will apply to
+// Define the paths that the middleware will apply to
 export const config = {
     matcher: [
         '/dashboard/:path*',
