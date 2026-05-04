@@ -1,4 +1,4 @@
-import { test as setup } from '@playwright/test';
+import { test as setup, expect} from '@playwright/test';
 import { TEST_USERS } from '@/lib/security/testUsers';
 import fs from 'fs';
 
@@ -9,6 +9,7 @@ const RESET = '\x1b[0m';
 process.env.NODE_ENV = 'development';
 
 setup('authenticate users', async ({ browser }) => {
+    setup.setTimeout(120000);
     if (!fs.existsSync('tests/e2e/.auth')) {
         fs.mkdirSync('tests/e2e/.auth', { recursive: true });
     }
@@ -20,33 +21,41 @@ setup('authenticate users', async ({ browser }) => {
         const page = await context.newPage();
         
         try {
-            console.log(`\x1b[36m Authenticating ${user.role}...\x1b[0m`);
             
             await page.goto('/login');
         
-            let buttonLabel;
+            let buttonLabel, userRoleForLabel;
             if (emailKey === 'computing@kings.edu.au') {
-                buttonLabel = '🔧 Admin (Teacher)';
+                buttonLabel = 'Teacher + Admin';
+                userRoleForLabel = 'teacherAdmin';
             } else if (emailKey === 'tutor@kings.edu.au') {
-                buttonLabel = '👨‍🏫 Tutor';
+                buttonLabel = 'Tutor';
+                userRoleForLabel = 'tutor';
             } else if (emailKey === 'tutorAdmin@kings.edu.au') {
-                buttonLabel = '👨‍🏫 Tutor + Admin';
+                buttonLabel = 'Tutor + Admin';
+                userRoleForLabel = 'tutorAdmin';
             } else if (emailKey === 'teacher@kings.edu.au') {
-                buttonLabel = '📚 Teacher';
+                buttonLabel = 'Teacher';
+                userRoleForLabel = 'teacher';
             } else if (emailKey === 'coach@kings.edu.au') {
-                buttonLabel = '⚽ Coach + Tutor';
+                buttonLabel = 'Coach';
+                userRoleForLabel = 'coach';
+            } else if (emailKey === 'coachTutor@kings.edu.au') {
+                buttonLabel = 'Coach + Tutor';
+                userRoleForLabel = 'coachTutor';
             } else if (emailKey === 'student@kings.edu.au') {
-                buttonLabel = '🎓 Student';
-            } else {
-                buttonLabel = user.name;
+                buttonLabel = 'Student';
+                userRoleForLabel = 'student';
             }
             
             // click the dev button
-            await page.click(`button:has-text("${buttonLabel}")`);
+            const devButton = page.getByRole('button', { name: buttonLabel, exact: true });
+            await expect(devButton).toBeVisible();
+            await devButton.click();
             
             // wait for either dashboard OR check for error
             try {
-                await page.waitForURL('/dashboard', { timeout: 5000 });
+                await page.waitForURL('/dashboard', { timeout: 10000 });
             } catch {
                 // If no dashboard, check if we're still on login with error
                 const errorMsg = await page.locator('.alert-danger').textContent().catch(() => null);
@@ -57,50 +66,15 @@ setup('authenticate users', async ({ browser }) => {
             }
 
             await context.storageState({
-                path: `tests/e2e/.auth/${user.role}.json`
+                path: `tests/e2e/.auth/${userRoleForLabel}.json`
             });
 
-            console.log(`${TEAL} Authenticated ${user.role}${RESET}`);
+            console.log(`${TEAL} Authenticated ${userRoleForLabel}${RESET}`);
         } catch (error) {
-            console.error(`Failed to authenticate ${user.role}:`, error);
-            await page.screenshot({ path: `tests/e2e/.auth/failed-${user.role}.png` });
+            console.error(`Failed to authenticate ${userRoleForLabel}:`, error);
+            await page.screenshot({ path: `tests/e2e/.auth/failed-${userRoleForLabel}.png` }).catch(() => {});
         } finally {
-            await context.close();
+            await context.close().catch(() => {});
         }
     }
 });
-// setup('authenticate users', async ({ browser }) => {
-//     if (!fs.existsSync('e2e/.auth')) {
-//         fs.mkdirSync('e2e/.auth', { recursive: true });
-//     }
-
-//     for (const emailKey in TEST_USERS) {
-//         const user = TEST_USERS[emailKey]; 
-        
-//         // Use a fresh context for every user to prevent session sharing
-//         const context = await browser.newContext();
-//         const page = await context.newPage();
-        
-//         try {
-
-//             console.log(`\x1b[36m🔑 Authenticating ${user.role}...\x1b[0m`);
-            
-//             await page.goto('/login');
-//             await page.click('button:has-text("Sign in with Microsoft SSO")');
-
-//             // Wait for the SSO callback and dashboard landing
-//             await page.waitForURL('/dashboard', { timeout: 15000 });
-
-//             // Save the specific context state (cookies/localstorage)
-//             await context.storageState({ 
-//                 path: `e2e/.auth/${user.role}.json` 
-//             });
-
-//             console.log(`${TEAL} Authenticated ${user.role}${RESET}`);
-//         } catch (error) {
-//             console.error(`Failed to authenticate ${user.role}:`, error);
-//         } finally {
-//             await context.close();
-//         }
-//     }
-// });
