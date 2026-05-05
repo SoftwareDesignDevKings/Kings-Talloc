@@ -79,7 +79,9 @@ const DashboardOverview = () => {
             const end = new Date(event.end);
             const isToday = start >= startOfToday && start <= endOfToday;
             const isFuture = start > now;
-            const hours = (end - start) / 3600000;
+            let hours = (end - start) / 3600000;
+            if (hours > 6) hours -= 1;
+            else if (hours > 3) hours -= 0.5;
 
             // 1. Today's Events
             if (isToday) {

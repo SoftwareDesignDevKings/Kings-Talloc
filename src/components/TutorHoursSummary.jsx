@@ -141,8 +141,10 @@ const TutorHoursSummary = () => {
                     };
                 }
 
-                // Calculate event duration in hours (full duration, no break deduction for payment)
-                const shiftDuration = (shift.end - shift.start) / 3600000; // milliseconds to hours
+                // Calculate event duration in hours, deducting breaks (>3-6hrs: -30min, >6hrs: -1hr)
+                let shiftDuration = (shift.end - shift.start) / 3600000; // milliseconds to hours
+                if (shiftDuration > 6) shiftDuration -= 1;
+                else if (shiftDuration > 3) shiftDuration -= 0.5;
 
                 // Add to appropriate category based on workType
                 if (shift.workType === 'coaching') {
@@ -202,8 +204,6 @@ const TutorHoursSummary = () => {
                 return;
             }
 
-            const overflowHours = parseFloat(response.headers.get('X-Overflow-Hours') || '0');
-
             // Download the file
             const blob = await response.blob();
             const link = document.createElement('a');
@@ -215,10 +215,6 @@ const TutorHoursSummary = () => {
 
             const roleLabel = roleType === 'coach' ? 'Coach' : 'Tutor';
             addAlert('success', `${roleLabel} timesheet generated and downloaded successfully`);
-
-            if (overflowHours > 0) {
-                addAlert('info', `${overflowHours} hours exceeded for "${tutorName}" — will need to be carried over to the next pay period.`);
-            }
         } catch (error) {
             console.error('Error generating timesheet:', error);
             addAlert('error', `Error: ${error.message}`);

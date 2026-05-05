@@ -5,10 +5,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/security/authConfig';
 import { DateTime } from 'luxon';
 
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const MAX_DAILY_HOURS = 8;
-const MAX_WEEKLY_HOURS = 40;
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SYDNEY_ZONE = 'Australia/Sydney';
+const COST_CENTRES = {
+    coach: '5015.3.220',
+    tutor: '5017.1.221',
+};
 
 /**
  * Fetch and expand all shifts for a tutor within a date range.
@@ -78,12 +80,8 @@ function renderDocx(fileData, templateData) {
     return doc.getZip().generate({ type: 'nodebuffer' });
 }
 
-// ============================================================
-// TUTOR TIMESHEET — simple hour spread, no exact times
-// ============================================================
-
 /**
- * Get Mon–Fri Date objects starting from a given Monday.
+ * Get week Date objects starting from a given Monday.
  * startDate is assumed to be Monday (as sent by the UI date picker).
  */
 function getWeekDates(startDateSyd) {
@@ -91,46 +89,46 @@ function getWeekDates(startDateSyd) {
         const dateLuxon = startDateSyd.plus({ days: i });
         return {
             day,
-            dateLuxon,
             date: dateLuxon.toFormat('dd/MM/yyyy')
         };
     })
 }
+
 /**
- * Spread total hours greedily across Mon–Fri.
- * Each day gets up to MAX_DAILY_HOURS (8hrs).
- * Days with 0 allocated hours are left blank.
+ * Group completed calendar shifts by weekday while keeping their real event times.
+ * Templates only have one row per weekday, so multiple shifts on the same day are
+ * represented by the earliest commencement, latest finish, and summed paid hours.
  */
-const distributeHours = (totalHours, weekDates) => {
-    const dailyAllocationObj = {};
+const buildDailyAllocation = (shifts) => {
+    return [...shifts]
+        .sort((a, b) => a.start.toMillis() - b.start.toMillis())
+        .reduce((allocation, shift) => {
+            const day = shift.start.weekdayLong;
+            if (!DAYS_OF_WEEK.includes(day)) {
+                return allocation;
+            }
 
-    let totalHoursToAllocate = parseFloat(totalHours.toFixed(2));
+            const shiftHours = shift.end.diff(shift.start, 'hours').hours;
+            const current = allocation[day];
 
-    for (const { day, date } of weekDates) {
-        if (totalHoursToAllocate <= 0) {
-            break;
-        }
+            allocation[day] = {
+                date: shift.start.toFormat('dd/MM/yyyy'),
+                start: current && current.start.toMillis() < shift.start.toMillis() ? current.start : shift.start,
+                end: current && current.end.toMillis() > shift.end.toMillis() ? current.end : shift.end,
+                grossHours: parseFloat(((current?.grossHours || 0) + shiftHours).toFixed(2)),
+            };
 
-        const hoursForThisDay = parseFloat(Math.min(totalHoursToAllocate, MAX_DAILY_HOURS).toFixed(2));
-        dailyAllocationObj[day] = {
-            date,
-            hoursForThisDay,
-        };
+            return allocation;
+        }, {});
+};
 
-        totalHoursToAllocate = parseFloat((totalHoursToAllocate - hoursForThisDay).toFixed(2));
-    }
-
-    return dailyAllocationObj;
-}
-
-
-// 30 min break for 3-6 hours, 1 hour break for > 6 hours
-const calculateBreakTime = (totalHours) => {
-    if (totalHours > 3 && totalHours <= 6) {
-        return 0.5;
-    }
-    if (totalHours > 6) {
+// 30 min break for 3hrs exclusive to 6hrs inclusive, 1 hour break for over 6hrs.
+const calculateBreakTime = (grossHours) => {
+    if (grossHours > 6) {
         return 1;
+    }
+    if (grossHours > 3) {
+        return 0.5;
     }
     return 0;
 };
@@ -161,47 +159,47 @@ const generateTimeSheet = async (timesheetType, tutorEmail, tutorName, startDate
         return { error: `Not enough coach hours for ${tutorName} — minimum 2hrs required).`, status: 400 };
     }
 
-    const overflowHours = parseFloat(Math.max(0, rawTotalHours - MAX_WEEKLY_HOURS).toFixed(2));
-    const totalHours = Math.min(rawTotalHours, MAX_WEEKLY_HOURS);
-
     const weekDates = getWeekDates(startDateSyd);
     const weekEnding = startDateSyd.plus({ days: 6 }).toFormat('dd/MM/yyyy');
-    const dailyAllocation = distributeHours(totalHours, weekDates);
+    const dailyAllocation = buildDailyAllocation(shifts);
 
     const templateData = {
         name: tutorName,
         role: timesheetType === 'coach' ? 'Coach' : 'Academic Tutor',
+        costCentre: COST_CENTRES[timesheetType],
         weekEnding,
-        totalHours: parseFloat(totalHours.toFixed(2)),
     };
 
-    for (const { day, dateLuxon } of weekDates) {
+    let grandTotalHours = 0;
+
+    for (const { day } of weekDates) {
         const key = day.toLowerCase();
         const data = dailyAllocation[day];
         let commenced = '', finished = '', breakHours = '';
+        let dayTotal = '';
 
         if (data) {
-            const totalHours = data.hoursForThisDay;
-            const breakTime = calculateBreakTime(totalHours);
+            const breakTime = calculateBreakTime(data.grossHours);
 
-            const start = dateLuxon.set({ hour: 8, minute: 0, second: 0 });
-            const end = start.plus({ hours: totalHours + breakTime });
-
-            commenced = start.toFormat('HH:mm');
-            finished = end.toFormat('HH:mm');
+            commenced = data.start.toFormat('HH:mm');
+            finished = data.end.toFormat('HH:mm');
             breakHours = breakTime || '';
+            const paidHours = data.grossHours - breakTime;
+            dayTotal = paidHours.toFixed(2);
+            grandTotalHours += paidHours;
         }
 
         templateData[`${key}Date`] = data?.date || '';
         templateData[`${key}Commenced`] = commenced;
         templateData[`${key}Finished`] = finished;
         templateData[`${key}Break`] = breakHours;
-
-        templateData[`${key}Total`] = data ? data.hoursForThisDay.toFixed(2) - breakHours : ''; 
+        templateData[`${key}Total`] = dayTotal;
     }
 
+    templateData.totalHours = parseFloat(grandTotalHours.toFixed(2));
+
     const buffer = renderDocx(fileData, templateData);
-    return { buffer, overflowHours };
+    return { buffer };
 }
 
 
@@ -236,10 +234,6 @@ export async function POST(req) {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'Content-Disposition': `attachment; filename="${tutorName}_${timesheetType}_timesheet.docx"`,
         };
-        if (timesheet.overflowHours > 0) {
-            headers['X-Overflow-Hours'] = String(timesheet.overflowHours);
-        }
-
         return new Response(timesheet.buffer, { status: 200, headers });
 
     } catch (error) {
