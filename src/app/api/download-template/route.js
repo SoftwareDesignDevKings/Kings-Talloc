@@ -17,24 +17,8 @@ export async function GET(req) {
     }
 
     try {
-        const { searchParams } = new URL(req.url);
-        const type = searchParams.get('type');
-
-        let fileName;
-        let downloadName;
-
-        if (type === 'tutor') {
-            fileName = 'tutorTimesheet.docx';
-            downloadName = 'Tutor_Timesheet_Template.docx';
-        } else if (type === 'coach') {
-            fileName = 'coachTimesheet.docx';
-            downloadName = 'Coach_Timesheet_Template.docx';
-        } else {
-            return new Response(JSON.stringify({ error: 'Invalid template type' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
+        const fileName = 'timesheetTemplate.docx';
+        const downloadName = 'Timesheet_Template.docx';
 
         const filePath = path.join(process.cwd(), 'docs', fileName);
         const fileBuffer = await readFile(filePath);
