@@ -186,16 +186,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
         if (!validateForm()) return false; // Validation failed - don't close modal
 
-        // Debug: Check if recurring instance flag is preserved
-        console.log('EventForm onSubmit - eventToEdit:', {
-            id: eventToEdit?.id,
-            isRecurringInstance: eventToEdit?.isRecurringInstance,
-            recurringEventId: eventToEdit?.recurringEventId,
-            occurrenceIndex: eventToEdit?.occurrenceIndex,
-            recurring: eventToEdit?.recurring,
-            workStatus: eventToEdit?.workStatus,
-        });
-
         const eventData = {
             title: newEvent.title || '',
             start: new Date(newEvent.start),
@@ -419,6 +409,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 onHide={() => setShowModal(false)}
                 title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
                 size="lg"
+                suppressOnHidden={showDeleteConfirm}
                 onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
                 submitText={isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
                 loading={isSubmitting}
