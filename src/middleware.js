@@ -12,10 +12,12 @@ const MAINTENANCE_MODE = false;
 export async function middleware(req) {
 
     const { pathname } = req.nextUrl;
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV !== 'development') {
         try {
             const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
-            if (rateLimitResponse) return rateLimitResponse;
+            if (rateLimitResponse) {
+                return rateLimitResponse;
+            }
         } catch (err) {
             console.error('Rate limiter error:', err);
         }
