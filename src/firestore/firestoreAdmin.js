@@ -9,9 +9,10 @@ if (process.env.NODE_ENV === 'development') {
 // initialise Firebase Admin SDK
 if (!admin.apps.length) {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        // No credentials — init with project ID only (emulator handles auth)
+        // Emulator mode — no real credentials needed
+        console.log('FIREBASE_SERVICE_ACCOUNT_KEY is not set. Initialising Firebase Admin against local emulators.');
         admin.initializeApp({
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-talloc',
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-no-project',
         });
     } else {
         const serviceAccount = JSON.parse(
