@@ -1,4 +1,4 @@
-import { FiCalendar, FiUsers, FiActivity, FiCheckCircle } from '@/components/icons';
+import { FiCalendar, FiUsers, FiActivity, FiCheckCircle, FiClock } from '@/components/icons';
 import BaseStatsCard from './cards/BaseStatsCard';
 import PendingApprovalsCard from './cards/PendingApprovalsCard';
 
@@ -44,6 +44,15 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
             value={(data.completedHours.tutoring + data.completedHours.coaching + data.completedHours.work).toFixed(1)}
             subtitle={`T: ${data.completedHours.tutoring} | C: ${data.completedHours.coaching} | W: ${data.completedHours.work}`}
             delay={350}
+            colClass={ADMIN_COL}
+        />
+        <BaseStatsCard
+            icon={FiClock}
+            iconBgColor="bg-warning"
+            title="Allocated Hours (Next Week)"
+            value={(data.nextWeekHours.tutoring + data.nextWeekHours.coaching + data.nextWeekHours.work).toFixed(1)}
+            subtitle={`T: ${data.nextWeekHours.tutoring} | C: ${data.nextWeekHours.coaching} | W: ${data.nextWeekHours.work}`}
+            delay={400}
             colClass={ADMIN_COL}
         />
     </>

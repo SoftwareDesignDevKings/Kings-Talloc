@@ -9,7 +9,7 @@ import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
 import ReLoginModal from '@/components/modals/ReLoginModal.jsx';
 import useAlert from '@/hooks/useAlert';
 import { useAppData } from '@/contexts/AppDataContext';
-import { startOfWeek, endOfWeek } from 'date-fns';
+import { addWeeks, endOfWeek, isWithinInterval, startOfWeek } from 'date-fns';
 import { fetchCacheClasses } from '@/firestore/firestoreFetch';
 
 const DashboardOverview = () => {
@@ -34,12 +34,12 @@ const DashboardOverview = () => {
         );
     }, [userRole, session.user.email]);
 
-    // Ensure we are viewing the current week when on the dashboard
+    // Ensure we are viewing through the end of next week so dashboard cards can include next-week stats.
     useEffect(() => {
         const now = new Date();
         setCalendarDateRange({
             start: startOfWeek(now, { weekStartsOn: 1 }),
-            end: endOfWeek(now, { weekStartsOn: 1 }),
+            end: endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 }),
         });
     }, [setCalendarDateRange]);
 
@@ -50,6 +50,10 @@ const DashboardOverview = () => {
         startOfToday.setHours(0, 0, 0, 0);
         const endOfToday = new Date(now);
         endOfToday.setHours(23, 59, 59, 999);
+        const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+        const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
+        const nextWeekStart = startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+        const nextWeekEnd = endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
 
         // Filter events
         const todayEvents = [];
@@ -63,6 +67,9 @@ const DashboardOverview = () => {
         let completedTutoringHours = 0;
         let completedCoachingHours = 0;
         let completedWorkHours = 0;
+        let nextWeekTutoringHours = 0;
+        let nextWeekCoachingHours = 0;
+        let nextWeekWorkHours = 0;
         let needsConfirmation = 0;
         const uniqueStudentEmails = new Set();
         const uniqueTutorEmailsToday = new Set();
@@ -103,17 +110,33 @@ const DashboardOverview = () => {
                 uncompletedShifts++;
             }
 
-            // 4. Hours (all shifts, regardless of completion status)
-            if (event.workType === 'coaching') {
-                coachingHours += hours;
-            } else if (event.workType === 'work') {
-                workHours += hours;
-            } else {
-                tutoringHours += hours;
+            // 4. Current-week hours (all shifts, regardless of completion status)
+            if (isWithinInterval(start, { start: currentWeekStart, end: currentWeekEnd })) {
+                if (event.workType === 'coaching') {
+                    coachingHours += hours;
+                } else if (event.workType === 'work') {
+                    workHours += hours;
+                } else {
+                    tutoringHours += hours;
+                }
             }
 
-            // 4b. Completed hours (any shift marked as completed)
-            if (event.workStatus === 'completed') {
+            // 4a. Allocated hours for next week
+            if (isWithinInterval(start, { start: nextWeekStart, end: nextWeekEnd })) {
+                if (event.workType === 'coaching') {
+                    nextWeekCoachingHours += hours;
+                } else if (event.workType === 'work') {
+                    nextWeekWorkHours += hours;
+                } else {
+                    nextWeekTutoringHours += hours;
+                }
+            }
+
+            // 4b. Current-week completed hours
+            if (
+                event.workStatus === 'completed' &&
+                isWithinInterval(start, { start: currentWeekStart, end: currentWeekEnd })
+            ) {
                 if (event.workType === 'coaching') {
                     completedCoachingHours += hours;
                 } else if (event.workType === 'work') {
@@ -164,7 +187,11 @@ const DashboardOverview = () => {
         
         // Total booked hours (regardless of completion, for utilization)
         const totalBookedHours = calendarShifts.reduce((acc, event) => {
-             return acc + ((new Date(event.end) - new Date(event.start)) / 3600000);
+            const eventStart = new Date(event.start);
+            if (!isWithinInterval(eventStart, { start: currentWeekStart, end: currentWeekEnd })) {
+                return acc;
+            }
+            return acc + ((new Date(event.end) - eventStart) / 3600000);
         }, 0);
 
         const weeklyUtilization = totalAvailableHours > 0 
@@ -203,6 +230,11 @@ const DashboardOverview = () => {
                 tutoring: Math.round(tutoringHours * 10) / 10,
                 coaching: Math.round(coachingHours * 10) / 10,
                 work: Math.round(workHours * 10) / 10,
+            },
+            nextWeekHours: {
+                tutoring: Math.round(nextWeekTutoringHours * 10) / 10,
+                coaching: Math.round(nextWeekCoachingHours * 10) / 10,
+                work: Math.round(nextWeekWorkHours * 10) / 10,
             },
             completedHours: {
                 tutoring: Math.round(completedTutoringHours * 10) / 10,
