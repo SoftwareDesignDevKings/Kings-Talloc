@@ -2,16 +2,23 @@
     position: relative;
     height: 100%;
     width: 100%;
-    padding: 4px 6px;
+    padding: 4px 6px 6px 6px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    line-height: 1.2;
+    line-height: 1.35;
+}
+
+.eventTitle,
+.staffInitials {
+    padding-bottom: 1px;
 }
 
 .eventTitle {
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: #0f172a;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -22,11 +29,12 @@
 .staffInitials {
     font-size: 0.7rem;
     font-weight: 500;
+    color: #0f172a;
     margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.8;
+    opacity: 0.75;
 }
 
 .duplicateButton {

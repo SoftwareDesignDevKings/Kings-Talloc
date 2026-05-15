@@ -62,9 +62,12 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors }) => {
         }
     };
 
-    const handleMouseDown = (e) => {
+    const stopCalendarSelection = (e) => {
         e.stopPropagation();
-        e.preventDefault();
+    };
+
+    const handleMouseUp = (e) => {
+        e.stopPropagation();
     };
 
     const staffInitials = isBookedShift(event) && event.staff?.length > 0
@@ -88,7 +91,10 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors }) => {
                 <button
                     type="button"
                     onClick={handleDuplicateClick}
-                    onMouseDown={handleMouseDown}
+                    onPointerDownCapture={stopCalendarSelection}
+                    onMouseDownCapture={stopCalendarSelection}
+                    onMouseDown={stopCalendarSelection}
+                    onMouseUp={handleMouseUp}
                     className={styles.duplicateButton}
                     title="Duplicate event"
                 >

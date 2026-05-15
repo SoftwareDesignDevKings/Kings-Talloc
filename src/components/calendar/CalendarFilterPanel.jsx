@@ -216,7 +216,7 @@ const CalendarFilterPanel = () => {
 
                     {/* ───── Legend ───── */}
                     <div className={styles.legendSection}>
-                        <CalendarLegend />
+                        <CalendarLegend userRole={userRole} />
                     </div>
                 </div>
 

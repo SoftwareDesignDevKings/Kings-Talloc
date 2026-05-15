@@ -99,6 +99,17 @@ const CanvasWhitelistManager = () => {
         }
     }, []);
 
+    const refreshWhitelistedCourses = useCallback(async () => {
+        try {
+            const res = await fetch('/api/canvas/whitelist');
+            if (!res.ok) return false;
+            setWhitelisted(await res.json());
+            return true;
+        } catch {
+            return false;
+        }
+    }, []);
+
     const startPolling = useCallback(() => {
         if (pollRef.current) return;
         pollRef.current = setInterval(async () => {
@@ -108,13 +119,17 @@ const CanvasWhitelistManager = () => {
                 pollRef.current = null;
                 setSyncing(false);
                 if (data.last_status === 'success') {
+                    const refreshed = await refreshWhitelistedCourses();
+                    if (!refreshed) {
+                        addAlert('error', 'Canvas sync completed, but the whitelisted list could not refresh.');
+                    }
                     addAlert('success', 'Canvas sync completed successfully.');
                 } else if (data.last_status === 'failed') {
                     addAlert('error', `Sync failed: ${data.last_error}`);
                 }
             }
         }, POLL_INTERVAL_MS);
-    }, [fetchSyncStatus, addAlert]);
+    }, [fetchSyncStatus, refreshWhitelistedCourses, addAlert]);
 
     useEffect(() => {
         const load = async () => {
@@ -187,6 +202,16 @@ const CanvasWhitelistManager = () => {
                 return;
             }
             if (!res.ok) throw new Error(data.message || 'Failed to trigger sync');
+            if (data.status === 'completed' || data.status === 'success') {
+                await fetchSyncStatus();
+                const refreshed = await refreshWhitelistedCourses();
+                if (!refreshed) {
+                    addAlert('error', 'Canvas sync completed, but the whitelisted list could not refresh.');
+                }
+                addAlert('success', 'Canvas sync completed successfully.');
+                setSyncing(false);
+                return;
+            }
             await fetchSyncStatus();
             startPolling();
         } catch (err) {

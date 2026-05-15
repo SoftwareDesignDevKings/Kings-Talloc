@@ -30,13 +30,16 @@ export const adminCalendarStrategy = () => ({
 
     permissions: {
         canEdit: (event) =>
-            event.entityType === CalendarEntityType.SHIFT,
+            event.entityType === CalendarEntityType.SHIFT ||
+            event.entityType === CalendarEntityType.STUDENT_REQUEST,
 
         canDrag: (event) =>
-            event.entityType === CalendarEntityType.SHIFT,
+            event.entityType === CalendarEntityType.SHIFT ||
+            event.entityType === CalendarEntityType.STUDENT_REQUEST,
 
         canResize: (event) =>
-            event.entityType === CalendarEntityType.SHIFT,
+            event.entityType === CalendarEntityType.SHIFT ||
+            event.entityType === CalendarEntityType.STUDENT_REQUEST,
     },
 
     visibility: {
@@ -197,8 +200,14 @@ export const studentCalendarStrategy = (userEmail) => ({
 
     permissions: {
         canEdit: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canDrag: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canResize: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+        // Students can only move/resize their own request while it's still pending.
+        // Once approved or denied it's locked.
+        canDrag: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
+        canResize: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
     },
 
     visibility: {

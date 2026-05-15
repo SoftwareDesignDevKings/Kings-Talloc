@@ -265,6 +265,13 @@ html .accordion {
 
 .rbc-time-slot { min-height: 30px; }
 
+/* RBC dims background events by default (~0.3 opacity). Availability blocks
+   live on that layer (so they don't collide with foreground events at touching
+   boundaries) but should still be fully visible. */
+.rbc-background-event {
+    opacity: 1 !important;
+}
+
 .rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper {
     background-color: var(--custom-slot-bg) !important;
 }

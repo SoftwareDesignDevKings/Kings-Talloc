@@ -123,13 +123,17 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                     <h6 className="fw-bold mb-3">Calendar Color Guide</h6>
                     <div className="d-flex flex-column gap-2">
                         {[
-                            { ...CALENDAR_COLOURS.available, label: <><strong>Green background:</strong> Tutor availabilities (darker = more tutors available)</> },
-                            { ...CALENDAR_COLOURS.confirmed,  label: <><strong>Light blue:</strong> Your confirmed tutoring sessions</> },
-                            { ...CALENDAR_COLOURS.pending,    label: <><strong>Orange:</strong> Pending booking requests (awaiting approval)</> },
-                            { ...CALENDAR_COLOURS.denied,     label: <><strong>Red:</strong> Requires your confirmation or denied requests</> },
-                        ].map(({ bg, border, label }, i) => (
+                            { ...CALENDAR_COLOURS.availabilityHeatmap, label: <><strong>Green background:</strong> Open tutor availability slots (darker = more tutors available)</> },
+                            { ...CALENDAR_COLOURS.availabilityBlock, label: <><strong>Dashed outline:</strong> Tutor-created availability block</> },
+                            { ...CALENDAR_COLOURS.confirmed, label: <><strong>Blue:</strong> Confirmed tutoring sessions</> },
+                            { ...CALENDAR_COLOURS.coaching, label: <><strong>Purple:</strong> Coaching sessions</> },
+                            { ...CALENDAR_COLOURS.pending, label: <><strong>Orange:</strong> Pending booking requests (awaiting approval)</> },
+                            { ...CALENDAR_COLOURS.denied, label: <><strong>Red:</strong> Requires your confirmation or denied requests</> },
+                            { ...CALENDAR_COLOURS.completed, label: <><strong>Green event:</strong> Completed tutoring session</> },
+                            { ...CALENDAR_COLOURS.notAttended, label: <><strong>Pink:</strong> Student did not attend</> },
+                        ].map(({ bg, border, borderStyle = 'solid', label }, i) => (
                             <div key={i} className="d-flex align-items-center gap-2">
-                                <div className="shrink-0" style={{ width: '20px', height: '20px', backgroundColor: bg, border: `1px solid ${border}`, borderRadius: '3px' }} />
+                                <div className="shrink-0" style={{ width: '20px', height: '20px', backgroundColor: bg, border: `2px ${borderStyle} ${border}`, borderRadius: '3px' }} />
                                 <small>{label}</small>
                             </div>
                         ))}

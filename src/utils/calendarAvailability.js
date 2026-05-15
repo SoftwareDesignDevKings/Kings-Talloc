@@ -114,3 +114,40 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
 
     return splitSlots;
 };
+
+/**
+ * Check whether `[start, end]` is fully covered by availability blocks for the
+ * given tutor email. Used to gate student-request drag/resize so a pending
+ * request can only land in a slot where its assigned tutor is still free.
+ *
+ * Accepts the post-split availability list (the same one rendered as the
+ * green availability overlay), so already-booked time is naturally excluded.
+ */
+export const isRangeCoveredByTutorAvailability = (
+    tutorEmail,
+    start,
+    end,
+    availabilities,
+) => {
+    if (!tutorEmail || !start || !end || !availabilities?.length) return false;
+    const rangeStart = new Date(start).getTime();
+    const rangeEnd = new Date(end).getTime();
+    if (rangeEnd <= rangeStart) return false;
+
+    const tutorSlots = availabilities
+        .filter((a) => a.tutor === tutorEmail)
+        .map((a) => ({
+            start: new Date(a.start).getTime(),
+            end: new Date(a.end).getTime(),
+        }))
+        .filter((a) => a.end > rangeStart && a.start < rangeEnd)
+        .sort((a, b) => a.start - b.start);
+
+    let cursor = rangeStart;
+    for (const slot of tutorSlots) {
+        if (slot.start > cursor) return false;
+        if (slot.end > cursor) cursor = slot.end;
+        if (cursor >= rangeEnd) return true;
+    }
+    return cursor >= rangeEnd;
+};

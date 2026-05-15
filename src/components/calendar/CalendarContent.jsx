@@ -24,6 +24,7 @@ import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
+import { isRangeCoveredByTutorAvailability } from '@/utils/calendarAvailability';
 
 const { memo } = React;
 
@@ -84,7 +85,22 @@ const CalendarContent = () => {
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIContextProvider */
     /* ----------------------------------------------------------- */
-    const rbcEvents = filteredEvents;
+    // Split availability blocks into RBC's backgroundEvents layer so they don't
+    // collide with foreground events at touching boundaries (e.g. availability
+    // ending 13:30 next to a shift starting 13:30 was being laid out as overlapping).
+    const isInteractiveAvailability = (event) =>
+        event.entityType === CalendarEntityType.AVAILABILITY &&
+        (
+            strategy.actions.canModifyEvent?.(event) ||
+            strategy.actions.canDuplicateEvent?.(event)
+        );
+
+    const rbcEvents = filteredEvents.filter(
+        (e) => e.entityType !== CalendarEntityType.AVAILABILITY || isInteractiveAvailability(e),
+    );
+    const rbcBackgroundEvents = filteredEvents.filter(
+        (e) => e.entityType === CalendarEntityType.AVAILABILITY && !isInteractiveAvailability(e),
+    );
     const overlayAvailabilities = filteredAvailabilities;
 
     /* ----------------------------------------------------------- */
@@ -339,11 +355,40 @@ const CalendarContent = () => {
         }
     };
 
+    // For a pending student request, the new slot must still sit inside the
+    // assigned tutor's remaining availability. Returns true if blocked.
+    // Only students are gated — teachers/admins can move requests anywhere.
+    const blockIfTutorUnavailable = (event, start, end) => {
+        if (userRole !== 'student') return false;
+        const isPendingStudentRequest =
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.createdByStudent === true &&
+            event.approvalStatus === 'pending';
+        if (!isPendingStudentRequest) return false;
+
+        const tutorEmail = event.staff?.[0]?.value || event.staff?.[0];
+        if (!tutorEmail) return false;
+
+        const covered = isRangeCoveredByTutorAvailability(
+            tutorEmail,
+            start,
+            end,
+            overlayAvailabilities,
+        );
+        if (!covered) {
+            addAlert('warning', 'Tutor is not available during the selected time.');
+            return true;
+        }
+        return false;
+    };
+
     // handle RBC event drop
     const handleEventDrop = async ({ event, start, end }) => {
         if (!strategy.permissions.canDrag(event)) {
             return;
         }
+
+        if (blockIfTutorUnavailable(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -358,6 +403,8 @@ const CalendarContent = () => {
         if (!strategy.permissions.canResize(event)) {
             return;
         }
+
+        if (blockIfTutorUnavailable(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -413,6 +460,7 @@ const CalendarContent = () => {
                         culture="en-AU"
                         localizer={localizer}
                         events={rbcEvents}
+                        backgroundEvents={rbcBackgroundEvents}
                         startAccessor="start"
                         endAccessor="end"
                         min={minTime}
