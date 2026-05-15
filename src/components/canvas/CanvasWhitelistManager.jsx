@@ -16,6 +16,24 @@ const formatDateTime = (value) => {
     });
 };
 
+const formatShortDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (isNaN(date)) return '';
+    return date.toLocaleDateString(undefined, {
+        day: 'numeric', month: 'short', year: 'numeric',
+    });
+};
+
+const formatTermDateRange = (startAt, endAt) => {
+    const start = formatShortDate(startAt);
+    const end = formatShortDate(endAt);
+    if (start && end) return `${start} - ${end}`;
+    if (start) return `From ${start}`;
+    if (end) return `Until ${end}`;
+    return '';
+};
+
 const SyncStatusBar = ({ status, onTrigger, syncing }) => {
     if (!status) return null;
     const { is_running, progress, last_status, last_error, last_full_sync_at } = status;
@@ -121,7 +139,15 @@ const CanvasWhitelistManager = () => {
             const res = await fetch('/api/canvas/whitelist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ course_id: course.id, name: course.name, course_code: course.course_code }),
+                body: JSON.stringify({
+                    course_id: course.id,
+                    name: course.name,
+                    course_code: course.course_code,
+                    term_id: course.term_id,
+                    term_name: course.term_name,
+                    term_start_at: course.term_start_at,
+                    term_end_at: course.term_end_at,
+                }),
             });
             if (!res.ok) throw new Error((await res.json()).message || 'Failed');
             const added = await res.json();
@@ -172,7 +198,11 @@ const CanvasWhitelistManager = () => {
     const filteredAvailable = (available || []).filter((c) => {
         const q = search.trim().toLowerCase();
         if (!q) return true;
-        return (c.name || '').toLowerCase().includes(q) || (c.course_code || '').toLowerCase().includes(q);
+        return (
+            (c.name || '').toLowerCase().includes(q) ||
+            (c.course_code || '').toLowerCase().includes(q) ||
+            (c.term_name || '').toLowerCase().includes(q)
+        );
     });
 
     return (
@@ -270,7 +300,7 @@ const CanvasWhitelistManager = () => {
                         <div className={t.searchWrapper}>
                             <input
                                 type="text"
-                                placeholder="Search by name or code"
+                                placeholder="Search by name, code, or term"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="form-control"
@@ -282,30 +312,39 @@ const CanvasWhitelistManager = () => {
                             <colgroup>
                                 <col />
                                 <col style={{ width: '16%' }} />
-                                <col style={{ width: '14%' }} />
-                                <col style={{ width: '14%' }} />
+                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '12%' }} />
+                                <col style={{ width: '12%' }} />
                             </colgroup>
                             <thead>
                                 <tr>
                                     <th>Course Name</th>
                                     <th>Code</th>
+                                    <th>Term</th>
                                     <th>State</th>
                                     <th className={t.actionCol} style={{ textAlign: 'right' }}><span className="visually-hidden">Actions</span></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {available === null ? (
-                                    <tr><td colSpan={4} className="text-center py-4"><span className="spinner-border spinner-border-sm" /></td></tr>
+                                    <tr><td colSpan={5} className="text-center py-4"><span className="spinner-border spinner-border-sm" /></td></tr>
                                 ) : filteredAvailable.length === 0 ? (
-                                    <tr><td colSpan={4} className="text-muted text-center py-4">No courses found.</td></tr>
+                                    <tr><td colSpan={5} className="text-muted text-center py-4">No courses found.</td></tr>
                                 ) : (
                                     filteredAvailable.map((c) => {
                                         const id = String(c.id);
                                         const isWhitelisted = whitelistedIds.has(id);
+                                        const termDateRange = formatTermDateRange(c.term_start_at, c.term_end_at);
                                         return (
                                             <tr key={id} style={isWhitelisted ? { opacity: 0.5 } : undefined}>
                                                 <td>{c.name || '—'}</td>
                                                 <td>{c.course_code || '—'}</td>
+                                                <td>
+                                                    <div>{c.term_name || '—'}</div>
+                                                    {termDateRange && (
+                                                        <small className="text-muted">{termDateRange}</small>
+                                                    )}
+                                                </td>
                                                 <td>
                                                     <span className={`badge ${c.workflow_state === 'available' ? 'bg-success' : 'bg-secondary'}`}>
                                                         {c.workflow_state || '—'}
