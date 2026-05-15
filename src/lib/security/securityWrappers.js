@@ -46,7 +46,7 @@ export const implementRateLimiterWrapper = async (req, pathname) => {
 /**
  * Wrapper for sanitizeHtmlLibrary to implement input sanitisation
  * @param {String} html - string html
- * @returns 
+ * @returns {String} Sanitized HTML string.
  */
 export const sanitiseHtml = (html) =>
     sanitizeHtmlLibrary(html, {
@@ -62,7 +62,7 @@ const getClientIp = (req) => {
     // check for forwarded headers (standard for production proxies), we take the first IP in the list
     const forwarded = req.headers.get('x-forwarded-for');
     if (forwarded) {
-        return forwarded.split(',').at(-1).trim();
+        return forwarded.split(',').at(0).trim();
     }
 
     if (req.ip) {

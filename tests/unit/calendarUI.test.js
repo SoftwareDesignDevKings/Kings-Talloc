@@ -10,10 +10,8 @@ describe('calendarUIGetEventStyle', () => {
 
         expect(result.style).toMatchObject({
             backgroundColor: CALENDAR_COLOURS.availabilityBlock.bg,
-            borderColor: CALENDAR_COLOURS.availabilityBlock.border,
             border: `2px ${CALENDAR_COLOURS.availabilityBlock.borderStyle} ${CALENDAR_COLOURS.availabilityBlock.border}`,
-            borderStyle: CALENDAR_COLOURS.availabilityBlock.borderStyle,
-            borderWidth: '2px',
+            borderLeft: `2px ${CALENDAR_COLOURS.availabilityBlock.borderStyle} ${CALENDAR_COLOURS.availabilityBlock.border}`,
             color: CALENDAR_COLOURS.availabilityBlock.text,
         });
     });
@@ -26,10 +24,8 @@ describe('calendarUIGetEventStyle', () => {
 
         expect(result.style).toMatchObject({
             backgroundColor: CALENDAR_COLOURS.completed.bg,
-            borderColor: CALENDAR_COLOURS.completed.border,
-            border: `2px solid ${CALENDAR_COLOURS.completed.border}`,
-            borderStyle: 'solid',
-            borderWidth: '2px',
+            border: `1px solid ${CALENDAR_COLOURS.completed.border}33`,
+            borderLeft: `4px solid ${CALENDAR_COLOURS.completed.border}`,
         });
     });
 
@@ -42,10 +38,8 @@ describe('calendarUIGetEventStyle', () => {
 
         expect(result.style).toMatchObject({
             backgroundColor: CALENDAR_COLOURS.coaching.bg,
-            borderColor: CALENDAR_COLOURS.coaching.border,
-            border: `2px solid ${CALENDAR_COLOURS.coaching.border}`,
-            borderStyle: 'solid',
-            borderWidth: '2px',
+            border: `1px solid ${CALENDAR_COLOURS.coaching.border}33`,
+            borderLeft: `4px solid ${CALENDAR_COLOURS.coaching.border}`,
             color: CALENDAR_COLOURS.coaching.text,
         });
     });
@@ -61,8 +55,8 @@ describe('calendarUIGetEventStyle', () => {
 
         expect(result.style).toMatchObject({
             backgroundColor: CALENDAR_COLOURS.confirmed.bg,
-            borderColor: CALENDAR_COLOURS.confirmed.border,
-            border: `2px solid ${CALENDAR_COLOURS.confirmed.border}`,
+            border: `1px solid ${CALENDAR_COLOURS.confirmed.border}33`,
+            borderLeft: `4px solid ${CALENDAR_COLOURS.confirmed.border}`,
             color: CALENDAR_COLOURS.confirmed.text,
         });
     });
@@ -73,8 +67,8 @@ describe('calendarUIGetEventStyle', () => {
             approvalStatus: 'pending',
         }).style).toMatchObject({
             backgroundColor: CALENDAR_COLOURS.pending.bg,
-            borderColor: CALENDAR_COLOURS.pending.border,
-            border: `2px solid ${CALENDAR_COLOURS.pending.border}`,
+            border: `1px solid ${CALENDAR_COLOURS.pending.border}33`,
+            borderLeft: `4px solid ${CALENDAR_COLOURS.pending.border}`,
         });
 
         expect(calendarUIGetEventStyle({
@@ -82,8 +76,8 @@ describe('calendarUIGetEventStyle', () => {
             approvalStatus: 'denied',
         }).style).toMatchObject({
             backgroundColor: CALENDAR_COLOURS.denied.bg,
-            borderColor: CALENDAR_COLOURS.denied.border,
-            border: `2px solid ${CALENDAR_COLOURS.denied.border}`,
+            border: `1px solid ${CALENDAR_COLOURS.denied.border}33`,
+            borderLeft: `4px solid ${CALENDAR_COLOURS.denied.border}`,
         });
     });
 });

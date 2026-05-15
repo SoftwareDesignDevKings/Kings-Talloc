@@ -12,14 +12,14 @@ const MODAL_ACTION_STRATEGY = {
         mode: 'create',
         dataProp: 'newEvent',
 
-        createDraft: ({ start, end, userEmail }) => ({
+        createDraft: ({ start, end, userEmail, prefilledStaff }) => ({
             entityType: CalendarEntityType.SHIFT,
             start,
             end,
 
             title: '',
             description: '',
-            staff: [],
+            staff: prefilledStaff?.length ? prefilledStaff : [],
             classes: [],
             students: [],
 

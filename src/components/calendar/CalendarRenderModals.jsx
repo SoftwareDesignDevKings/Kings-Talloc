@@ -3,11 +3,17 @@
 import React, { useMemo, useEffect } from 'react';
 import useModalActionStrategy from '@/hooks/useModalActionStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
+import { useCalendarUI } from '@/contexts/CalendarUIContext';
+import { useAppData } from '@/contexts/AppDataContext';
+import { CalendarFlow } from '@lib/patterns/calendarStrategy';
+import { buildPrefilledStaffFromTutorFilter } from '@/utils/calendarStaffPrefill';
 
 const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTarget, onClose }) => {
     const modalActionStrategy = useModalActionStrategy(calendarAction);
     const { session, userRole, userRoles } = useAuthSession();
     const userEmail = session.user.email;
+    const { filters } = useCalendarUI();
+    const { tutors, calendarAvailabilities } = useAppData();
 
     // memoise the modal data so it doesn't recreate on every render
     const modalData = useMemo(() => {
@@ -26,11 +32,32 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
             return calendarTarget;
         }
 
+        const prefilledStaff =
+            calendarAction === CalendarFlow.CREATE_SHIFT
+                ? buildPrefilledStaffFromTutorFilter(
+                      filters.filterByTutor,
+                      tutors,
+                      calendarAvailabilities,
+                      calendarTarget.start,
+                      calendarTarget.end,
+                      'work',
+                  )
+                : undefined;
+
         return createDraft({
             ...calendarTarget,
-            userEmail: userEmail
+            userEmail: userEmail,
+            ...(prefilledStaff?.length ? { prefilledStaff } : {}),
         });
-    }, [modalActionStrategy, calendarTarget, userEmail]);
+    }, [
+        modalActionStrategy,
+        calendarTarget,
+        userEmail,
+        calendarAction,
+        filters.filterByTutor,
+        tutors,
+        calendarAvailabilities,
+    ]);
 
     // sync draft data back to calendarTarget when first created
     // this ensures subsequent updates preserve the entityType and prevent re-creating the draft

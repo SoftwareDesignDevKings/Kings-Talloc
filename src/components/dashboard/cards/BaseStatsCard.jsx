@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-const BaseStatsCard = ({ icon: Icon, iconBgColor, title, value, subtitle, delay = 0 }) => {
+const BaseStatsCard = ({ icon: Icon, iconBgColor, title, value, subtitle, delay = 0, colClass = 'col-12 col-md-4 col-lg-3' }) => {
     const cardRef = useRef(null);
 
     useEffect(() => {
@@ -13,9 +13,9 @@ const BaseStatsCard = ({ icon: Icon, iconBgColor, title, value, subtitle, delay 
     }, [delay]);
 
     return (
-        <div className="col-12 col-md-4 col-lg-3">
-            <div ref={cardRef} className="card border-0 shadow-sm fade">
-                <div className="card-body">
+        <div className={colClass}>
+            <div ref={cardRef} className="card border-0 shadow-sm fade h-100">
+                <div className="card-body d-flex align-items-center">
                     <div className="d-flex align-items-center">
                         <div className="flex-shrink-0">
                             <div className={`${iconBgColor} bg-opacity-10 rounded p-3`}>

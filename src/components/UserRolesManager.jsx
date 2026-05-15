@@ -270,11 +270,11 @@ const UserRolesManager = () => {
 
             <div className="d-flex flex-wrap gap-2 mb-3">
                 <a
-                    href="/api/download-template?type=tutor"
-                    download="Tutor_Timesheet_Template.docx"
+                    href="/api/download-template"
+                    download="Timesheet_Template.docx"
                     className="btn btn-outline-secondary btn-sm rounded-pill"
                 >
-                    Tutor Template
+                    Timesheet Template
                 </a>
             </div>
 

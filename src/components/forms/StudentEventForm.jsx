@@ -23,6 +23,7 @@ const StudentEventForm = ({
         calendarStudentRequests,
         calendarAvailabilities,
         tutors,
+        classes,
     } = useAppData();
     
     // derive mode flags
@@ -37,6 +38,9 @@ const StudentEventForm = ({
     const [selectedTutor, setSelectedTutor] = useState(
         newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null,
     );
+    const [selectedClass, setSelectedClass] = useState(
+        newEvent.classes && newEvent.classes.length > 0 ? newEvent.classes[0] : null,
+    );
     const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
     const selectedStudent =
         newEvent.students && newEvent.students.length > 0
@@ -45,6 +49,10 @@ const StudentEventForm = ({
     const { addAlert } = useAlert();
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
+    const classOptions = (classes || []).map((cls) => ({
+        value: cls.id,
+        label: cls.courseCode ? `${cls.name} (${cls.courseCode})` : cls.name,
+    }));
 
     // transform provider data into react-select format
     useEffect(() => {
@@ -81,6 +89,14 @@ const StudentEventForm = ({
     const handleTutorSelectChange = (selectedOption) => {
         setSelectedTutor(selectedOption);
         setNewEvent(prev => ({ ...prev, staff: [selectedOption] }));
+    };
+
+    const handleClassSelectChange = (selectedOption) => {
+        setSelectedClass(selectedOption);
+        setNewEvent(prev => ({
+            ...prev,
+            classes: selectedOption ? [selectedOption] : [],
+        }));
     };
 
     const handlePreferenceClick = (preference) => {
@@ -294,6 +310,21 @@ const StudentEventForm = ({
                     disabled={isView}
                     aria-label="Event end time"
                     aria-required="true"
+                />
+            </div>
+            <div className="mb-3">
+                <label htmlFor="class" className="form-label">
+                    Class
+                </label>
+                <Select
+                    name="class"
+                    options={classOptions}
+                    value={selectedClass}
+                    onChange={handleClassSelectChange}
+                    classNamePrefix="select"
+                    isDisabled={isView}
+                    aria-label="Select class"
+                    inputId="class"
                 />
             </div>
             <div className="mb-3">

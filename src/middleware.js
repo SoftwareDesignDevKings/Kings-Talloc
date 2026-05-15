@@ -12,14 +12,17 @@ const MAINTENANCE_MODE = false;
 export async function middleware(req) {
 
     const { pathname } = req.nextUrl;
-    try {
-        const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
-        if (rateLimitResponse) {
-            return rateLimitResponse;
+    if (process.env.NODE_ENV !== 'development') {
+        try {
+            const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
+            if (rateLimitResponse) {
+                return rateLimitResponse;
+            }
+        } catch (err) {
+            console.error('Rate limiter error:', err);
         }
-    } catch (err) {
-        console.error('Rate limiter error:', err);
     }
+
 
     const response = await implementCspWrapper(req);
 
@@ -79,7 +82,7 @@ export async function middleware(req) {
     return response;
 }
 
-// pefine the paths that the middleware will apply to
+// Define the paths that the middleware will apply to
 export const config = {
     matcher: [
         '/dashboard/:path*',

@@ -28,10 +28,18 @@ const BaseModal = ({
     // Layout props
     showFooter = true,
     noValidate = false,
+    suppressOnHidden = false,
 }) => {
     const modalRef = useRef(null);
     const bsModalRef = useRef(null);
     const isClosing = useRef(false);
+    const onHideRef = useRef(onHide);
+    const suppressOnHiddenRef = useRef(suppressOnHidden);
+
+    useEffect(() => {
+        onHideRef.current = onHide;
+        suppressOnHiddenRef.current = suppressOnHidden;
+    }, [onHide, suppressOnHidden]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -69,49 +77,48 @@ const BaseModal = ({
         return submitText;
     };
 
-    // Initialize Bootstrap Modal and handle show/hide with animations
+    // Initialize Bootstrap Modal once and keep event handlers pointed at current props.
     useEffect(() => {
-        if (!modalRef.current) return;
+        if (!modalRef.current || typeof window === 'undefined' || !window.bootstrap) return;
 
-        // Initialize Bootstrap Modal instance if not already done
-        if (!bsModalRef.current) {
-            // Wait for Bootstrap to be available
-            if (typeof window !== 'undefined' && window.bootstrap) {
-                bsModalRef.current = new window.bootstrap.Modal(modalRef.current, {
-                    backdrop: true,
-                    keyboard: true,
-                    focus: true
-                });
-
-                // Listen for Bootstrap modal events
-                modalRef.current.addEventListener('hidden.bs.modal', () => {
-                    isClosing.current = false; // Reset closing flag
-                    if (onHide) onHide();
-                });
-
-                // Reset closing flag when modal successfully opens (prevents race condition)
-                modalRef.current.addEventListener('shown.bs.modal', () => {
-                    isClosing.current = false;
-                });
+        const modalElement = modalRef.current;
+        const handleHidden = () => {
+            isClosing.current = false;
+            if (!suppressOnHiddenRef.current) {
+                onHideRef.current?.();
             }
-        }
+        };
+        const handleShown = () => {
+            isClosing.current = false;
+        };
 
-        // Show or hide modal based on show prop
+        bsModalRef.current = new window.bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+
+        modalElement.addEventListener('hidden.bs.modal', handleHidden);
+        modalElement.addEventListener('shown.bs.modal', handleShown);
+
+        return () => {
+            modalElement.removeEventListener('hidden.bs.modal', handleHidden);
+            modalElement.removeEventListener('shown.bs.modal', handleShown);
+            if (bsModalRef.current) {
+                bsModalRef.current.dispose();
+                bsModalRef.current = null;
+            }
+        };
+    }, []);
+
+    // Show or hide modal based on show prop
+    useEffect(() => {
         if (bsModalRef.current && show && !isClosing.current) {
             bsModalRef.current.show();
         } else if (bsModalRef.current && !show) {
             bsModalRef.current.hide();
         }
-    }, [show, onHide]);
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (bsModalRef.current) {
-                bsModalRef.current.dispose();
-            }
-        };
-    }, []);
+    }, [show]);
 
     const sizeClass =
         size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : size === 'xl' ? 'modal-xl' : '';

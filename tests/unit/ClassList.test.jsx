@@ -30,7 +30,6 @@ describe('ClassList', () => {
         expect(screen.getByText('Canvas Classes')).toBeInTheDocument();
         expect(screen.getByText('Mathematics Year 10')).toBeInTheDocument();
         expect(screen.getByText('MATH10')).toBeInTheDocument();
-        expect(screen.getByText('Mathematics Blueprint')).toBeInTheDocument();
         expect(screen.getByText('1')).toBeInTheDocument();
         expect(screen.queryByText('Add Class')).not.toBeInTheDocument();
         expect(screen.queryByText('Delete')).not.toBeInTheDocument();

@@ -40,13 +40,14 @@ trap cleanup SIGINT SIGTERM EXIT
 # Start Firebase Emulators with dev config (open rules, safe from production)
 echo -e "${BLUE}🔥 Starting Firebase emulators with dev config...${NC}"
 cd firebase
-firebase emulators:start --config firebase.emulator.json &
+firebase emulators:start --config firebase.emulator.json --project demo-talloc &
 EMULATOR_PID=$!
 cd ..
 
 # Wait for emulators to be ready (check for port 8080)
+# Allow up to 60s so auth emulator binary can download on first run
 echo -e "${BLUE}⏳ Waiting for emulators to be ready...${NC}"
-for i in {1..30}; do
+for i in {1..60}; do
     if lsof -i:8080 > /dev/null 2>&1; then
         echo -e "${GREEN} Emulators ready!${NC}\n"
         break
