@@ -34,7 +34,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             await expect(page.getByRole('button', { name: 'Add Tutors' })).toBeVisible();
             await page.getByRole('button', { name: 'Add Tutors' }).click();
-            
+
             await page.getByRole('textbox', { name: 'Enter emails' }).fill('tutor@kings.edu.au');
             await page.getByRole('dialog').getByRole('button', { name: 'Add Tutors' }).click();
 
@@ -78,7 +78,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             await expect(page.getByRole('button', { name: 'Add Students' })).toBeVisible();
             await page.getByRole('button', { name: 'Add Students' }).click();
-            
+
             await expect(page.getByRole('textbox', { name: 'Enter emails' })).toBeVisible();
             await page.getByRole('textbox', { name: 'Enter emails' }).fill('student@kings.edu.au');
 
@@ -140,7 +140,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             await expect(page.getByRole('button', { name: 'Participants' })).toBeVisible();
             await page.getByRole('button', { name: 'Participants' }).click();
-            
+
             await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
 
             await expect(page.getByRole('option', { name: /Viraj Patel/i })).toBeVisible();

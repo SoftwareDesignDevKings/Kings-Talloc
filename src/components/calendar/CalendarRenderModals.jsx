@@ -27,7 +27,7 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
             return calendarTarget;
         }
 
-        // TEMP FIX: only create draft once
+        // Preserve the first draft so field edits are not reset by rerenders.
         if (calendarTarget.entityType) {
             return calendarTarget;
         }

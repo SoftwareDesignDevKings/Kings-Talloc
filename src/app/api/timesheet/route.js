@@ -37,9 +37,8 @@ async function fetchUserShifts(userEmail, startDateSyd, endDateSyd, timesheetTyp
                  .where('start', '<=', endDateUTC);
 
     const snap = await query.get();
-    console.log(`Found ${snap.docs.length} shifts for ${userEmail} (${timesheetType})`);
 
-    const shifts = snap.docs.map(doc => {
+    return snap.docs.map(doc => {
         const data = doc.data();
         return {
             ...data,
@@ -48,15 +47,6 @@ async function fetchUserShifts(userEmail, startDateSyd, endDateSyd, timesheetTyp
             end: DateTime.fromJSDate(data.end.toDate(), { zone: SYDNEY_ZONE })
         };
     });
-
-    console.log('Shifts:', shifts.map(s => ({
-        start: s.start.toISO(),
-        end: s.end.toISO(),
-        workType: s.workType,
-        workStatus: s.workStatus
-    })));
-
-    return shifts;
 }
 
 /**
