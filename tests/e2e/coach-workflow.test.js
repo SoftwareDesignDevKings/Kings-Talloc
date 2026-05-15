@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { clearFirestoreEmulator } from './wrapperFunctions.js';
+import { clearFirestoreEmulator, seedShiftInEmulator } from './wrapperFunctions.js';
 
 test.describe('Coach Workflow @coachOnly', () => {
-    test.beforeAll(async () => {
+    test.beforeEach(async () => {
         await clearFirestoreEmulator();
     });
 
-    test('coach adds availability, admin converts to shift, coach marks completed', async ({ page, browser }) => {
+    test('coach adds availability, sees assigned shift, and marks it completed', async ({ page }) => {
         // ===== STEP 1: Coach adds availability =====
         await page.goto('/dashboard');
         await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
@@ -22,36 +22,35 @@ test.describe('Coach Workflow @coachOnly', () => {
             .first();
         await expect(availabilityButton).toBeVisible();
 
-        // ===== STEP 2: Admin converts the availability into a shift =====
-        const adminContext = await browser.newContext({
-            storageState: 'tests/e2e/.auth/teacherAdmin.json',
+        // ===== STEP 2: Seed an assigned coaching shift =====
+        const shiftStart = new Date();
+        shiftStart.setHours(9, 30, 0, 0);
+        const shiftEnd = new Date(shiftStart);
+        shiftEnd.setMinutes(shiftEnd.getMinutes() + 30);
+
+        await seedShiftInEmulator('coach-workflow-shift', {
+            title: 'Coach Workflow Shift',
+            start: shiftStart,
+            end: shiftEnd,
+            description: '',
+            confirmationRequired: false,
+            staff: [{ value: 'coach@kings.edu.au', label: 'Max Burykin', roles: ['coach'] }],
+            classes: [],
+            students: [],
+            tutorResponses: [],
+            studentResponses: [],
+            minStudents: 0,
+            createdByStudent: false,
+            approvalStatus: 'pending',
+            workStatus: 'notCompleted',
+            workType: 'coaching',
+            locationType: '',
+            subject: null,
+            preference: null,
+            recurring: null,
+            until: null,
+            emailsList: ['coach@kings.edu.au'],
         });
-        const adminPage = await adminContext.newPage();
-
-        try {
-            await adminPage.goto('/dashboard');
-            await expect(adminPage.getByRole('link', { name: 'Calendar' })).toBeVisible();
-            await adminPage.getByRole('link', { name: 'Calendar' }).click();
-
-            await adminPage.locator('.rbc-events-container').nth(3).click();
-
-            await expect(adminPage.getByRole('textbox', { name: 'Event title' })).toBeVisible();
-            await adminPage.getByRole('textbox', { name: 'Event title' }).fill('Coach Workflow Shift');
-
-            await expect(adminPage.getByRole('button', { name: 'Participants' })).toBeVisible();
-            await adminPage.getByRole('button', { name: 'Participants' }).click();
-
-            await adminPage.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
-
-            await expect(adminPage.getByRole('option', { name: /Max Burykin/i })).toBeVisible();
-            await adminPage.getByRole('option', { name: /Max Burykin/i }).click();
-
-            await expect(adminPage.getByRole('button', { name: 'Add Event' })).toBeVisible();
-            await adminPage.getByRole('button', { name: 'Add Event' }).click();
-            await expect(adminPage.getByRole('button', { name: /Coach Workflow Shift/ })).toBeVisible();
-        } finally {
-            await adminContext.close();
-        }
 
         // ===== STEP 3: Coach opens the shift and marks it Completed =====
         await page.reload();
@@ -82,6 +81,7 @@ test.describe('Coach Workflow @coachOnly', () => {
 
         await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
         await page.getByRole('link', { name: 'Calendar' }).click();
+        const initialAvailabilityCount = await page.getByRole('button', { name: /Availability/ }).count();
 
         await page.locator('.rbc-events-container').nth(4).click();
 
@@ -93,12 +93,11 @@ test.describe('Coach Workflow @coachOnly', () => {
             .first();
         await expect(availabilityButton).toBeVisible();
 
-        await expect(page.getByRole('button', { name: /Availability/ })).toBeVisible();
-        await page.getByRole('button', { name: /Availability/ }).first().click();
+        await availabilityButton.click();
 
         await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
         await page.getByRole('button', { name: 'Delete' }).click();
-        await expect(page.getByRole('button', { name: /Availability/ }).first()).not.toBeVisible();
+        await expect(page.getByRole('button', { name: /Availability/ })).toHaveCount(initialAvailabilityCount);
 
     });
 });

@@ -1,9 +1,18 @@
-import { test as setup, expect} from '@playwright/test';
+import { test as setup, expect } from '@playwright/test';
 import { TEST_USERS } from '@/lib/security/testUsers';
 import fs from 'fs';
 
 const TEAL = '\x1b[36m';
 const RESET = '\x1b[0m';
+const DEV_LOGIN_LABELS = {
+    'computing@kings.edu.au': { buttonLabel: 'Teacher + Admin', userRoleForLabel: 'teacherAdmin' },
+    'tutor@kings.edu.au': { buttonLabel: 'Tutor', userRoleForLabel: 'tutor' },
+    'tutorAdmin@kings.edu.au': { buttonLabel: 'Tutor + Admin', userRoleForLabel: 'tutorAdmin' },
+    'teacher@kings.edu.au': { buttonLabel: 'Teacher', userRoleForLabel: 'teacher' },
+    'coach@kings.edu.au': { buttonLabel: 'Coach', userRoleForLabel: 'coach' },
+    'coachTutor@kings.edu.au': { buttonLabel: 'Coach + Tutor', userRoleForLabel: 'coachTutor' },
+    'student@kings.edu.au': { buttonLabel: 'Student', userRoleForLabel: 'student' },
+};
 
 // Force development mode for tests
 process.env.NODE_ENV = 'development';
@@ -15,38 +24,18 @@ setup('authenticate users', async ({ browser }) => {
     }
 
     for (const emailKey in TEST_USERS) {
-        const user = TEST_USERS[emailKey]; 
-        
+        const loginLabels = DEV_LOGIN_LABELS[emailKey];
+        if (!loginLabels) {
+            throw new Error(`No e2e dev login label configured for ${emailKey}`);
+        }
+        const { buttonLabel, userRoleForLabel } = loginLabels;
+
         const context = await browser.newContext();
         const page = await context.newPage();
         
         try {
             
             await page.goto('/login');
-        
-            let buttonLabel, userRoleForLabel;
-            if (emailKey === 'computing@kings.edu.au') {
-                buttonLabel = 'Teacher + Admin';
-                userRoleForLabel = 'teacherAdmin';
-            } else if (emailKey === 'tutor@kings.edu.au') {
-                buttonLabel = 'Tutor';
-                userRoleForLabel = 'tutor';
-            } else if (emailKey === 'tutorAdmin@kings.edu.au') {
-                buttonLabel = 'Tutor + Admin';
-                userRoleForLabel = 'tutorAdmin';
-            } else if (emailKey === 'teacher@kings.edu.au') {
-                buttonLabel = 'Teacher';
-                userRoleForLabel = 'teacher';
-            } else if (emailKey === 'coach@kings.edu.au') {
-                buttonLabel = 'Coach';
-                userRoleForLabel = 'coach';
-            } else if (emailKey === 'coachTutor@kings.edu.au') {
-                buttonLabel = 'Coach + Tutor';
-                userRoleForLabel = 'coachTutor';
-            } else if (emailKey === 'student@kings.edu.au') {
-                buttonLabel = 'Student';
-                userRoleForLabel = 'student';
-            }
             
             // click the dev button
             const devButton = page.getByRole('button', { name: buttonLabel, exact: true });
@@ -73,6 +62,7 @@ setup('authenticate users', async ({ browser }) => {
         } catch (error) {
             console.error(`Failed to authenticate ${userRoleForLabel}:`, error);
             await page.screenshot({ path: `tests/e2e/.auth/failed-${userRoleForLabel}.png` }).catch(() => {});
+            throw error;
         } finally {
             await context.close().catch(() => {});
         }

@@ -6,86 +6,26 @@ test.describe('Admin Workflow @teacherAdmin', () => {
     });
 
     // ==========================================
-    // SUITE 1: System Setup (Subjects & Classes)
+    // SUITE 1: Canvas Setup
     // ==========================================
     test.describe('System Setup', () => {
-        test('should manage subjects and allocate tutors', async ({ page }) => {
-            await expect(page.getByRole('link', { name: 'Manage Subjects' })).toBeVisible();
-            await page.getByRole('link', { name: 'Manage Subjects' }).click();
+        test('should show Canvas admin controls', async ({ page }) => {
+            await expect(page.getByRole('link', { name: 'Canvas Admin' })).toBeVisible();
+            await page.getByRole('link', { name: 'Canvas Admin' }).click();
 
-            // Add Subject
-            await expect(page.getByRole('button', { name: 'Add Subject' })).toBeVisible();
-            await page.getByRole('button', { name: 'Add Subject' }).click();
-
-            await expect(page.getByRole('dialog').getByRole('textbox')).toBeVisible();
-            await page.getByRole('dialog').getByRole('textbox').fill('Software Engineering');
-
-            await expect(page.getByRole('dialog').getByRole('button', { name: 'Add Subject' })).toBeVisible();
-            await page.getByRole('dialog').getByRole('button', { name: 'Add Subject' }).click();
-
-            await expect(page.getByRole('dialog')).toBeHidden();
-            await expect(
-                page.getByRole('cell', { name: 'Software Engineering' })
-            ).toBeVisible();
-
-            // Add & Remove Tutors
-            await expect(page.getByRole('button', { name: 'Expand Tutors' })).toBeVisible();
-            await page.getByRole('button', { name: 'Expand Tutors' }).click();
-
-            await expect(page.getByRole('button', { name: 'Add Tutors' })).toBeVisible();
-            await page.getByRole('button', { name: 'Add Tutors' }).click();
-
-            await page.getByRole('textbox', { name: 'Enter emails' }).fill('tutor@kings.edu.au');
-            await page.getByRole('dialog').getByRole('button', { name: 'Add Tutors' }).click();
-
-            // Verify addition and then test removal
-            await expect(page.getByText('Tutors (1)')).toBeVisible();
-            await page.getByRole('button', { name: 'Remove' }).first().click();
-            await expect(page.getByText('No tutors added to this')).toBeVisible();
+            await expect(page.getByRole('heading', { name: 'Canvas Admin' })).toBeVisible();
+            await expect(page.getByRole('button', { name: /Run Sync/i })).toBeVisible();
+            await expect(page.getByRole('button', { name: /Whitelisted/i })).toBeVisible();
+            await expect(page.getByRole('button', { name: /All Canvas Courses/i })).toBeVisible();
         });
 
-        test('should manage classes and student enrollment', async ({ page }) => {
-            await expect(page.getByRole('link', { name: 'Manage Classes' })).toBeVisible();
-            await page.getByRole('link', { name: 'Manage Classes' }).click();
+        test('should show read-only Canvas classes', async ({ page }) => {
+            await expect(page.getByRole('link', { name: 'Canvas Classes' })).toBeVisible();
+            await page.getByRole('link', { name: 'Canvas Classes' }).click();
 
-            // Add Class (Handling react-select dropdowns safely)
-
-            await expect(page.getByRole('button', { name: 'Add Class' })).toBeVisible();
-            await page.getByRole('button', { name: 'Add Class' }).click();
-
-            await page.getByRole('dialog').getByRole('textbox').fill('Software');
-
-            // Select Subject
-            await page.locator('.select__input-container').first().click();
-
-            await expect(page.getByRole('option', { name: 'Software Engineering' }).first()).toBeVisible();
-            await page.getByRole('option', { name: 'Software Engineering' }).first().click();
-
-            // Select Teacher
-            await page.locator('.select__input-container').nth(1).click();
-
-            await expect(page.getByRole('option', { name: 'Michael Ienna' }).first()).toBeVisible();
-            await page.getByRole('option', { name: 'Michael Ienna' }).first().click();
-
-            await expect(page.getByRole('dialog').getByRole('button', { name: 'Add Class' })).toBeVisible();
-            await page.getByRole('dialog').getByRole('button', { name: 'Add Class' }).click();
-
-            await expect(page.getByRole('dialog')).toBeHidden();
-
-            // Add Student
-            await expect(page.getByRole('button', { name: 'Expand Students' })).toBeVisible();
-            await page.getByRole('button', { name: 'Expand Students' }).click();
-
-            await expect(page.getByRole('button', { name: 'Add Students' })).toBeVisible();
-            await page.getByRole('button', { name: 'Add Students' }).click();
-
-            await expect(page.getByRole('textbox', { name: 'Enter emails' })).toBeVisible();
-            await page.getByRole('textbox', { name: 'Enter emails' }).fill('student@kings.edu.au');
-
-            await expect(page.getByRole('dialog').getByRole('button', { name: 'Add Students' })).toBeVisible();
-            await page.getByRole('dialog').getByRole('button', { name: 'Add Students' }).click();
-
-            await expect(page.getByText('student@kings.edu.au')).toBeVisible();
+            await expect(page.getByRole('heading', { name: 'Canvas Classes' })).toBeVisible();
+            await expect(page.getByPlaceholder('Search by Canvas class or code')).toBeVisible();
+            await expect(page.getByRole('button', { name: 'Add Class' })).toBeHidden();
         });
     });
 
