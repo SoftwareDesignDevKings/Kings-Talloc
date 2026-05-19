@@ -68,6 +68,14 @@
     list-style: none;
 }
 
+/* Divider separating primary navigation from management/admin links */
+.navDivider {
+    list-style: none;
+    height: 1px;
+    margin: 0.5rem 1.5rem;
+    background-color: var(--tks-border);
+}
+
 /* Anchor rendered by Next.js <Link> */
 .navLink {
     display: flex;

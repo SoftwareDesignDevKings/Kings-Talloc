@@ -108,6 +108,22 @@ const Sidebar = ({ user, userRole }) => {
                                 <span className={styles.navLabel}>Calendar</span>
                             </Link>
                         </li>
+                        {isTutorHoursRole && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/tutorHours"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/tutorHours') ? styles.activeNavLink : ''}`}
+                                >
+                                    <FiClock className={styles.navIcon} />
+                                    <span className={styles.navLabel}>Tutor Hours</span>
+                                </Link>
+                            </li>
+                        )}
+
+                        {/* Management/admin links, separated below everything else */}
+                        {(isAdmin || isAdminOrTeacher) && (
+                            <li className={styles.navDivider} aria-hidden="true" />
+                        )}
                         {isAdmin && (
                             <li className={styles.navItem}>
                                 <Link
@@ -119,17 +135,6 @@ const Sidebar = ({ user, userRole }) => {
                                 </Link>
                             </li>
                         )}
-                        {isAdmin && (
-                            <li className={styles.navItem}>
-                                <Link
-                                    href="/admin/canvas"
-                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/admin/canvas') ? styles.activeNavLink : ''}`}
-                                >
-                                    <FiSettings className={styles.navIcon} />
-                                    <span className={styles.navLabel}>Canvas Admin</span>
-                                </Link>
-                            </li>
-                        )}
                         {isAdminOrTeacher && (
                             <li className={styles.navItem}>
                                 <Link
@@ -137,18 +142,18 @@ const Sidebar = ({ user, userRole }) => {
                                     className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiBook className={styles.navIcon} />
-                                    <span className={styles.navLabel}>Canvas Classes</span>
+                                    <span className={styles.navLabel}>Classes</span>
                                 </Link>
                             </li>
                         )}
-                        {isTutorHoursRole && (
+                        {isAdmin && (
                             <li className={styles.navItem}>
                                 <Link
-                                    href="/tutorHours"
-                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/tutorHours') ? styles.activeNavLink : ''}`}
+                                    href="/admin/canvas"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/admin/canvas') ? styles.activeNavLink : ''}`}
                                 >
-                                    <FiClock className={styles.navIcon} />
-                                    <span className={styles.navLabel}>Tutor Hours</span>
+                                    <FiSettings className={styles.navIcon} />
+                                    <span className={styles.navLabel}>Manage Classes</span>
                                 </Link>
                             </li>
                         )}
