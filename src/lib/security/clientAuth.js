@@ -61,13 +61,9 @@ export const fbAuthLoginSync = async (token) => {
         return;
     }
 
-    // if Firebase already has a live session fetch - groken ID token from browser. else, re-authenticate. 
+    // Always consume the fresh custom token so Firestore rules see current role claims.
     try {
-        if (clientAuth.currentUser) {
-            await clientAuth.currentUser.getIdToken(true);
-        } else {
-            await signInWithCustomToken(clientAuth, token);
-        }
+        await signInWithCustomToken(clientAuth, token);
     } catch (error) {
         console.error("Firebase Sync Error:", error);
     }

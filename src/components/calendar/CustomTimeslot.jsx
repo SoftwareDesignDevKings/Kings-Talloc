@@ -10,11 +10,23 @@ const computeAvailabilityHeatColor = (slotTutorCount, weeklyTutorCapacity) => {
     return `rgba(144, 238, 144, ${opacity})`;
 };
 
-const getInitialsFromName = (name) => {
-    if (!name) {
-        return "??"
+const normaliseEmail = (email) => (typeof email === 'string' ? email.toLowerCase() : '');
+
+export const getInitialsFromTutor = (name, email) => {
+    const source = name || email;
+    if (!source) return '';
+
+    const localPart = source.includes('@') ? source.split('@')[0] : source;
+    const parts = localPart
+        .trim()
+        .split(/[\s._-]+/)
+        .filter(Boolean);
+
+    if (parts.length > 1) {
+        return parts.map(w => w[0]).join('').toUpperCase();
     }
-    return name.split(' ').map(w => w[0]).join('').toUpperCase();
+
+    return localPart.substring(0, 2).toUpperCase();
 };
 
 const CustomTimeslot = ({
@@ -32,7 +44,7 @@ const CustomTimeslot = ({
     const tutorNameMap = useMemo(() => {
         const map = {};
         for (const t of slotTutors) {
-            map[t.email] = t.name;
+            map[normaliseEmail(t.email)] = t.name;
         }
         return map;
     }, [slotTutors]);
@@ -76,12 +88,13 @@ const CustomTimeslot = ({
                 availabilityEndTime >= slotEndTime;
 
             if (fullyCoversSlot) {
-                const name = tutorNameMap[availability.tutor];
-                tutorInitialsCoveringThisSlot.push(getInitialsFromName(name));
+                const tutorEmail = availability.tutor;
+                const name = tutorNameMap[normaliseEmail(tutorEmail)];
+                tutorInitialsCoveringThisSlot.push(getInitialsFromTutor(name, tutorEmail));
             }
         }
 
-        return Array.from(new Set(tutorInitialsCoveringThisSlot)).sort();
+        return Array.from(new Set(tutorInitialsCoveringThisSlot.filter(Boolean))).sort();
     }, [availabilitiesRelevantToSlot, slotStartTime, slotEndTime, tutorNameMap]);
 
     /* --------------------------------------------------------- */

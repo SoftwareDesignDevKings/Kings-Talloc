@@ -32,6 +32,15 @@ export const useAppData = () => {
     return context;
 };
 
+const fetchReferenceDataSafely = async (label, fetchFn, fallback) => {
+    try {
+        return await fetchFn();
+    } catch (error) {
+        console.error(`Error loading ${label}:`, error);
+        return fallback;
+    }
+};
+
 /**
  * AppDataContextProvider
  *
@@ -123,9 +132,11 @@ export const AppDataContextProvider = ({ children }) => {
         if (!userEmail) return;
         const loadReferenceData = async () => {
             const [tutorList, classList, subjectList] = await Promise.all([
-                fetchCacheTutors(),
-                canReadCanvasReferenceData ? fetchCacheClasses() : Promise.resolve([]),
-                fetchCacheSubjects(),
+                fetchReferenceDataSafely('tutors', fetchCacheTutors, []),
+                canReadCanvasReferenceData
+                    ? fetchReferenceDataSafely('classes', fetchCacheClasses, [])
+                    : Promise.resolve([]),
+                fetchReferenceDataSafely('subjects', fetchCacheSubjects, []),
             ]);
             setTutors(tutorList);
             setClasses(classList);
@@ -133,14 +144,18 @@ export const AppDataContextProvider = ({ children }) => {
 
             // Canvas users include roster data and are only needed by staff who manage classes.
             if (canReadCanvasReferenceData) {
-                const studentList = await fetchCacheStudents();
+                const studentList = await fetchReferenceDataSafely('students', fetchCacheStudents, []);
                 setStudents(studentList);
             } else {
                 setStudents([]);
             }
 
             if (userRole === 'student') {
-                const eligibility = await fetchStudentTutorEligibility(userEmail);
+                const eligibility = await fetchReferenceDataSafely(
+                    'student tutor eligibility',
+                    () => fetchStudentTutorEligibility(userEmail),
+                    { coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] }
+                );
                 setStudentTutorEligibility(eligibility);
             } else {
                 setStudentTutorEligibility({ coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] });
