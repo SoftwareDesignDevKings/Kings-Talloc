@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { MdContentCopy } from '@/components/icons';
 import styles from '@/styles/customEvent.module.css';
 
@@ -52,8 +52,6 @@ const getTutorInitials = (tutorEmail, tutors) => {
 };
 
 const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors }) => {
-    const [showDuplicate, setShowDuplicate] = useState(false);
-
     const handleDuplicateClick = (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -77,17 +75,13 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors }) => {
             : '';
 
     return (
-        <div
-            className={`rbc-event-content ${styles.eventContainer}`}
-            onMouseEnter={() => setShowDuplicate(true)}
-            onMouseLeave={() => setShowDuplicate(false)}
-        >
+        <div className={`rbc-event-content ${styles.eventContainer}`}>
             <div className={styles.eventTitle}>{event.title}</div>
             {staffInitials && (
                 <div className={styles.staffInitials}>({staffInitials})</div>
             )}
 
-            {canDuplicate && showDuplicate && (
+            {canDuplicate && (
                 <button
                     type="button"
                     onClick={handleDuplicateClick}

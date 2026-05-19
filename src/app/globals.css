@@ -272,6 +272,20 @@ html .accordion {
     opacity: 1 !important;
 }
 
+/* Overlapping events are positioned side-by-side, so an event's top-right
+   corner (where the duplicate button lives) can be physically covered by a
+   neighbouring event that sits later in the DOM. Hovering the button would
+   then land on the neighbour, flip the parent event out of its hover state,
+   and the button would vanish before it could be clicked.
+
+   Raising the hovered event above its siblings keeps its full surface — and
+   the duplicate button — on top and clickable. :focus-within keeps it raised
+   while the button is keyboard-focused. */
+.rbc-time-content .rbc-event:hover,
+.rbc-time-content .rbc-event:focus-within {
+    z-index: 20 !important;
+}
+
 .rbc-time-content > *:not(.rbc-time-gutter) .custom-time-slot-wrapper {
     background-color: var(--custom-slot-bg) !important;
 }

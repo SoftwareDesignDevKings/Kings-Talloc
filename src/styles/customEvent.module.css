@@ -52,8 +52,26 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
-    transition: all var(--transition-fast);
+    transition: opacity var(--transition-fast),
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    /* The button stays mounted at all times so an in-flight click is never
+       lost to a React state toggle (the original bug: hovering the button
+       could land on an overlapping neighbour, drop the parent's hover state,
+       and unmount the button mid-click). Visibility is driven purely by CSS
+       hover/focus on the event wrapper instead. */
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Reveal on hover or keyboard focus anywhere within the event. The parent
+   .rbc-event is simultaneously raised above overlapping siblings (see
+   globals.css) so this corner stays on top and clickable. */
+:global(.rbc-event):hover .duplicateButton,
+:global(.rbc-event):focus-within .duplicateButton {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .duplicateButton:hover {
