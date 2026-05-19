@@ -14,10 +14,10 @@ test.describe('Tutor Workflow @tutorOnly', () => {
 
         await page.locator('.rbc-events-container').nth(2).click();
 
-        await page.locator('div').filter({ hasText: /^Onsite$/ }).nth(1).click();
-
+        await page.locator('#locationType').click();
         await expect(page.getByRole('option', { name: 'Remote' })).toBeVisible();
-        await page.getByRole('option', { name: 'Remote' }).click();
+        await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('Enter');
 
         await expect(page.getByRole('button', { name: 'Add Availability' })).toBeVisible();
         await page.getByRole('button', { name: 'Add Availability' }).click();
