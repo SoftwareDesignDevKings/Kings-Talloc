@@ -1,9 +1,9 @@
 import { createCanvasClient } from '@/lib/canvas/canvasClient';
 import { filterCoursesByCurrentYearTerm } from '@/lib/canvas/canvasCourseFilters';
-import { getRequiredAdminOrTeacherSession } from '@/lib/security/serverAuth';
+import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 
 export async function GET() {
-    const { error } = await getRequiredAdminOrTeacherSession();
+    const { error } = await getRequiredAdminSession();
     if (error) return error;
 
     try {

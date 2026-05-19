@@ -1,9 +1,9 @@
 import { CanvasApiError } from '@/lib/canvas/canvasClient';
 import { CanvasSyncAlreadyRunningError, runFullCanvasSync } from '@/lib/canvas/canvasSync';
-import { getRequiredAdminOrTeacherSession } from '@/lib/security/serverAuth';
+import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 
 export async function POST() {
-    const { error } = await getRequiredAdminOrTeacherSession();
+    const { error } = await getRequiredAdminSession();
     if (error) return error;
 
     try {

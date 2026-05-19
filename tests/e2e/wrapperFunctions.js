@@ -2,9 +2,13 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-no-project';
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 const DEFAULT_EMULATOR_HOST = '127.0.0.1:8080';
 const getEmulatorHost = () => process.env.FIRESTORE_EMULATOR_HOST || DEFAULT_EMULATOR_HOST;
+
+if (!PROJECT_ID) {
+    throw new Error('NEXT_PUBLIC_FIREBASE_PROJECT_ID must be set for e2e emulator helpers.');
+}
 
 export async function clearFirestoreEmulator() {
     const host = getEmulatorHost();

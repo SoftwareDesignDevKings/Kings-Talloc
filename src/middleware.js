@@ -56,7 +56,7 @@ export async function middleware(req) {
     const userRoles = token.userRoles || [];
 
     // admin-only routes
-    const adminOnlyRoutes = ['/userRoles'];
+    const adminOnlyRoutes = ['/userRoles', '/admin'];
     const isAdminOnlyRoute = adminOnlyRoutes.some(route => pathname.startsWith(route));
     if (isAdminOnlyRoute && userRole !== 'admin' && !userRoles.includes('admin')) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
@@ -89,6 +89,7 @@ export const config = {
         '/userRoles/:path*',
         '/calendar/:path*',
         '/classes/:path*',
+        '/admin/:path*',
         '/tutorHours/:path*',
         '/maintenance',
         '/api/:path*'

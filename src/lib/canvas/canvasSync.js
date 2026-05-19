@@ -12,6 +12,7 @@ import { getStaleEnrollmentIdsForDeletion } from './canvasSyncPlanning';
 
 const SYNC_STATE_REF = adminDb.collection('canvasSyncState').doc('main');
 const BATCH_LIMIT = 400;
+const SYNC_LOCK_STALE_MS = 30 * 60 * 1000;
 
 class CanvasSyncAlreadyRunningError extends Error {
     constructor() {
@@ -24,6 +25,21 @@ class CanvasSyncAlreadyRunningError extends Error {
 export { CanvasSyncAlreadyRunningError };
 
 const now = () => new Date();
+
+const timestampToMillis = (value) => {
+    if (!value) return null;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.getTime();
+};
+
+export const isSyncLockStale = (state, currentTime = now()) => {
+    if (!state?.isRunning) return false;
+    const heartbeatMillis = timestampToMillis(state.updatedAt) ?? timestampToMillis(state.lockAcquiredAt);
+    if (!heartbeatMillis) return true;
+    return currentTime.getTime() - heartbeatMillis > SYNC_LOCK_STALE_MS;
+};
 
 const chunkedCommit = async (writes) => {
     for (let i = 0; i < writes.length; i += BATCH_LIMIT) {
@@ -50,6 +66,7 @@ const setProgress = async (progress) => {
 const finishSyncState = async ({ status, errorMessage = null, completedAt = now() }) => {
     await SYNC_STATE_REF.set({
         isRunning: false,
+        lockAcquiredAt: null,
         progress: null,
         lastStatus: status,
         lastError: errorMessage,
@@ -61,18 +78,21 @@ const finishSyncState = async ({ status, errorMessage = null, completedAt = now(
 
 const acquireSyncLock = async () => {
     await adminDb.runTransaction(async (transaction) => {
+        const acquiredAt = now();
         const snapshot = await transaction.get(SYNC_STATE_REF);
-        if (snapshot.exists && snapshot.data()?.isRunning) {
+        const state = snapshot.data();
+        if (snapshot.exists && state?.isRunning && !isSyncLockStale(state, acquiredAt)) {
             throw new CanvasSyncAlreadyRunningError();
         }
         transaction.set(SYNC_STATE_REF, {
             isRunning: true,
+            lockAcquiredAt: acquiredAt,
             progress: {
                 syncType: 'full',
                 phase: 'Starting Canvas sync',
                 currentStep: 'initialising',
             },
-            updatedAt: now(),
+            updatedAt: acquiredAt,
         }, { merge: true });
     });
 };
@@ -162,16 +182,19 @@ const syncCourseEnrollments = async ({ client, courseId, syncedAt }) => {
 export const runFullCanvasSync = async ({ client = createCanvasClient() } = {}) => {
     const startedAt = now();
     const logRef = adminDb.collection('canvasSyncLog').doc();
-    await acquireSyncLock();
-
-    await logRef.set({
-        entityType: 'full',
-        status: 'running',
-        recordsSynced: 0,
-        startedAt,
-    });
+    let lockAcquired = false;
 
     try {
+        await acquireSyncLock();
+        lockAcquired = true;
+
+        await logRef.set({
+            entityType: 'full',
+            status: 'running',
+            recordsSynced: 0,
+            startedAt,
+        });
+
         await setProgress({
             syncType: 'full',
             phase: 'Archiving legacy class and subject data',
@@ -230,6 +253,8 @@ export const runFullCanvasSync = async ({ client = createCanvasClient() } = {}) 
         await finishSyncState({ status: 'success', completedAt });
         return { status: 'success', recordsSynced, archiveCounts };
     } catch (error) {
+        if (!lockAcquired) throw error;
+
         const completedAt = now();
         await logRef.set({
             status: 'failed',

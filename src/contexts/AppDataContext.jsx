@@ -42,6 +42,7 @@ export const AppDataContextProvider = ({ children }) => {
     const { session, userRole } = useAuthSession();
     const userEmail = session?.user?.email;
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
+    const canReadCanvasReferenceData = userRole === 'admin' || userRole === 'teacher';
 
     // Raw data buckets from Firestore listeners
     const [oneOffShifts, setOneOffShifts] = useState([]);
@@ -117,21 +118,23 @@ export const AppDataContextProvider = ({ children }) => {
         const loadReferenceData = async () => {
             const [tutorList, classList, subjectList] = await Promise.all([
                 fetchCacheTutors(),
-                fetchCacheClasses(),
+                canReadCanvasReferenceData ? fetchCacheClasses() : Promise.resolve([]),
                 fetchCacheSubjects(),
             ]);
             setTutors(tutorList);
             setClasses(classList);
             setSubjects(subjectList);
 
-            // students only needed by roles that manage them (tutors, admins)
-            if (userRole !== 'student') {
+            // Canvas users include roster data and are only needed by staff who manage classes.
+            if (canReadCanvasReferenceData) {
                 const studentList = await fetchCacheStudents();
                 setStudents(studentList);
+            } else {
+                setStudents([]);
             }
         };
         loadReferenceData().catch((error) => console.error('Error loading reference data:', error));
-    }, [userEmail, userRole]);
+    }, [userEmail, userRole, canReadCanvasReferenceData]);
 
     const contextValues = useMemo(() => ({
         // calendar streams (real-time)

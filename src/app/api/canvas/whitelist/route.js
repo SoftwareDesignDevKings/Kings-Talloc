@@ -1,8 +1,8 @@
 import { adminDb } from '@/firestore/firestoreAdmin';
-import { getRequiredAdminOrTeacherSession } from '@/lib/security/serverAuth';
+import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 
 export async function GET() {
-    const { error } = await getRequiredAdminOrTeacherSession();
+    const { error } = await getRequiredAdminSession();
     if (error) return error;
 
     const snapshot = await adminDb.collection('canvasCourseWhitelist').orderBy('name').get();
@@ -40,7 +40,7 @@ export async function GET() {
 }
 
 export async function POST(req) {
-    const { session, error } = await getRequiredAdminOrTeacherSession();
+    const { session, error } = await getRequiredAdminSession();
     if (error) return error;
 
     const body = await req.json();

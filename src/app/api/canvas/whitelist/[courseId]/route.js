@@ -1,8 +1,8 @@
 import { adminDb } from '@/firestore/firestoreAdmin';
-import { getRequiredAdminOrTeacherSession } from '@/lib/security/serverAuth';
+import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 
 export async function DELETE(_req, { params }) {
-    const { error } = await getRequiredAdminOrTeacherSession();
+    const { error } = await getRequiredAdminSession();
     if (error) return error;
 
     const { courseId } = await params;

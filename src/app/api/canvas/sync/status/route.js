@@ -1,5 +1,5 @@
 import { getCanvasSyncStatus } from '@/lib/canvas/canvasSync';
-import { getRequiredAdminOrTeacherSession } from '@/lib/security/serverAuth';
+import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 
 const serializeDates = (value) => {
     if (value?.toDate) return value.toDate().toISOString();
@@ -13,7 +13,7 @@ const serializeDates = (value) => {
 };
 
 export async function GET() {
-    const { error } = await getRequiredAdminOrTeacherSession();
+    const { error } = await getRequiredAdminSession();
     if (error) return error;
 
     const status = await getCanvasSyncStatus();

@@ -29,3 +29,18 @@ export const getRequiredAdminOrTeacherSession = async () => {
 
     return { session };
 };
+
+export const getRequiredAdminSession = async () => {
+    const { session, error } = await getRequiredSession();
+    if (error) return { error };
+
+    const userRole = session.user.defaultRole || session.user.role;
+    const userRoles = session.user.userRoles || [];
+    const allowed = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!allowed) {
+        return { error: Response.json({ message: 'Forbidden' }, { status: 403 }) };
+    }
+
+    return { session };
+};

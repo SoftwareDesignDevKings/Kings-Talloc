@@ -1,7 +1,8 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import StudentEventForm from '@/components/forms/StudentEventForm.jsx';
 import { useAppData } from '@/contexts/AppDataContext';
+import { createEventInFirestore } from '@/firestore/firestoreOperations';
 
 jest.mock('@/contexts/AppDataContext', () => ({
     useAppData: jest.fn(),
@@ -29,11 +30,12 @@ jest.mock('@/components/modals/BaseModal.jsx', () => ({
 
 jest.mock('react-select', () => ({
     __esModule: true,
-    default: ({ options = [], value, onChange, inputId, 'aria-label': ariaLabel }) => (
+    default: ({ options = [], value, onChange, onMenuOpen, inputId, 'aria-label': ariaLabel }) => (
         <select
             id={inputId}
             aria-label={ariaLabel}
             value={value?.value || ''}
+            onFocus={() => onMenuOpen?.()}
             onChange={(event) => onChange(options.find((option) => option.value === event.target.value) || null)}
         >
             <option value="">Select...</option>
@@ -47,12 +49,30 @@ jest.mock('react-select', () => ({
 }));
 
 describe('StudentEventForm', () => {
-    test('uses Canvas class selection instead of legacy subject selection', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    const renderForm = (overrides = {}) => {
         const setNewEvent = jest.fn();
+        const newEvent = {
+            start: new Date('2026-05-04T10:00:00'),
+            end: new Date('2026-05-04T11:00:00'),
+            students: [],
+            staff: [],
+            classes: [{ value: 'stale-class', label: 'Stale Class' }],
+            ...overrides.newEvent,
+        };
+
         useAppData.mockReturnValue({
             setCalendarStudentRequests: jest.fn(),
             calendarStudentRequests: [],
-            calendarAvailabilities: [],
+            calendarAvailabilities: [{
+                tutor: 'tutor@example.edu',
+                start: new Date('2026-05-04T09:00:00'),
+                end: new Date('2026-05-04T12:00:00'),
+                workType: 'tutoring',
+            }],
             tutors: [{ email: 'tutor@example.edu', name: 'Tutor One' }],
             classes: [{
                 id: '123',
@@ -65,29 +85,52 @@ describe('StudentEventForm', () => {
         render(
             <StudentEventForm
                 mode="create"
-                newEvent={{
-                    start: new Date('2026-05-04T10:00:00'),
-                    end: new Date('2026-05-04T11:00:00'),
-                    students: [],
-                    staff: [],
-                    classes: [],
-                }}
+                newEvent={newEvent}
                 setNewEvent={setNewEvent}
                 setShowStudentModal={jest.fn()}
                 studentEmail="student@example.edu"
             />,
         );
 
-        expect(screen.getByLabelText('Select class')).toBeInTheDocument();
-        expect(screen.queryByLabelText('Select subject')).not.toBeInTheDocument();
+        return { setNewEvent, newEvent };
+    };
 
-        fireEvent.change(screen.getByLabelText('Select class'), { target: { value: '123' } });
-        expect(setNewEvent).toHaveBeenCalledWith(expect.any(Function));
-        const updater = setNewEvent.mock.calls
-            .map(([call]) => call)
-            .find((call) => typeof call === 'function' && call({}).classes);
-        expect(updater({})).toEqual({
-            classes: [{ value: '123', label: 'Mathematics Year 10 (MATH10)' }],
+    test('does not expose class or subject selection for student-created requests', () => {
+        renderForm();
+
+        expect(screen.queryByLabelText('Select class')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Select subject')).not.toBeInTheDocument();
+    });
+
+    test('submits student-created requests with no classes', async () => {
+        const { setNewEvent, newEvent } = renderForm({
+            newEvent: {
+                students: [{ value: 'student@example.edu', label: 'student@example.edu' }],
+                staff: [{ value: 'tutor@example.edu', label: 'Tutor One' }],
+                preference: 'General',
+            },
         });
+
+        createEventInFirestore.mockResolvedValue('request-1');
+
+        fireEvent.focus(screen.getByLabelText('Assign tutor to event'));
+        await waitFor(() => {
+            expect(screen.getByLabelText('Assign tutor to event')).toHaveTextContent('Tutor One');
+        });
+        fireEvent.change(screen.getByLabelText('Assign tutor to event'), { target: { value: 'tutor@example.edu' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        await waitFor(() => {
+            expect(createEventInFirestore).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    classes: [],
+                    students: newEvent.students,
+                    studentEmails: ['student@example.edu'],
+                }),
+                'studentEventRequests',
+            );
+        });
+
+        expect(setNewEvent).toHaveBeenCalled();
     });
 });

@@ -147,7 +147,9 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             start: new Date('2025-10-15T09:00:00'),
             end: new Date('2025-10-15T10:00:00'),
             emailsList: [studentEmail],
+            studentEmails: [studentEmail],
             students: [{ value: studentEmail, label: 'Student Name' }],
+            classes: [],
             subject: 'Mathematics',
             approvalStatus: 'pending',
         };
@@ -195,6 +197,36 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
 
             await assertFails(db.collection('studentEventRequests').add(requestData));
         });
+
+        test('student CANNOT create a request with a class assignment', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('studentEventRequests').add({
+                ...requestData,
+                classes: [{ value: '123', label: 'Mathematics Year 10' }],
+            }));
+        });
+
+        test('student CANNOT create a request for another student', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('studentEventRequests').add({
+                ...requestData,
+                emailsList: [otherStudentEmail],
+                studentEmails: [otherStudentEmail],
+                students: [{ value: otherStudentEmail, label: 'Other Student' }],
+            }));
+        });
     });
 
     describe('Student Event Requests - Update Access', () => {
@@ -208,7 +240,9 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
                     emailsList: [studentEmail],
+                    studentEmails: [studentEmail],
                     students: [{ value: studentEmail, label: 'Student Name' }],
+                    classes: [],
                     subject: 'Mathematics',
                     approvalStatus: 'pending',
                 });
@@ -290,6 +324,21 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
                 }),
             );
         });
+
+        test('student CANNOT update their own request to add a class', async () => {
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(
+                db.collection('studentEventRequests').doc(requestId).update({
+                    classes: [{ value: '123', label: 'Mathematics Year 10' }],
+                }),
+            );
+        });
     });
 
     describe('Student Event Requests - Delete Access', () => {
@@ -303,6 +352,8 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
                     start: new Date('2025-10-15T09:00:00'),
                     end: new Date('2025-10-15T10:00:00'),
                     emailsList: [studentEmail],
+                    studentEmails: [studentEmail],
+                    classes: [],
                     approvalStatus: 'pending',
                 });
                 requestId = ref.id;
