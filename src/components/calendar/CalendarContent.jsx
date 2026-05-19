@@ -24,7 +24,7 @@ import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
-import { isRangeCoveredByTutorAvailability } from '@/utils/calendarAvailability';
+import { isRangeCoveredByTutorAvailability, getTutorShiftConflicts } from '@/utils/calendarAvailability';
 
 const { memo } = React;
 
@@ -226,6 +226,7 @@ const CalendarContent = () => {
             // creating a request in a free slot and duplicating it onto a day
             // where the assigned tutor is no longer available.
             if (blockIfTutorUnavailable(event, newStart, newEnd, 'duplicate')) return;
+            if (blockIfTutorConflict(event, newStart, newEnd)) return;
 
             // copy event data but remove properties that shouldn't be duplicated and create duplication event dictionary
             const { id, createdAt, updatedAt, recurringEventId, isRecurringInstance, recurring, until, eventExceptions, entityType, ...eventData } = event;
@@ -391,6 +392,27 @@ const CalendarContent = () => {
         return false;
     };
 
+    // A shift must not be dragged/resized/duplicated onto another of the
+    // assigned tutor's events. Returns true if blocked (caller early-returns,
+    // so the calendar simply snaps the event back — no Firestore write occurs).
+    const blockIfTutorConflict = (event, start, end) => {
+        if (event.entityType !== CalendarEntityType.SHIFT) return false;
+        if (!event.staff?.length) return false;
+
+        const conflicts = getTutorShiftConflicts(
+            event.staff,
+            start,
+            end,
+            calendarShifts,
+            event.recurringEventId || event.id,
+        );
+        if (conflicts.length > 0) {
+            addAlert('warning', 'Tutor already has an event at this time.');
+            return true;
+        }
+        return false;
+    };
+
     // handle RBC event drop
     const handleEventDrop = async ({ event, start, end }) => {
         if (!strategy.permissions.canDrag(event)) {
@@ -398,6 +420,7 @@ const CalendarContent = () => {
         }
 
         if (blockIfTutorUnavailable(event, start, end)) return;
+        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -414,6 +437,7 @@ const CalendarContent = () => {
         }
 
         if (blockIfTutorUnavailable(event, start, end)) return;
+        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {

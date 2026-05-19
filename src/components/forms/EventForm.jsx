@@ -27,11 +27,14 @@ import {
     queueEmailNotification,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
+import { getTutorShiftConflicts, getRecurringSeriesConflicts } from '@/utils/calendarAvailability';
+import { format } from 'date-fns';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
 
 const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
     const {
+        calendarShifts,
         setCalendarShifts,
         setCalendarAvailabilities,
         setCalendarStudentRequests,
@@ -132,6 +135,31 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         }
 
         if (!validateStaffRoles()) {
+            return false;
+        }
+
+        const conflicts = newEvent.recurring
+            ? getRecurringSeriesConflicts(
+                newEvent.staff,
+                newEvent.start,
+                newEvent.end,
+                newEvent.recurring,
+                Number(newEvent.occurenceNum) || newEvent.occurenceNum,
+                calendarShifts,
+                eventToEdit?.id,
+            )
+            : getTutorShiftConflicts(
+                newEvent.staff,
+                newEvent.start,
+                newEvent.end,
+                calendarShifts,
+                eventToEdit?.id,
+            );
+        if (conflicts.length > 0) {
+            const details = conflicts
+                .map((c) => `${c.tutorName} (conflicts with "${c.conflictTitle}" ${format(new Date(c.conflictStart), 'HH:mm')}–${format(new Date(c.conflictEnd), 'HH:mm')})`)
+                .join(', ');
+            addAlert('error', `Scheduling conflict: ${details}`);
             return false;
         }
 

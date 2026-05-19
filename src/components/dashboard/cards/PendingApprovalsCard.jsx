@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiClock, FiChevronDown } from '@/components/icons';
 import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
+import { useAppData } from '@/contexts/AppDataContext';
 import PendingApprovalItem from './PendingApprovalItem';
 
 const PendingApprovalsCard = ({ count, pendingRequests, onUpdate, readOnly = false, colClass = 'col-12 col-md-4 col-lg-3' }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const cardRef = useRef(null);
-    const { handleApprove, handleReject, handleDelete } = useApprovalHandlers(onUpdate);
+    const { calendarShifts } = useAppData();
+    const { handleApprove, handleReject, handleDelete } = useApprovalHandlers(onUpdate, calendarShifts);
 
     // Fade in card with delay
     useEffect(() => {
