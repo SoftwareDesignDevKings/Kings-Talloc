@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
@@ -47,10 +47,48 @@ const StudentEventForm = ({
     const { addAlert } = useAlert();
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
+
+    const getTutorsAvailableForRange = useCallback((start, end) => {
+        if (
+            !start ||
+            !end ||
+            Number.isNaN(start.getTime()) ||
+            Number.isNaN(end.getTime())
+        ) {
+            return [];
+        }
+
+        return tutorOptions.filter((tutor) => {
+            const tutorAvailabilities = calendarAvailabilities.filter(
+                (availability) => availability.tutor === tutor.value,
+            );
+
+            return tutorAvailabilities.some((availability) => {
+                const availStart = new Date(availability.start);
+                const availEnd = new Date(availability.end);
+                const types = Array.isArray(availability.workType) ? availability.workType : [availability.workType];
+                return (
+                    (availStart <= start || availStart.getTime() === start.getTime()) &&
+                    (availEnd >= end || availEnd.getTime() === end.getTime()) &&
+                    (types.some(t => t === 'tutoring' || t === 'tutoringOrWork') ||
+                        availability.workType === undefined)
+                ); // undefined check for backwards compatibility
+            });
+        });
+    }, [calendarAvailabilities, tutorOptions]);
+
+    const filterTutorsByAvailability = useCallback((start, end) => {
+        setFilteredTutors(getTutorsAvailableForRange(start, end));
+    }, [getTutorsAvailableForRange]);
+
     // transform provider data into react-select format
     useEffect(() => {
         setTutorOptions(buildEligibleTutorOptions(tutors, studentTutorEligibility));
     }, [tutors, studentTutorEligibility]);
+
+    useEffect(() => {
+        filterTutorsByAvailability(new Date(newEvent.start), new Date(newEvent.end));
+    }, [filterTutorsByAvailability, newEvent.end, newEvent.start]);
 
     useEffect(() => {
         if (!isEditing) {
@@ -93,28 +131,6 @@ const StudentEventForm = ({
             return false;
         }
         return true;
-    };
-
-    const filterTutorsByAvailability = (start, end) => {
-        const availableTutors = tutorOptions.filter((tutor) => {
-            const tutorAvailabilities = calendarAvailabilities.filter(
-                (availability) => availability.tutor === tutor.value,
-            );
-
-            return tutorAvailabilities.some((availability) => {
-                const availStart = new Date(availability.start);
-                const availEnd = new Date(availability.end);
-                const types = Array.isArray(availability.workType) ? availability.workType : [availability.workType];
-                return (
-                    (availStart <= start || availStart.getTime() === start.getTime()) &&
-                    (availEnd >= end || availEnd.getTime() === end.getTime()) &&
-                    (types.some(t => t === 'tutoring' || t === 'tutoringOrWork') ||
-                        availability.workType === undefined)
-                ); // undefined check for backwards compatibility
-            });
-        });
-
-        setFilteredTutors(availableTutors);
     };
 
     const handleInputChange = (e) => {

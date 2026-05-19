@@ -142,7 +142,7 @@ const Sidebar = ({ user, userRole }) => {
                                     className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiBook className={styles.navIcon} />
-                                    <span className={styles.navLabel}>Classes</span>
+                                    <span className={styles.navLabel}>Canvas Classes</span>
                                 </Link>
                             </li>
                         )}
@@ -153,7 +153,7 @@ const Sidebar = ({ user, userRole }) => {
                                     className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/admin/canvas') ? styles.activeNavLink : ''}`}
                                 >
                                     <FiSettings className={styles.navIcon} />
-                                    <span className={styles.navLabel}>Manage Classes</span>
+                                    <span className={styles.navLabel}>Canvas Admin</span>
                                 </Link>
                             </li>
                         )}
