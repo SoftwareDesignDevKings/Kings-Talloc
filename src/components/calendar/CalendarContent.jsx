@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
@@ -19,7 +19,7 @@ import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
-import CustomEvent from './CustomEvent.jsx';
+import CustomEvent, { getEventParticipantInitials } from './CustomEvent.jsx';
 import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
 
@@ -102,6 +102,31 @@ const CalendarContent = () => {
         (e) => e.entityType === CalendarEntityType.AVAILABILITY && !isInteractiveAvailability(e),
     );
     const overlayAvailabilities = filteredAvailabilities;
+    const dailyInitialsByDate = useMemo(() => {
+        const initialsByDate = new Map();
+
+        rbcEvents.forEach((event) => {
+            const start = new Date(event.start);
+            if (Number.isNaN(start.getTime())) return;
+
+            const dateKey = format(start, 'yyyy-MM-dd');
+            const initials = getEventParticipantInitials(event, tutors).filter(Boolean);
+            if (initials.length === 0) return;
+
+            if (!initialsByDate.has(dateKey)) {
+                initialsByDate.set(dateKey, new Set());
+            }
+
+            initials.forEach((initial) => initialsByDate.get(dateKey).add(initial));
+        });
+
+        return Object.fromEntries(
+            Array.from(initialsByDate.entries()).map(([dateKey, initials]) => [
+                dateKey,
+                Array.from(initials).sort().join(', '),
+            ]),
+        );
+    }, [rbcEvents, tutors]);
 
     /* ----------------------------------------------------------- */
     /* Calendar bounds                                             */
@@ -480,6 +505,7 @@ const CalendarContent = () => {
             canDuplicate={strategy.actions.canDuplicateEvent?.(eventProps.event)}
             onDuplicate={handleDuplicateEvent}
             tutors={tutors}
+            dayInitials={dailyInitialsByDate[format(new Date(eventProps.event.start), 'yyyy-MM-dd')] || ''}
         />
     );
 
