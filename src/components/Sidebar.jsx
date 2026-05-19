@@ -9,10 +9,10 @@ import {
     FiUser,
     FiChevronLeft,
     FiChevronRight,
-    FiBookOpen,
     FiHome,
     FiLogOut,
     FiUserCheck,
+    FiSettings,
 } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -108,6 +108,22 @@ const Sidebar = ({ user, userRole }) => {
                                 <span className={styles.navLabel}>Calendar</span>
                             </Link>
                         </li>
+                        {isTutorHoursRole && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/tutorHours"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/tutorHours') ? styles.activeNavLink : ''}`}
+                                >
+                                    <FiClock className={styles.navIcon} />
+                                    <span className={styles.navLabel}>Tutor Hours</span>
+                                </Link>
+                            </li>
+                        )}
+
+                        {/* Management/admin links, separated below everything else */}
+                        {(isAdmin || isAdminOrTeacher) && (
+                            <li className={styles.navDivider} aria-hidden="true" />
+                        )}
                         {isAdmin && (
                             <li className={styles.navItem}>
                                 <Link
@@ -120,35 +136,24 @@ const Sidebar = ({ user, userRole }) => {
                             </li>
                         )}
                         {isAdminOrTeacher && (
-                            <>
-                                <li className={styles.navItem}>
-                                    <Link
-                                        href="/classes"
-                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
-                                    >
-                                        <FiBook className={styles.navIcon} />
-                                        <span className={styles.navLabel}>Manage Classes</span>
-                                    </Link>
-                                </li>
-                                <li className={styles.navItem}>
-                                    <Link
-                                        href="/subjects"
-                                        className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/subjects') ? styles.activeNavLink : ''}`}
-                                    >
-                                        <FiBookOpen className={styles.navIcon} />
-                                        <span className={styles.navLabel}>Manage Subjects</span>
-                                    </Link>
-                                </li>
-                            </>
-                        )}
-                        {isTutorHoursRole && (
                             <li className={styles.navItem}>
                                 <Link
-                                    href="/tutorHours"
-                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/tutorHours') ? styles.activeNavLink : ''}`}
+                                    href="/classes"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/classes') ? styles.activeNavLink : ''}`}
                                 >
-                                    <FiClock className={styles.navIcon} />
-                                    <span className={styles.navLabel}>Tutor Hours</span>
+                                    <FiBook className={styles.navIcon} />
+                                    <span className={styles.navLabel}>Canvas Classes</span>
+                                </Link>
+                            </li>
+                        )}
+                        {isAdmin && (
+                            <li className={styles.navItem}>
+                                <Link
+                                    href="/admin/canvas"
+                                    className={`${styles.navLink} ${isCollapsed ? styles.navLinkCollapsed : styles.navLinkExpanded} ${pathname.startsWith('/admin/canvas') ? styles.activeNavLink : ''}`}
+                                >
+                                    <FiSettings className={styles.navIcon} />
+                                    <span className={styles.navLabel}>Canvas Admin</span>
                                 </Link>
                             </li>
                         )}

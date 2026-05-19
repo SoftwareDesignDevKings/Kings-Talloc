@@ -15,12 +15,14 @@ const StudentList = ({ cls, confirmRemoveStudent }) => {
                                 <div className={t.memberName}>{student.name || 'No name'}</div>
                                 <div className={t.memberEmail}>{student.email}</div>
                             </div>
-                            <button
-                                onClick={() => confirmRemoveStudent(cls, student)}
-                                className="btn btn-sm btn-outline-danger"
-                            >
-                                Remove
-                            </button>
+                            {confirmRemoveStudent && (
+                                <button
+                                    onClick={() => confirmRemoveStudent(cls, student)}
+                                    className="btn btn-sm btn-outline-danger"
+                                >
+                                    Remove
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>

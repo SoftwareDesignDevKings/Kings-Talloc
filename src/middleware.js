@@ -56,14 +56,14 @@ export async function middleware(req) {
     const userRoles = token.userRoles || [];
 
     // admin-only routes
-    const adminOnlyRoutes = ['/userRoles'];
+    const adminOnlyRoutes = ['/userRoles', '/admin'];
     const isAdminOnlyRoute = adminOnlyRoutes.some(route => pathname.startsWith(route));
     if (isAdminOnlyRoute && userRole !== 'admin' && !userRoles.includes('admin')) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
     // admin + teacher routes
-    const adminTeacherRoutes = ['/classes', '/subjects'];
+    const adminTeacherRoutes = ['/classes'];
     const isAdminTeacherRoute = adminTeacherRoutes.some(route => pathname.startsWith(route));
     const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher' || userRoles.includes('admin') || userRoles.includes('teacher');
     if (isAdminTeacherRoute && !isAdminOrTeacher) {
@@ -89,10 +89,9 @@ export const config = {
         '/userRoles/:path*',
         '/calendar/:path*',
         '/classes/:path*',
-        '/subjects/:path*',
+        '/admin/:path*',
         '/tutorHours/:path*',
         '/maintenance',
         '/api/:path*'
     ]
 };
-

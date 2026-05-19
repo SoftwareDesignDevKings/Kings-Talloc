@@ -3,6 +3,8 @@
  * All functions prefixed with 'calendarUI'
  */
 
+import { CALENDAR_COLOURS } from '@/constants/calendarColours';
+
 // Helper function to calculate the green color intensity based on the number of available tutors
 const calculateGreenIntensity = (numTutors, maxTutors) => {
     const intensity = Math.min(1, numTutors / maxTutors);
@@ -28,79 +30,80 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     const needsStudentConfirmation =
         userRole === 'student' && !studentResponse && event.minStudents > 0;
 
-    // Default style
-    let backgroundColor = 'lightblue';
-    let borderColor = 'blue';
+    const applyPalette = ({ bg, border, text }) => {
+        backgroundColor = bg;
+        borderColor = border;
+        color = text || 'black';
+    };
+
+    // Default confirmed tutoring/work session style
+    let backgroundColor = CALENDAR_COLOURS.confirmed.bg;
+    let borderColor = CALENDAR_COLOURS.confirmed.border;
+    let color = CALENDAR_COLOURS.confirmed.text;
+    let borderStyle = 'solid';
 
     // --- Student-created events ---
     if (isStudentEvent) {
         if (event.approvalStatus === 'pending') {
-            // Pending → orange
-            backgroundColor = 'orange';
-            borderColor = 'darkorange';
-        } else if (event.approvalStatus === 'approved') {
-            // Approved → nice red
-            backgroundColor = 'indianred';
-            borderColor = 'brown';
+            applyPalette(CALENDAR_COLOURS.pending);
         } else if (event.approvalStatus === 'denied') {
-            // Denied → dark red
-            backgroundColor = 'red';
-            borderColor = 'darkred';
+            applyPalette(CALENDAR_COLOURS.denied);
         }
     }
 
     // --- Work type and status combined ---
-    if (event.workStatus === 'completed') {
-        // All completed work is green
-        backgroundColor = 'lightgreen';
-        borderColor = 'green';
-    } else if (event.workStatus === 'notAttended') {
-        backgroundColor = 'lightcoral';
-        borderColor = 'red';
+    if (event.workType === 'coaching' && event.workStatus === 'completed') {
+        applyPalette(CALENDAR_COLOURS.coachingCompleted);
     } else if (event.workType === 'coaching' && event.workStatus === 'notCompleted') {
-        // Not completed coaching is purple
-        backgroundColor = '#E6D5F5';
-        borderColor = '#9B59B6';
+        applyPalette(CALENDAR_COLOURS.coaching);
+    } else if (event.workStatus === 'completed') {
+        applyPalette(CALENDAR_COLOURS.completed);
+    } else if (event.workStatus === 'notAttended') {
+        applyPalette(CALENDAR_COLOURS.notAttended);
     }
-    // Other not completed work keeps the default blue (from above)
+    // Other not completed work keeps the default confirmed blue.
 
     // --- Student requests (pending approval) ---
     if (isStudentRequest) {
         if (event.approvalStatus === 'denied') {
-            // Denied → dark red
-            backgroundColor = 'red';
-            borderColor = 'darkred';
+            applyPalette(CALENDAR_COLOURS.denied);
         } else {
-            // Pending → orange
-            backgroundColor = 'orange';
-            borderColor = 'darkorange';
+            applyPalette(CALENDAR_COLOURS.pending);
         }
     }
 
-    // --- Tutor availabilities ---
+    // --- Tutor availability blocks ---
     if (isAvailability) {
-        backgroundColor = userRole === 'student' ? 'lightgrey' : 'mediumspringgreen';
-        borderColor = userRole === 'student' ? 'grey' : 'springgreen';
-        
+        applyPalette(CALENDAR_COLOURS.availabilityBlock);
+        borderStyle = CALENDAR_COLOURS.availabilityBlock.borderStyle;
     }
 
     // --- Student responses ---
     if (isDeclined) {
-        backgroundColor = 'grey';
-        borderColor = 'black';
+        applyPalette(CALENDAR_COLOURS.declined);
     } else if (isAccepted) {
-        backgroundColor = 'lightblue';
-        borderColor = 'blue';
+        applyPalette(CALENDAR_COLOURS.confirmed);
     } else if (needsStudentConfirmation) {
-        backgroundColor = 'red';
-        borderColor = 'darkred';
+        applyPalette(CALENDAR_COLOURS.denied);
     }
 
+    // Solid events use a prominent left accent + soft outer border.
+    // Availability blocks use a full dotted border (no accent bar) so they
+    // visually read as a different *kind* of thing, not just a different status.
+    const isPatterned = borderStyle === 'dashed' || borderStyle === 'dotted';
     return {
         style: {
             backgroundColor,
-            borderColor,
-            color: 'black',
+            color,
+            border: isPatterned
+                ? `2px ${borderStyle} ${borderColor}`
+                : `1px solid ${borderColor}33`,
+            borderLeft: isPatterned
+                ? `2px ${borderStyle} ${borderColor}`
+                : `4px solid ${borderColor}`,
+            borderRadius: '4px',
+            boxShadow: isPatterned ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.06)',
+            fontWeight: 500,
         },
     };
 };

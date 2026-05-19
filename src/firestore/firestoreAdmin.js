@@ -9,8 +9,10 @@ if (process.env.NODE_ENV === 'development') {
 // initialise Firebase Admin SDK
 if (!admin.apps.length) {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        // Emulator mode — no real credentials needed
-        console.log('FIREBASE_SERVICE_ACCOUNT_KEY is not set. Initialising Firebase Admin against local emulators.');
+        const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
+        if (process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test' && !isBuildTime) {
+            throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY is required outside development.');
+        }
         admin.initializeApp({
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-no-project',
         });

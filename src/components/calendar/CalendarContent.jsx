@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
@@ -19,11 +19,12 @@ import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
-import CustomEvent from './CustomEvent.jsx';
+import CustomEvent, { getEventParticipantInitials } from './CustomEvent.jsx';
 import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
+import { isRangeCoveredByTutorAvailability, getTutorShiftConflicts } from '@/utils/calendarAvailability';
 
 const { memo } = React;
 
@@ -84,8 +85,48 @@ const CalendarContent = () => {
     /* ----------------------------------------------------------- */
     /* Events and Availabilities - Pre-filtered by CalendarUIContextProvider */
     /* ----------------------------------------------------------- */
-    const rbcEvents = filteredEvents;
+    // Split availability blocks into RBC's backgroundEvents layer so they don't
+    // collide with foreground events at touching boundaries (e.g. availability
+    // ending 13:30 next to a shift starting 13:30 was being laid out as overlapping).
+    const isInteractiveAvailability = (event) =>
+        event.entityType === CalendarEntityType.AVAILABILITY &&
+        (
+            strategy.actions.canModifyEvent?.(event) ||
+            strategy.actions.canDuplicateEvent?.(event)
+        );
+
+    const rbcEvents = filteredEvents.filter(
+        (e) => e.entityType !== CalendarEntityType.AVAILABILITY || isInteractiveAvailability(e),
+    );
+    const rbcBackgroundEvents = filteredEvents.filter(
+        (e) => e.entityType === CalendarEntityType.AVAILABILITY && !isInteractiveAvailability(e),
+    );
     const overlayAvailabilities = filteredAvailabilities;
+    const dailyInitialsByDate = useMemo(() => {
+        const initialsByDate = new Map();
+
+        rbcEvents.forEach((event) => {
+            const start = new Date(event.start);
+            if (Number.isNaN(start.getTime())) return;
+
+            const dateKey = format(start, 'yyyy-MM-dd');
+            const initials = getEventParticipantInitials(event, tutors).filter(Boolean);
+            if (initials.length === 0) return;
+
+            if (!initialsByDate.has(dateKey)) {
+                initialsByDate.set(dateKey, new Set());
+            }
+
+            initials.forEach((initial) => initialsByDate.get(dateKey).add(initial));
+        });
+
+        return Object.fromEntries(
+            Array.from(initialsByDate.entries()).map(([dateKey, initials]) => [
+                dateKey,
+                Array.from(initials).sort().join(', '),
+            ]),
+        );
+    }, [rbcEvents, tutors]);
 
     /* ----------------------------------------------------------- */
     /* Calendar bounds                                             */
@@ -205,6 +246,12 @@ const CalendarContent = () => {
             const duration = event.end - event.start;
             const newStart = addDays(event.start, 1);
             const newEnd = new Date(newStart.getTime() + duration);
+
+            // A student must not be able to bypass the availability check by
+            // creating a request in a free slot and duplicating it onto a day
+            // where the assigned tutor is no longer available.
+            if (blockIfTutorUnavailable(event, newStart, newEnd, 'duplicate')) return;
+            if (blockIfTutorConflict(event, newStart, newEnd)) return;
 
             // copy event data but remove properties that shouldn't be duplicated and create duplication event dictionary
             const { id, createdAt, updatedAt, recurringEventId, isRecurringInstance, recurring, until, eventExceptions, entityType, ...eventData } = event;
@@ -339,11 +386,66 @@ const CalendarContent = () => {
         }
     };
 
+    // For a pending student request, the new slot must still sit inside the
+    // assigned tutor's remaining availability. Returns true if blocked.
+    // Only students are gated — teachers/admins can move requests anywhere.
+    const blockIfTutorUnavailable = (event, start, end, action = 'move') => {
+        if (userRole !== 'student') return false;
+        const isPendingStudentRequest =
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.createdByStudent === true &&
+            event.approvalStatus === 'pending';
+        if (!isPendingStudentRequest) return false;
+
+        const tutorEmail = event.staff?.[0]?.value || event.staff?.[0];
+        if (!tutorEmail) return false;
+
+        const covered = isRangeCoveredByTutorAvailability(
+            tutorEmail,
+            start,
+            end,
+            overlayAvailabilities,
+        );
+        if (!covered) {
+            const message =
+                action === 'duplicate'
+                    ? 'Cannot duplicate this request — the tutor is not available at the same time on the next day.'
+                    : 'Tutor is not available during the selected time.';
+            addAlert('warning', message);
+            return true;
+        }
+        return false;
+    };
+
+    // A shift must not be dragged/resized/duplicated onto another of the
+    // assigned tutor's events. Returns true if blocked (caller early-returns,
+    // so the calendar simply snaps the event back — no Firestore write occurs).
+    const blockIfTutorConflict = (event, start, end) => {
+        if (event.entityType !== CalendarEntityType.SHIFT) return false;
+        if (!event.staff?.length) return false;
+
+        const conflicts = getTutorShiftConflicts(
+            event.staff,
+            start,
+            end,
+            calendarShifts,
+            event.recurringEventId || event.id,
+        );
+        if (conflicts.length > 0) {
+            addAlert('warning', 'Tutor already has an event at this time.');
+            return true;
+        }
+        return false;
+    };
+
     // handle RBC event drop
     const handleEventDrop = async ({ event, start, end }) => {
         if (!strategy.permissions.canDrag(event)) {
             return;
         }
+
+        if (blockIfTutorUnavailable(event, start, end)) return;
+        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -358,6 +460,9 @@ const CalendarContent = () => {
         if (!strategy.permissions.canResize(event)) {
             return;
         }
+
+        if (blockIfTutorUnavailable(event, start, end)) return;
+        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -400,6 +505,7 @@ const CalendarContent = () => {
             canDuplicate={strategy.actions.canDuplicateEvent?.(eventProps.event)}
             onDuplicate={handleDuplicateEvent}
             tutors={tutors}
+            dayInitials={dailyInitialsByDate[format(new Date(eventProps.event.start), 'yyyy-MM-dd')] || ''}
         />
     );
 
@@ -413,6 +519,7 @@ const CalendarContent = () => {
                         culture="en-AU"
                         localizer={localizer}
                         events={rbcEvents}
+                        backgroundEvents={rbcBackgroundEvents}
                         startAccessor="start"
                         endAccessor="end"
                         min={minTime}

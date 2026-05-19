@@ -105,17 +105,21 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                                 </p>
                                 <div className="d-flex flex-column gap-2">
                                     {[
-                                        { ...CALENDAR_COLOURS.available, title: 'Green background', desc: 'Shows when tutors are available. Darker green = more tutors free.' },
-                                        { ...CALENDAR_COLOURS.confirmed,  title: 'Light blue',        desc: 'Your confirmed tutoring sessions (approved and ready to go).' },
-                                        { ...CALENDAR_COLOURS.pending,    title: 'Orange',             desc: 'Waiting for teacher approval on your booking request.' },
-                                        { ...CALENDAR_COLOURS.denied,     title: 'Red',                desc: 'Your booking was denied.' },
-                                    ].map(({ bg, border, title, desc }) => (
+                                        { ...CALENDAR_COLOURS.availabilityHeatmap, title: 'Green background', desc: 'Shows open tutor availability slots. Darker green = more tutors free.' },
+                                        { ...CALENDAR_COLOURS.availabilityBlock, title: 'Dashed outline', desc: 'A tutor-created availability block, shown as a planning item.' },
+                                        { ...CALENDAR_COLOURS.confirmed, title: 'Blue', desc: 'Confirmed tutoring sessions, including approved student requests.' },
+                                        { ...CALENDAR_COLOURS.coaching, title: 'Purple', desc: 'Coaching sessions.' },
+                                        { ...CALENDAR_COLOURS.pending, title: 'Orange', desc: 'Waiting for teacher approval on your booking request.' },
+                                        { ...CALENDAR_COLOURS.denied, title: 'Red', desc: 'Denied requests or sessions that need your confirmation.' },
+                                        { ...CALENDAR_COLOURS.completed, title: 'Green event', desc: 'A session that has been marked completed.' },
+                                        { ...CALENDAR_COLOURS.notAttended, title: 'Pink', desc: 'A session marked as student did not attend.' },
+                                    ].map(({ bg, border, borderStyle = 'solid', title, desc }) => (
                                         <div key={title} className="d-flex align-items-start">
                                             <div className="me-3 mt-1 shrink-0" style={{
                                                 width: '24px',
                                                 height: '24px',
                                                 backgroundColor: bg,
-                                                border: `1px solid ${border}`,
+                                                border: `2px ${borderStyle} ${border}`,
                                                 borderRadius: '3px',
                                             }} />
                                             <div>

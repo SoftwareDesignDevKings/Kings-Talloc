@@ -1,8 +1,7 @@
-import SubjectList from "@/components/SubjectList";
-const SubjectsPage = async () => {
-    return (
-        <SubjectList />
-    )
-}
+import { redirect } from 'next/navigation';
 
-export default SubjectsPage
+const SubjectsPage = async () => {
+    redirect('/classes');
+};
+
+export default SubjectsPage;

@@ -67,6 +67,43 @@ service cloud.firestore {
         && resource.data.emailsList.hasAny([studentEmail]);
     }
 
+    function requestHasNoClasses() {
+      return !('classes' in request.resource.data)
+        || request.resource.data.classes.size() == 0;
+    }
+
+    function resourceHasNoClasses() {
+      return !('classes' in resource.data)
+        || resource.data.classes.size() == 0;
+    }
+
+    function requestIsPending() {
+      return 'approvalStatus' in request.resource.data
+        && request.resource.data.approvalStatus == 'pending';
+    }
+
+    function resourceIsPending() {
+      return 'approvalStatus' in resource.data
+        && resource.data.approvalStatus == 'pending';
+    }
+
+    function studentWritesOwnRequest() {
+      return isStudent()
+        && 'studentEmails' in request.resource.data
+        && 'emailsList' in request.resource.data
+        && 'staffEmails' in request.resource.data
+        && request.resource.data.studentEmails.size() == 1
+        && request.resource.data.studentEmails.hasOnly([request.auth.token.email])
+        && request.resource.data.studentEmails.hasAll([request.auth.token.email])
+        && request.resource.data.staffEmails.size() == 1
+        && request.resource.data.emailsList.size() == 2
+        && request.resource.data.emailsList.hasAll(request.resource.data.staffEmails)
+        && request.resource.data.emailsList.hasAll(request.resource.data.studentEmails)
+        && get(/databases/$(database)/documents/studentTutorEligibility/$(request.auth.token.email)).data.eligibleTutorEmails.hasAny(request.resource.data.staffEmails)
+        && requestIsPending()
+        && requestHasNoClasses();
+    }
+
     // ─────────────────────────────────────
     // Collections
     // ─────────────────────────────────────
@@ -104,9 +141,17 @@ service cloud.firestore {
     match /studentEventRequests/{requestId} {
       allow read: if isAdminOrTeacher()
         || (isStudent() && studentOwnsRequest(request.auth.token.email));
-      allow create: if isStudent() || isAdminOrTeacher();
-      allow update, delete: if isAdminOrTeacher()
-        || (isStudent() && studentOwnsRequest(request.auth.token.email));
+      allow create: if isAdminOrTeacher() || studentWritesOwnRequest();
+      allow update: if isAdminOrTeacher()
+        || (isStudent()
+          && studentOwnsRequest(request.auth.token.email)
+          && resourceIsPending()
+          && studentWritesOwnRequest());
+      allow delete: if isAdminOrTeacher()
+        || (isStudent()
+          && studentOwnsRequest(request.auth.token.email)
+          && resourceIsPending()
+          && resourceHasNoClasses());
     }
 
     // Tutor Availabilities — tutors and coaches manage their own (tutor field = email)
@@ -116,6 +161,13 @@ service cloud.firestore {
         && request.auth.token.email == request.resource.data.tutor;
       allow update, delete: if isTutorOrCoach()
         && request.auth.token.email == resource.data.tutor;
+    }
+
+    // Student-safe tutor eligibility generated from Canvas rosters and admin tutor coverage.
+    match /studentTutorEligibility/{studentEmail} {
+      allow read: if isAdminOrTeacher()
+        || (isStudent() && request.auth.token.email == studentEmail);
+      allow write: if false;
     }
 
     // Classes — admins/teachers manage; all authenticated can read
@@ -134,6 +186,37 @@ service cloud.firestore {
     match /students/{studentId} {
       allow read: if isAuthenticated();
       allow write: if isAdminOrTeacher();
+    }
+
+    // Canvas course whitelist — admins/teachers select which Canvas courses are synced
+    match /canvasCourseWhitelist/{courseId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Canvas cache/read model — written by server-side sync via Admin SDK
+    match /canvasCourses/{courseId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
+    match /canvasUsers/{userId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
+    match /canvasEnrollments/{enrollmentId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
+    match /canvasSyncLog/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /canvasSyncState/{stateId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Timesheets (templates) — admin only (API route also enforces this)

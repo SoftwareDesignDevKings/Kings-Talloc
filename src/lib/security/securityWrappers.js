@@ -18,6 +18,10 @@ export const implementCspWrapper = async (req) => {
 }
 
 export const implementRateLimiterWrapper = async (req, pathname) => {
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+        return null;
+    }
+
     const identifier = getClientIp(req); 
     const { success, limit, reset, remaining } = await rateLimitConfig.limit(identifier);
 

@@ -6,10 +6,12 @@ import {
     queueEmailNotification,
 } from '@/firestore/firestoreOperations';
 import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
+import { getTutorShiftConflicts } from '@/utils/calendarAvailability';
+import { format } from 'date-fns';
 import useAlert from '@/hooks/useAlert';
 import useAuthSession from '@/hooks/useAuthSession';
 
-export const useApprovalHandlers = (onUpdate) => {
+export const useApprovalHandlers = (onUpdate, calendarShifts = []) => {
     const { addAlert } = useAlert();
     const { session } = useAuthSession();
     const userEmail = session?.user?.email;
@@ -40,6 +42,15 @@ export const useApprovalHandlers = (onUpdate) => {
                 createTeamsMeeting: true,
             };
 
+            const conflicts = getTutorShiftConflicts(eventData.staff, eventData.start, eventData.end, calendarShifts);
+            if (conflicts.length > 0) {
+                const details = conflicts
+                    .map((c) => `${c.tutorName} (conflicts with "${c.conflictTitle}" ${format(new Date(c.conflictStart), 'HH:mm')}–${format(new Date(c.conflictEnd), 'HH:mm')})`)
+                    .join(', ');
+                addAlert('error', `Cannot approve: scheduling conflict — ${details}`);
+                return;
+            }
+
             // Delete from studentEventRequests and create in events collection
             await deleteEventFromFirestore(request.id, 'studentEventRequests');
 
@@ -48,15 +59,11 @@ export const useApprovalHandlers = (onUpdate) => {
             // Queue email notification
             await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
 
-            // Create Teams meeting in background
-            calendarEventCreateTeamsMeeting(docId, eventData, {
+            await calendarEventCreateTeamsMeeting(docId, eventData, {
                 addAlert,
-            }).catch((error) => {
-                console.error('[useApprovalHandlers] Teams meeting creation failed:', error);
-                addAlert('error', `Event approved but Teams meeting failed: ${error.message}`);
             });
 
-            addAlert('success', 'Request approved successfully. Teams meeting is being created...');
+            addAlert('success', 'Request approved successfully');
 
             if (onUpdate) onUpdate();
         } catch (error) {

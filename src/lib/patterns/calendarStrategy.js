@@ -30,13 +30,16 @@ export const adminCalendarStrategy = () => ({
 
     permissions: {
         canEdit: (event) =>
-            event.entityType === CalendarEntityType.SHIFT,
+            event.entityType === CalendarEntityType.SHIFT ||
+            event.entityType === CalendarEntityType.STUDENT_REQUEST,
 
         canDrag: (event) =>
-            event.entityType === CalendarEntityType.SHIFT,
+            event.entityType === CalendarEntityType.SHIFT ||
+            event.entityType === CalendarEntityType.STUDENT_REQUEST,
 
         canResize: (event) =>
-            event.entityType === CalendarEntityType.SHIFT,
+            event.entityType === CalendarEntityType.SHIFT ||
+            event.entityType === CalendarEntityType.STUDENT_REQUEST,
     },
 
     visibility: {
@@ -48,7 +51,7 @@ export const adminCalendarStrategy = () => ({
     // panel filters
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: true,
     },
@@ -100,7 +103,7 @@ export const teacherCalendarStrategy = () => ({
 
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: true,
     },
@@ -154,7 +157,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
     // panel filters
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: true,
     },
@@ -196,9 +199,17 @@ export const studentCalendarStrategy = (userEmail) => ({
     },
 
     permissions: {
-        canEdit: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canDrag: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canResize: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+        canEdit: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
+        // Students can only move/resize their own request while it's still pending.
+        // Once approved or denied it's locked.
+        canDrag: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
+        canResize: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
     },
 
     visibility: {
@@ -212,7 +223,7 @@ export const studentCalendarStrategy = (userEmail) => ({
     // students cannot accesss tutor avail type
     calendarFilters: {
         canFilterByTutor: true,
-        canFilterBySubject: true,
+        canFilterBySubject: false,
         canFilterByWorkType: true,
         canFilterByAvailabilityType: false,
     },
@@ -230,11 +241,12 @@ export const studentCalendarStrategy = (userEmail) => ({
         canCreateEvent: (event) => 
             event.entityType === CalendarEntityType.STUDENT_REQUEST,
         canModifyEvent: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
         
         canDuplicateEvent: (event) => {
             if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return true
+                return event.approvalStatus === 'pending'
             } else {
                 return false
             }
@@ -244,6 +256,8 @@ export const studentCalendarStrategy = (userEmail) => ({
         getEventFlow: (calEvent) => {
             if (calEvent.entityType === CalendarEntityType.SHIFT) {
                 return CalendarFlow.VIEW_SHIFT
+            } else if (calEvent.approvalStatus !== 'pending') {
+                return CalendarFlow.VIEW_STUDENT_REQUEST
             } else {
                 return CalendarFlow.EDIT_STUDENT_REQUEST
             }

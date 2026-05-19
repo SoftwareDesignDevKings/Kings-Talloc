@@ -12,6 +12,7 @@ import {
     fetchCacheClasses,
     fetchCacheSubjects,
     fetchCacheStudents,
+    fetchStudentTutorEligibility,
 } from '@/firestore/firestoreFetch';
 import useAuthSession from '@/hooks/useAuthSession';
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
@@ -42,6 +43,7 @@ export const AppDataContextProvider = ({ children }) => {
     const { session, userRole } = useAuthSession();
     const userEmail = session?.user?.email;
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
+    const canReadCanvasReferenceData = userRole === 'admin' || userRole === 'teacher';
 
     // Raw data buckets from Firestore listeners
     const [oneOffShifts, setOneOffShifts] = useState([]);
@@ -56,6 +58,11 @@ export const AppDataContextProvider = ({ children }) => {
     const [students, setStudents] = useState([]);
     const [tutors, setTutors] = useState([]);
     const [classes, setClasses] = useState([]);
+    const [studentTutorEligibility, setStudentTutorEligibility] = useState({
+        coverageKeys: [],
+        eligibleTutorEmails: [],
+        eligibleTutors: [],
+    });
 
     const [appDateRange, setAppDateRange] = useState({
         start: startOfWeek(new Date(), { weekStartsOn: 1 }),
@@ -117,21 +124,30 @@ export const AppDataContextProvider = ({ children }) => {
         const loadReferenceData = async () => {
             const [tutorList, classList, subjectList] = await Promise.all([
                 fetchCacheTutors(),
-                fetchCacheClasses(),
+                canReadCanvasReferenceData ? fetchCacheClasses() : Promise.resolve([]),
                 fetchCacheSubjects(),
             ]);
             setTutors(tutorList);
             setClasses(classList);
             setSubjects(subjectList);
 
-            // students only needed by roles that manage them (tutors, admins)
-            if (userRole !== 'student') {
+            // Canvas users include roster data and are only needed by staff who manage classes.
+            if (canReadCanvasReferenceData) {
                 const studentList = await fetchCacheStudents();
                 setStudents(studentList);
+            } else {
+                setStudents([]);
+            }
+
+            if (userRole === 'student') {
+                const eligibility = await fetchStudentTutorEligibility(userEmail);
+                setStudentTutorEligibility(eligibility);
+            } else {
+                setStudentTutorEligibility({ coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] });
             }
         };
         loadReferenceData().catch((error) => console.error('Error loading reference data:', error));
-    }, [userEmail, userRole]);
+    }, [userEmail, userRole, canReadCanvasReferenceData]);
 
     const contextValues = useMemo(() => ({
         // calendar streams (real-time)
@@ -147,6 +163,7 @@ export const AppDataContextProvider = ({ children }) => {
         subjects,
         tutors,
         students,
+        studentTutorEligibility,
 
         // date range
         calendarDateRange: appDateRange,
@@ -159,6 +176,7 @@ export const AppDataContextProvider = ({ children }) => {
         subjects,
         tutors,
         students,
+        studentTutorEligibility,
         appDateRange,
     ]);
 

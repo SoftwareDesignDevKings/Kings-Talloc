@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { useAppData } from '@/contexts/AppDataContext';
 import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
+import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 
 import useAlert from '@/hooks/useAlert.js';
 
@@ -23,7 +24,7 @@ const StudentEventForm = ({
         calendarStudentRequests,
         calendarAvailabilities,
         tutors,
-        subjects
+        studentTutorEligibility,
     } = useAppData();
     
     // derive mode flags
@@ -34,12 +35,10 @@ const StudentEventForm = ({
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [tutorOptions, setTutorOptions] = useState([]);
-    const [subjectOptions, setSubjectOptions] = useState([]);
     const [filteredTutors, setFilteredTutors] = useState([]);
     const [selectedTutor, setSelectedTutor] = useState(
         newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null,
     );
-    const [selectedSubject, setSelectedSubject] = useState(newEvent.subject || null);
     const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
     const selectedStudent =
         newEvent.students && newEvent.students.length > 0
@@ -49,20 +48,47 @@ const StudentEventForm = ({
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
 
+    const getTutorsAvailableForRange = useCallback((start, end) => {
+        if (
+            !start ||
+            !end ||
+            Number.isNaN(start.getTime()) ||
+            Number.isNaN(end.getTime())
+        ) {
+            return [];
+        }
+
+        return tutorOptions.filter((tutor) => {
+            const tutorAvailabilities = calendarAvailabilities.filter(
+                (availability) => availability.tutor === tutor.value,
+            );
+
+            return tutorAvailabilities.some((availability) => {
+                const availStart = new Date(availability.start);
+                const availEnd = new Date(availability.end);
+                const types = Array.isArray(availability.workType) ? availability.workType : [availability.workType];
+                return (
+                    (availStart <= start || availStart.getTime() === start.getTime()) &&
+                    (availEnd >= end || availEnd.getTime() === end.getTime()) &&
+                    (types.some(t => t === 'tutoring' || t === 'tutoringOrWork') ||
+                        availability.workType === undefined)
+                ); // undefined check for backwards compatibility
+            });
+        });
+    }, [calendarAvailabilities, tutorOptions]);
+
+    const filterTutorsByAvailability = useCallback((start, end) => {
+        setFilteredTutors(getTutorsAvailableForRange(start, end));
+    }, [getTutorsAvailableForRange]);
+
     // transform provider data into react-select format
     useEffect(() => {
-        const tutorList = tutors.map((tutor) => ({
-            value: tutor.email,
-            label: tutor.name || tutor.email,
-        }));
-        setTutorOptions(tutorList);
+        setTutorOptions(buildEligibleTutorOptions(tutors, studentTutorEligibility));
+    }, [tutors, studentTutorEligibility]);
 
-        const subjectList = subjects.map((subject) => ({
-            value: subject.id,
-            label: subject.name,
-        }));
-        setSubjectOptions(subjectList);
-    }, [tutors, subjects]);
+    useEffect(() => {
+        filterTutorsByAvailability(new Date(newEvent.start), new Date(newEvent.end));
+    }, [filterTutorsByAvailability, newEvent.end, newEvent.start]);
 
     useEffect(() => {
         if (!isEditing) {
@@ -92,11 +118,6 @@ const StudentEventForm = ({
         setNewEvent(prev => ({ ...prev, staff: [selectedOption] }));
     };
 
-    const handleSubjectChange = (selectedOption) => {
-        setSelectedSubject(selectedOption);
-        setNewEvent(prev => ({ ...prev, subject: selectedOption }));
-    };
-
     const handlePreferenceClick = (preference) => {
         setSelectedPreference(preference);
         setNewEvent(prev => ({ ...prev, preference }));
@@ -107,31 +128,9 @@ const StudentEventForm = ({
         const end = new Date(newEvent.end);
         if (!isAfter(end, start)) {
             addAlert('error', 'End date must be after the start date.');
-            return false; // Validation failed
+            return false;
         }
-        return true; // Validation passed
-    };
-
-    const filterTutorsByAvailability = (start, end) => {
-        const availableTutors = tutorOptions.filter((tutor) => {
-            const tutorAvailabilities = calendarAvailabilities.filter(
-                (availability) => availability.tutor === tutor.value,
-            );
-
-            return tutorAvailabilities.some((availability) => {
-                const availStart = new Date(availability.start);
-                const availEnd = new Date(availability.end);
-                const types = Array.isArray(availability.workType) ? availability.workType : [availability.workType];
-                return (
-                    (availStart <= start || availStart.getTime() === start.getTime()) &&
-                    (availEnd >= end || availEnd.getTime() === end.getTime()) &&
-                    (types.some(t => t === 'tutoring' || t === 'tutoringOrWork') ||
-                        availability.workType === undefined)
-                ); // undefined check for backwards compatibility
-            });
-        });
-
-        setFilteredTutors(availableTutors);
+        return true;
     };
 
     const handleInputChange = (e) => {
@@ -166,7 +165,9 @@ const StudentEventForm = ({
             studentEmails: (newEvent.students || []).map(s => s.value || s), 
             // firebase sec rules require students maped to their value 
             staff: newEvent.staff || [],
-            subject: newEvent.subject,
+            staffEmails: (newEvent.staff || []).map(s => s.value || s),
+            classes: [],
+            subject: null,
             preference: newEvent.preference,
             createdByStudent: true,
             approvalStatus: newEvent.approvalStatus || 'pending',
@@ -205,9 +206,7 @@ const StudentEventForm = ({
                     },
                 ]);
 
-                // Show two alerts stacked on top of each other
-                addAlert('success', 'Tutoring session request created successfully');
-                addAlert('info', 'Watch your emails for an MS Teams Meeting. DO NOT RSVP.');
+                addAlert('success', 'Tutoring session request sent for approval');
             }
             return true; // Success - allow modal to close
         } catch (error) {
@@ -310,22 +309,6 @@ const StudentEventForm = ({
                 />
             </div>
             <div className="mb-3">
-                <label htmlFor="subject" className="form-label">
-                    Subject
-                </label>
-                <Select
-                    name="subject"
-                    options={subjectOptions}
-                    value={selectedSubject}
-                    onChange={handleSubjectChange}
-                    classNamePrefix="select"
-                    placeholder="Select a subject"
-                    isDisabled={isView}
-                    aria-label="Select subject"
-                    inputId="subject"
-                />
-            </div>
-            <div className="mb-3">
                 <label className="form-label" id="preference-label">Preference</label>
                 <div className="d-flex flex-wrap gap-2" role="group" aria-labelledby="preference-label">
                     {preferenceOptions.map((preference) => (
@@ -355,7 +338,7 @@ const StudentEventForm = ({
                     onMenuOpen={handleMenuOpen}
                     classNamePrefix="select"
                     isDisabled={isView}
-                    noOptionsMessage={() => 'No tutors available for the selected time range'}
+                    noOptionsMessage={() => 'No eligible tutors available for the selected time range'}
                     aria-label="Assign tutor to event"
                     inputId="tutor"
                 />
