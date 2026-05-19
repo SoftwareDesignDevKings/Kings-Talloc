@@ -107,6 +107,8 @@ export const updateEventInFirestore = async (eventId, eventData, collectionName 
     if (eventData.staff !== undefined || eventData.students !== undefined) {
         const staffEmails = (eventData.staff || []).map(s => typeof s === 'object' ? s.value : s);
         const studentEmails = (eventData.students || []).map(s => typeof s === 'object' ? s.value : s);
+        eventData.staffEmails = staffEmails;
+        eventData.studentEmails = studentEmails;
         eventData.emailsList = [...new Set([...staffEmails, ...studentEmails])];
     }
 
@@ -126,6 +128,8 @@ export const createEventInFirestore = async (eventData, collectionName = 'shifts
 
     const docRef = await addDoc(collection(db, collectionName), {
         ...eventData,
+        staffEmails,
+        studentEmails,
         emailsList,
     });
     return docRef.id;

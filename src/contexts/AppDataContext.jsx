@@ -12,6 +12,7 @@ import {
     fetchCacheClasses,
     fetchCacheSubjects,
     fetchCacheStudents,
+    fetchStudentTutorEligibility,
 } from '@/firestore/firestoreFetch';
 import useAuthSession from '@/hooks/useAuthSession';
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
@@ -57,6 +58,10 @@ export const AppDataContextProvider = ({ children }) => {
     const [students, setStudents] = useState([]);
     const [tutors, setTutors] = useState([]);
     const [classes, setClasses] = useState([]);
+    const [studentTutorEligibility, setStudentTutorEligibility] = useState({
+        coverageKeys: [],
+        eligibleTutorEmails: [],
+    });
 
     const [appDateRange, setAppDateRange] = useState({
         start: startOfWeek(new Date(), { weekStartsOn: 1 }),
@@ -132,6 +137,13 @@ export const AppDataContextProvider = ({ children }) => {
             } else {
                 setStudents([]);
             }
+
+            if (userRole === 'student') {
+                const eligibility = await fetchStudentTutorEligibility(userEmail);
+                setStudentTutorEligibility(eligibility);
+            } else {
+                setStudentTutorEligibility({ coverageKeys: [], eligibleTutorEmails: [] });
+            }
         };
         loadReferenceData().catch((error) => console.error('Error loading reference data:', error));
     }, [userEmail, userRole, canReadCanvasReferenceData]);
@@ -150,6 +162,7 @@ export const AppDataContextProvider = ({ children }) => {
         subjects,
         tutors,
         students,
+        studentTutorEligibility,
 
         // date range
         calendarDateRange: appDateRange,
@@ -162,6 +175,7 @@ export const AppDataContextProvider = ({ children }) => {
         subjects,
         tutors,
         students,
+        studentTutorEligibility,
         appDateRange,
     ]);
 

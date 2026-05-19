@@ -110,6 +110,7 @@ describe('canvasSync locking', () => {
             status: 'success',
             recordsSynced: 0,
             archiveCounts: { classesArchived: 0, subjectsArchived: 0 },
+            eligibilityCounts: { studentCount: 0, writeCount: 0 },
         });
 
         expect(transaction.set).toHaveBeenCalledWith(

@@ -48,7 +48,12 @@ export const CalendarUIContextProvider = ({ children }) => {
     const userEmail = session.user.email;
 
     // Get calendar data
-    const { calendarShifts, calendarAvailabilities, calendarStudentRequests } = useAppData();
+    const {
+        calendarShifts,
+        calendarAvailabilities,
+        calendarStudentRequests,
+        studentTutorEligibility,
+    } = useAppData();
 
     // cal strategy for filters and scope
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
@@ -217,8 +222,8 @@ export const CalendarUIContextProvider = ({ children }) => {
                 return types.length === 0 || types.includes('tutoring');
             });
 
-            // Canvas owns classes/rosters; Talloc no longer restricts student availability
-            // visibility by subject or class. Students can see all tutoring availabilities.
+            const eligibleTutorEmails = new Set(studentTutorEligibility?.eligibleTutorEmails || []);
+            filtered = filtered.filter(a => eligibleTutorEmails.has(a.tutor));
         }
 
         // filter by selected tutors from CalendarUIContextProvider
@@ -238,7 +243,7 @@ export const CalendarUIContextProvider = ({ children }) => {
         const splitAvailabilities = calendarAvailabilitySplit(filtered, calendarShifts);
 
         return splitAvailabilities;
-    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, filterByTutor, filterAvailabilityByWorkType, calendarShifts]);
+    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, filterByTutor, filterAvailabilityByWorkType, calendarShifts, studentTutorEligibility]);
 
     // ─────────────────────────────────────
     // context values

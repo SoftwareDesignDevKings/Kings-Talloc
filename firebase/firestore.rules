@@ -81,9 +81,15 @@ service cloud.firestore {
       return isStudent()
         && 'studentEmails' in request.resource.data
         && 'emailsList' in request.resource.data
+        && 'staffEmails' in request.resource.data
+        && request.resource.data.studentEmails.size() == 1
         && request.resource.data.studentEmails.hasOnly([request.auth.token.email])
         && request.resource.data.studentEmails.hasAll([request.auth.token.email])
-        && request.resource.data.emailsList.hasAny([request.auth.token.email])
+        && request.resource.data.staffEmails.size() == 1
+        && request.resource.data.emailsList.size() == 2
+        && request.resource.data.emailsList.hasAll(request.resource.data.staffEmails)
+        && request.resource.data.emailsList.hasAll(request.resource.data.studentEmails)
+        && get(/databases/$(database)/documents/studentTutorEligibility/$(request.auth.token.email)).data.eligibleTutorEmails.hasAny(request.resource.data.staffEmails)
         && requestHasNoClasses();
     }
 
@@ -142,6 +148,13 @@ service cloud.firestore {
         && request.auth.token.email == request.resource.data.tutor;
       allow update, delete: if isTutorOrCoach()
         && request.auth.token.email == resource.data.tutor;
+    }
+
+    // Student-safe tutor eligibility generated from Canvas rosters and admin tutor coverage.
+    match /studentTutorEligibility/{studentEmail} {
+      allow read: if isAdminOrTeacher()
+        || (isStudent() && request.auth.token.email == studentEmail);
+      allow write: if false;
     }
 
     // Classes — admins/teachers manage; all authenticated can read

@@ -9,6 +9,7 @@ import {
     mapCanvasUserFromEnrollment,
 } from './canvasMappers';
 import { getStaleEnrollmentIdsForDeletion } from './canvasSyncPlanning';
+import { rebuildStudentTutorEligibility } from './tutorEligibility';
 
 const SYNC_STATE_REF = adminDb.collection('canvasSyncState').doc('main');
 const BATCH_LIMIT = 400;
@@ -243,15 +244,23 @@ export const runFullCanvasSync = async ({ client = createCanvasClient() } = {}) 
             });
         }
 
+        await setProgress({
+            syncType: 'full',
+            phase: 'Rebuilding student tutor eligibility',
+            currentStep: 'eligibility',
+        });
+        const eligibilityCounts = await rebuildStudentTutorEligibility();
+
         const completedAt = now();
         await logRef.set({
             status: 'success',
             recordsSynced,
             completedAt,
             archiveCounts,
+            eligibilityCounts,
         }, { merge: true });
         await finishSyncState({ status: 'success', completedAt });
-        return { status: 'success', recordsSynced, archiveCounts };
+        return { status: 'success', recordsSynced, archiveCounts, eligibilityCounts };
     } catch (error) {
         if (!lockAcquired) throw error;
 

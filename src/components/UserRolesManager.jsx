@@ -1,11 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Select from 'react-select';
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
 import styles from '@/styles/userRoles.module.css';
 import t from '@/styles/manageTable.module.css';
+import {
+    buildTutorCoverageOptionGroups,
+    flattenCoverageOptionGroups,
+    hasTutorAccess,
+    hydrateTutorCoverage,
+    serialiseTutorCoverage,
+} from '@/lib/canvas/canvasCoverage';
 
 const getRolePriority = (user) => {
     const all = [user.defaultRole || user.role, ...(user.userRoles || [])];
@@ -25,6 +33,8 @@ const UserRolesManager = () => {
     const [name, setName] = useState('');
     const [role, setRole] = useState('student'); // This maps to defaultRole in Firestore
     const [userRoles, setUserRoles] = useState([]); // Additional roles array
+    const [tutorCoverage, setTutorCoverage] = useState([]);
+    const [canvasCourses, setCanvasCourses] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [uploadingTimesheets, setUploadingTimesheets] = useState({});
@@ -41,6 +51,15 @@ const UserRolesManager = () => {
     };
 
     const extraRoleOptions = EXTRA_ROLES_BY_DEFAULT[role] ?? [];
+    const tutorCoverageOptionGroups = useMemo(
+        () => buildTutorCoverageOptionGroups(canvasCourses),
+        [canvasCourses],
+    );
+    const tutorCoverageOptions = useMemo(
+        () => flattenCoverageOptionGroups(tutorCoverageOptionGroups),
+        [tutorCoverageOptionGroups],
+    );
+    const userHasTutorAccess = role === 'tutor' || userRoles.includes('tutor');
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -53,6 +72,16 @@ const UserRolesManager = () => {
         };
 
         fetchUsers();
+
+        const fetchCanvasCourses = async () => {
+            const querySnapshot = await getDocs(collection(db, 'canvasCourses'));
+            setCanvasCourses(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        };
+
+        fetchCanvasCourses().catch((error) => {
+            console.error('Error loading Canvas coverage options:', error);
+            setCanvasCourses([]);
+        });
     }, []);
 
     useEffect(() => {
@@ -85,6 +114,7 @@ const UserRolesManager = () => {
                 setName('');
                 setRole('student');
                 setUserRoles([]);
+                setTutorCoverage([]);
                 setIsEditing(false);
             };
 
@@ -121,13 +151,21 @@ const UserRolesManager = () => {
                 }
             }
 
+            const coverage = userHasTutorAccess ? serialiseTutorCoverage(tutorCoverage) : [];
             await setDoc(userRef, {
                 email,
                 name,
                 role, // Legacy single-role mirror for older readers still expecting `users.role`; canonical fields are `defaultRole` + `userRoles`. Remove after all readers migrate.
                 defaultRole: role,
-                userRoles
+                userRoles,
+                tutorCoverage: coverage,
+                tutorCoverageKeys: coverage.map((item) => item.key),
             }, { merge: true });
+
+            const rebuildResponse = await fetch('/api/canvas/tutor-eligibility/rebuild', { method: 'POST' });
+            if (!rebuildResponse.ok) {
+                addAlert('error', 'User saved, but student tutor eligibility could not be rebuilt.');
+            }
 
             addAlert('success', `Role of ${role} assigned to ${email}`);
 
@@ -144,6 +182,7 @@ const UserRolesManager = () => {
                 setName('');
                 setRole('student');
                 setUserRoles([]);
+                setTutorCoverage([]);
                 setIsEditing(false);
             }
 
@@ -188,6 +227,11 @@ const UserRolesManager = () => {
         setName(user.name);
         setRole(user.defaultRole || user.role); // Use defaultRole if available, fallback to role
         setUserRoles(user.userRoles || []); // Load existing userRoles or empty array
+        setTutorCoverage(hydrateTutorCoverage(
+            user.tutorCoverage || [],
+            user.tutorCoverageKeys || [],
+            tutorCoverageOptions,
+        ));
         setIsEditing(true);
         setShowModal(true);
     };
@@ -261,6 +305,7 @@ const UserRolesManager = () => {
                         setName('');
                         setRole('student');
                         setUserRoles([]);
+                        setTutorCoverage([]);
                     }}
                     className="btn btn-outline-primary btn-sm"
                 >
@@ -308,7 +353,7 @@ const UserRolesManager = () => {
                                 </td>
                                 <td className={t.actionCol} style={{ textAlign: 'right' }}>
                                     <div className={t.actionGroup} style={{ justifyContent: 'flex-end' }}>
-                                        {((user.defaultRole || user.role) === 'tutor' || user.userRoles?.includes('tutor')) && (
+                                        {hasTutorAccess(user) && (
                                             <>
                                                 <input
                                                     type="file"
@@ -426,7 +471,11 @@ const UserRolesManager = () => {
                                                 setRole(newDefault);
                                                 // strip any userRoles that aren't valid for the new defaultRole
                                                 const allowed = EXTRA_ROLES_BY_DEFAULT[newDefault] ?? [];
-                                                setUserRoles(prev => prev.filter(r => allowed.includes(r)));
+                                                const nextUserRoles = userRoles.filter(r => allowed.includes(r));
+                                                setUserRoles(nextUserRoles);
+                                                if (newDefault !== 'tutor' && !nextUserRoles.includes('tutor')) {
+                                                    setTutorCoverage([]);
+                                                }
                                             }}
                                         >
                                             <option value="student">Student</option>
@@ -450,10 +499,12 @@ const UserRolesManager = () => {
                                                             key={roleOption}
                                                             className={`badge rounded-pill ${styles.selectableBadge} ${isSelected ? styles.selectableBadgeSelected : 'bg-light text-dark'}`}
                                                             onClick={() => {
-                                                                if (isSelected) {
-                                                                    setUserRoles(userRoles.filter(r => r !== roleOption));
-                                                                } else {
-                                                                    setUserRoles([...userRoles, roleOption]);
+                                                                const nextUserRoles = isSelected
+                                                                    ? userRoles.filter(r => r !== roleOption)
+                                                                    : [...userRoles, roleOption];
+                                                                setUserRoles(nextUserRoles);
+                                                                if (role !== 'tutor' && !nextUserRoles.includes('tutor')) {
+                                                                    setTutorCoverage([]);
                                                                 }
                                                             }}
                                                         >
@@ -462,6 +513,22 @@ const UserRolesManager = () => {
                                                     );
                                                 })}
                                             </div>
+                                        </div>
+                                    )}
+                                    {userHasTutorAccess && (
+                                        <div className={styles.modalSection}>
+                                            <label htmlFor="tutorCoverage" className="form-label small fw-bold text-muted">
+                                                Tutor Canvas Coverage
+                                            </label>
+                                            <Select
+                                                isMulti
+                                                inputId="tutorCoverage"
+                                                options={tutorCoverageOptionGroups}
+                                                value={tutorCoverage}
+                                                onChange={(selectedOptions) => setTutorCoverage(selectedOptions || [])}
+                                                classNamePrefix="select"
+                                                noOptionsMessage={() => 'No Canvas courses synced'}
+                                            />
                                         </div>
                                     )}
                                 </div>

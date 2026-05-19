@@ -1,5 +1,5 @@
 import { db } from '@/firestore/firestoreClient';
-import { collection, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 // ---------------------------------------------------------------------------
@@ -273,3 +273,21 @@ export const fetchCacheStudents = () =>
             };
         });
     });
+
+export const fetchStudentTutorEligibility = async (studentEmail) => {
+    if (!studentEmail) {
+        return { coverageKeys: [], eligibleTutorEmails: [] };
+    }
+
+    const snapshot = await getDoc(doc(db, 'studentTutorEligibility', studentEmail.toLowerCase()));
+    if (!snapshot.exists()) {
+        return { coverageKeys: [], eligibleTutorEmails: [] };
+    }
+
+    const data = snapshot.data();
+    return {
+        coverageKeys: data.coverageKeys || [],
+        eligibleTutorEmails: data.eligibleTutorEmails || [],
+        updatedAt: data.updatedAt || null,
+    };
+};

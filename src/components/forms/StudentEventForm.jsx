@@ -23,6 +23,7 @@ const StudentEventForm = ({
         calendarStudentRequests,
         calendarAvailabilities,
         tutors,
+        studentTutorEligibility,
     } = useAppData();
     
     // derive mode flags
@@ -47,12 +48,15 @@ const StudentEventForm = ({
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
     // transform provider data into react-select format
     useEffect(() => {
-        const tutorList = tutors.map((tutor) => ({
-            value: tutor.email,
-            label: tutor.name || tutor.email,
-        }));
+        const eligibleTutorEmails = new Set(studentTutorEligibility?.eligibleTutorEmails || []);
+        const tutorList = tutors
+            .filter((tutor) => eligibleTutorEmails.has(tutor.email))
+            .map((tutor) => ({
+                value: tutor.email,
+                label: tutor.name || tutor.email,
+            }));
         setTutorOptions(tutorList);
-    }, [tutors]);
+    }, [tutors, studentTutorEligibility]);
 
     useEffect(() => {
         if (!isEditing) {
@@ -151,6 +155,7 @@ const StudentEventForm = ({
             studentEmails: (newEvent.students || []).map(s => s.value || s), 
             // firebase sec rules require students maped to their value 
             staff: newEvent.staff || [],
+            staffEmails: (newEvent.staff || []).map(s => s.value || s),
             classes: [],
             subject: null,
             preference: newEvent.preference,
@@ -325,7 +330,7 @@ const StudentEventForm = ({
                     onMenuOpen={handleMenuOpen}
                     classNamePrefix="select"
                     isDisabled={isView}
-                    noOptionsMessage={() => 'No tutors available for the selected time range'}
+                    noOptionsMessage={() => 'No eligible tutors available for the selected time range'}
                     aria-label="Assign tutor to event"
                     inputId="tutor"
                 />

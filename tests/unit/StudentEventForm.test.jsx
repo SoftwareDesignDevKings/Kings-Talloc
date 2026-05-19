@@ -74,6 +74,10 @@ describe('StudentEventForm', () => {
                 workType: 'tutoring',
             }],
             tutors: [{ email: 'tutor@example.edu', name: 'Tutor One' }],
+            studentTutorEligibility: {
+                coverageKeys: ['blueprint:senx'],
+                eligibleTutorEmails: ['tutor@example.edu'],
+            },
             classes: [{
                 id: '123',
                 name: 'Mathematics Year 10',
@@ -125,6 +129,7 @@ describe('StudentEventForm', () => {
                 expect.objectContaining({
                     classes: [],
                     students: newEvent.students,
+                    staffEmails: ['tutor@example.edu'],
                     studentEmails: ['student@example.edu'],
                 }),
                 'studentEventRequests',
