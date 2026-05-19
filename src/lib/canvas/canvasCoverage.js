@@ -3,6 +3,28 @@ const toStringId = (value) => {
     return String(value);
 };
 
+export const parseBlueprintCourseCode = (courseCode) => {
+    const match = toStringId(courseCode).trim().match(/^BP_(\d+)([a-z0-9]+)$/i);
+    if (!match) return null;
+
+    const year = match[1];
+    const subjectCode = match[2].toUpperCase();
+    return {
+        classCode: `${year}${subjectCode}`,
+        subjectCode,
+    };
+};
+
+export const formatBlueprintCoverageLabel = ({ blueprintCourseName, blueprintCourseCode, fallbackId } = {}) => {
+    const parsed = parseBlueprintCourseCode(blueprintCourseCode);
+    if (parsed?.classCode) return parsed.classCode;
+
+    const fallbackName = toStringId(blueprintCourseName).replace(/^Blueprint\s+/i, '').trim();
+    const code = toStringId(blueprintCourseCode).trim();
+    if (fallbackName && code && fallbackName !== code) return `${fallbackName} (${code})`;
+    return fallbackName || code || `Blueprint ${toStringId(fallbackId)}`;
+};
+
 export const getCanvasCoverageKey = (course) => {
     const blueprintId = toStringId(course?.blueprintCourseId ?? course?.blueprint_course_id);
     if (blueprintId) return `blueprint:${blueprintId}`;
@@ -35,14 +57,18 @@ export const buildTutorCoverageOptionGroups = (courses = []) => {
         if (blueprintId) {
             if (!blueprintsById.has(blueprintId)) {
                 const courseCode = course.blueprintCourseCode || course.blueprint_course_code || '';
-                const label = course.blueprintCourseName || course.blueprint_course_name || courseCode || `Blueprint ${blueprintId}`;
                 blueprintsById.set(blueprintId, {
                     value: `blueprint:${blueprintId}`,
                     key: `blueprint:${blueprintId}`,
                     type: 'blueprint',
                     id: blueprintId,
-                    label: courseCode && label !== courseCode ? `${label} (${courseCode})` : label,
+                    label: formatBlueprintCoverageLabel({
+                        blueprintCourseName: course.blueprintCourseName || course.blueprint_course_name,
+                        blueprintCourseCode: courseCode,
+                        fallbackId: blueprintId,
+                    }),
                     courseCode,
+                    subjectCode: parseBlueprintCourseCode(courseCode)?.subjectCode || '',
                 });
             }
             return;
@@ -107,4 +133,34 @@ export const hasTutorAccess = (user) => {
     const defaultRole = user?.defaultRole || user?.role;
     const userRoles = user?.userRoles || [];
     return defaultRole === 'tutor' || userRoles.includes('tutor');
+};
+
+const normaliseEmail = (email) => (typeof email === 'string' ? email.toLowerCase() : '');
+
+export const formatTutorSubjectLabel = (baseLabel, subjectCodes = []) => {
+    const uniqueSubjectCodes = [...new Set(subjectCodes.filter(Boolean))].sort();
+    return uniqueSubjectCodes.length
+        ? `${baseLabel} (${uniqueSubjectCodes.join(', ')})`
+        : baseLabel;
+};
+
+export const buildEligibleTutorOptions = (tutors = [], studentTutorEligibility = {}) => {
+    const eligibleTutorEmails = new Set((studentTutorEligibility.eligibleTutorEmails || []).map(normaliseEmail));
+    const eligibleTutorDetails = new Map(
+        (studentTutorEligibility.eligibleTutors || []).map((tutor) => [
+            normaliseEmail(tutor.email),
+            tutor.subjectCodes || [],
+        ]),
+    );
+
+    return tutors
+        .filter((tutor) => eligibleTutorEmails.has(normaliseEmail(tutor.email)))
+        .map((tutor) => {
+            const emailKey = normaliseEmail(tutor.email);
+            const baseLabel = tutor.name || tutor.email;
+            return {
+                value: tutor.email,
+                label: formatTutorSubjectLabel(baseLabel, eligibleTutorDetails.get(emailKey) || []),
+            };
+        });
 };

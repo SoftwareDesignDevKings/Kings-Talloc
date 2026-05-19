@@ -7,6 +7,7 @@ import BaseModal from '../modals/BaseModal.jsx';
 import { useAppData } from '@/contexts/AppDataContext';
 import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
+import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 
 import useAlert from '@/hooks/useAlert.js';
 
@@ -48,14 +49,7 @@ const StudentEventForm = ({
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
     // transform provider data into react-select format
     useEffect(() => {
-        const eligibleTutorEmails = new Set(studentTutorEligibility?.eligibleTutorEmails || []);
-        const tutorList = tutors
-            .filter((tutor) => eligibleTutorEmails.has(tutor.email))
-            .map((tutor) => ({
-                value: tutor.email,
-                label: tutor.name || tutor.email,
-            }));
-        setTutorOptions(tutorList);
+        setTutorOptions(buildEligibleTutorOptions(tutors, studentTutorEligibility));
     }, [tutors, studentTutorEligibility]);
 
     useEffect(() => {
@@ -196,9 +190,7 @@ const StudentEventForm = ({
                     },
                 ]);
 
-                // Show two alerts stacked on top of each other
-                addAlert('success', 'Tutoring session request created successfully');
-                addAlert('info', 'Watch your emails for an MS Teams Meeting. DO NOT RSVP.');
+                addAlert('success', 'Tutoring session request sent for approval');
             }
             return true; // Success - allow modal to close
         } catch (error) {

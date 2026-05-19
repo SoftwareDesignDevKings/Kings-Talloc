@@ -61,6 +61,7 @@ export const AppDataContextProvider = ({ children }) => {
     const [studentTutorEligibility, setStudentTutorEligibility] = useState({
         coverageKeys: [],
         eligibleTutorEmails: [],
+        eligibleTutors: [],
     });
 
     const [appDateRange, setAppDateRange] = useState({
@@ -142,7 +143,7 @@ export const AppDataContextProvider = ({ children }) => {
                 const eligibility = await fetchStudentTutorEligibility(userEmail);
                 setStudentTutorEligibility(eligibility);
             } else {
-                setStudentTutorEligibility({ coverageKeys: [], eligibleTutorEmails: [] });
+                setStudentTutorEligibility({ coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] });
             }
         };
         loadReferenceData().catch((error) => console.error('Error loading reference data:', error));

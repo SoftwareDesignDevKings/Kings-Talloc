@@ -77,6 +77,16 @@ service cloud.firestore {
         || resource.data.classes.size() == 0;
     }
 
+    function requestIsPending() {
+      return 'approvalStatus' in request.resource.data
+        && request.resource.data.approvalStatus == 'pending';
+    }
+
+    function resourceIsPending() {
+      return 'approvalStatus' in resource.data
+        && resource.data.approvalStatus == 'pending';
+    }
+
     function studentWritesOwnRequest() {
       return isStudent()
         && 'studentEmails' in request.resource.data
@@ -90,6 +100,7 @@ service cloud.firestore {
         && request.resource.data.emailsList.hasAll(request.resource.data.staffEmails)
         && request.resource.data.emailsList.hasAll(request.resource.data.studentEmails)
         && get(/databases/$(database)/documents/studentTutorEligibility/$(request.auth.token.email)).data.eligibleTutorEmails.hasAny(request.resource.data.staffEmails)
+        && requestIsPending()
         && requestHasNoClasses();
     }
 
@@ -134,10 +145,12 @@ service cloud.firestore {
       allow update: if isAdminOrTeacher()
         || (isStudent()
           && studentOwnsRequest(request.auth.token.email)
+          && resourceIsPending()
           && studentWritesOwnRequest());
       allow delete: if isAdminOrTeacher()
         || (isStudent()
           && studentOwnsRequest(request.auth.token.email)
+          && resourceIsPending()
           && resourceHasNoClasses());
     }
 

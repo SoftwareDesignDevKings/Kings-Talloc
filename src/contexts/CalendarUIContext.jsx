@@ -222,8 +222,13 @@ export const CalendarUIContextProvider = ({ children }) => {
                 return types.length === 0 || types.includes('tutoring');
             });
 
-            const eligibleTutorEmails = new Set(studentTutorEligibility?.eligibleTutorEmails || []);
-            filtered = filtered.filter(a => eligibleTutorEmails.has(a.tutor));
+            const eligibleTutorEmails = new Set(
+                (studentTutorEligibility?.eligibleTutorEmails || [])
+                    .map((email) => (typeof email === 'string' ? email.toLowerCase() : '')),
+            );
+            filtered = filtered.filter(a => eligibleTutorEmails.has(
+                typeof a.tutor === 'string' ? a.tutor.toLowerCase() : '',
+            ));
         }
 
         // filter by selected tutors from CalendarUIContextProvider

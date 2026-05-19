@@ -8,10 +8,11 @@ import { useAppData } from '@/contexts/AppDataContext';
 import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
 import CalendarLegend from './CalendarLegend.jsx';
 import useAuthSession from '@/hooks/useAuthSession';
+import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 
 const CalendarFilterPanel = () => {
     const { userRole } = useAuthSession();
-    const { tutors } = useAppData();
+    const { tutors, studentTutorEligibility } = useAppData();
     const { filters, visibility, actions, calendarFilters, calendarScope } = useCalendarUI();
     const [isOpen, setIsOpen] = useState(true);
     const [showHowToModal, setShowHowToModal] = useState(false);
@@ -22,8 +23,20 @@ const CalendarFilterPanel = () => {
             label: tutor.name || tutor.email,
         });
 
-        return (tutors ?? []).map(mapTutorToOption);
-    }, [tutors]);
+        return userRole === 'student'
+            ? buildEligibleTutorOptions(tutors ?? [], studentTutorEligibility)
+            : (tutors ?? []).map(mapTutorToOption);
+    }, [tutors, userRole, studentTutorEligibility]);
+
+    useEffect(() => {
+        if (userRole !== 'student' || !filters.filterByTutor?.length) return;
+
+        const validTutorEmails = new Set(tutorOptions.map((option) => option.value));
+        const nextFilterByTutor = filters.filterByTutor.filter((option) => validTutorEmails.has(option.value));
+        if (nextFilterByTutor.length !== filters.filterByTutor.length) {
+            actions.setFilterByTutor(nextFilterByTutor);
+        }
+    }, [actions, filters.filterByTutor, tutorOptions, userRole]);
 
     // prepare work type options for availabilities
     const availabilityWorkTypeOptions = [

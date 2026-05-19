@@ -186,6 +186,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
         if (!validateForm()) return false; // Validation failed - don't close modal
 
+        const isApprovingStudentRequest = isEditing
+            && eventToEdit?.isStudentRequest
+            && (newEvent.approvalStatus || 'pending') === 'approved';
+
         const eventData = {
             title: newEvent.title || '',
             start: new Date(newEvent.start),
@@ -206,7 +210,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             subject: newEvent.subject || null,
             preference: newEvent.preference || null,
             recurring: newEvent.recurring || null,
-            createTeamsMeeting: newEvent.createTeamsMeeting || false,
+            createTeamsMeeting: isApprovingStudentRequest || newEvent.createTeamsMeeting || false,
             occurenceNum: newEvent.occurenceNum || null,
             until: newEvent.until || null,
         };

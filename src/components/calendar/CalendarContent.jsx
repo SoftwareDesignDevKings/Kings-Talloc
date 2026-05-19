@@ -222,6 +222,11 @@ const CalendarContent = () => {
             const newStart = addDays(event.start, 1);
             const newEnd = new Date(newStart.getTime() + duration);
 
+            // A student must not be able to bypass the availability check by
+            // creating a request in a free slot and duplicating it onto a day
+            // where the assigned tutor is no longer available.
+            if (blockIfTutorUnavailable(event, newStart, newEnd, 'duplicate')) return;
+
             // copy event data but remove properties that shouldn't be duplicated and create duplication event dictionary
             const { id, createdAt, updatedAt, recurringEventId, isRecurringInstance, recurring, until, eventExceptions, entityType, ...eventData } = event;
             const duplicatedEvent = {
@@ -358,7 +363,7 @@ const CalendarContent = () => {
     // For a pending student request, the new slot must still sit inside the
     // assigned tutor's remaining availability. Returns true if blocked.
     // Only students are gated — teachers/admins can move requests anywhere.
-    const blockIfTutorUnavailable = (event, start, end) => {
+    const blockIfTutorUnavailable = (event, start, end, action = 'move') => {
         if (userRole !== 'student') return false;
         const isPendingStudentRequest =
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
@@ -376,7 +381,11 @@ const CalendarContent = () => {
             overlayAvailabilities,
         );
         if (!covered) {
-            addAlert('warning', 'Tutor is not available during the selected time.');
+            const message =
+                action === 'duplicate'
+                    ? 'Cannot duplicate this request — the tutor is not available at the same time on the next day.'
+                    : 'Tutor is not available during the selected time.';
+            addAlert('warning', message);
             return true;
         }
         return false;

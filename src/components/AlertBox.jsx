@@ -4,9 +4,9 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Notification alert box component for displaying messages
- * - Type: can be either "ERROR", "INFO", or "SUCCESS"
+ * - Type: can be either "ERROR", "WARNING", "INFO", or "SUCCESS"
  * @param {string} message - The message to display in the alert box
- * @param {string} type - The type of alert: 'error', 'info', 'success'
+ * @param {string} type - The type of alert: 'error', 'warning', 'info', 'success'
  * @param {Function} onClose - Callback fired when the toast is dismissed
  * @returns {JSX.Element | null}
  */
@@ -27,6 +27,11 @@ const AlertBox = ({ message, type, onClose }) => {
         error: {
             colour: 'bg-danger',
             iconClass: 'bi-exclamation-triangle-fill',
+        },
+        warning: {
+            colour: 'bg-warning',
+            iconClass: 'bi-exclamation-triangle-fill',
+            textClass: 'text-dark',
         },
         info: {
             colour: 'bg-primary',
@@ -74,7 +79,7 @@ const AlertBox = ({ message, type, onClose }) => {
     return (
         <div
             ref={toastRef}
-            className={`toast align-items-center border-0 mb-2 shadow text-white w-auto ${config.colour}`}
+            className={`toast align-items-center border-0 mb-2 shadow ${config.textClass || 'text-white'} w-auto ${config.colour}`}
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
@@ -88,7 +93,7 @@ const AlertBox = ({ message, type, onClose }) => {
                 </div>
                 <button
                     type="button"
-                    className="btn-close btn-close-white me-3 m-auto"
+                    className={`btn-close ${config.textClass ? '' : 'btn-close-white'} me-3 m-auto`}
                     data-bs-dismiss="toast"
                     aria-label="Close"
                 ></button>

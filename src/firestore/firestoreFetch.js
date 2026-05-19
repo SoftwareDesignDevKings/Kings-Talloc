@@ -276,18 +276,19 @@ export const fetchCacheStudents = () =>
 
 export const fetchStudentTutorEligibility = async (studentEmail) => {
     if (!studentEmail) {
-        return { coverageKeys: [], eligibleTutorEmails: [] };
+        return { coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] };
     }
 
     const snapshot = await getDoc(doc(db, 'studentTutorEligibility', studentEmail.toLowerCase()));
     if (!snapshot.exists()) {
-        return { coverageKeys: [], eligibleTutorEmails: [] };
+        return { coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] };
     }
 
     const data = snapshot.data();
     return {
         coverageKeys: data.coverageKeys || [],
         eligibleTutorEmails: data.eligibleTutorEmails || [],
+        eligibleTutors: data.eligibleTutors || [],
         updatedAt: data.updatedAt || null,
     };
 };

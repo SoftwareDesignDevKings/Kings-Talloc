@@ -77,6 +77,10 @@ describe('StudentEventForm', () => {
             studentTutorEligibility: {
                 coverageKeys: ['blueprint:senx'],
                 eligibleTutorEmails: ['tutor@example.edu'],
+                eligibleTutors: [{
+                    email: 'tutor@example.edu',
+                    subjectCodes: ['SEN'],
+                }],
             },
             classes: [{
                 id: '123',
@@ -84,6 +88,7 @@ describe('StudentEventForm', () => {
                 courseCode: 'MATH10',
                 students: [{ email: 'student@example.edu', name: 'Student One' }],
             }],
+            ...overrides.appData,
         });
 
         render(
@@ -106,6 +111,46 @@ describe('StudentEventForm', () => {
         expect(screen.queryByLabelText('Select subject')).not.toBeInTheDocument();
     });
 
+    test('labels eligible tutors with shared subjects', async () => {
+        renderForm();
+
+        expect(await screen.findByRole('option', { name: 'Tutor One (SEN)' })).toBeInTheDocument();
+    });
+
+    test('labels tutors with multiple shared subjects', async () => {
+        renderForm({
+            appData: {
+                studentTutorEligibility: {
+                    coverageKeys: ['blueprint:sen', 'blueprint:enc'],
+                    eligibleTutorEmails: ['tutor@example.edu'],
+                    eligibleTutors: [{
+                        email: 'tutor@example.edu',
+                        subjectCodes: ['ENC', 'SEN'],
+                    }],
+                },
+            },
+        });
+
+        expect(await screen.findByRole('option', { name: 'Tutor One (ENC, SEN)' })).toBeInTheDocument();
+    });
+
+    test('falls back to tutor name when no shared subject label is available', async () => {
+        renderForm({
+            appData: {
+                studentTutorEligibility: {
+                    coverageKeys: ['course:robotics'],
+                    eligibleTutorEmails: ['tutor@example.edu'],
+                    eligibleTutors: [{
+                        email: 'tutor@example.edu',
+                        subjectCodes: [],
+                    }],
+                },
+            },
+        });
+
+        expect(await screen.findByRole('option', { name: 'Tutor One' })).toBeInTheDocument();
+    });
+
     test('submits student-created requests with no classes', async () => {
         const { setNewEvent, newEvent } = renderForm({
             newEvent: {
@@ -119,7 +164,7 @@ describe('StudentEventForm', () => {
 
         fireEvent.focus(screen.getByLabelText('Assign tutor to event'));
         await waitFor(() => {
-            expect(screen.getByLabelText('Assign tutor to event')).toHaveTextContent('Tutor One');
+            expect(screen.getByLabelText('Assign tutor to event')).toHaveTextContent('Tutor One (SEN)');
         });
         fireEvent.change(screen.getByLabelText('Assign tutor to event'), { target: { value: 'tutor@example.edu' } });
         fireEvent.click(screen.getByRole('button', { name: 'Submit' }));

@@ -12,12 +12,14 @@ describe('tutorEligibility', () => {
                     name: '12SENX1',
                     blueprintCourseId: '900',
                     blueprintCourseName: 'Software Engineering',
+                    blueprintCourseCode: 'BP_12SEN',
                 },
                 {
                     id: '102',
-                    name: '12SENX2',
-                    blueprintCourseId: '900',
+                    name: '11SENX1',
+                    blueprintCourseId: '901',
                     blueprintCourseName: 'Software Engineering',
+                    blueprintCourseCode: 'BP_11SEN',
                 },
                 {
                     id: '201',
@@ -26,6 +28,7 @@ describe('tutorEligibility', () => {
             ],
             enrollments: [
                 { courseId: '101', emailLower: 'student@kings.edu.au' },
+                { courseId: '102', emailLower: 'student@kings.edu.au' },
                 { courseId: '201', emailLower: 'other@kings.edu.au' },
             ],
             users: [
@@ -33,7 +36,7 @@ describe('tutorEligibility', () => {
                     email: 'senx-tutor@kings.edu.au',
                     defaultRole: 'tutor',
                     userRoles: [],
-                    tutorCoverageKeys: ['blueprint:900'],
+                    tutorCoverageKeys: ['blueprint:900', 'blueprint:901'],
                 },
                 {
                     email: 'robotics-tutor@kings.edu.au',
@@ -53,13 +56,21 @@ describe('tutorEligibility', () => {
         expect(eligibility).toEqual([
             {
                 studentEmail: 'student@kings.edu.au',
-                coverageKeys: ['blueprint:900'],
+                coverageKeys: ['blueprint:900', 'blueprint:901'],
                 eligibleTutorEmails: ['senx-tutor@kings.edu.au'],
+                eligibleTutors: [{
+                    email: 'senx-tutor@kings.edu.au',
+                    subjectCodes: ['SEN'],
+                }],
             },
             {
                 studentEmail: 'other@kings.edu.au',
                 coverageKeys: ['course:201'],
                 eligibleTutorEmails: ['robotics-tutor@kings.edu.au'],
+                eligibleTutors: [{
+                    email: 'robotics-tutor@kings.edu.au',
+                    subjectCodes: [],
+                }],
             },
         ]);
     });

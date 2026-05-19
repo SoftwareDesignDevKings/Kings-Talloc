@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { adminDb } from '@/firestore/firestoreAdmin';
-import { getCanvasCoverageKey, hasTutorAccess } from './canvasCoverage';
+import { getCanvasCoverageKey, hasTutorAccess, parseBlueprintCourseCode } from './canvasCoverage';
 
 const BATCH_LIMIT = 400;
 
@@ -27,10 +27,16 @@ const hasCoverageOverlap = (studentCoverageKeys, tutorCoverageKeys) =>
 
 export const buildStudentTutorEligibility = ({ courses = [], enrollments = [], users = [] }) => {
     const coverageKeyByCourseId = new Map();
+    const subjectCodeByCoverageKey = new Map();
     courses.forEach((course) => {
         const courseId = String(course.id || '');
         const coverageKey = getCanvasCoverageKey(course);
         if (courseId && coverageKey) coverageKeyByCourseId.set(courseId, coverageKey);
+
+        const subjectCode = parseBlueprintCourseCode(course.blueprintCourseCode || course.blueprint_course_code)?.subjectCode;
+        if (coverageKey && subjectCode && !subjectCodeByCoverageKey.has(coverageKey)) {
+            subjectCodeByCoverageKey.set(coverageKey, subjectCode);
+        }
     });
 
     const coverageKeysByStudentEmail = new Map();
@@ -54,8 +60,18 @@ export const buildStudentTutorEligibility = ({ courses = [], enrollments = [], u
         .filter((tutor) => tutor.email && tutor.coverageKeys.length > 0);
 
     return [...coverageKeysByStudentEmail.entries()].map(([studentEmail, coverageKeys]) => {
-        const eligibleTutorEmails = tutorCoverage
+        const eligibleTutors = tutorCoverage
             .filter((tutor) => hasCoverageOverlap(coverageKeys, tutor.coverageKeys))
+            .map((tutor) => ({
+                email: tutor.email,
+                subjectCodes: [...new Set(tutor.coverageKeys
+                    .filter((key) => coverageKeys.has(key))
+                    .map((key) => subjectCodeByCoverageKey.get(key))
+                    .filter(Boolean))]
+                    .sort(),
+            }))
+            .sort((a, b) => a.email.localeCompare(b.email));
+        const eligibleTutorEmails = eligibleTutors
             .map((tutor) => tutor.email)
             .sort();
 
@@ -63,6 +79,7 @@ export const buildStudentTutorEligibility = ({ courses = [], enrollments = [], u
             studentEmail,
             coverageKeys: [...coverageKeys].sort(),
             eligibleTutorEmails,
+            eligibleTutors,
         };
     });
 };

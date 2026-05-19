@@ -199,7 +199,9 @@ export const studentCalendarStrategy = (userEmail) => ({
     },
 
     permissions: {
-        canEdit: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+        canEdit: (event) =>
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
         // Students can only move/resize their own request while it's still pending.
         // Once approved or denied it's locked.
         canDrag: (event) =>
@@ -239,11 +241,12 @@ export const studentCalendarStrategy = (userEmail) => ({
         canCreateEvent: (event) => 
             event.entityType === CalendarEntityType.STUDENT_REQUEST,
         canModifyEvent: (event) =>
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
+            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
+            event.approvalStatus === 'pending',
         
         canDuplicateEvent: (event) => {
             if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return true
+                return event.approvalStatus === 'pending'
             } else {
                 return false
             }
@@ -253,6 +256,8 @@ export const studentCalendarStrategy = (userEmail) => ({
         getEventFlow: (calEvent) => {
             if (calEvent.entityType === CalendarEntityType.SHIFT) {
                 return CalendarFlow.VIEW_SHIFT
+            } else if (calEvent.approvalStatus !== 'pending') {
+                return CalendarFlow.VIEW_STUDENT_REQUEST
             } else {
                 return CalendarFlow.EDIT_STUDENT_REQUEST
             }

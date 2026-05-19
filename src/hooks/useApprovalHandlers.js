@@ -48,15 +48,11 @@ export const useApprovalHandlers = (onUpdate) => {
             // Queue email notification
             await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
 
-            // Create Teams meeting in background
-            calendarEventCreateTeamsMeeting(docId, eventData, {
+            await calendarEventCreateTeamsMeeting(docId, eventData, {
                 addAlert,
-            }).catch((error) => {
-                console.error('[useApprovalHandlers] Teams meeting creation failed:', error);
-                addAlert('error', `Event approved but Teams meeting failed: ${error.message}`);
             });
 
-            addAlert('success', 'Request approved successfully. Teams meeting is being created...');
+            addAlert('success', 'Request approved successfully');
 
             if (onUpdate) onUpdate();
         } catch (error) {

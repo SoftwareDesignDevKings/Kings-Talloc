@@ -486,7 +486,7 @@ const UserRolesManager = () => {
                                     </div>
 
                                     {extraRoleOptions.length > 0 && (
-                                        <div>
+                                        <div className={styles.modalSection}>
                                             <label className="form-label small fw-bold text-muted mb-0">
                                                 Additional Privileges
                                             </label>
@@ -518,7 +518,7 @@ const UserRolesManager = () => {
                                     {userHasTutorAccess && (
                                         <div className={styles.modalSection}>
                                             <label htmlFor="tutorCoverage" className="form-label small fw-bold text-muted">
-                                                Tutor Canvas Coverage
+                                                Tutor Class Coverage
                                             </label>
                                             <Select
                                                 isMulti

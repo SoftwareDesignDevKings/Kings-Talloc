@@ -406,6 +406,27 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
                 }),
             );
         });
+
+        test('student CANNOT update their own denied request', async () => {
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                await context.firestore().collection('studentEventRequests').doc(requestId).update({
+                    approvalStatus: 'denied',
+                });
+            });
+
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(
+                db.collection('studentEventRequests').doc(requestId).update({
+                    preference: 'General',
+                }),
+            );
+        });
     });
 
     describe('Student Event Requests - Delete Access', () => {
@@ -458,6 +479,23 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             const db = context.firestore();
 
             await assertSucceeds(db.collection('studentEventRequests').doc(requestId).delete());
+        });
+
+        test('student CANNOT delete their own denied request', async () => {
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                await context.firestore().collection('studentEventRequests').doc(requestId).update({
+                    approvalStatus: 'denied',
+                });
+            });
+
+            const context = testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertFails(db.collection('studentEventRequests').doc(requestId).delete());
         });
 
         test("student CANNOT delete another student's event request", async () => {
