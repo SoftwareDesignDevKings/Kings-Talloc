@@ -62,6 +62,21 @@ describe('Firebase Security Rules - Canvas cache collections', () => {
         await assertSucceeds(db.collection('canvasEnrollments').get());
     });
 
+    test('users with secondary admin role can read Canvas cache collections', async () => {
+        await seedCanvasCache();
+
+        const context = testEnv.authenticatedContext('tutor-admin@kings.edu.au', {
+            email: 'tutor-admin@kings.edu.au',
+            defaultRole: 'tutor',
+            userRoles: ['admin'],
+        });
+        const db = context.firestore();
+
+        await assertSucceeds(db.collection('canvasCourses').get());
+        await assertSucceeds(db.collection('canvasUsers').get());
+        await assertSucceeds(db.collection('canvasEnrollments').get());
+    });
+
     test('students cannot read Canvas cache collections', async () => {
         await seedCanvasCache();
 

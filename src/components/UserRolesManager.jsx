@@ -74,8 +74,11 @@ const UserRolesManager = () => {
         fetchUsers();
 
         const fetchCanvasCourses = async () => {
-            const querySnapshot = await getDocs(collection(db, 'canvasCourses'));
-            setCanvasCourses(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+            const response = await fetch('/api/canvas/reference/courses');
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+            setCanvasCourses(await response.json());
         };
 
         fetchCanvasCourses().catch((error) => {

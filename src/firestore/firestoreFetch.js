@@ -20,6 +20,14 @@ const getCachedOrFetch = async (key, fetchFn) => {
     return data;
 };
 
+const fetchJson = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+    }
+    return response.json();
+};
+
 const deserializeShift = (doc) => {
     const data = doc.data();
     return {
@@ -208,71 +216,10 @@ export const fetchCacheSubjects = () =>
     getCachedOrFetch('subjects', async () => []);
 
 export const fetchCacheClasses = () =>
-    getCachedOrFetch('classes', async () => {
-        const [coursesSnapshot, enrollmentsSnapshot] = await Promise.all([
-            getDocs(collection(db, 'canvasCourses')),
-            getDocs(collection(db, 'canvasEnrollments')),
-        ]);
-
-        const studentsByCourse = new Map();
-        enrollmentsSnapshot.docs.forEach((docSnap) => {
-            const data = docSnap.data();
-            const courseId = String(data.courseId || '');
-            if (!courseId) return;
-            const students = studentsByCourse.get(courseId) || [];
-            students.push({
-                id: data.userId,
-                canvasUserId: data.userId,
-                enrollmentId: docSnap.id,
-                email: data.email || data.emailLower || '',
-                name: data.userName || data.email || data.emailLower || '',
-                sortableName: data.sortableName || '',
-                enrollmentState: data.enrollmentState || '',
-                lastActivityAt: data.lastActivityAt || null,
-                currentScore: data.currentScore ?? null,
-                currentGrade: data.currentGrade || null,
-                finalScore: data.finalScore ?? null,
-                finalGrade: data.finalGrade || null,
-            });
-            studentsByCourse.set(courseId, students);
-        });
-
-        return coursesSnapshot.docs.map((docSnap) => {
-            const data = docSnap.data();
-            return {
-                id: docSnap.id,
-                name: data.name || '',
-                courseCode: data.courseCode || '',
-                workflowState: data.workflowState || '',
-                termId: data.termId ?? null,
-                termName: data.termName || '',
-                termStartAt: data.termStartAt || null,
-                termEndAt: data.termEndAt || null,
-                syncedAt: data.syncedAt || null,
-                rosterSyncedAt: data.rosterSyncedAt || null,
-                blueprintCourseId: data.blueprintCourseId || null,
-                blueprintCourseName: data.blueprintCourseName || null,
-                blueprintCourseCode: data.blueprintCourseCode || null,
-                students: studentsByCourse.get(docSnap.id) || [],
-            };
-        });
-    });
+    getCachedOrFetch('classes', () => fetchJson('/api/canvas/reference/classes'));
 
 export const fetchCacheStudents = () =>
-    getCachedOrFetch('students', async () => {
-        const snapshot = await getDocs(collection(db, 'canvasUsers'));
-        return snapshot.docs.map((doc) => {
-            const { email, name, sortableName, sisId } = doc.data();
-            return {
-                id: doc.id,
-                canvasUserId: doc.id,
-                email,
-                name: name || email,
-                sortableName,
-                sisId,
-            };
-        });
-    });
+    getCachedOrFetch('students', () => fetchJson('/api/canvas/reference/students'));
 
 export const fetchStudentTutorEligibility = async (studentEmail) => {
     if (!studentEmail) {
