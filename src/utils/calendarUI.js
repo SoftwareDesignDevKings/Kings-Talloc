@@ -102,7 +102,7 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
                 ? `2px ${borderStyle} ${borderColor}`
                 : `4px solid ${borderColor}`,
             borderRadius: '4px',
-            boxShadow: isPatterned ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.06)',
+            boxShadow: isPatterned ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.06)',
             fontWeight: 500,
         },
     };
