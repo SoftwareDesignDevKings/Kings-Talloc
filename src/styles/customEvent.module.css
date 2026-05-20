@@ -18,7 +18,7 @@
     font-weight: 600;
     font-size: 0.82rem;
     line-height: 1.35;
-    color: #0f172a;
+    color: #1a1d23;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -29,7 +29,7 @@
 .staffInitials {
     font-size: 0.7rem;
     font-weight: 500;
-    color: #0f172a;
+    color: #1a1d23;
     margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
