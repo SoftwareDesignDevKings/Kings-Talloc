@@ -18,6 +18,10 @@ export const implementCspWrapper = async (req) => {
 }
 
 export const implementRateLimiterWrapper = async (req, pathname) => {
+    if (isRateLimitExemptPath(pathname)) {
+        return null;
+    }
+
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
         return null;
     }
@@ -78,6 +82,9 @@ const getClientIp = (req) => {
     // default for Localhost / Development
     return '127.0.0.1';
 }
+
+const isRateLimitExemptPath = (pathname) =>
+    pathname === '/api/auth' || pathname.startsWith('/api/auth/');
 
 /**
  * Build CSP string with nonce
