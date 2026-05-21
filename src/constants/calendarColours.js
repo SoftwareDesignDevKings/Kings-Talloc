@@ -21,11 +21,11 @@ export const CALENDAR_COLOURS = {
     availabilityHeatmap: { bg: 'rgba(218, 247, 227, 0.55)', border: '#00572e' },
     availabilityBlock:   { bg: '#daf7e3',                  border: '#00572e', text: '#1a1d23', borderStyle: 'dotted' },
     confirmed:           { bg: '#cce0ff',                  border: '#0044cc', text: '#1a1d23' },
-    coaching:            { bg: '#f3d6fa',                  border: '#833794', text: '#1a1d23' },
+    coaching:            { bg: '#e2b4ee',                  border: '#833794', text: '#1a1d23' },
     pending:             { bg: '#f9d280',                  border: '#ac6900', text: '#1a1d23' },
     denied:              { bg: '#ffb0b0',                  border: '#ba0022', text: '#1a1d23' },
     completed:           { bg: '#7daeff',                  border: '#002bb4', text: '#1a1d23' },
-    coachingCompleted:   { bg: '#d398e0',                  border: '#6f0f82', text: '#1a1d23' },
+    coachingCompleted:   { bg: '#bf7dcf',                  border: '#6f0f82', text: '#1a1d23' },
     notAttended:         { bg: '#eccdbf',                  border: '#8f5a41', text: '#1a1d23' },
     declined:            { bg: '#e8e9ec',                  border: '#6b7280', text: '#1a1d23' },
 };
