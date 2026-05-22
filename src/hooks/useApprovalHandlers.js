@@ -32,6 +32,7 @@ export const useApprovalHandlers = (onUpdate, calendarShifts = []) => {
                 description: request.description || '',
                 students: request.students || [],
                 staff: request.staff || [],
+                classes: request.classes || [],
                 subject: request.subject,
                 preference: request.preference,
                 createdByStudent: true,
@@ -40,6 +41,14 @@ export const useApprovalHandlers = (onUpdate, calendarShifts = []) => {
                 workStatus: 'notCompleted',
                 workType: 'tutoring',
                 createTeamsMeeting: true,
+                confirmationRequired: request.confirmationRequired || false,
+                tutorResponses: request.tutorResponses || [],
+                studentResponses: request.studentResponses || [],
+                minStudents: request.minStudents || 0,
+                locationType: request.locationType || '',
+                recurring: null,
+                occurenceNum: null,
+                until: null,
             };
 
             const conflicts = getTutorShiftConflicts(eventData.staff, eventData.start, eventData.end, calendarShifts);
@@ -76,8 +85,8 @@ export const useApprovalHandlers = (onUpdate, calendarShifts = []) => {
         try {
             const requestRef = doc(db, 'studentEventRequests', requestId);
             await updateDoc(requestRef, {
-                approvalStatus: 'rejected',
-                rejectedAt: new Date(),
+                approvalStatus: 'denied',
+                deniedAt: new Date(),
             });
             if (onUpdate) onUpdate();
         } catch (error) {
