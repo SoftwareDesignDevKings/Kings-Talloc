@@ -1,4 +1,7 @@
-import { isRangeCoveredByTutorAvailability } from '@/utils/calendarAvailability';
+import {
+    isRangeCoveredByTutorAvailability,
+    calendarAvailabilitySplit,
+} from '@/utils/calendarAvailability';
 
 describe('isRangeCoveredByTutorAvailability', () => {
     const tutor = 'tutor@example.edu';
@@ -100,5 +103,47 @@ describe('isRangeCoveredByTutorAvailability', () => {
     test('returns false on missing inputs', () => {
         expect(isRangeCoveredByTutorAvailability(null, new Date(), new Date(), [])).toBe(false);
         expect(isRangeCoveredByTutorAvailability(tutor, null, null, [])).toBe(false);
+    });
+});
+
+describe('calendarAvailabilitySplit', () => {
+    const tutor = 'tutor@example.edu';
+
+    const availability = (start, end, id = 'real-doc-id') => ({
+        id,
+        tutor,
+        start: new Date(start),
+        end: new Date(end),
+    });
+
+    const shift = (start, end, tutorEmail = tutor) => ({
+        start: new Date(start),
+        end: new Date(end),
+        staff: [tutorEmail],
+    });
+
+    test('keeps the real id and no originalAvailabilityId when nothing overlaps', () => {
+        const result = calendarAvailabilitySplit(
+            [availability('2026-05-20T09:00', '2026-05-20T17:00')],
+            [shift('2026-05-21T09:00', '2026-05-21T10:00')],
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('real-doc-id');
+        expect(result[0].originalAvailabilityId).toBeUndefined();
+    });
+
+    test('split fragments carry originalAvailabilityId pointing at the real doc', () => {
+        const result = calendarAvailabilitySplit(
+            [availability('2026-05-20T09:00', '2026-05-20T17:00')],
+            [shift('2026-05-20T12:00', '2026-05-20T13:00')],
+        );
+
+        // The shift in the middle splits the availability into two fragments.
+        expect(result.length).toBeGreaterThan(1);
+        for (const fragment of result) {
+            expect(fragment.id).not.toBe('real-doc-id');
+            expect(fragment.originalAvailabilityId).toBe('real-doc-id');
+        }
     });
 });

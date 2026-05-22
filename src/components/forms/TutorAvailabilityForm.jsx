@@ -111,11 +111,12 @@ const TutorAvailabilityForm = ({
     };
 
     const handleDelete = async () => {
+        const availabilityDocId = eventToEdit.originalAvailabilityId || eventToEdit.id;
         try {
-            await deleteEventFromFirestore(eventToEdit.id, 'tutorAvailabilities');
+            await deleteEventFromFirestore(availabilityDocId, 'tutorAvailabilities');
             setCalendarAvailabilities(
                 calendarAvailabilities.filter(
-                    (availability) => availability.id !== eventToEdit.id,
+                    (availability) => availability.id !== availabilityDocId,
                 ),
             );
             return true; // Success - allow modal to close
