@@ -218,8 +218,22 @@ const CalendarContent = () => {
         const action = strategy.actions.getEventFlow(calEvent);
         if (!action) return;
 
+        let target = calEvent;
+        // Availabilities are rendered split around clashing shifts (calendarAvailabilitySplit),
+        // giving fragments a synthetic id and truncated times. Resolve back to the real document
+        // so view/edit/delete operate on the underlying availability, not a render artifact.
+        if (calEvent.originalAvailabilityId) {
+            const original = calendarAvailabilities.find(
+                (a) => a.id === calEvent.originalAvailabilityId,
+            );
+            if (original) {
+                const { originalAvailabilityId, ...rest } = calEvent;
+                target = { ...rest, id: original.id, start: original.start, end: original.end };
+            }
+        }
+
         setCalendarAction(action);
-        setCalendarTarget(calEvent);
+        setCalendarTarget(target);
     };
 
     const handleSelectSlot = (slotInfo) => {
