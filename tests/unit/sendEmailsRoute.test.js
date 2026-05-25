@@ -132,7 +132,7 @@ describe('POST /api/send-emails', () => {
         console.error.mockRestore();
     });
 
-    it('sends sequential test emails and leaves notification docs queued', async () => {
+    it('sends sequential recipient emails and keeps failed notification docs queued', async () => {
         const docs = [
             notificationDoc('shift-1', {
                 title: 'Shared shift',
@@ -154,10 +154,10 @@ describe('POST /api/send-emails', () => {
                 createdByEmail: 'admin@kings.edu.au',
             }),
         ];
-        mockEmailNotificationSnapshot(docs);
+        const { doc } = mockEmailNotificationSnapshot(docs);
         const batch = mockBatch();
-        msSendEmail.mockImplementation((token, { subject }) => {
-            if (subject.includes('failure@kings.edu.au')) {
+        msSendEmail.mockImplementation((token, { targetEmail }) => {
+            if (targetEmail === 'failure@kings.edu.au') {
                 return Promise.reject(graphError('No mailbox', {
                     status: 400,
                     code: 'ErrorInvalidRecipients',
@@ -170,8 +170,7 @@ describe('POST /api/send-emails', () => {
         const body = await response.json();
 
         expect(response.status).toBe(500);
-        expect(body.message).toContain('1 of 2 test emails sent to lhamillmamo@kings.edu.au');
-        expect(body.message).toContain('Notifications were left queued');
+        expect(body.message).toContain('1 of 2 emails sent');
         expect(body.failures).toEqual([
             expect.objectContaining({
                 recipient: 'f******@kings.edu.au',
@@ -179,15 +178,13 @@ describe('POST /api/send-emails', () => {
             }),
         ]);
         expect(msSendEmail.mock.calls.map(([, emailData]) => emailData.targetEmail)).toEqual([
-            'lhamillmamo@kings.edu.au',
-            'lhamillmamo@kings.edu.au',
+            'success@kings.edu.au',
+            'failure@kings.edu.au',
         ]);
-        expect(msSendEmail.mock.calls.map(([, emailData]) => emailData.subject)).toEqual([
-            'Talloc Shift Notification (TEST for success@kings.edu.au)',
-            'Talloc Shift Notification (TEST for failure@kings.edu.au)',
-        ]);
-        expect(batch.delete).not.toHaveBeenCalled();
-        expect(batch.commit).not.toHaveBeenCalled();
+        expect(doc).toHaveBeenCalledWith('shift-2');
+        expect(batch.delete).toHaveBeenCalledWith({ id: 'shift-2' });
+        expect(batch.delete).not.toHaveBeenCalledWith({ id: 'shift-1' });
+        expect(batch.commit).toHaveBeenCalledTimes(1);
     });
 
     it('reports invalid recipients without calling Microsoft Graph', async () => {
@@ -208,7 +205,7 @@ describe('POST /api/send-emails', () => {
         const body = await response.json();
 
         expect(response.status).toBe(500);
-        expect(body.message).toContain('0 of 1 test emails sent to lhamillmamo@kings.edu.au');
+        expect(body.message).toContain('0 of 1 emails sent');
         expect(body.failures).toEqual([
             expect.objectContaining({
                 code: 'INVALID_RECIPIENT',
