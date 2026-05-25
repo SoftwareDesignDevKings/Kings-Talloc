@@ -6,6 +6,9 @@ import { msSendEmail } from '@/app/api/microsoft/msGraphFunctions';
 import { DateTime } from 'luxon';
 import { sanitiseHtml } from '@/lib/security/securityWrappers';
 
+const TEST_EMAIL_RECIPIENT = 'lhamillmamo@kings.edu.au';
+const DELETE_NOTIFICATIONS_AFTER_SEND = false;
+
 export async function POST(req) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -46,9 +49,9 @@ export async function POST(req) {
         const results = await Promise.allSettled(
             tutorEntries.map(([tutorEmail, tutorNotifications]) =>
                 msSendEmail(msAccessToken, {
-                    targetEmail: tutorEmail,
-                    subject: 'Talloc Shift Notification',
-                    htmlContent: buildEmailHTML(tutorNotifications),
+                    targetEmail: TEST_EMAIL_RECIPIENT,
+                    subject: `Talloc Shift Notification (TEST for ${tutorEmail})`,
+                    htmlContent: buildEmailHTML(tutorNotifications, tutorEmail),
                     saveToSentItems: true,
                 })
             )
@@ -58,7 +61,10 @@ export async function POST(req) {
         const failedNotifIds = new Set();
         results.forEach((result, i) => {
             if (result.status === 'rejected') {
-                console.error(`[send-emails] Failed to send to ${tutorEntries[i][0]}:`, result.reason);
+                console.error(
+                    `[send-emails] Failed to send test email for ${tutorEntries[i][0]} to ${TEST_EMAIL_RECIPIENT}:`,
+                    result.reason
+                );
                 for (const n of tutorEntries[i][1]) {
                     failedNotifIds.add(n.id);
                 }
@@ -66,7 +72,7 @@ export async function POST(req) {
         });
 
         const idsToDelete = notifications.map((n) => n.id).filter((id) => !failedNotifIds.has(id));
-        if (idsToDelete.length > 0) {
+        if (DELETE_NOTIFICATIONS_AFTER_SEND && idsToDelete.length > 0) {
             const batch = adminDb.batch();
             for (const id of idsToDelete) {
                 batch.delete(adminDb.collection('emailNotifications').doc(id));
@@ -77,12 +83,12 @@ export async function POST(req) {
         const failCount = results.filter((r) => r.status === 'rejected').length;
         if (failCount > 0) {
             return Response.json(
-                { message: `${tutorEntries.length - failCount} of ${tutorEntries.length} emails sent. ${failCount} failed — retry to resend.` },
+                { message: `${tutorEntries.length - failCount} of ${tutorEntries.length} test emails sent to ${TEST_EMAIL_RECIPIENT}. ${failCount} failed — retry to resend. Notifications were left queued.` },
                 { status: 500 }
             );
         }
 
-        return Response.json({ message: `Emails sent to ${tutorEntries.length} tutor(s).` });
+        return Response.json({ message: `${tutorEntries.length} test email(s) sent to ${TEST_EMAIL_RECIPIENT}. Notifications were left queued.` });
     } catch (error) {
         console.error('[send-emails] Unexpected error:', error);
         return Response.json({ message: 'Failed to send emails' }, { status: 500 });
@@ -153,7 +159,7 @@ function buildEventRow(notification, index, total) {
     }
 }
 
-function buildEmailHTML(notifications) {
+function buildEmailHTML(notifications, originalRecipient) {
     const rows = notifications
         .map((notification, index) => buildEventRow(notification, index, notifications.length))
         .join('');
@@ -189,6 +195,17 @@ function buildEmailHTML(notifications) {
               <p style="margin:0 0 28px 0;color:#4b5563;font-size:15px;line-height:1.7;">
                 You have been added to the following shifts or your times have been adjusted. Please review the details below.
               </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td style="background-color:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:14px 16px;">
+                    <p style="margin:0;color:#92400e;font-size:13px;line-height:1.5;">
+                      <strong>Test redirect:</strong> this email would normally be sent to ${sanitiseHtml(originalRecipient)}.
+                      It was sent to ${TEST_EMAIL_RECIPIENT} for testing.
+                    </p>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Shift cards -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:36px;">
