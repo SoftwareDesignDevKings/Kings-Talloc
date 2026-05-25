@@ -6,8 +6,165 @@ import { msSendEmail } from '@/app/api/microsoft/msGraphFunctions';
 import { DateTime } from 'luxon';
 import { sanitiseHtml } from '@/lib/security/securityWrappers';
 
-const TEST_EMAIL_RECIPIENT = 'lhamillmamo@kings.edu.au';
-const DELETE_NOTIFICATIONS_AFTER_SEND = false;
+const EMAIL_SEND_MAX_ATTEMPTS = 3;
+const EMAIL_RETRY_BASE_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 500;
+const EMAIL_RETRY_MAX_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 2000;
+const TRANSIENT_EMAIL_STATUSES = new Set([429, 500, 502, 503, 504]);
+const TRANSIENT_EMAIL_CODES = new Set([
+    'ApplicationThrottled',
+    'ErrorServerBusy',
+    'MailboxConcurrency',
+    'TooManyRequests',
+]);
+const EMAIL_ADDRESS_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const normaliseRecipientEmail = (member) => {
+    const email = typeof member === 'string'
+        ? member
+        : member?.value || member?.email || '';
+    return typeof email === 'string' ? email.trim().toLowerCase() : '';
+};
+
+export const isValidEmailAddress = (email) => EMAIL_ADDRESS_RE.test(email);
+
+export const buildTutorEmailEntries = (notifications) => {
+    const tutorMap = new Map();
+    const invalidRecipients = [];
+
+    for (const notification of notifications) {
+        const seenForNotification = new Set();
+
+        for (const member of (notification.staff || [])) {
+            const email = normaliseRecipientEmail(member);
+            if (!isValidEmailAddress(email)) {
+                invalidRecipients.push({
+                    notificationId: notification.id,
+                    recipient: String(member?.value || member?.email || member || 'missing'),
+                    reason: 'Invalid or missing tutor email address',
+                });
+                continue;
+            }
+
+            if (seenForNotification.has(email)) continue;
+            seenForNotification.add(email);
+
+            if (!tutorMap.has(email)) tutorMap.set(email, []);
+            tutorMap.get(email).push(notification);
+        }
+    }
+
+    return {
+        tutorEntries: Array.from(tutorMap.entries()),
+        invalidRecipients,
+    };
+};
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const redactEmail = (email) => {
+    if (!email || !email.includes('@')) return 'unknown recipient';
+
+    const [localPart, domain] = email.split('@');
+    const visibleLocal = localPart.slice(0, 1);
+    return `${visibleLocal}${'*'.repeat(Math.max(localPart.length - 1, 1))}@${domain}`;
+};
+
+const serialiseEmailError = (error) => ({
+    message: error?.message || 'Unknown email send failure',
+    status: error?.status || null,
+    code: error?.code || null,
+    graphRequestId: error?.graphRequestId || null,
+    retryAfter: error?.retryAfter || null,
+    attempts: error?.attempts || null,
+});
+
+const failureReason = (error) =>
+    error?.code ||
+    error?.statusText ||
+    (error?.status ? `HTTP ${error.status}` : null) ||
+    error?.message ||
+    'Unknown failure';
+
+const isTransientEmailError = (error) => {
+    const message = String(error?.message || '').toLowerCase();
+    return (
+        TRANSIENT_EMAIL_STATUSES.has(error?.status) ||
+        TRANSIENT_EMAIL_CODES.has(error?.code) ||
+        message.includes('mailboxconcurrency') ||
+        message.includes('too many requests') ||
+        message.includes('server busy')
+    );
+};
+
+const getRetryDelayMs = (error, attempt) => {
+    if (Number.isFinite(error?.retryAfterMs)) {
+        return Math.min(error.retryAfterMs, EMAIL_RETRY_MAX_DELAY_MS);
+    }
+
+    return Math.min(
+        EMAIL_RETRY_BASE_DELAY_MS * (2 ** Math.max(attempt - 1, 0)),
+        EMAIL_RETRY_MAX_DELAY_MS
+    );
+};
+
+export const sendEmailWithRetry = async (
+    accessToken,
+    emailData,
+    {
+        sendEmail = msSendEmail,
+        sleep = delay,
+        maxAttempts = EMAIL_SEND_MAX_ATTEMPTS,
+    } = {}
+) => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            return await sendEmail(accessToken, emailData);
+        } catch (error) {
+            error.attempts = attempt;
+            const shouldRetry = attempt < maxAttempts && isTransientEmailError(error);
+            if (!shouldRetry) {
+                throw error;
+            }
+
+            await sleep(getRetryDelayMs(error, attempt));
+        }
+    }
+
+    return false;
+};
+
+const buildFailureDetails = (sendFailures, invalidRecipients) => [
+    ...sendFailures.map((failure) => ({
+        recipient: redactEmail(failure.tutorEmail),
+        reason: failureReason(failure.reason),
+        status: failure.reason?.status || null,
+        code: failure.reason?.code || null,
+        requestId: failure.reason?.graphRequestId || null,
+        attempts: failure.reason?.attempts || null,
+    })),
+    ...invalidRecipients.map((failure) => ({
+        recipient: redactEmail(failure.recipient),
+        reason: failure.reason,
+        status: null,
+        code: 'INVALID_RECIPIENT',
+        requestId: null,
+        attempts: 0,
+    })),
+];
+
+const buildFailureMessage = (failureDetails) => {
+    if (failureDetails.length === 0) return '';
+
+    const visibleFailures = failureDetails
+        .slice(0, 3)
+        .map((failure) => `${failure.recipient}: ${failure.reason}`)
+        .join('; ');
+    const remaining = failureDetails.length > 3
+        ? `; ${failureDetails.length - 3} more`
+        : '';
+
+    return ` Failed: ${visibleFailures}${remaining}.`;
+};
 
 export async function POST(req) {
     const session = await getServerSession(authOptions);
@@ -36,43 +193,39 @@ export async function POST(req) {
 
         const notifications = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-        const tutorMap = new Map();
-        for (const notification of notifications) {
-            for (const member of (notification.staff || [])) {
-                const email = member.value || member;
-                if (!tutorMap.has(email)) tutorMap.set(email, []);
-                tutorMap.get(email).push(notification);
+        const { tutorEntries, invalidRecipients } = buildTutorEmailEntries(notifications);
+        if (tutorEntries.length === 0 && invalidRecipients.length === 0) {
+            return Response.json({ message: 'No tutor recipients found in queued notifications.' }, { status: 400 });
+        }
+
+        const results = [];
+        for (const [tutorEmail, tutorNotifications] of tutorEntries) {
+            try {
+                await sendEmailWithRetry(msAccessToken, {
+                    targetEmail: tutorEmail,
+                    subject: 'Talloc Shift Notification',
+                    htmlContent: buildEmailHTML(tutorNotifications),
+                    saveToSentItems: true,
+                });
+                results.push({ status: 'fulfilled', tutorEmail, tutorNotifications });
+            } catch (error) {
+                results.push({ status: 'rejected', tutorEmail, tutorNotifications, reason: error });
             }
         }
 
-        const tutorEntries = Array.from(tutorMap.entries());
-        const results = await Promise.allSettled(
-            tutorEntries.map(([tutorEmail, tutorNotifications]) =>
-                msSendEmail(msAccessToken, {
-                    targetEmail: TEST_EMAIL_RECIPIENT,
-                    subject: `Talloc Shift Notification (TEST for ${tutorEmail})`,
-                    htmlContent: buildEmailHTML(tutorNotifications, tutorEmail),
-                    saveToSentItems: true,
-                })
-            )
-        );
-
         // Track notifications that had at least one failed send — keep those for retry
-        const failedNotifIds = new Set();
-        results.forEach((result, i) => {
+        const failedNotifIds = new Set(invalidRecipients.map((failure) => failure.notificationId));
+        results.forEach((result) => {
             if (result.status === 'rejected') {
-                console.error(
-                    `[send-emails] Failed to send test email for ${tutorEntries[i][0]} to ${TEST_EMAIL_RECIPIENT}:`,
-                    result.reason
-                );
-                for (const n of tutorEntries[i][1]) {
+                console.error(`[send-emails] Failed to send to ${result.tutorEmail}:`, serialiseEmailError(result.reason));
+                for (const n of result.tutorNotifications) {
                     failedNotifIds.add(n.id);
                 }
             }
         });
 
         const idsToDelete = notifications.map((n) => n.id).filter((id) => !failedNotifIds.has(id));
-        if (DELETE_NOTIFICATIONS_AFTER_SEND && idsToDelete.length > 0) {
+        if (idsToDelete.length > 0) {
             const batch = adminDb.batch();
             for (const id of idsToDelete) {
                 batch.delete(adminDb.collection('emailNotifications').doc(id));
@@ -80,15 +233,21 @@ export async function POST(req) {
             await batch.commit();
         }
 
-        const failCount = results.filter((r) => r.status === 'rejected').length;
+        const sendFailures = results.filter((r) => r.status === 'rejected');
+        const failCount = sendFailures.length + invalidRecipients.length;
+        const totalRecipients = tutorEntries.length + invalidRecipients.length;
         if (failCount > 0) {
+            const failureDetails = buildFailureDetails(sendFailures, invalidRecipients);
             return Response.json(
-                { message: `${tutorEntries.length - failCount} of ${tutorEntries.length} test emails sent to ${TEST_EMAIL_RECIPIENT}. ${failCount} failed — retry to resend. Notifications were left queued.` },
+                {
+                    message: `${totalRecipients - failCount} of ${totalRecipients} emails sent. ${failCount} failed or skipped — retry to resend.${buildFailureMessage(failureDetails)}`,
+                    failures: failureDetails,
+                },
                 { status: 500 }
             );
         }
 
-        return Response.json({ message: `${tutorEntries.length} test email(s) sent to ${TEST_EMAIL_RECIPIENT}. Notifications were left queued.` });
+        return Response.json({ message: `Emails sent to ${tutorEntries.length} tutor(s).` });
     } catch (error) {
         console.error('[send-emails] Unexpected error:', error);
         return Response.json({ message: 'Failed to send emails' }, { status: 500 });
@@ -159,7 +318,7 @@ function buildEventRow(notification, index, total) {
     }
 }
 
-function buildEmailHTML(notifications, originalRecipient) {
+function buildEmailHTML(notifications) {
     const rows = notifications
         .map((notification, index) => buildEventRow(notification, index, notifications.length))
         .join('');
@@ -195,17 +354,6 @@ function buildEmailHTML(notifications, originalRecipient) {
               <p style="margin:0 0 28px 0;color:#4b5563;font-size:15px;line-height:1.7;">
                 You have been added to the following shifts or your times have been adjusted. Please review the details below.
               </p>
-
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                <tr>
-                  <td style="background-color:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:14px 16px;">
-                    <p style="margin:0;color:#92400e;font-size:13px;line-height:1.5;">
-                      <strong>Test redirect:</strong> this email would normally be sent to ${sanitiseHtml(originalRecipient)}.
-                      It was sent to ${TEST_EMAIL_RECIPIENT} for testing.
-                    </p>
-                  </td>
-                </tr>
-              </table>
 
               <!-- Shift cards -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:36px;">

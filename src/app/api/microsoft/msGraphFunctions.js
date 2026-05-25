@@ -21,6 +21,56 @@ const isDevMode = (accessToken) => {
     return isDev && accessToken === 'DEV_MODE_MOCK_TOKEN';
 };
 
+const parseRetryAfterMs = (retryAfter) => {
+    if (!retryAfter) return null;
+
+    const retryAfterSeconds = Number(retryAfter);
+    if (Number.isFinite(retryAfterSeconds)) {
+        return retryAfterSeconds * 1000;
+    }
+
+    const retryAfterDate = new Date(retryAfter).getTime();
+    if (Number.isFinite(retryAfterDate)) {
+        return Math.max(0, retryAfterDate - Date.now());
+    }
+
+    return null;
+};
+
+const readGraphError = async (response) => {
+    try {
+        return await response.json();
+    } catch {
+        try {
+            return { error: { message: await response.text() } };
+        } catch {
+            return { error: { message: response.statusText } };
+        }
+    }
+};
+
+const buildGraphError = async (response, fallbackMessage) => {
+    const graphError = await readGraphError(response);
+    const retryAfter = response.headers?.get?.('retry-after');
+    const requestId =
+        graphError?.error?.innerError?.['request-id'] ||
+        graphError?.error?.innerError?.requestId ||
+        response.headers?.get?.('request-id') ||
+        response.headers?.get?.('client-request-id') ||
+        null;
+    const message = graphError?.error?.message || response.statusText || fallbackMessage;
+    const error = new Error(`${fallbackMessage}: ${message}`);
+
+    error.status = response.status;
+    error.statusText = response.statusText;
+    error.code = graphError?.error?.code || null;
+    error.graphRequestId = requestId;
+    error.retryAfter = retryAfter || null;
+    error.retryAfterMs = parseRetryAfterMs(retryAfter);
+
+    return error;
+};
+
 /**
  * Helper: Build request headers with access token
  */
@@ -494,10 +544,7 @@ export const msSendEmail = async (accessToken, { targetEmail, subject, htmlConte
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(
-                `Failed to send email: ${error.error?.message || response.statusText}`,
-            );
+            throw await buildGraphError(response, 'Failed to send email');
         }
 
         return true;

@@ -17,6 +17,7 @@ const DashboardOverview = () => {
     const isAdmin = userRole === 'admin' || userRoles?.includes('admin');
     const { addAlert } = useAlert();
     const [needsReauth, setNeedsReauth] = useState(false);
+    const [isSendingEmails, setIsSendingEmails] = useState(false);
     const {
         calendarShifts,
         calendarStudentRequests,
@@ -258,6 +259,9 @@ const DashboardOverview = () => {
 
 
     const handleSendEmailNotifications = async () => {
+        if (isSendingEmails) return;
+
+        setIsSendingEmails(true);
         try {
             const response = await fetch('/api/send-emails', { method: 'POST' });
             const data = await response.json();
@@ -279,6 +283,8 @@ const DashboardOverview = () => {
             addAlert('success', data.message || 'Emails sent successfully');
         } catch (error) {
             addAlert('error', error.message || 'Failed to send emails');
+        } finally {
+            setIsSendingEmails(false);
         }
     };
 
@@ -305,8 +311,10 @@ const DashboardOverview = () => {
                         <button
                             className="btn btn-outline-success"
                             onClick={handleSendEmailNotifications}
+                            disabled={isSendingEmails}
+                            aria-busy={isSendingEmails}
                         >
-                            Email Shift Notifications
+                            {isSendingEmails ? 'Sending Shift Notifications...' : 'Email Shift Notifications'}
                         </button>
                     </div>
                 </div>
