@@ -12,7 +12,7 @@ import { useAppData } from '@/contexts/AppDataContext';
 import useCalendarStrategy from '@/hooks/useCalendarStrategy';
 import useAuthSession from '@/hooks/useAuthSession';
 import useAlert from '@/hooks/useAlert';
-import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
+import { updateEventInFirestore, createEventInFirestore, updateWorkStatusInFirestore } from '@/firestore/firestoreOperations';
 import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
@@ -27,6 +27,13 @@ import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI'
 import { isRangeCoveredByTutorAvailability, getTutorShiftConflicts } from '@/utils/calendarAvailability';
 
 const { memo } = React;
+
+const KEY_WINDOW_MS = 600;
+const isFormElement = (el) => {
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+};
 
 /* ───────────────────────────────────────────────────────────── */
 /* RBC setup                                                     */
@@ -211,10 +218,58 @@ const CalendarContent = () => {
     }, []);
 
 
+    // track the bare 'C' key for the hold-C-to-complete shortcut
+    const cKeyTimestampRef = React.useRef(0);
+
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (isFormElement(document.activeElement)) return;
+            if (!e.metaKey && !e.ctrlKey && e.key.toLowerCase() === 'c') {
+                cKeyTimestampRef.current = Date.now();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const isCKeyRecent = () => {
+        const ts = cKeyTimestampRef.current;
+        if (!ts) return false;
+        const recent = Date.now() - ts < KEY_WINDOW_MS;
+        if (recent) cKeyTimestampRef.current = 0; // consume
+        return recent;
+    };
+
     /* ----------------------------------------------------------- */
     /* Handlers                                                    */
     /* ----------------------------------------------------------- */
-    const handleSelectEvent = (calEvent) => {
+    const handleSelectEvent = async (calEvent) => {
+        // C + click: quick-toggle workStatus on shifts
+        if (isCKeyRecent() && calEvent.entityType === CalendarEntityType.SHIFT) {
+            if (!strategy.actions.canCompleteEvent?.(calEvent)) {
+                addAlert('warning', 'You do not have permission to change work status');
+                return;
+            }
+            if (calEvent.isRecurringInstance) {
+                addAlert('warning', 'Open the event to change work status for a recurring instance');
+                return;
+            }
+            const newStatus = calEvent.workStatus === 'completed' ? 'notCompleted' : 'completed';
+            setCalendarShifts(prev =>
+                prev.map(e => e.id === calEvent.id ? { ...e, workStatus: newStatus } : e)
+            );
+            try {
+                await updateWorkStatusInFirestore(calEvent.id, newStatus);
+                addAlert('success', newStatus === 'completed' ? 'Marked as completed' : 'Marked as not completed');
+            } catch (error) {
+                setCalendarShifts(prev =>
+                    prev.map(e => e.id === calEvent.id ? { ...e, workStatus: calEvent.workStatus } : e)
+                );
+                addAlert('error', `Failed to update: ${error.message}`);
+            }
+            return;
+        }
+
         const action = strategy.actions.getEventFlow(calEvent);
         if (!action) return;
 
