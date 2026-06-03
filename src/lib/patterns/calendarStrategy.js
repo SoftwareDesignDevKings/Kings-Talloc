@@ -70,6 +70,7 @@ export const adminCalendarStrategy = () => ({
         canCreateEvent: (event) => event.entityType === CalendarEntityType.SHIFT,
         canModifyEvent: (event) => event.entityType === CalendarEntityType.SHIFT,
         canDuplicateEvent: (event) => event.entityType === CalendarEntityType.SHIFT,
+        canCompleteEvent: (event) => event.entityType === CalendarEntityType.SHIFT,
 
         // should only be allowed to create / edit shifts
         getCreateFlow: () => CalendarFlow.CREATE_SHIFT,
@@ -119,6 +120,7 @@ export const teacherCalendarStrategy = () => ({
         canCreateEvent:    (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
         canModifyEvent:    (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
         canDuplicateEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
+        canCompleteEvent: () => false,
 
         getCreateFlow: () => CalendarFlow.CREATE_STUDENT_REQUEST,
         getEventFlow: (event) => {
@@ -174,6 +176,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
         canCreateEvent: (event) => event.entityType === CalendarEntityType.AVAILABILITY,
         canModifyEvent: (event) => event.entityType === CalendarEntityType.AVAILABILITY,
         canDuplicateEvent: (event) => event.entityType === CalendarEntityType.AVAILABILITY,
+        canCompleteEvent: (event) => event.entityType === CalendarEntityType.SHIFT,
 
         getCreateFlow: () => CalendarFlow.CREATE_AVAILABILITY,
         getEventFlow: (event) => {
@@ -251,6 +254,7 @@ export const studentCalendarStrategy = (userEmail) => ({
                 return false
             }
         },
+        canCompleteEvent: () => false,
 
         getCreateFlow: () => CalendarFlow.CREATE_STUDENT_REQUEST,
         getEventFlow: (calEvent) => {
