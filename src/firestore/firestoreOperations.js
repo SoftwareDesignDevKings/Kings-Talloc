@@ -1,5 +1,40 @@
 import { doc, updateDoc, addDoc, deleteDoc, getDoc, collection, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
+
+const isPlainObject = (value) => {
+    if (value === null || Object.prototype.toString.call(value) !== '[object Object]') {
+        return false;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+};
+
+export const stripUndefinedFields = (value) => {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .map(stripUndefinedFields)
+            .filter((item) => item !== undefined);
+    }
+
+    if (!isPlainObject(value)) {
+        return value;
+    }
+
+    const cleaned = {};
+    for (const [key, fieldValue] of Object.entries(value)) {
+        const cleanedValue = stripUndefinedFields(fieldValue);
+        if (cleanedValue !== undefined) {
+            cleaned[key] = cleanedValue;
+        }
+    }
+
+    return cleaned;
+};
 /**
  * Queue an email notification for a shift allocation or time change.
  * Uses shiftId as doc ID so rapid edits collapse into one notification.
@@ -102,17 +137,18 @@ export const updateWorkStatusInFirestore = async (shiftId, workStatus) => {
  */
 export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts') => {
     const eventDoc = doc(db, collectionName, eventId);
+    const firestoreData = { ...eventData };
 
     // Rebuild emailsList if staff or students are being updated
-    if (eventData.staff !== undefined || eventData.students !== undefined) {
-        const staffEmails = (eventData.staff || []).map(s => typeof s === 'object' ? s.value : s);
-        const studentEmails = (eventData.students || []).map(s => typeof s === 'object' ? s.value : s);
-        eventData.staffEmails = staffEmails;
-        eventData.studentEmails = studentEmails;
-        eventData.emailsList = [...new Set([...staffEmails, ...studentEmails])];
+    if (firestoreData.staff !== undefined || firestoreData.students !== undefined) {
+        const staffEmails = (firestoreData.staff || []).map(s => typeof s === 'object' ? s.value : s);
+        const studentEmails = (firestoreData.students || []).map(s => typeof s === 'object' ? s.value : s);
+        firestoreData.staffEmails = staffEmails;
+        firestoreData.studentEmails = studentEmails;
+        firestoreData.emailsList = [...new Set([...staffEmails, ...studentEmails])];
     }
 
-    await updateDoc(eventDoc, eventData);
+    await updateDoc(eventDoc, stripUndefinedFields(firestoreData));
 };
 
 /**
@@ -126,12 +162,12 @@ export const createEventInFirestore = async (eventData, collectionName = 'shifts
     const studentEmails = (eventData.students || []).map(s => typeof s === 'object' ? s.value : s);
     const emailsList = [...new Set([...staffEmails, ...studentEmails])];
 
-    const docRef = await addDoc(collection(db, collectionName), {
+    const docRef = await addDoc(collection(db, collectionName), stripUndefinedFields({
         ...eventData,
         staffEmails,
         studentEmails,
         emailsList,
-    });
+    }));
     return docRef.id;
 };
 

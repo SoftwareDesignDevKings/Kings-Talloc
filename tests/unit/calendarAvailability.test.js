@@ -130,7 +130,7 @@ describe('calendarAvailabilitySplit', () => {
 
         expect(result).toHaveLength(1);
         expect(result[0].id).toBe('real-doc-id');
-        expect(result[0].originalAvailabilityId).toBeUndefined();
+        expect(result[0]).not.toHaveProperty('originalAvailabilityId');
     });
 
     test('split fragments carry originalAvailabilityId pointing at the real doc', () => {

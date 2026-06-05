@@ -852,8 +852,9 @@ export const calendarEventHandleDuplicate = async (
 
     // Handle tutor availability duplication — Firestore ensures only own availabilities are received
     if (event.tutor && userRole === 'tutor') {
+        const { id, entityType, originalAvailabilityId, ...eventData } = event;
         const availabilityData = {
-            ...event,
+            ...eventData,
             start: nextDayStart,
             end: nextDayEnd,
         };
