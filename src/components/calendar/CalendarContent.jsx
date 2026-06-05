@@ -323,7 +323,19 @@ const CalendarContent = () => {
             if (blockIfTutorConflict(event, newStart, newEnd)) return;
 
             // copy event data but remove properties that shouldn't be duplicated and create duplication event dictionary
-            const { id, createdAt, updatedAt, recurringEventId, isRecurringInstance, recurring, until, eventExceptions, entityType, ...eventData } = event;
+            const {
+                id,
+                createdAt,
+                updatedAt,
+                recurringEventId,
+                isRecurringInstance,
+                recurring,
+                until,
+                eventExceptions,
+                entityType,
+                originalAvailabilityId,
+                ...eventData
+            } = event;
             const duplicatedEvent = {
                 ...eventData,
                 start: newStart,

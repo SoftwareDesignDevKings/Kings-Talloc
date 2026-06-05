@@ -103,13 +103,18 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
 
         // Add remaining slot
         if (slotStart < currentEnd) {
-            splitSlots.push({
+            const remainingSlot = {
                 ...availability,
                 id: wasSplit ? crypto.randomUUID() : availability.id,
-                originalAvailabilityId: wasSplit ? availability.id : undefined,
                 start: slotStart,
                 end: currentEnd,
-            });
+            };
+
+            if (wasSplit) {
+                remainingSlot.originalAvailabilityId = availability.id;
+            }
+
+            splitSlots.push(remainingSlot);
         }
     }
 
