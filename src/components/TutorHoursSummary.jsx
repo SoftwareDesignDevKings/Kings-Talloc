@@ -38,6 +38,30 @@ const isTutorConfirmed = (event, tutorEmail) => {
         : true;
 };
 
+const buildUserNameMap = (userDocs) => {
+    const namesByEmail = new Map();
+
+    userDocs.forEach((userDoc) => {
+        const data = userDoc.data();
+        const email = (data.email || userDoc.id || '').toLowerCase();
+        if (email && data.name) {
+            namesByEmail.set(email, data.name);
+        }
+    });
+
+    return namesByEmail;
+};
+
+const getStaffEmail = (staff) => {
+    if (!staff) return '';
+    return typeof staff === 'string' ? staff : staff.value || '';
+};
+
+const getStaffFallbackName = (staff, staffEmail) => {
+    if (!staff || typeof staff === 'string') return staffEmail;
+    return staff.label || staffEmail;
+};
+
 /**
  * Component to display and manage tutor hours summary
  */
@@ -82,10 +106,12 @@ const TutorHoursSummary = () => {
             ...accessFilter
         );
 
-        const [nonRecurringSnapshot, recurringSnapshot] = await Promise.all([
+        const [nonRecurringSnapshot, recurringSnapshot, usersSnapshot] = await Promise.all([
             getDocs(nonRecurringQuery),
-            getDocs(recurringQuery)
+            getDocs(recurringQuery),
+            getDocs(collection(db, 'users')),
         ]);
+        const userNamesByEmail = buildUserNameMap(usersSnapshot.docs);
 
         // Process non-recurring shifts
         let shifts = nonRecurringSnapshot.docs.map(doc => {
@@ -127,15 +153,22 @@ const TutorHoursSummary = () => {
                 continue;
             }
 
-            for (const staff of shift.staff) {
-                // TODO: check if this is even required - as curr system doent care if we tutor has confirmed it
-                if (!isTutorConfirmed(shift, staff.value)) {
+            for (const staff of shift.staff || []) {
+                const staffEmail = getStaffEmail(staff);
+                if (!staffEmail) {
                     continue;
                 }
 
-                if (!tutorHoursMap[staff.value]) {
-                    tutorHoursMap[staff.value] = {
-                        name: staff.label,
+                // TODO: check if this is even required - as curr system doent care if we tutor has confirmed it
+                if (!isTutorConfirmed(shift, staffEmail)) {
+                    continue;
+                }
+
+                const currentUserName = userNamesByEmail.get(staffEmail.toLowerCase());
+
+                if (!tutorHoursMap[staffEmail]) {
+                    tutorHoursMap[staffEmail] = {
+                        name: currentUserName || getStaffFallbackName(staff, staffEmail),
                         tutoringHours: 0,
                         coachingHours: 0,
                     };
@@ -148,9 +181,9 @@ const TutorHoursSummary = () => {
 
                 // Add to appropriate category based on workType
                 if (shift.workType === 'coaching') {
-                    tutorHoursMap[staff.value].coachingHours += shiftDuration;
+                    tutorHoursMap[staffEmail].coachingHours += shiftDuration;
                 } else {
-                    tutorHoursMap[staff.value].tutoringHours += shiftDuration;
+                    tutorHoursMap[staffEmail].tutoringHours += shiftDuration;
                 }
             }
         }
@@ -163,7 +196,9 @@ const TutorHoursSummary = () => {
 
         // Tutors only see their own summary, admins see everyone
         if (!isAdmin) {
-            tutorHoursArray = tutorHoursArray.filter((tutor) => tutor.email === userEmail);
+            tutorHoursArray = tutorHoursArray.filter(
+                (tutor) => tutor.email.toLowerCase() === userEmail?.toLowerCase(),
+            );
         }
 
         setTutorHours(tutorHoursArray);
