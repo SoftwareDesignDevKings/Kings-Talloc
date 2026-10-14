@@ -4,12 +4,14 @@
  * Tests users collection access control:
  * - Any authenticated user can read
  * - Admin/teacher or self can create
- * - Only admin can update or delete
+ * - Students can acknowledge their own introductions; other updates require admin
+ * - Only admin can delete
  *
  * @jest-environment node
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
+const { deleteField } = require('firebase/firestore');
 
 const { assertFails, assertSucceeds } = global;
 const fs = require('fs');
@@ -223,7 +225,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             );
         });
 
-        test('student CANNOT update their own document', async () => {
+        test('student CANNOT update unrelated fields on their own document', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
                 defaultRole: 'student',
@@ -247,6 +249,129 @@ describe('Firebase Security Rules - Users Collection', () => {
             await assertFails(
                 db.collection('users').doc(tutorEmail).update({ name: 'Hacked Name' }),
             );
+        });
+
+        describe('Student introduction acknowledgements', () => {
+            const studentContext = () => testEnv.authenticatedContext(studentEmail, {
+                email: studentEmail,
+                defaultRole: 'student',
+                userRoles: [],
+            });
+            let studentRef;
+
+            beforeEach(() => {
+                studentRef = studentContext().firestore().collection('users').doc(studentEmail);
+            });
+
+            test.each(['hasSeenWelcome', 'hasSeenCalendarHelp'])(
+                'student CAN save %s on a legacy account and read it on a later visit',
+                async (field) => {
+                    await assertSucceeds(studentRef.update({ [field]: true }));
+
+                    const laterVisitRef = studentContext().firestore().collection('users').doc(studentEmail);
+                    const savedUser = await assertSucceeds(laterVisitRef.get());
+                    expect(savedUser.data()).toMatchObject({
+                        [field]: true,
+                        name: 'Test Student',
+                        defaultRole: 'student',
+                        userRoles: [],
+                    });
+                },
+            );
+
+            test.each([
+                ['hasSeenWelcome', 'hasSeenCalendarHelp'],
+                ['hasSeenCalendarHelp', 'hasSeenWelcome'],
+            ])('student CAN acknowledge %s while %s is still false', async (first, second) => {
+                await testEnv.withSecurityRulesDisabled(async (context) => {
+                    await context.firestore().collection('users').doc(studentEmail).update({
+                        hasSeenWelcome: false,
+                        hasSeenCalendarHelp: false,
+                    });
+                });
+
+                await assertSucceeds(studentRef.update({ [first]: true }));
+                expect((await studentRef.get()).data()[second]).toBe(false);
+                await assertSucceeds(studentRef.update({ [second]: true }));
+                expect((await studentRef.get()).data()).toMatchObject({
+                    hasSeenWelcome: true,
+                    hasSeenCalendarHelp: true,
+                });
+            });
+
+            test('student CAN acknowledge both introductions together', async () => {
+                await assertSucceeds(studentRef.update({
+                    hasSeenWelcome: true,
+                    hasSeenCalendarHelp: true,
+                }));
+            });
+
+            test('student role in userRoles CAN acknowledge introductions', async () => {
+                const context = testEnv.authenticatedContext(studentEmail, {
+                    email: studentEmail,
+                    defaultRole: 'tutor',
+                    userRoles: ['student'],
+                });
+
+                await assertSucceeds(context.firestore().collection('users').doc(studentEmail).update({
+                    hasSeenWelcome: true,
+                }));
+            });
+
+            test.each(['hasSeenWelcome', 'hasSeenCalendarHelp'])(
+                'student CANNOT reset, mistype or delete %s',
+                async (field) => {
+                    await testEnv.withSecurityRulesDisabled(async (context) => {
+                        await context.firestore().collection('users').doc(studentEmail).update({ [field]: true });
+                    });
+
+                    for (const value of [false, 'true', 1, null, deleteField()]) {
+                        await assertFails(studentRef.update({ [field]: value }));
+                    }
+                    expect((await studentRef.get()).data()[field]).toBe(true);
+                },
+            );
+
+            test.each([
+                ['name', 'Changed Name'],
+                ['defaultRole', 'admin'],
+                ['userRoles', ['admin']],
+                ['requestNotificationsEnabled', true],
+            ])('student CANNOT change %s alongside an acknowledgement', async (field, value) => {
+                await assertFails(studentRef.update({
+                    hasSeenWelcome: true,
+                    [field]: value,
+                }));
+            });
+
+            test('student CANNOT replace their profile with acknowledgement fields', async () => {
+                await assertFails(studentRef.set({ hasSeenWelcome: true }));
+            });
+
+            test("student CANNOT acknowledge another user's introductions", async () => {
+                await assertFails(studentContext().firestore().collection('users').doc(tutorEmail).update({
+                    hasSeenWelcome: true,
+                    hasSeenCalendarHelp: true,
+                }));
+            });
+
+            test('non-student CANNOT use the acknowledgement exception on their own profile', async () => {
+                const context = testEnv.authenticatedContext(tutorEmail, {
+                    email: tutorEmail,
+                    defaultRole: 'tutor',
+                    userRoles: [],
+                });
+
+                await assertFails(context.firestore().collection('users').doc(tutorEmail).update({
+                    hasSeenWelcome: true,
+                }));
+            });
+
+            test('unauthenticated user CANNOT acknowledge introductions', async () => {
+                await assertFails(testEnv.unauthenticatedContext().firestore().collection('users').doc(studentEmail).update({
+                    hasSeenWelcome: true,
+                }));
+            });
         });
     });
 
