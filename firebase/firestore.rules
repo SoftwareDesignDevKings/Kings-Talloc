@@ -104,15 +104,27 @@ service cloud.firestore {
         && requestHasNoClasses();
     }
 
+    // Students can acknowledge each introduction independently, without editing their profile.
+    function studentAcknowledgesIntroduction(documentEmail) {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return isStudent()
+        && request.auth.token.email == documentEmail
+        && changedFields.hasOnly(['hasSeenWelcome', 'hasSeenCalendarHelp'])
+        && (!changedFields.hasAny(['hasSeenWelcome'])
+          || request.resource.data.get('hasSeenWelcome', false) == true)
+        && (!changedFields.hasAny(['hasSeenCalendarHelp'])
+          || request.resource.data.get('hasSeenCalendarHelp', false) == true);
+    }
+
     // ─────────────────────────────────────
     // Collections
     // ─────────────────────────────────────
 
-    // Users — admins/teachers manage roles; users can edit own non-role fields
+    // Users — admins manage updates/deletion; students can acknowledge their own introductions.
     match /users/{documentEmail} {
       allow read: if isAuthenticated();
       allow create: if isAdminOrTeacher() || (isAuthenticated() && request.auth.token.email == documentEmail);
-      allow update: if isAdmin();
+      allow update: if isAdmin() || studentAcknowledgesIntroduction(documentEmail);
       allow delete: if isAdmin();
     }
 
