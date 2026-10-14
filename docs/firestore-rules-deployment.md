@@ -53,6 +53,9 @@ Vercel's Git deployment and GitHub Actions run independently. This workflow alon
 not hold back the web app while rules are deploying. If Vercel Deployment Checks are
 available, require **Deploy production Firestore rules** in the project's production
 deployment checks; confirm a failed check actually prevents domain promotion.
+Reading back the release verifies the published configuration, not instantaneous
+propagation to every client. Stage permission additions ahead of dependent app changes
+when uninterrupted access during propagation is required, even with a deployment gate.
 
 Until that gate is configured, merge backward-compatible permission additions first,
 wait for their deployment job to succeed and for rules propagation, then merge the app
