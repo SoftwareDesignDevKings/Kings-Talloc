@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 
-const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly }) => (
+const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly, disabled = false }) => (
     <div className="list-group-item">
         <div className="d-flex flex-column gap-2">
             <div>
@@ -54,18 +54,21 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly 
                 <div className="d-flex gap-2">
                     <button
                         className="btn btn-sm btn-success"
+                        disabled={disabled}
                         onClick={(e) => { e.stopPropagation(); onApprove(request); }}
                     >
                         Approve
                     </button>
                     <button
                         className="btn btn-sm btn-secondary"
+                        disabled={disabled}
                         onClick={(e) => { e.stopPropagation(); onReject(request.id); }}
                     >
                         Reject
                     </button>
                     <button
                         className="btn btn-sm btn-danger"
+                        disabled={disabled}
                         onClick={(e) => { e.stopPropagation(); onDelete(request.id); }}
                     >
                         Delete

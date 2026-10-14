@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import LoadingPage from '@/components/LoadingPage.jsx';
 import Login from '@/components/Login.jsx';
 import AppLayout from '@/components/AppLayout';
+import { RequestNotificationsProvider } from './RequestNotificationsContext';
 import { syncNextFbAuth, startTokenRefresh, stopTokenRefresh } from '@/lib/security/clientAuth';
 
 export const AuthContext = createContext();
@@ -116,9 +117,11 @@ export const AuthContextProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={authCtxValues}>
-            <AppLayout session={session} userRole={userRole}>
-                {children}
-            </AppLayout>
+            <RequestNotificationsProvider email={session?.user?.email} availableRoles={availableRoles}>
+                <AppLayout session={session} userRole={userRole}>
+                    {children}
+                </AppLayout>
+            </RequestNotificationsProvider>
         </AuthContext.Provider>
     );
 };

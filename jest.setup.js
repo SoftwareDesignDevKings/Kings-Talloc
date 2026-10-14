@@ -123,6 +123,11 @@ if (isBrowserEnv) {
         deleteDoc: jest.fn(),
         onSnapshot: jest.fn(),
         setDoc: jest.fn(),
+        query: jest.fn(),
+        where: jest.fn(),
+        getDocsFromServer: jest.fn(),
+        runTransaction: jest.fn(),
+        serverTimestamp: jest.fn(() => ({ serverTimestamp: true })),
     }));
 
     global.matchMedia =

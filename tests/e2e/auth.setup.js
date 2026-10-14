@@ -5,6 +5,7 @@ import fs from 'fs';
 const TEAL = '\x1b[36m';
 const RESET = '\x1b[0m';
 const DEV_LOGIN_LABELS = {
+    'mienna@kings.edu.au': { buttonLabel: 'Michael (Notifications)', userRoleForLabel: 'notificationAdmin' },
     'computing@kings.edu.au': { buttonLabel: 'Teacher + Admin', userRoleForLabel: 'teacherAdmin' },
     'tutor@kings.edu.au': { buttonLabel: 'Tutor', userRoleForLabel: 'tutor' },
     'tutorAdmin@kings.edu.au': { buttonLabel: 'Tutor + Admin', userRoleForLabel: 'tutorAdmin' },

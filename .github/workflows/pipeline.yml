@@ -46,7 +46,7 @@ jobs:
                   FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
             - name: Run Playwright e2e tests
-              run: npm run test:e2e
+              run: xvfb-run --auto-servernum npm run test:e2e
               env:
                 NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyDUMMY_DUMMY_DUMMY_DUMMY_DUMMY
                 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: demo-talloc.firebaseapp.com

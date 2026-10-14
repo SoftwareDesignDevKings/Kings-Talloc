@@ -5,4 +5,6 @@ module.exports = {
     testMatch: ['<rootDir>/tests/firebase/*.test.js'],
     // Suppress expected Firebase permission denied warnings during tests
     setupFilesAfterEnv: ['<rootDir>/tests/firebase/firebaseTestSetup.js'],
+    transform: { '^.+\\.jsx?$': ['babel-jest', { presets: ['next/babel'] }] },
+    moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
 };

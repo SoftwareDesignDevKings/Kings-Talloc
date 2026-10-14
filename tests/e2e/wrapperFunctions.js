@@ -46,21 +46,33 @@ const toFirestoreValue = (value) => {
 };
 
 export async function seedShiftInEmulator(id, shift) {
+    return seedDocumentInEmulator('shifts', id, shift);
+}
+
+export async function seedStudentRequestInEmulator(id, request) {
+    return seedDocumentInEmulator('studentEventRequests', id, request);
+}
+
+export async function seedUserInEmulator(email, user) {
+    return seedDocumentInEmulator('users', email, user);
+}
+
+async function seedDocumentInEmulator(collectionName, id, document) {
     const host = getEmulatorHost();
     const res = await fetch(
-        `http://${host}/v1/projects/${PROJECT_ID}/databases/(default)/documents/shifts/${id}`,
+        `http://${host}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${id}`,
         {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 fields: Object.fromEntries(
-                    Object.entries(shift).map(([key, value]) => [key, toFirestoreValue(value)])
+                    Object.entries(document).map(([key, value]) => [key, toFirestoreValue(value)])
                 ),
             }),
         }
     );
 
     if (!res.ok) {
-        throw new Error(`Failed to seed shift ${id}: ${res.status}`);
+        throw new Error(`Failed to seed ${collectionName}/${id}: ${res.status}`);
     }
 }

@@ -1,114 +1,65 @@
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/firestore/firestoreClient.js';
-import {
-    createEventInFirestore,
-    deleteEventFromFirestore,
-    queueEmailNotification,
-} from '@/firestore/firestoreOperations';
+import { useRef, useState } from 'react';
+import { queueEmailNotification } from '@/firestore/firestoreOperations';
+import { approveStudentRequest, resolveStudentRequest } from '@/firestore/studentRequestApprovals';
 import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
-import { getTutorShiftConflicts } from '@/utils/calendarAvailability';
-import { format } from 'date-fns';
 import useAlert from '@/hooks/useAlert';
 import useAuthSession from '@/hooks/useAuthSession';
 
-export const useApprovalHandlers = (onUpdate, calendarShifts = []) => {
+export const useApprovalHandlers = (onUpdate) => {
     const { addAlert } = useAlert();
     const { session } = useAuthSession();
-    const userEmail = session?.user?.email;
+    const processing = useRef(new Set());
+    const [processingIds, setProcessingIds] = useState(new Set());
 
-    const handleApprove = async (request) => {
+    const perform = async (requestId, action, failureMessage) => {
+        if (!requestId || processing.current.has(requestId)) return false;
+        processing.current.add(requestId);
+        setProcessingIds(new Set(processing.current));
         try {
-            if (!request) {
-                console.error('[useApprovalHandlers] Request not found');
-                addAlert('error', 'Request not found');
-                return;
-            }
+            await action();
+            return true;
+        } catch (error) {
+            addAlert('error', `${failureMessage}: ${error.message}`);
+            return false;
+        } finally {
+            processing.current.delete(requestId);
+            setProcessingIds(new Set(processing.current));
+        }
+    };
 
-            // Create event data for the main events collection
-            const eventData = {
-                title: request.title || 'Tutoring',
-                start: request.start,
-                end: request.end,
-                description: request.description || '',
-                students: request.students || [],
-                staff: request.staff || [],
-                classes: request.classes || [],
-                subject: request.subject,
-                preference: request.preference,
-                createdByStudent: true,
-                approvalStatus: 'approved',
-                approvedAt: new Date(),
-                workStatus: 'notCompleted',
-                workType: 'tutoring',
-                createTeamsMeeting: true,
-                confirmationRequired: request.confirmationRequired || false,
-                tutorResponses: request.tutorResponses || [],
-                studentResponses: request.studentResponses || [],
-                minStudents: request.minStudents || 0,
-                locationType: request.locationType || '',
-                recurring: null,
-                occurenceNum: null,
-                until: null,
-            };
-
-            const conflicts = getTutorShiftConflicts(eventData.staff, eventData.start, eventData.end, calendarShifts);
-            if (conflicts.length > 0) {
-                const details = conflicts
-                    .map((c) => `${c.tutorName} (conflicts with "${c.conflictTitle}" ${format(new Date(c.conflictStart), 'HH:mm')}–${format(new Date(c.conflictEnd), 'HH:mm')})`)
-                    .join(', ');
-                addAlert('error', `Cannot approve: scheduling conflict — ${details}`);
-                return;
-            }
-
-            // Delete from studentEventRequests and create in events collection
-            await deleteEventFromFirestore(request.id, 'studentEventRequests');
-
-            const docId = await createEventInFirestore(eventData);
-
-            // Queue email notification
-            await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
-
-            await calendarEventCreateTeamsMeeting(docId, eventData, {
-                addAlert,
+    const handleApprove = (request, changes) => perform(request?.id, async () => {
+        const { id, eventData } = await approveStudentRequest(request.id, undefined, changes);
+        addAlert('success', 'Request approved successfully');
+        // Failures after the atomic conversion must never be reported as a failed approval.
+        try {
+            await queueEmailNotification({ ...eventData, id }, 'allocated', session?.user?.email);
+        } catch (error) {
+            addAlert('warning', `Request approved, but the allocation notification could not be queued: ${error.message}`);
+        }
+        try {
+            await calendarEventCreateTeamsMeeting(id, eventData, {
+                addAlert: (type, message) => addAlert(type === 'error' ? 'warning' : type,
+                    type === 'error' ? `Request approved, but ${message}` : message),
             });
-
-            addAlert('success', 'Request approved successfully');
-
-            if (onUpdate) onUpdate();
         } catch (error) {
-            console.error('[useApprovalHandlers] Error approving request:', error);
-            addAlert('error', `Failed to approve request: ${error.message}`);
+            addAlert('warning', `Request approved, but the Teams meeting could not be created: ${error.message}`);
         }
-    };
-
-    const handleReject = async (requestId) => {
         try {
-            const requestRef = doc(db, 'studentEventRequests', requestId);
-            await updateDoc(requestRef, {
-                approvalStatus: 'denied',
-                deniedAt: new Date(),
-            });
-            if (onUpdate) onUpdate();
+            onUpdate?.();
         } catch (error) {
-            console.error('[useApprovalHandlers] Error rejecting request:', error);
-            addAlert('error', 'Failed to reject request');
+            addAlert('warning', `Request approved, but the dashboard could not be refreshed: ${error.message}`);
         }
-    };
+    }, 'Failed to approve request');
 
-    const handleDelete = async (requestId) => {
-        try {
-            const requestRef = doc(db, 'studentEventRequests', requestId);
-            await deleteDoc(requestRef);
-            if (onUpdate) onUpdate();
-        } catch (error) {
-            console.error('[useApprovalHandlers] Error deleting request:', error);
-            addAlert('error', 'Failed to delete request');
-        }
-    };
+    const handleReject = requestId => perform(requestId, async () => {
+        await resolveStudentRequest(requestId, 'deny');
+        onUpdate?.();
+    }, 'Failed to reject request');
 
-    return {
-        handleApprove,
-        handleReject,
-        handleDelete,
-    };
+    const handleDelete = requestId => perform(requestId, async () => {
+        await resolveStudentRequest(requestId, 'delete');
+        onUpdate?.();
+    }, 'Failed to delete request');
+
+    return { handleApprove, handleReject, handleDelete, processingIds };
 };

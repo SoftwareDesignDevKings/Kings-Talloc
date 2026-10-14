@@ -125,6 +125,11 @@ service cloud.firestore {
         || (isTutorOrCoach() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
     }
 
+    // Shared transaction guard for approvals assigning the same tutor.
+    match /tutorBookingGuards/{tutorEmail} {
+      allow read, create, update: if isAdminOrTeacher();
+    }
+
     // Email Events Queue — only admins/teachers can read or write; only admins can delete
     match /emailEventsQueue/{eventId} {
       allow read, create, update: if isAdminOrTeacher();

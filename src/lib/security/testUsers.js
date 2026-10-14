@@ -1,4 +1,10 @@
 export const TEST_USERS = {
+    'mienna@kings.edu.au': {
+        name: 'Michael Ienna',
+        role: 'admin',
+        defaultRole: 'teacher',
+        userRoles: ['admin']
+    },
     'computing@kings.edu.au': {
         name: 'Michael Ienna',
         role: 'admin',

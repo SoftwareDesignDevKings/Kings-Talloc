@@ -118,10 +118,27 @@ Built with React Big Calendar
 - Real-time event updates via Firestore listeners
 
 ### Event Management
+
 - Create, edit, and delete tutoring/coaching sessions
 - Track event completion status and hours
 - Student confirmation system for group sessions
 - Filter events by tutor, subject, and availability type
+
+### Pending request notifications
+
+All admins see future pending requests in the existing Pending Approvals card, regardless of the selected calendar week. There is no additional pending-request text in the shared header. A request leaves the count when its session starts, without changing its saved approval status.
+
+Accounts with a **teacher** role can receive new-request notifications when **Tutoring request notifications** is enabled in **Manage Users → Edit User**. Admins who are also teachers receive them in either dashboard view. Admin access alone does not enable notifications. This is saved as `users/{email}.requestNotificationsEnabled` and takes effect immediately. Existing accounts default to off except Michael (`mienna@kings.edu.au`); an explicitly saved choice overrides that default. The setting does not grant any roles or approval permissions.
+
+When enabled, the browser tab title shows new requests while the app is inactive. Returning acknowledges them across tabs in the same browser profile; pending approvals remain visible until handled or their session starts. Older requests without creation timestamps still appear in the queue but do not raise new-request notifications.
+
+Enabled teachers use the complete future queue in their existing read-only card. Approval transactions coordinate through `tutorBookingGuards` to prevent overlapping requests being approved concurrently. Deploy the updated `firebase/firestore.rules` with the app so teachers and admins can use those guards.
+
+To check the notification flow locally, use the **Michael (Notifications)** development account. The focus-dependent browser checks open visible Chromium windows. With the Firebase and Auth emulators and app running, run:
+
+```bash
+npx playwright test tests/e2e/request-notifications.test.js --project=admin-tests
+```
 
 ### Dashboard & Analytics
 - Role-specific overview cards showing upcoming events, pending approvals, and completion stats

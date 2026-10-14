@@ -1,7 +1,8 @@
-import { addDoc } from 'firebase/firestore';
+import { addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import {
     createEventInFirestore,
     stripUndefinedFields,
+    updateEventInFirestore,
 } from '@/firestore/firestoreOperations';
 
 describe('stripUndefinedFields', () => {
@@ -61,5 +62,15 @@ describe('createEventInFirestore', () => {
         expect(payload.staffEmails).toEqual([]);
         expect(payload.studentEmails).toEqual([]);
         expect(payload.emailsList).toEqual([]);
+    });
+
+    test('new and duplicated student requests get a fresh server timestamp', async () => {
+        await createEventInFirestore({ createdAt: { seconds: 1, nanoseconds: 0 } }, 'studentEventRequests');
+        expect(addDoc.mock.calls[0][1].createdAt).toEqual(serverTimestamp());
+    });
+
+    test('editing a student request preserves its creation timestamp', async () => {
+        await updateEventInFirestore('request', { title: 'Edited', createdAt: { seconds: 1, nanoseconds: 0 } }, 'studentEventRequests');
+        expect(updateDoc.mock.calls[0][1]).toEqual({ title: 'Edited' });
     });
 });
