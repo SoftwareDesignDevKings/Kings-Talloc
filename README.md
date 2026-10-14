@@ -159,13 +159,18 @@ npx playwright test tests/e2e/request-notifications.test.js --project=admin-test
 
 > [!NOTE]
 > The project uses **GitHub Actions** for continuous integration. All tests must pass before code can be merged.
-> Tests are primarily for Firebase auth with 1 unit test configured for future integration. 
+> The pipeline covers unit tests, Firestore security rules and approval transactions,
+> and browser workflows against the local emulators.
 
 **Pipeline Steps:**
 
 - **Linting**: ESLint checks on every push/PR
 - **Testing**: Jest unit tests and Firebase emulator security rules tests
 - **Deployment**: Automatic deployment to Vercel on pushes to `main`
+- **Firestore rules**: After successful `main` CI, deploy and verify the rules in
+  `firebase/firestore.rules` using a dedicated, keyless Google identity. Complete the
+  [one-time connection](docs/firestore-rules-deployment.md) before enabling the workflow.
+  That guide also covers Vercel release ordering, emergency console edits, and rollback.
 
 ---
 
