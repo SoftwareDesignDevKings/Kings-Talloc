@@ -1,4 +1,4 @@
-import { doc, updateDoc, addDoc, deleteDoc, getDoc, collection, setDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, deleteDoc, getDoc, collection, setDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
 
 const isPlainObject = (value) => {
@@ -138,6 +138,7 @@ export const updateWorkStatusInFirestore = async (shiftId, workStatus) => {
 export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts') => {
     const eventDoc = doc(db, collectionName, eventId);
     const firestoreData = { ...eventData };
+    if (collectionName === 'studentEventRequests') delete firestoreData.createdAt;
 
     // Rebuild emailsList if staff or students are being updated
     if (firestoreData.staff !== undefined || firestoreData.students !== undefined) {
@@ -164,6 +165,7 @@ export const createEventInFirestore = async (eventData, collectionName = 'shifts
 
     const docRef = await addDoc(collection(db, collectionName), stripUndefinedFields({
         ...eventData,
+        ...(collectionName === 'studentEventRequests' && { createdAt: serverTimestamp() }),
         staffEmails,
         studentEmails,
         emailsList,

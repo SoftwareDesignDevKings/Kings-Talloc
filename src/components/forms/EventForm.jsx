@@ -25,12 +25,12 @@ import {
     updateWorkStatusInFirestore,
     createEventInFirestore,
     queueEmailNotification,
-    deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
 import { getTutorShiftConflicts, getRecurringSeriesConflicts } from '@/utils/calendarAvailability';
 import { format } from 'date-fns';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
+import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
 
 const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
     const {
@@ -53,6 +53,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { addAlert } = useAlert();
+    const { handleApprove } = useApprovalHandlers();
 
     // fetch form data using custom hook
     const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
@@ -256,17 +257,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         try {
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
-                    // Automatically create Teams meeting for approved student requests
-
-                    await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
-                    const docId = await createEventInFirestore(eventData);
-
-                    await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
-
-                    // Handle Teams meeting creation
-                    await calendarEventCreateTeamsMeeting(docId, eventData, {
-                        addAlert,
-                    });
+                    return await handleApprove(eventToEdit, eventData);
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
                     await queueEmailNotification({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);

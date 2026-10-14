@@ -7,6 +7,7 @@ import { AppLogin } from '@/lib/security/clientAuth';
 
 // Dev bypass users (matches authOptions.js)
 const DEV_USERS = [
+    { id: 'dev-mienna', email: 'mienna@kings.edu.au', label: 'Michael (Notifications)'},
     { id: 'dev-computing', email: 'computing@kings.edu.au', label: 'Teacher + Admin'},
     { id: 'dev-tutorAdmin', email: 'tutorAdmin@kings.edu.au', label: 'Tutor + Admin'},
     { id: 'dev-teacher', email: 'teacher@kings.edu.au', label: 'Teacher'},

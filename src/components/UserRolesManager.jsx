@@ -7,6 +7,7 @@ import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
 import styles from '@/styles/userRoles.module.css';
 import t from '@/styles/manageTable.module.css';
+import { getRequestNotificationPreference } from '@/utils/requestNotifications';
 import {
     buildTutorCoverageOptionGroups,
     flattenCoverageOptionGroups,
@@ -33,6 +34,7 @@ const UserRolesManager = () => {
     const [name, setName] = useState('');
     const [role, setRole] = useState('student'); // This maps to defaultRole in Firestore
     const [userRoles, setUserRoles] = useState([]); // Additional roles array
+    const [requestNotificationsEnabled, setRequestNotificationsEnabled] = useState(null);
     const [tutorCoverage, setTutorCoverage] = useState([]);
     const [canvasCourses, setCanvasCourses] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -44,6 +46,7 @@ const UserRolesManager = () => {
     // Extra roles available per defaultRole.
     // Teacher and tutor/coach are mutually exclusive — selecting one hides the other.
     const EXTRA_ROLES_BY_DEFAULT = {
+        admin:   ['teacher'],
         teacher: ['admin'],
         tutor:   ['coach', 'admin'],
         coach:   ['tutor', 'admin'],
@@ -60,6 +63,7 @@ const UserRolesManager = () => {
         [tutorCoverageOptionGroups],
     );
     const userHasTutorAccess = role === 'tutor' || userRoles.includes('tutor');
+    const userHasTeacherAccess = role === 'teacher' || userRoles.includes('teacher');
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -114,6 +118,7 @@ const UserRolesManager = () => {
                 setName('');
                 setRole('student');
                 setUserRoles([]);
+                setRequestNotificationsEnabled(null);
                 setTutorCoverage([]);
                 setIsEditing(false);
             };
@@ -158,6 +163,7 @@ const UserRolesManager = () => {
                 role, // Legacy single-role mirror for older readers still expecting `users.role`; canonical fields are `defaultRole` + `userRoles`. Remove after all readers migrate.
                 defaultRole: role,
                 userRoles,
+                requestNotificationsEnabled: userHasTeacherAccess && (requestNotificationsEnabled ?? getRequestNotificationPreference(email)),
                 tutorCoverage: coverage,
                 tutorCoverageKeys: coverage.map((item) => item.key),
             }, { merge: true });
@@ -182,6 +188,7 @@ const UserRolesManager = () => {
                 setName('');
                 setRole('student');
                 setUserRoles([]);
+                setRequestNotificationsEnabled(null);
                 setTutorCoverage([]);
                 setIsEditing(false);
             }
@@ -227,6 +234,7 @@ const UserRolesManager = () => {
         setName(user.name);
         setRole(user.defaultRole || user.role); // Use defaultRole if available, fallback to role
         setUserRoles(user.userRoles || []); // Load existing userRoles or empty array
+        setRequestNotificationsEnabled(getRequestNotificationPreference(user.email, user));
         setTutorCoverage(hydrateTutorCoverage(
             user.tutorCoverage || [],
             user.tutorCoverageKeys || [],
@@ -305,6 +313,7 @@ const UserRolesManager = () => {
                         setName('');
                         setRole('student');
                         setUserRoles([]);
+                        setRequestNotificationsEnabled(null);
                         setTutorCoverage([]);
                     }}
                     className="btn btn-outline-primary btn-sm"
@@ -479,6 +488,7 @@ const UserRolesManager = () => {
                                             }}
                                         >
                                             <option value="student">Student</option>
+                                            {role === 'admin' && <option value="admin">Admin</option>}
                                             <option value="tutor">Tutor</option>
                                             <option value="coach">Coach</option>
                                             <option value="teacher">Teacher</option>
@@ -512,6 +522,26 @@ const UserRolesManager = () => {
                                                         </button>
                                                     );
                                                 })}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {userHasTeacherAccess && (
+                                        <div className={styles.modalSection}>
+                                            <div className="form-check form-switch">
+                                                <input
+                                                    id="requestNotificationsEnabled"
+                                                    className="form-check-input"
+                                                    type="checkbox"
+                                                    checked={requestNotificationsEnabled ?? getRequestNotificationPreference(email)}
+                                                    onChange={event => setRequestNotificationsEnabled(event.target.checked)}
+                                                    aria-describedby="requestNotificationsHelp"
+                                                />
+                                                <label className="form-check-label fw-semibold" htmlFor="requestNotificationsEnabled">
+                                                    Tutoring request notifications
+                                                </label>
+                                            </div>
+                                            <div id="requestNotificationsHelp" className="form-text">
+                                                Show new requests in this teacher’s browser tab while they’re away, including when using their admin view.
                                             </div>
                                         </div>
                                     )}
