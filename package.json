@@ -10,7 +10,7 @@
         "start": "next start",
         "lint": "eslint .",
         "test": "jest --testPathIgnorePatterns=firebase --testPathIgnorePatterns=e2e",
-        "test:firebase": "firebase emulators:exec --only firestore --config firebase/firebase.json \"jest --config=tests/firebase/jest.firebase.config.js\"",
+        "test:firebase": "firebase emulators:exec --only firestore --project demo-talloc --config firebase/firebase.json \"jest --config=tests/firebase/jest.firebase.config.js\"",
         "test:all": "npm run test && npm run test:firebase && npm run test:e2e",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
