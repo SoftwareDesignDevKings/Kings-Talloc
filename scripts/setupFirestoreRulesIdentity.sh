@@ -46,7 +46,7 @@ if gcloud iam workload-identity-pools providers describe "$deployment_provider" 
 else
     gcloud iam workload-identity-pools providers create-oidc "$deployment_provider" \
         --project="$deployment_project" --location=global --workload-identity-pool="$deployment_pool" \
-        --display-name='Reviewed main deployment workflow' \
+        --display-name='Kings-Talloc main CI' \
         --issuer-uri='https://token.actions.githubusercontent.com' \
         --attribute-mapping="$deployment_mapping" --attribute-condition="$deployment_condition"
 fi
