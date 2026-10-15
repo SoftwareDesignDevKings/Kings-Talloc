@@ -28,8 +28,9 @@ const WORK_TYPE_BADGE = {
 
 const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
     const staffNames = event.staff?.map((s) => s.label || s.value) || [];
-    const isPending = event.createdByStudent && event.approvalStatus === 'pending';
-    const isApproved = event.createdByStudent && event.approvalStatus === 'approved';
+    const showApprovalStatus = ['teacher', 'admin', 'student'].includes(userRole);
+    const isPending = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'pending';
+    const isApproved = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'approved';
     const workTypeBadge = WORK_TYPE_BADGE[event.workType];
 
     return (

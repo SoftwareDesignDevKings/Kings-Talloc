@@ -77,3 +77,5 @@ No audit-history feature or new purpose field was added. Unresolved class-only l
 - Local verification: full unit suite, the isolated approval emulator suite and browser checks cover group creation, fixed requester, ineligible peer filtering, teacher review and participant replacement.
 
 Tutor assignment banners have been removed, including hiding older stored assignment notices. Student approval/denial updates and Michael’s lost-coverage warnings remain. No production notification records are deleted.
+
+Dashboard approval badges are visible for teachers/admins and students, and hidden in tutor/coach views in both Today and Upcoming Events. Event details and participant counts remain visible.
