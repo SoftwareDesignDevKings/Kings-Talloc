@@ -15,9 +15,9 @@ Branch: `codex/work-bookings-hours`, isolated from the UI branch and based on ma
 
 ## Verification
 
-- Unit suite: 26 suites / 133 tests passed, including 22 scheduling and hours fixtures and notification expiry/recovery tests.
-- Firestore rules and scheduling integration: seven suites passed (164 tests, including the final scheduling regression rerun). The scheduling suite now covers 35 cases, including concurrency, failed-write rollback, idempotent retry, future recurring conflicts, subject eligibility, the exact approval boundary, coverage-loss notices, ownership and bypass attempts.
-- Five browser scenarios cover student booking during Work and named group members; teacher approval and student notice; availability without a type selector; teacher completion; distinct Monday exports and non-blocking short-shift warnings; and cross-tab acknowledgement with the five-total/three-new example.
+- Unit suite: 27 suites / 157 tests passed, including 43 scheduling and hours cases and notification expiry/recovery tests.
+- Firestore rules and scheduling integration: seven suites passed (174 tests). The scheduling suite now covers 45 cases, including concurrency, failed-write rollback, idempotent retry, future recurring conflicts, subject eligibility, the exact approval boundary, coverage-loss notices, ownership and bypass attempts.
+- Eight browser scenarios cover student booking during Work and named group members; teacher approval and student notice; availability without a type selector; teacher completion; distinct Monday exports and non-blocking short-shift warnings; cross-tab acknowledgement with the five-total/three-new example; editable removal followed by replacement with an error only on empty save; blocking saved Work from gaining student-booking behaviour; and one complex case matching dashboard, summary, downloaded CSV and Word, including a non-blocking Coaching-minimum warning.
 - The cross-tab test uses real browser tabs, Firestore snapshots and browser storage events, with controlled focus/visibility signals because this host's Chromium automation keeps background targets focused. Native window-focus behavior is not certified by this automated run.
 - Existing browser regressions: the 11 selected admin, approvals, tutor and coaching scenarios passed, including a targeted rerun after updating the old decimal-hours assertion. Three native-focus scenarios were excluded on this host; the dedicated two-tab flow covers acknowledgement with controlled focus signals.
 - Lint, whitespace checks and production build passed. Local builds still report the pre-existing Upstash Edge-runtime warning and missing local Redis settings.
@@ -47,7 +47,7 @@ The dedicated browser suite runs with `npm run test:e2e:work-hours`. It uses por
 ## Review corrections before PR
 
 - Group-name, class and recurrence edits now recheck conflicts; an empty submitted student list cannot bypass the one-tutor rule. Canonical student ownership is applied before validation.
-- Legacy class rosters are resolved where cached data exists. Unknown class bookings remain occupied and visibly warn. Explicitly removing the last known student preserves approval and makes the event general Work; changing to a different unresolved class cannot silently open it.
+- Legacy class rosters are resolved where cached data exists. Unknown class bookings remain occupied and visibly warn. Saved Work and student sessions retain their purpose. Removing the last known participant is allowed while editing but rejected on save; replacing them preserves approval and origin. Cached class metadata cannot silently refill or reclassify that edit.
 - Editing an old open-ended series no longer imposes a 52-occurrence cutoff. Occurrences beyond the first year can be completed. Future recurrence changes are checked against already stored future commitments and pending requests, including dates beyond one year. Extending a booked series resolves competing pending requests atomically.
 - Whole-series deletion uses the base document ID. Coverage-loss checks include adjoining support and older recurring Work; bookings remain intact and Michael receives the warning.
 - Free intervals retain remote/onsite information. Teacher tutor options now use the combined Work/availability coverage, subtracting occupied bookings.
@@ -57,3 +57,13 @@ The dedicated browser suite runs with `npm run test:e2e:work-hours`. It uses por
 - Rules deployment is gated on the matching live app, with a refresh grace period and superseded-commit checks. Browser regressions start Auth as well as Firestore and seed explicit role/auth fixtures.
 
 The agreed manual handling of complex days remains intentional. This review found implementation defects, not further business-policy decisions. Production data and live Teams/email integrations were not exercised.
+
+## Participant safeguards and discussion coverage
+
+- A teacher can clear the student selector, choose a replacement, and save normally. The form shows no validation error merely for removing someone. An empty save shows an inline message, keeps the modal open, and sends no write. The server repeats the safeguard for direct edits, approval and recurring detachment; rejected saves leave the booking and recurrence untouched.
+- Named group members count as participants. Blank/whitespace names do not satisfy the rule. A replacement account must still have an eligible assigned tutor. Approval, completion, creation time and student-created origin are preserved on valid replacement.
+- Saved general Work cannot become a student booking by adding names, accounts or a class. Create a separate student session instead. Cancelling a student session preserves its supporting Work/availability and restores bookability.
+- Explicit payment cases now include standalone no-shows, the nine combinations of completed/incomplete/no-show Work and nested session, group size and names-only groups, adjoining Work/student sessions in both orders, two tutors' department totals, exact threshold arithmetic, Coaching minimum warnings, and teacher-managed covering Work that only changes pay when completed.
+- The cross-report example has completed Work plus student bookings and a separate short Coaching shift, with uncompleted covering Work and a no-show excluded from pay. Completed totals are Work 4.5 + Coaching 1.5 = 6 hours in the dashboard, summary, actual CSV and Word exports. The allocated estimate remains separately labelled at 8.5 hours. Complex/short warnings remain visible and exportable.
+
+No audit-history feature or new purpose field was added. Unresolved class-only legacy records remain conservatively occupied and flagged for review.

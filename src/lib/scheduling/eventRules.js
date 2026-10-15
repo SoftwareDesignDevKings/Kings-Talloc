@@ -10,6 +10,29 @@ export const workCategory = event => event.workType === 'coaching' ? 'coaching' 
 export const isStudentSession = event => workCategory(event) === 'work' &&
     Boolean(event.students?.length || event.additionalStudents?.length || (event.classes?.length && !event.studentParticipantsResolved));
 export const isGeneralWork = event => workCategory(event) === 'work' && !isStudentSession(event);
+export const hasStudentParticipants = event => Boolean(event.students?.length ||
+    (Array.isArray(event.additionalStudents) ? event.additionalStudents : String(event.additionalStudents || '').split(/[,\n]/)).some(name => String(name).trim()));
+
+// Validate only when saving: removing someone temporarily while choosing their
+// replacement must not lock the participant editor or change the saved purpose.
+export const getParticipantEditError = (previous, next) => {
+    if (!previous) return null;
+    if (isStudentSession(previous) || previous.isStudentRequest) {
+        if (workCategory(next) !== 'work') return 'A student session must remain Work. Cancel it and create a separate event to change its purpose.';
+        if (hasStudentParticipants(next)) return null;
+        const classIds = event => (event.classes || []).map(item => String(item.value || item.id || item)).sort();
+        // Keep unresolved legacy class bookings occupied without blocking a
+        // status-only update. They are never silently converted into Work.
+        const unresolvedLegacy = !hasStudentParticipants(previous) && previous.classes?.length &&
+            !previous.studentParticipantsResolved && !next.studentParticipantsResolved &&
+            JSON.stringify(classIds(previous)) === JSON.stringify(classIds(next));
+        if (unresolvedLegacy) return null;
+        return 'Add at least one student or group name before saving this student session. To cancel it, use Delete.';
+    }
+    if (isGeneralWork(previous) && workCategory(next) === 'work' && (hasStudentParticipants(next) || (next.classes?.length && !next.studentParticipantsResolved))) return 'This is a general Work shift. Create a separate student session to book students during it.';
+    return null;
+};
+
 export const isApproved = event => !event.createdByStudent || event.approvalStatus === 'approved';
 export const canApproveAt = (event, now = Date.now()) => event.approvalStatus === 'pending' &&
     now <= asDate(event.start).getTime() + APPROVAL_GRACE_MS;

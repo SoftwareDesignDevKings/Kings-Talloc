@@ -1,5 +1,5 @@
 'use client';
-import { isStudentSession, workCategory } from '@/lib/scheduling/eventRules';
+import { isStudentSession, workCategory, getParticipantEditError } from '@/lib/scheduling/eventRules';
 
 import React, { useState, useCallback } from 'react';
 import { isAfter } from 'date-fns';
@@ -31,13 +31,16 @@ import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
 import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
 
-const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
+const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, setShowModal, userEmail, userRole }) => {
     const {
         calendarShifts,
         setCalendarShifts,
         setCalendarAvailabilities,
         setCalendarStudentRequests,
     } = useAppData();
+    // Calendar modal props contain the live draft. Keep the originally opened
+    // event stable for purpose validation, recurring edits and meeting updates.
+    const [eventToEdit] = useState(initialEvent);
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -51,6 +54,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [participantError, setParticipantError] = useState(null);
     const { addAlert } = useAlert();
     const { handleApprove, handleReject } = useApprovalHandlers();
 
@@ -70,15 +74,18 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     }, [setNewEvent]);
 
     const handleWorkTypeChange = useCallback((workType) => {
+        setParticipantError(null);
         setNewEvent((prev) => ({ ...prev, workType }));
     }, [setNewEvent]);
 
     const handleClassSelectChange = useCallback((selectedOptions) => {
+        setParticipantError(null);
         setSelectedClasses(selectedOptions);
         setNewEvent((prev) => ({ ...prev, classes: selectedOptions }));
     }, [setNewEvent]);
 
     const handleStudentSelectChange = useCallback((selectedOptions) => {
+        setParticipantError(null);
         setSelectedStudents(selectedOptions);
         setNewEvent((prev) => ({ ...prev, students: selectedOptions }));
     }, [setNewEvent]);
@@ -116,6 +123,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     };
 
     const validateForm = () => {
+
+        const isDenial = eventToEdit?.isStudentRequest && newEvent.approvalStatus === 'denied';
+        const editError = isEditing && !isDenial ? getParticipantEditError(eventToEdit, newEvent) : null;
+        setParticipantError(editError);
+        if (editError) return false;
 
         // Validate dates first
         if (!validateDates()) {
@@ -421,6 +433,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 showFooter={!isView || isTutorPartialEdit}
                 noValidate
             >
+                {participantError && <div className="alert alert-danger" role="alert">{participantError}</div>}
                 <div className="accordion" id="eventFormAccordion">
                     <EventDetailsSection
                         newEvent={newEvent}
@@ -446,7 +459,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     />
 
                     {newEvent.classes?.length > 0 && !newEvent.students?.length && !newEvent.additionalStudents?.length && !newEvent.studentParticipantsResolved && <p className="text-warning-emphasis p-3" role="status">This legacy class booking has unresolved students. It remains occupied; check its participants before changing it.</p>}
-                    {workCategory(newEvent) === 'work' && <div className="p-3"><label htmlFor="groupNames" className="form-label">Other students (optional)</label><textarea id="groupNames" className="form-control" disabled={isView} value={Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(', ') : newEvent.additionalStudents || ''} onChange={event => setNewEvent(previous => ({ ...previous, additionalStudents: event.target.value }))} /></div>}
+                    {workCategory(newEvent) === 'work' && <div className="p-3"><label htmlFor="groupNames" className="form-label">Other students (optional)</label><textarea id="groupNames" className="form-control" disabled={isView} value={Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(', ') : newEvent.additionalStudents || ''} onChange={event => { setParticipantError(null); setNewEvent(previous => ({ ...previous, additionalStudents: event.target.value })); }} /></div>}
                     <SettingsSection
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}

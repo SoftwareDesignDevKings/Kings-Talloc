@@ -43,3 +43,40 @@ test('free intervals preserve remote and onsite locations while allowing continu
     expect(free.map(slot => slot.locationType)).toEqual(['remote', 'onsite']);
     expect(rangeCovered(date(9), date(11), free)).toBe(true);
 });
+
+test.each(['notAttended', 'notCompleted'])('a standalone student session with status %s earns no hours', workStatus => {
+    expect(paid([event(15, 16, true, { createdByStudent: true, approvalStatus: 'approved', workStatus })])).toBe(0);
+});
+test.each(['completed', 'notCompleted', 'notAttended'].flatMap(workStatus =>
+    ['completed', 'notCompleted', 'notAttended'].map(sessionStatus => [workStatus, sessionStatus])))('Work=%s and nested student session=%s count only completed time', (workStatus, sessionStatus) => {
+    const events = [event(15, 18, false, { workStatus }), event(15.5, 16, true, { workStatus: sessionStatus, createdByStudent: true, approvalStatus: 'approved' })];
+    expect(paid(events)).toBe(workStatus === 'completed' ? 3 : sessionStatus === 'completed' ? 0.5 : 0);
+});
+test.each([[[]], [['Alex']], [['Alex', 'Casey', 'Sam']]])('group names %j do not multiply tutor pay', additionalStudents => {
+    expect(paid([event(15, 16, true, { additionalStudents })])).toBe(1);
+});
+test('a names-only teacher group session earns one tutor-hour', () => {
+    expect(paid([event(15, 16, false, { additionalStudents: ['Alex', 'Casey'] })])).toBe(1);
+});
+test('student session followed by general Work joins for its break in the reverse order too', () => {
+    expect(paid([event(9, 11, true), event(11, 13)])).toBe(3.5);
+});
+test('two tutors working two hours each cost four staff-hours', () => {
+    const totals = calculateHours([event(15, 17), event(15, 17, false, { staff: ['other@school.test'] })]);
+    expect(totals.tutors.map(tutor => tutor.workMs / HOUR)).toEqual([2, 2]); expect(totals.paidMs).toBe(4 * HOUR);
+});
+test.each([[1.5, true], [2, false]])('Coaching duration %s hours warns below its minimum without adding pay', (duration, warning) => {
+    const day = calculateHours([event(15, 15 + duration, false, { workType: 'coaching' })]).days[0];
+    expect(day.paidMs).toBe(duration * HOUR); expect(day.warnings.some(item => item.code === 'short-shift')).toBe(warning);
+});
+test('a millisecond above the break threshold is retained in paid duration without rounding', () => {
+    const shift = event(9, 12); shift.end = new Date(+shift.end + 1);
+    expect(calculateHours([shift]).paidMs).toBe(2.5 * HOUR + 1);
+});
+test('separate student sessions remain provisional until a completed covering Work shift joins them', () => {
+    const sessions = [event(9, 11, true), event(11, 13, true)];
+    expect(paid(sessions)).toBe(4); expect(calculateHours(sessions).days[0].warnings.map(item => item.code)).toEqual(['complex-day']);
+    expect(paid([...sessions, event(9, 13, false, { workStatus: 'notCompleted' })])).toBe(4);
+    const covered = calculateHours([...sessions, event(9, 13)]).days[0];
+    expect(covered.paidMs).toBe(3.5 * HOUR); expect(covered.warnings).toEqual([]);
+});

@@ -1,7 +1,7 @@
 import 'server-only';
 import { DateTime } from 'luxon';
 import { FieldValue } from 'firebase-admin/firestore';
-import { asDate, emailOf, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
+import { asDate, emailOf, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
 import { documentEvent, readSchedule, resolveClassParticipants } from './readSchedule';
 
 export class SchedulingError extends Error {
@@ -161,11 +161,15 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                 fail(!event.staff.length, 'Assign at least one staff member.');
                 const names = Array.isArray(event.additionalStudents) ? event.additionalStudents : typeof event.additionalStudents === 'string' ? event.additionalStudents.split(/[,\n]/) : [];
                 event.additionalStudents = names.map(name => String(name).trim().slice(0, 200)).filter(Boolean).slice(0, 30);
-                // Explicitly removing the last known participant makes approved Work general again.
+                // Explicit participant edits must not silently refill names from old class metadata.
                 // Class-only legacy records remain occupied until a teacher resolves participants.
                 if (event.students.length || event.additionalStudents.length ||
                     (!classesChanged && saved && (saved.students?.length || saved.additionalStudents?.length) && (raw.students !== undefined || raw.additionalStudents !== undefined))) {
                     event.studentParticipantsResolved = true;
+                }
+                if (['update', 'approve', 'detach'].includes(action) || originalCollection === 'studentEventRequests') {
+                    const participantError = getParticipantEditError(saved || (originalCollection === 'studentEventRequests' ? { isStudentRequest: true } : null), event);
+                    fail(Boolean(participantError), participantError);
                 }
                 if (isStudentSession(event)) fail(event.staff.length !== 1, 'Student sessions have one tutor.');
             }

@@ -11,6 +11,12 @@ let env, app, db;
 const tutor = 'tutor@kings.edu.au', student = 'student@kings.edu.au';
 const slot = DateTime.now().setZone('Australia/Sydney').plus({ days: 1 }).set({ hour: 15, minute: 0, second: 0, millisecond: 0 });
 const data = (extra = {}) => ({ title: 'General Work', start: slot.toJSDate(), end: slot.plus({ hours: 3 }).toJSDate(), staff: [{ value: tutor, label: 'Viraj Patel' }], students: [], staffEmails: [tutor], studentEmails: [], emailsList: [tutor], workType: 'work', recurring: null, createdByStudent: false, approvalStatus: 'approved', workStatus: 'notCompleted', ...extra });
+// Minimal weekly DOCX template used only in this isolated emulator project.
+const seedTimesheetTemplate = async () => {
+    const zip = new PizZip(); zip.file('[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'); zip.folder('_rels').file('.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    zip.folder('word').file('document.xml', '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>MONDAY {mondayDate} {mondayCommenced} {mondayFinished} {mondayBreak} {mondayTotal} TUESDAY {tuesdayDate} {tuesdayCommenced} {tuesdayFinished} {tuesdayBreak} {tuesdayTotal} WEDNESDAY {wednesdayDate} {wednesdayCommenced} {wednesdayFinished} {wednesdayBreak} {wednesdayTotal} THURSDAY {thursdayDate} {thursdayCommenced} {thursdayFinished} {thursdayBreak} {thursdayTotal} FRIDAY {fridayDate} {fridayCommenced} {fridayFinished} {fridayBreak} {fridayTotal} SATURDAY {saturdayDate} {saturdayCommenced} {saturdayFinished} {saturdayBreak} {saturdayTotal} SUNDAY {sundayDate} {sundayCommenced} {sundayFinished} {sundayBreak} {sundayTotal} TOTAL {totalHours}</w:t></w:r></w:p><w:sectPr/></w:body></w:document>');
+    await db.collection('timesheets').doc(tutor).set({ fileData: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${zip.generate({ type: 'base64' })}` });
+};
 const signIn = async (page, label) => { const hydrated = page.waitForResponse(response => response.url().endsWith('/api/auth/session')); await page.goto('/login', { waitUntil: 'domcontentloaded' }); await hydrated; await page.getByRole('button', { name: label, exact: true }).click(); await expect(page).toHaveURL(/dashboard/); await expect(page.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible(); };
 
 test.beforeAll(async () => {
@@ -86,10 +92,7 @@ test('actual Mondays export separately and short shifts warn without blocking do
     const monday = slot.startOf('week');
     for (const [id, date] of [['one', monday], ['two', monday.plus({ weeks: 1 })]]) await db.collection('shifts').doc(id).set(data({ start: date.set({ hour: 9 }).toJSDate(), end: date.set({ hour: 12 }).toJSDate(), workStatus: 'completed' }));
     await signIn(page, 'Teacher + Admin');
-    // Minimal valid weekly DOCX template used only in this emulator project.
-    const zip = new PizZip(); zip.file('[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'); zip.folder('_rels').file('.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
-    zip.folder('word').file('document.xml', '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{mondayDate} {mondayCommenced} {mondayFinished} {mondayBreak} {mondayTotal} TOTAL {totalHours}</w:t></w:r></w:p><w:sectPr/></w:body></w:document>');
-    await db.collection('timesheets').doc(tutor).set({ fileData: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${zip.generate({ type: 'base64' })}` });
+    await seedTimesheetTemplate();
     const response = await page.request.post('/api/timesheet', { data: { tutorEmail: tutor, tutorName: 'Viraj Patel', startDateUTC: monday.toISO(), endDateUTC: monday.plus({ weeks: 1, days: 6 }).toISO(), timesheetType: 'tutor' } });
     expect(response.status()).toBe(200); expect(response.headers()['content-type']).toContain('zip');
     const archive = new PizZip(await response.body()); const files = Object.keys(archive.files).filter(file => file.endsWith('.docx')); expect(files).toHaveLength(2);
@@ -125,4 +128,75 @@ test('two tabs acknowledge only new requests and returning preserves outstanding
     await second.getByRole('button', { name: 'Approve', exact: true }).first().click(); expect((await approved).status()).toBe(200);
     await expect(second.locator('#pending-approvals h3')).toHaveText('4');
     await second.reload(); await expect(second).toHaveTitle('Kings-Talloc'); await expect(second.locator('#pending-approvals h3')).toHaveText('4');
+});
+
+test('teacher can remove a student temporarily, receives an empty-save error, then saves a replacement', async ({ page }) => {
+    const replacement = 'replacement@kings.edu.au';
+    await db.collection('canvasUsers').doc('replacement').set({ email: replacement, name: 'Casey Example' });
+    await db.collection('studentTutorEligibility').doc(replacement).set({ eligibleTutorEmails: [tutor] });
+    await db.collection('shifts').doc('session').set(data({ title: 'Student session', students: [{ value: student, label: 'John Doe' }], studentEmails: [student], emailsList: [tutor, student], createdByStudent: true }));
+    await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+    await page.getByRole('button', { name: /Student session/ }).first().click();
+    await page.getByRole('button', { name: 'Participants', exact: true }).click();
+    await page.locator('#participants .select__multi-value__remove').last().click();
+    const emptyMessage = page.getByRole('alert').filter({ hasText: 'Add at least one student or group name' });
+    await expect(emptyMessage).toHaveCount(0);
+    let writes = 0;
+    page.on('request', request => { if (request.url().endsWith('/api/scheduling') && request.method() === 'POST') writes++; });
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await expect(emptyMessage).toBeVisible(); await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
+    expect(writes).toBe(0); expect((await db.collection('shifts').doc('session').get()).data().studentEmails).toEqual([student]);
+    await page.locator('#students').fill('Casey'); await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
+    await expect(emptyMessage).toHaveCount(0);
+    const save = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click(); expect((await save).status()).toBe(200);
+    await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toHaveCount(0);
+    const saved = (await db.collection('shifts').doc('session').get()).data();
+    expect(saved.studentEmails).toEqual([replacement]); expect(saved.approvalStatus).toBe('approved'); expect(saved.createdByStudent).toBe(true);
+});
+test('saved general Work remains Work when a teacher tries to add a student booking to it', async ({ page }) => {
+    await db.collection('shifts').doc('work').set(data());
+    await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+    await page.getByRole('button', { name: /General Work/ }).first().click();
+    await page.getByLabel('Other students (optional)').fill('Alex Example');
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'Create a separate student session' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
+    expect((await db.collection('shifts').doc('work').get()).data().additionalStudents || []).toEqual([]);
+});
+test('complex completed hours agree across dashboard, summary, CSV and Word; short Coaching still exports', async ({ page }) => {
+    const monday = DateTime.now().setZone('Australia/Sydney').startOf('week');
+    const at = hour => monday.plus({ hours: hour }).toJSDate();
+    const fixtures = [
+        ['work', { start: at(9), end: at(11) }],
+        ['session', { start: at(11), end: at(13), students: [{ value: student }], additionalStudents: ['Alex', 'Casey'] }],
+        ['separate-session', { start: at(15), end: at(16), students: [{ value: student }] }],
+        ['uncompleted-cover', { start: at(9), end: at(17), workStatus: 'notCompleted' }],
+        ['no-show', { start: at(13), end: at(14), students: [{ value: student }], workStatus: 'notAttended' }],
+        ['coach', { start: at(17), end: at(18.5), workType: 'coaching' }],
+    ];
+    for (const [id, extra] of fixtures) await db.collection('shifts').doc(id).set(data({ workStatus: 'completed', ...extra }));
+    await signIn(page, 'Teacher + Admin');
+    const completed = page.locator('.card').filter({ has: page.getByText('Completed Hours', { exact: true }) });
+    await expect(completed.locator('h3')).toHaveText('6h 0m');
+    await expect(completed).toContainText('Work: 4h 30m | Coaching: 1h 30m');
+    const allocated = page.locator('.card').filter({ has: page.getByText('Total Allocated Hours', { exact: true }) });
+    await expect(allocated.locator('h3')).toHaveText('8h 30m');
+    await page.getByRole('link', { name: 'Tutor Hours', exact: true }).click();
+    const row = page.getByRole('row').filter({ hasText: tutor });
+    await expect(row.getByRole('cell', { name: '4h 30m', exact: true })).toBeVisible();
+    await expect(row.getByRole('cell', { name: '1h 30m', exact: true })).toBeVisible();
+    await expect(row.getByRole('cell', { name: '6h 0m', exact: true })).toBeVisible();
+    await expect(row).toContainText('Complex day:'); await expect(row).toContainText('Coaching is under 2 hours');
+    await expect(row.getByRole('button', { name: 'Generate Coach Timesheet', exact: true })).toBeEnabled();
+    const downloadPromise = page.waitForEvent('download'); await page.getByRole('link', { name: 'Export as CSV', exact: true }).click();
+    const csv = readFileSync(await (await downloadPromise).path(), 'utf8');
+    expect(csv).toContain('"4.5","1.5","6"'); expect(csv).toContain('Complex day:'); expect(csv).toContain('Coaching is under 2 hours');
+    await seedTimesheetTemplate();
+    for (const [type, total, warning] of [['tutor', '4.5', 'Complex day:'], ['coach', '1.5', 'Coaching is under 2 hours']]) {
+        const response = await page.request.post('/api/timesheet', { data: { tutorEmail: tutor, tutorName: 'Viraj Patel', startDateUTC: monday.toISO(), endDateUTC: monday.plus({ days: 6 }).toISO(), timesheetType: type } });
+        expect(response.status()).toBe(200);
+        const xml = new PizZip(await response.body()).file('word/document.xml').asText();
+        expect(xml).toContain(`TOTAL ${total}`); expect(xml).toContain(warning);
+    }
 });
