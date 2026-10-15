@@ -80,3 +80,8 @@ test('separate student sessions remain provisional until a completed covering Wo
     const covered = calculateHours([...sessions, event(9, 13)]).days[0];
     expect(covered.paidMs).toBe(3.5 * HOUR); expect(covered.warnings).toEqual([]);
 });
+
+test.each([1, 2, 5])('a selected group of %s students earns one tutor-hour', count => {
+    const students = Array.from({ length: count }, (_, index) => ({ value: `student${index}@school.test` }));
+    expect(paid([event(15, 16, true, { students, additionalStudents: [] })])).toBe(1);
+});

@@ -6,7 +6,7 @@ describe('studentCalendarStrategy', () => {
     test('students can edit pending requests', () => {
         const request = {
             entityType: CalendarEntityType.STUDENT_REQUEST,
-            approvalStatus: 'pending',
+            approvalStatus: 'pending', students: [{ value: 'student@example.edu' }],
         };
 
         expect(strategy.permissions.canEdit(request)).toBe(true);
@@ -25,4 +25,13 @@ describe('studentCalendarStrategy', () => {
         expect(strategy.actions.canDuplicateEvent(request)).toBe(false);
         expect(strategy.actions.getEventFlow(request)).toBe(CalendarFlow.VIEW_STUDENT_REQUEST);
     });
+});
+
+test('a group participant can view but cannot edit, drag, resize or duplicate the requester’s pending booking', () => {
+    const strategy = studentCalendarStrategy('peer@example.edu');
+    const request = { entityType: CalendarEntityType.STUDENT_REQUEST, approvalStatus: 'pending', requesterEmail: 'student@example.edu', students: [{ value: 'student@example.edu' }, { value: 'peer@example.edu' }] };
+    for (const action of ['canEdit', 'canDrag', 'canResize']) expect(strategy.permissions[action](request)).toBe(false);
+    expect(strategy.actions.canModifyEvent(request)).toBe(false);
+    expect(strategy.actions.canDuplicateEvent(request)).toBe(false);
+    expect(strategy.actions.getEventFlow(request)).toBe(CalendarFlow.VIEW_STUDENT_REQUEST);
 });

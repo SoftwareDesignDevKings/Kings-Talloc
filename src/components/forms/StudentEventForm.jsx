@@ -1,14 +1,15 @@
 'use client';
 
 import useBookableAvailability from '@/hooks/useBookableAvailability';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
+import AsyncSelect from 'react-select/async';
 import BaseModal from '../modals/BaseModal.jsx';
 import { useAppData } from '@/contexts/AppDataContext';
 import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
-import { rangeCovered } from '@/lib/scheduling/eventRules';
+import { rangeCovered, emailOf } from '@/lib/scheduling/eventRules';
 import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 
 import useAlert from '@/hooks/useAlert.js';
@@ -27,13 +28,38 @@ const StudentEventForm = ({
         tutors,
         studentTutorEligibility,
     } = useAppData();
-    
+
     // derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
-    const isEditing = isEdit || isView; 
+    const isEditing = isEdit || isView;
+    const [studentSearchError, setStudentSearchError] = useState(null);
+    const loadStudentOptions = useCallback(async query => {
+        if (query.trim().length < 2) return [];
+        try {
+            const response = await fetch(`/api/students?q=${encodeURIComponent(query.trim())}`, { cache: 'no-store' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+            setStudentSearchError(null);
+            return data.students.map(student => ({ value: student.email, label: student.name }));
+        } catch {
+            setStudentSearchError('Unable to search students. Please try again.');
+            return [];
+        }
+    }, []);
+    const selectedStudents = useMemo(() => {
+        const selected = new Map((newEvent.students || []).map(student => [emailOf(student), { value: emailOf(student), label: student.label || emailOf(student) }]));
+        if (!isView) {
+            const email = emailOf(studentEmail);
+            const requester = selected.get(email) || { value: email, label: email };
+            selected.delete(email);
+            return [{ ...requester, isFixed: true }, ...selected.values()];
+        }
+        return [...selected.values()];
+    }, [newEvent.students, studentEmail, isView]);
     const rangeStart = new Date(newEvent.start), rangeEnd = new Date(newEvent.end);
     const bookableAvailability = useBookableAvailability(studentEmail, !isView, {
+        students: selectedStudents.map(emailOf),
         start: Number.isNaN(+rangeStart) ? new Date() : rangeStart,
         end: !Number.isFinite(+rangeEnd) || rangeEnd <= rangeStart ? new Date((+rangeStart || Date.now()) + 86400000) : rangeEnd,
     });
@@ -47,10 +73,6 @@ const StudentEventForm = ({
         newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null,
     );
     const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
-    const selectedStudent =
-        newEvent.students && newEvent.students.length > 0
-            ? newEvent.students[0]
-            : { value: studentEmail, label: studentEmail };
     const { addAlert } = useAlert();
 
     const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
@@ -81,18 +103,11 @@ const StudentEventForm = ({
         filterTutorsByAvailability(new Date(newEvent.start), new Date(newEvent.end));
     }, [filterTutorsByAvailability, newEvent.end, newEvent.start]);
 
-    useEffect(() => {
-        if (!isEditing) {
-            setNewEvent(prev => ({
-                ...prev,
-                students: [selectedStudent],
-                createdByStudent: true,
-                approvalStatus: 'pending',
-            }));
-        }
-    // Student identity is fixed for this form.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [studentEmail, isEditing, setNewEvent]);
+    const handleStudentsChange = options => {
+        const requester = selectedStudents.find(student => emailOf(student) === emailOf(studentEmail));
+        const peers = (options || []).filter(student => emailOf(student) !== emailOf(studentEmail));
+        setNewEvent(previous => ({ ...previous, students: [requester, ...peers].map(({ value, label }) => ({ value, label })) }));
+    };
 
     // guard against stale selectedTutor when time changes
     useEffect(() => {
@@ -152,12 +167,13 @@ const StudentEventForm = ({
         const eventData = {
             title: 'Tutoring',
             workType: 'work',
-            additionalStudents: (Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(',') : newEvent.additionalStudents || '').split(/[,\n]/).map(name => name.trim()).filter(Boolean),
+            additionalStudents: [],
+            requesterEmail: eventToEdit?.requesterEmail || emailOf(studentEmail),
             start: new Date(newEvent.start),
             end: new Date(newEvent.end),
-            students: newEvent.students || [],
-            studentEmails: (newEvent.students || []).map(s => s.value || s), 
-            // firebase sec rules require students maped to their value 
+            students: selectedStudents.map(({ value, label }) => ({ value, label })),
+            studentEmails: selectedStudents.map(emailOf),
+            // firebase sec rules require students maped to their value
             staff: newEvent.staff || [],
             staffEmails: (newEvent.staff || []).map(s => s.value || s),
             classes: [],
@@ -205,7 +221,7 @@ const StudentEventForm = ({
             return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to submit student event request:', error);
-            addAlert('error', 'Failed to submit event request');
+            addAlert('error', error.message || 'Failed to submit event request');
             return false; // Error - don't close modal
         }
     };
@@ -227,7 +243,7 @@ const StudentEventForm = ({
             return await handleSubmit(e);
         } catch (error) {
             console.error('Failed to submit student event request:', error);
-            addAlert('error', 'Failed to submit event request');
+            addAlert('error', error.message || 'Failed to submit event request');
             return false;
         } finally {
             setIsSubmitting(false);
@@ -310,14 +326,31 @@ const StudentEventForm = ({
                     onMenuOpen={handleMenuOpen}
                     classNamePrefix="select"
                     isDisabled={isView}
-                    noOptionsMessage={() => 'No eligible tutors available for the selected time range'}
+                    noOptionsMessage={() => 'No tutors eligible for everyone in this booking are available at this time'}
                     aria-label="Assign tutor to event"
                     inputId="tutor"
                 />
             </div>
             <div className="mb-3">
-                <label htmlFor="additionalStudents" className="form-label">Other students (optional)</label>
-                <textarea id="additionalStudents" name="additionalStudents" className="form-control" value={Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(', ') : newEvent.additionalStudents || ''} onChange={handleInputChange} disabled={isView} placeholder="Names, separated by commas" />
+                <label htmlFor="students" className="form-label">Students</label>
+                <AsyncSelect
+                    isMulti
+                    name="students"
+                    cacheOptions
+                    loadOptions={loadStudentOptions}
+                    value={selectedStudents}
+                    onChange={handleStudentsChange}
+                    classNamePrefix="select"
+                    inputId="students"
+                    aria-label="Students in this booking"
+                    isDisabled={isView}
+                    isClearable={false}
+                    styles={{ multiValueRemove: (base, state) => state.data.isFixed ? { ...base, display: 'none' } : base }}
+                    noOptionsMessage={({ inputValue }) => inputValue.trim().length < 2 ? 'Type at least 2 letters to find students' : 'No students found'}
+                    placeholder="Search students by name or email"
+                />
+                {!isView && <div className="form-text">You are included. Select classmates to request a group session.</div>}
+                {!isView && studentSearchError && <div role="status" className="small text-warning-emphasis">{studentSearchError}</div>}
             </div>
             {!isView && (!bookableAvailability.ready || bookableAvailability.error) && <div role="status" className="small text-warning-emphasis">{bookableAvailability.error || 'Refreshing availability…'} <button type="button" className="btn btn-link btn-sm" onClick={bookableAvailability.refresh}>Retry</button></div>}
 

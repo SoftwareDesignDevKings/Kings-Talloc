@@ -1,3 +1,4 @@
+import { emailOf, requestOwnerEmail } from '@/lib/scheduling/eventRules';
 // import { CalendarEntityType } from "@/hooks/useCalendarStrategy";
 
 export const CalendarFlow = Object.freeze({
@@ -155,15 +156,15 @@ export const studentCalendarStrategy = (userEmail) => ({
     permissions: {
         canEdit: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
         // Students can only move/resize their own request while it's still pending.
         // Once approved or denied it's locked.
         canDrag: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
         canResize: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
     },
 
     visibility: {
@@ -196,11 +197,11 @@ export const studentCalendarStrategy = (userEmail) => ({
             event.entityType === CalendarEntityType.STUDENT_REQUEST,
         canModifyEvent: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
         
         canDuplicateEvent: (event) => {
             if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return event.approvalStatus === 'pending'
+                return event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail)
             } else {
                 return false
             }
@@ -211,7 +212,7 @@ export const studentCalendarStrategy = (userEmail) => ({
         getEventFlow: (calEvent) => {
             if (calEvent.entityType === CalendarEntityType.SHIFT) {
                 return CalendarFlow.VIEW_SHIFT
-            } else if (calEvent.approvalStatus !== 'pending') {
+            } else if (calEvent.approvalStatus !== 'pending' || requestOwnerEmail(calEvent) !== emailOf(userEmail)) {
                 return CalendarFlow.VIEW_STUDENT_REQUEST
             } else {
                 return CalendarFlow.EDIT_STUDENT_REQUEST

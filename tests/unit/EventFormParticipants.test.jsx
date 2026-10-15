@@ -40,17 +40,9 @@ test('removal is allowed while editing; an empty save stays open, then replaceme
     await waitFor(() => expect(mockSubmitResult).toHaveBeenLastCalledWith(true));
     expect(updateEventInFirestore).toHaveBeenCalledWith('session', expect.objectContaining({ students: [{ value: 'replacement@kings.edu.au' }], approvalStatus: 'approved', createdByStudent: true }));
 });
-test('a names-only session rejects blank group names on save and allows a replacement name', async () => {
-    render(<Editor event={{ ...original, students: [], additionalStudents: ['Alex'] }} />);
-    fireEvent.change(screen.getByLabelText('Other students (optional)'), { target: { value: ' , \n ' } });
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText('Save'));
-    await waitFor(() => expect(mockSubmitResult).toHaveBeenCalledWith(false));
-    expect(updateEventInFirestore).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText('Other students (optional)'), { target: { value: 'Casey' } });
-    fireEvent.click(screen.getByText('Save'));
-    await waitFor(() => expect(mockSubmitResult).toHaveBeenLastCalledWith(true));
-    expect(updateEventInFirestore).toHaveBeenCalledWith('session', expect.objectContaining({ additionalStudents: 'Casey' }));
+test('the separate names box is removed from the teacher editor', () => {
+    render(<Editor />);
+    expect(screen.queryByLabelText('Other students (optional)')).not.toBeInTheDocument();
 });
 test('saved general Work cannot acquire student booking behaviour through participant edits', async () => {
     render(<Editor event={{ ...original, students: [], createdByStudent: false }} />);

@@ -40,23 +40,28 @@ test.afterAll(async () => { await env?.cleanup(); if (db) await db.terminate(); 
 
 test('student books during Work, names a group, and teacher approves through the dashboard', async ({ page, browser }) => {
     await db.collection('shifts').doc('work').set(data());
+    await db.collection('canvasUsers').doc('peer').set({ email: 'peer@kings.edu.au', name: 'Casey Example' });
+    await db.collection('studentTutorEligibility').doc('peer@kings.edu.au').set({ eligibleTutorEmails: [tutor] });
     await signIn(page, 'Student');
     await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
     await page.locator('.rbc-events-container').nth(2).click();
     await expect(page.getByLabel('Event start time')).toBeVisible();
     await page.getByLabel('Event start time').fill(slot.plus({ minutes: 30 }).toFormat("yyyy-MM-dd'T'HH:mm"));
     await page.getByLabel('Event end time').fill(slot.plus({ hours: 1 }).toFormat("yyyy-MM-dd'T'HH:mm"));
-    await page.getByLabel('Other students (optional)').fill('Alex Example, Casey Example');
+    await page.getByLabel('Students in this booking').fill('Casey');
+    await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
     await page.locator('#tutor').click(); await page.getByRole('option', { name: /Viraj Patel/ }).click();
     const save = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Add Event', exact: true }).click(); expect((await save).status()).toBe(200);
     const pending = await db.collection('studentEventRequests').get(); expect(pending.size).toBe(1); expect(pending.docs[0].data().approvalStatus).toBe('pending');
-    expect(pending.docs[0].data().additionalStudents).toEqual(['Alex Example', 'Casey Example']);
+    expect(pending.docs[0].data().studentEmails).toEqual([student, 'peer@kings.edu.au']);
+    expect(pending.docs[0].data().requesterEmail).toBe(student);
+    expect(pending.docs[0].data().additionalStudents).toEqual([]);
     const teacherContext = await browser.newContext(); const teacher = await teacherContext.newPage();
     try {
         await signIn(teacher, 'Teacher');
         await teacher.getByRole('button', { name: /Pending Approvals/ }).click();
-        await expect(teacher.getByText('Other students: Alex Example, Casey Example')).toBeVisible();
+        await expect(teacher.getByText(/John Doe, Casey Example/)).toBeVisible();
         const approved = teacher.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
         await teacher.getByRole('button', { name: 'Approve', exact: true }).click(); expect((await approved).status()).toBe(200);
         await expect.poll(async () => (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).exists).toBe(true);
@@ -139,7 +144,7 @@ test('teacher can remove a student temporarily, receives an empty-save error, th
     await page.getByRole('button', { name: /Student session/ }).first().click();
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
     await page.locator('#participants .select__multi-value__remove').last().click();
-    const emptyMessage = page.getByRole('alert').filter({ hasText: 'Add at least one student or group name' });
+    const emptyMessage = page.getByRole('alert').filter({ hasText: 'Add at least one student' });
     await expect(emptyMessage).toHaveCount(0);
     let writes = 0;
     page.on('request', request => { if (request.url().endsWith('/api/scheduling') && request.method() === 'POST') writes++; });
@@ -156,13 +161,16 @@ test('teacher can remove a student temporarily, receives an empty-save error, th
 });
 test('saved general Work remains Work when a teacher tries to add a student booking to it', async ({ page }) => {
     await db.collection('shifts').doc('work').set(data());
+    await db.collection('canvasUsers').doc('peer').set({ email: student, name: 'John Doe' });
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
     await page.getByRole('button', { name: /General Work/ }).first().click();
-    await page.getByLabel('Other students (optional)').fill('Alex Example');
+    await page.getByRole('button', { name: 'Participants', exact: true }).click();
+    await page.locator('#students').fill('John');
+    await page.getByRole('option', { name: 'John Doe', exact: true }).click();
     await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Create a separate student session' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
-    expect((await db.collection('shifts').doc('work').get()).data().additionalStudents || []).toEqual([]);
+    expect((await db.collection('shifts').doc('work').get()).data().students).toEqual([]);
 });
 test('complex completed hours agree across dashboard, summary, CSV and Word; short Coaching still exports', async ({ page }) => {
     const monday = DateTime.now().setZone('Australia/Sydney').startOf('week');

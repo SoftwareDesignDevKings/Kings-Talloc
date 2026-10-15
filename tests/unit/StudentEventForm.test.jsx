@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import StudentEventForm from '@/components/forms/StudentEventForm.jsx';
@@ -50,6 +51,15 @@ jest.mock('react-select', () => ({
     ),
 }));
 
+jest.mock('react-select/async', () => ({
+    __esModule: true,
+    default: ({ value, onChange, isDisabled }) => <div>
+        <span data-testid="group-students">{value.map(student => student.value).join(',')}</span>
+        <button type="button" disabled={isDisabled} onClick={() => onChange([...value, { value: 'peer@example.edu', label: 'Casey Example' }])}>Select Casey</button>
+        <button type="button" disabled={isDisabled} onClick={() => onChange([])}>Clear group</button>
+    </div>,
+}));
+
 describe('StudentEventForm', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -94,15 +104,11 @@ describe('StudentEventForm', () => {
             ...overrides.appData,
         });
 
-        render(
-            <StudentEventForm
-                mode="create"
-                newEvent={newEvent}
-                setNewEvent={setNewEvent}
-                setShowStudentModal={jest.fn()}
-                studentEmail="student@example.edu"
-            />,
-        );
+        function Editor() {
+            const [draft, setDraft] = useState(newEvent);
+            return <StudentEventForm mode={overrides.mode || 'create'} newEvent={draft} setNewEvent={value => { setNewEvent(value); setDraft(value); }} setShowStudentModal={jest.fn()} studentEmail="student@example.edu" />;
+        }
+        render(<Editor />);
 
         return { setNewEvent, newEvent };
     };
@@ -112,6 +118,7 @@ describe('StudentEventForm', () => {
 
         expect(screen.queryByLabelText('Select class')).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Select subject')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Other students (optional)')).not.toBeInTheDocument();
     });
 
     test('labels eligible tutors with shared subjects', async () => {
@@ -186,4 +193,25 @@ describe('StudentEventForm', () => {
 
         expect(setNewEvent).toHaveBeenCalled();
     });
+    test('selected peers are submitted with the requester and remain pending', async () => {
+        renderForm({ newEvent: { staff: [{ value: 'tutor@example.edu', label: 'Tutor One' }] } });
+        fireEvent.click(screen.getByText('Select Casey'));
+        expect(screen.getByTestId('group-students')).toHaveTextContent('student@example.edu,peer@example.edu');
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+        await waitFor(() => expect(createEventInFirestore).toHaveBeenCalledWith(expect.objectContaining({
+            students: [{ value: 'student@example.edu', label: 'student@example.edu' }, { value: 'peer@example.edu', label: 'Casey Example' }],
+            studentEmails: ['student@example.edu', 'peer@example.edu'], requesterEmail: 'student@example.edu', approvalStatus: 'pending', additionalStudents: [],
+        }), 'studentEventRequests'));
+    });
+    test('clearing group selections keeps the requester included', () => {
+        renderForm({ newEvent: { students: [{ value: 'peer@example.edu', label: 'Casey' }] } });
+        fireEvent.click(screen.getByText('Clear group'));
+        expect(screen.getByTestId('group-students')).toHaveTextContent(/^student@example.edu$/);
+    });
+    test('approved/view-only groups cannot change participants', () => {
+        renderForm({ mode: 'view', newEvent: { students: [{ value: 'student@example.edu' }, { value: 'peer@example.edu' }] } });
+        expect(screen.getByText('Select Casey')).toBeDisabled();
+        expect(screen.getByText('Clear group')).toBeDisabled();
+    });
+
 });

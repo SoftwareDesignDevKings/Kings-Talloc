@@ -96,6 +96,7 @@ const MODAL_ACTION_STRATEGY = {
             end,
 
             students: [{ value: userEmail, label: userEmail }],
+            requesterEmail: userEmail,
             staff: [],
             subject: null,
             preference: null,

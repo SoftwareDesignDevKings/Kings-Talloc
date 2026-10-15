@@ -305,3 +305,38 @@ test('unapproved and denied student sessions cannot be marked completed', async 
         await expect(call({ action: 'complete', id: approvalStatus, data: { workStatus: 'completed' } })).rejects.toThrow('approved');
     }
 });
+
+test('student-selected group stays pending, includes its requester and notifies every selected student', async () => {
+    const peer = 'peer@kings.edu.au';
+    await db.collection('studentTutorEligibility').doc(peer).set({ eligibleTutorEmails: [tutor.email] });
+    await db.collection('shifts').doc('work').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved' }));
+    const result = await call({ action: 'create', collectionName: 'studentEventRequests', data: data({ students: [{ value: peer }, { value: peer }], approvalStatus: 'approved', requesterEmail: peer }) }, student);
+    const request = (await db.collection('studentEventRequests').doc(result.id).get()).data();
+    expect(request.studentEmails).toEqual([student.email, peer]); expect(request.requesterEmail).toBe(student.email); expect(request.approvalStatus).toBe('pending');
+    await expect(call({ action: 'update', collectionName: 'studentEventRequests', id: result.id, data: { students: [{ value: peer }] } }, { email: peer, defaultRole: 'student' })).rejects.toMatchObject({ status: 403 });
+    await call({ action: 'update', collectionName: 'studentEventRequests', id: result.id, data: { students: [{ value: peer }] } }, student);
+    await call({ action: 'approve', id: result.id });
+    const approved = (await db.collection('shifts').doc(`approved-${result.id}`).get()).data(); expect(approved.requesterEmail).toBe(student.email); expect(approved.studentEmails).toEqual([student.email, peer]);
+    const notices = (await db.collection('bookingNotifications').get()).docs.map(doc => doc.data());
+    for (const email of [student.email, peer]) expect(notices.some(notice => notice.recipientEmail === email && notice.kind === 'approved')).toBe(true);
+    await expect(call({ action: 'update', id: `approved-${result.id}`, data: { students: [] } }, student)).rejects.toMatchObject({ status: 403 });
+});
+test('every selected group student must have an eligible tutor, including on approval after eligibility changes', async () => {
+    const peer = 'peer@kings.edu.au';
+    await db.collection('shifts').doc('work').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved' }));
+    const input = { action: 'create', collectionName: 'studentEventRequests', data: data({ students: [{ value: student.email }, { value: peer }] }) };
+    await expect(call(input, student)).rejects.toThrow('not eligible');
+    await db.collection('studentTutorEligibility').doc(peer).set({ eligibleTutorEmails: [tutor.email] });
+    const result = await call(input, student);
+    await db.collection('studentTutorEligibility').doc(peer).set({ eligibleTutorEmails: [] });
+    await expect(call({ action: 'approve', id: result.id })).rejects.toThrow('not eligible');
+    expect((await db.collection('studentEventRequests').doc(result.id).get()).data().approvalStatus).toBe('pending');
+    expect((await db.collection('shifts').doc(`approved-${result.id}`).get()).exists).toBe(false);
+});
+test('denial of a group request notifies all selected students without multiplying tutor hours', async () => {
+    const peer = 'peer@kings.edu.au';
+    await seed('group', { students: [{ value: student.email }, { value: peer }], requesterEmail: student.email, studentEmails: [student.email, peer] });
+    await call({ action: 'deny', id: 'group' });
+    const notices = (await db.collection('bookingNotifications').get()).docs.map(doc => doc.data());
+    expect(notices.filter(notice => notice.kind === 'denied').map(notice => notice.recipientEmail).sort()).toEqual([peer, student.email].sort());
+});

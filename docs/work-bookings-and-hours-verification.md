@@ -61,9 +61,17 @@ The agreed manual handling of complex days remains intentional. This review foun
 ## Participant safeguards and discussion coverage
 
 - A teacher can clear the student selector, choose a replacement, and save normally. The form shows no validation error merely for removing someone. An empty save shows an inline message, keeps the modal open, and sends no write. The server repeats the safeguard for direct edits, approval and recurring detachment; rejected saves leave the booking and recurrence untouched.
-- Named group members count as participants. Blank/whitespace names do not satisfy the rule. A replacement account must still have an eligible assigned tutor. Approval, completion, creation time and student-created origin are preserved on valid replacement.
+- Group bookings use selected student accounts. The separate names field is removed from both forms. A replacement account must still have an eligible assigned tutor. Approval, completion, creation time and student-created origin are preserved on valid replacement.
 - Saved general Work cannot become a student booking by adding names, accounts or a class. Create a separate student session instead. Cancelling a student session preserves its supporting Work/availability and restores bookability.
-- Explicit payment cases now include standalone no-shows, the nine combinations of completed/incomplete/no-show Work and nested session, group size and names-only groups, adjoining Work/student sessions in both orders, two tutors' department totals, exact threshold arithmetic, Coaching minimum warnings, and teacher-managed covering Work that only changes pay when completed.
+- Explicit payment cases now include standalone no-shows, the nine combinations of completed/incomplete/no-show Work and nested session, selected group size and legacy names-only compatibility, adjoining Work/student sessions in both orders, two tutors' department totals, exact threshold arithmetic, Coaching minimum warnings, and teacher-managed covering Work that only changes pay when completed.
 - The cross-report example has completed Work plus student bookings and a separate short Coaching shift, with uncompleted covering Work and a no-show excluded from pay. Completed totals are Work 4.5 + Coaching 1.5 = 6 hours in the dashboard, summary, actual CSV and Word exports. The allocated estimate remains separately labelled at 8.5 hours. Complex/short warnings remain visible and exportable.
 
 No audit-history feature or new purpose field was added. Unresolved class-only legacy records remain conservatively occupied and flagged for review.
+
+## Student-selected groups
+
+- Students can search the synced student names/emails through an authenticated endpoint requiring two characters and returning at most twenty matches. The endpoint projects only name/email and leaves full Canvas document rules unchanged.
+- The requester is always included, deduplicated and stored by the server. Adding a classmate does not grant that classmate edit, move, resize or duplicate access to the request. Approved bookings remain teacher-managed.
+- Availability filters and transaction-time checks require a tutor eligible for every selected student. Eligibility is checked again on approval; a rejected approval leaves the pending request intact. Every selected student receives the decision.
+- Selected group size does not multiply paid hours. The existing empty-save and saved-Work-purpose safeguards still apply through the single Students selector.
+- Local verification: full unit suite, the isolated approval emulator suite and browser checks cover group creation, fixed requester, ineligible peer filtering, teacher review and participant replacement.

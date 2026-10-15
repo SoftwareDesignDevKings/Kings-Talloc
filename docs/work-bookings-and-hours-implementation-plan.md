@@ -7,13 +7,13 @@ This plan includes removal of obsolete confirmation logic and the export bug tha
 ## 1 Simplify events and tutor availability
 
 - Offer Work and Coaching as event types. Treat legacy `tutoring`, `tutoringOrWork` and `work` events as Work through a shared compatibility helper; keep Coaching separate.
-- Within Work, derive general Work versus a student session from its student participants, including named group members. Do not use `createdByStudent` to decide whether a tutor is busy: teacher-created student sessions reserve the tutor too. Keep the origin field for approval and ownership rules.
-- A saved general Work record and a student session cannot switch purpose through participant edits. Teachers can temporarily remove a student while choosing a replacement, but saving a student session without any student or named group member must show a clear error and keep the editor open. To cancel it, use the existing Delete action; create a separate general Work event if needed. Book students during existing Work by creating a separate student session. Removing surrounding Work does not reclassify or delete a student session.
+- Within Work, derive general Work versus a student session from its student participants, including selected group members. Do not use `createdByStudent` to decide whether a tutor is busy: teacher-created student sessions reserve the tutor too. Keep the origin field for approval and ownership rules.
+- A saved general Work record and a student session cannot switch purpose through participant edits. Teachers can temporarily remove a student while choosing a replacement, but saving a student session without any selected student must show a clear error and keep the editor open. To cancel it, use the existing Delete action; create a separate general Work event if needed. Book students during existing Work by creating a separate student session. Removing surrounding Work does not reclassify or delete a student session.
 - Resolve class-linked legacy participants before classification. Flag unresolved legacy records for review rather than silently opening an existing class booking to other students.
 - Remove the type selector from the tutor availability editor. Tutor-entered availability is a simple time range, retaining existing location information.
 - Keep coaching availability separate internally and unavailable for academic bookings. Preserve old coaching-only availability and the coach workflow; removing the tutor selector must not turn coaching availability into tutoring availability.
 - Keep existing academic tutor and subject eligibility. A student session classified as Work still requires an eligible tutor; renaming the event type must not bypass the existing tutor-role restriction.
-- Add an optional names field for additional students on a group request. One tutor is assigned; group size does not multiply paid hours. Names do not grant other users access to the request.
+- Use the existing multi-student selector for group bookings. Students search classmates by name or school email (minimum two characters, maximum twenty results) and remain included as the requester. Return only names/emails, not Canvas roster or enrollment documents. One tutor is assigned; group size does not multiply paid hours. Check tutor eligibility for every selected student. Group members can view their booking and receive decisions; only its requester can edit a pending request.
 - Update calendar labels, filters, legends and instructions to match the simplified model. Preserve existing layouts where possible.
 
 Primary areas: `EventForm`, `StudentEventForm`, `TutorAvailabilityForm`, event form sections, `useModalActionStrategy`, `calendarUI`, calendar filters, and a shared event-classification helper.
@@ -74,7 +74,7 @@ Primary areas: `studentRequestApprovals`, `firestoreOperations`, `useApprovalHan
 
 - Approval and denial notices go to the requesting student; approval also notifies the assigned tutor.
 - Availability-loss notices go only to Michael Ienna at `mienna@kings.edu.au` for now.
-- Additional group members are names only, so they do not receive account notifications unless they are separately identified as users. Do not invent email addresses from names.
+- Every selected group member receives the approval or denial in the app. Tutor approval notifications stay unchanged.
 - Use compact dashboard notices linking to the relevant event. Do not restore the removed header approval link or add a notification bell, acceptance buttons or a separate notifications page.
 - Persist notices for their recipients and acknowledge them with one recipient watermark rather than introducing request-by-request read/unread state. Do not reuse that watermark for the existing pending-request title counter.
 - Preserve teacher eligibility and the existing preference for pending-request title notifications, including admin accounts that also have the teacher role. Michael remains the default enabled recipient. Booking-decision notices to students and tutors must not depend on this teacher preference.
@@ -148,7 +148,7 @@ Build on the dashboard changes already in progress rather than replacing them. K
 1. Shared event classification, rule fixtures and removal of obsolete confirmation behaviour.
 2. Shared hours calculation, warnings, date grouping and weekly export packaging.
 3. Authoritative scheduling service, safe availability, role permissions and database rules.
-4. Simplified forms, group names, approval grace period, recurring clash handling and in-app notices.
+4. Simplified forms, selected group participants, approval grace period, recurring clash handling and in-app notices.
 5. Browser verification, historical comparison and coordinated release.
 
 Prepare the server and compatible read paths before changing client write permissions. Coordinate the stricter rules and client release so an older open tab receives an actionable refresh message instead of silently losing a write. Use the existing GitHub rules deployment workflow; avoid manual console-only changes. Keep legacy records readable without a destructive backfill or approval reset.

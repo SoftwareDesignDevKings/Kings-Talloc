@@ -1,7 +1,7 @@
 import 'server-only';
 import { DateTime } from 'luxon';
 import { FieldValue } from 'firebase-admin/firestore';
-import { asDate, emailOf, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
+import { asDate, emailOf, requestOwnerEmail, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
 import { documentEvent, readSchedule, resolveClassParticipants } from './readSchedule';
 
 export class SchedulingError extends Error {
@@ -75,14 +75,19 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         let event = { ...(saved || {}), ...raw, id: target.id };
         if (classesChanged) delete event.studentParticipantsResolved;
         const originalCollection = ['approve', 'deny'].includes(action) ? 'studentEventRequests' : collectionName;
-        const owner = saved && ((saved.studentEmails || (saved.students || []).map(emailOf)).includes(actor));
+        const owner = saved && requestOwnerEmail(saved) === actor;
         const ownAvailability = emailOf(saved?.tutor || raw.tutor) === actor;
         const isAvailability = collectionName === 'tutorAvailabilities';
         if (originalCollection === 'studentEventRequests') event.workType = 'work';
         if (!isAvailability) delete event.tutor;
         // Canonicalise student-owned requests before any structural/eligibility checks.
         if (!manager && originalCollection === 'studentEventRequests' && ['create', 'update'].includes(action)) {
-            event.students = [{ value: actor, label: sessionUser.name || actor }];
+            fail(event.students !== undefined && !Array.isArray(event.students), 'Choose students from the student list.');
+            fail((event.students || []).length > 30, 'A group booking can include up to 30 students.');
+            event.students = [{ value: actor, label: sessionUser.name || actor }, ...(event.students || []).filter(student => emailOf(student) !== actor)];
+            event.students = [...new Map(event.students.map(student => [emailOf(student), student])).values()];
+            fail(event.students.length > 30, 'A group booking can include up to 30 students.');
+            event.requesterEmail = saved ? requestOwnerEmail(saved) : actor;
             event.classes = []; event.recurring = null; event.occurenceNum = null; event.until = null;
         }
         if (isAvailability) fail(!(roles.has('tutor') || roles.has('coach')) || !ownAvailability || (raw.tutor && emailOf(raw.tutor) !== actor), 'Only the tutor can manage their availability.', 403);
@@ -177,7 +182,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                 fail(saved && saved.approvalStatus !== 'pending', 'This request has already been handled.', 409);
                 event.approvalStatus = 'pending'; event.workStatus = 'notCompleted'; event.createdByStudent = true;
                 if (!manager) {
-                    event.students = [{ value: actor, label: sessionUser.name || actor }]; event.classes = []; event.recurring = null;
+                    event.classes = []; event.recurring = null;
                     event.createTeamsMeeting = false; event.teamsEventId = null; event.teamsJoinUrl = null; event.teamsMeetingUrl = null; event.onlineMeetingId = null;
                     event = flatten(event);
                     fail(event.start <= timestamp, 'Student requests must start in the future.');

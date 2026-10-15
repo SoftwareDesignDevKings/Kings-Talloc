@@ -4,6 +4,7 @@ export const SYDNEY_ZONE = 'Australia/Sydney';
 export const APPROVAL_GRACE_MS = 15 * 60 * 1000;
 export const asDate = value => value?.toDate ? value.toDate() : value?.toJSDate ? value.toJSDate() : new Date(value);
 export const emailOf = value => String(value?.value || value?.email || value || '').trim().toLowerCase();
+export const requestOwnerEmail = event => emailOf(event?.requesterEmail || event?.students?.[0] || event?.studentEmails?.[0]);
 export const staffEmails = event => [...new Set((event.staff || []).map(emailOf).filter(Boolean))];
 export const workCategory = event => event.workType === 'coaching' ? 'coaching' : 'work';
 // Class-linked legacy bookings are occupied until their participants can be resolved.
@@ -27,7 +28,7 @@ export const getParticipantEditError = (previous, next) => {
             !previous.studentParticipantsResolved && !next.studentParticipantsResolved &&
             JSON.stringify(classIds(previous)) === JSON.stringify(classIds(next));
         if (unresolvedLegacy) return null;
-        return 'Add at least one student or group name before saving this student session. To cancel it, use Delete.';
+        return 'Add at least one student before saving this student session. To cancel it, use Delete.';
     }
     if (isGeneralWork(previous) && workCategory(next) === 'work' && (hasStudentParticipants(next) || (next.classes?.length && !next.studentParticipantsResolved))) return 'This is a general Work shift. Create a separate student session to book students during it.';
     return null;
