@@ -222,6 +222,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
             locationType: newEvent.locationType || '',
             subject: newEvent.subject || null,
             preference: newEvent.preference || null,
+            sessionTopics: newEvent.sessionTopics || '',
             recurring: newEvent.recurring || null,
             createTeamsMeeting: isApprovingStudentRequest || newEvent.createTeamsMeeting || false,
             occurenceNum: newEvent.occurenceNum || null,

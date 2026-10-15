@@ -46,25 +46,39 @@ test('student books during Work, names a group, and teacher approves through the
     await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
     await page.locator('.rbc-events-container').nth(2).click();
     await expect(page.getByLabel('Event start time')).toBeVisible();
+    // Click waits for the modal opening animation before typing into its fields.
+    await page.getByLabel('Event start time').click();
     await page.getByLabel('Event start time').fill(slot.plus({ minutes: 30 }).toFormat("yyyy-MM-dd'T'HH:mm"));
     await page.getByLabel('Event end time').fill(slot.plus({ hours: 1 }).toFormat("yyyy-MM-dd'T'HH:mm"));
     await page.getByLabel('Students in this booking').fill('Casey');
     await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
     await page.locator('#tutor').click(); await page.getByRole('option', { name: /Viraj Patel/ }).click();
+    await page.getByRole('button', { name: 'Add Event', exact: true }).click();
+    await expect(page.locator('#session-focus-error')).toContainText('Select a session focus');
+    expect((await db.collection('studentEventRequests').get()).empty).toBe(true);
+    await page.getByText('Exam preparation', { exact: true }).click();
+    await page.getByLabel('Topics to cover (optional)').fill('Quadratic equations, questions 4–8.');
     const save = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Add Event', exact: true }).click(); expect((await save).status()).toBe(200);
     const pending = await db.collection('studentEventRequests').get(); expect(pending.size).toBe(1); expect(pending.docs[0].data().approvalStatus).toBe('pending');
     expect(pending.docs[0].data().studentEmails).toEqual([student, 'peer@kings.edu.au']);
     expect(pending.docs[0].data().requesterEmail).toBe(student);
     expect(pending.docs[0].data().additionalStudents).toEqual([]);
+    expect(pending.docs[0].data().preference).toBe('Exam Help');
+    expect(pending.docs[0].data().sessionTopics).toBe('Quadratic equations, questions 4–8.');
     const teacherContext = await browser.newContext(); const teacher = await teacherContext.newPage();
     try {
         await signIn(teacher, 'Teacher');
         await teacher.getByRole('button', { name: /Pending Approvals/ }).click();
         await expect(teacher.getByText(/John Doe, Casey Example/)).toBeVisible();
+        await expect(teacher.getByText('Session focus: Exam preparation', { exact: true })).toBeVisible();
+        await teacher.getByText('Topics to cover', { exact: true }).click();
+        await expect(teacher.getByText('Quadratic equations, questions 4–8.', { exact: true })).toBeVisible();
         const approved = teacher.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
         await teacher.getByRole('button', { name: 'Approve', exact: true }).click(); expect((await approved).status()).toBe(200);
         await expect.poll(async () => (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).exists).toBe(true);
+        const session = (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).data();
+        expect(session.preference).toBe('Exam Help'); expect(session.sessionTopics).toBe('Quadratic equations, questions 4–8.');
         await page.goto('/dashboard'); await expect(page.getByText('Your tutoring request was approved.')).toBeVisible();
     } finally { await teacherContext.close(); }
 });

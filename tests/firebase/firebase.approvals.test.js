@@ -14,7 +14,7 @@ const student = { email: 'student@kings.edu.au', defaultRole: 'student', userRol
 const start = new Date('2027-04-06T05:00:00Z');
 const end = new Date(+start + 3600000);
 const clock = new Date(+start - 86400000);
-const data = (overrides = {}) => ({ title: 'Student session', start, end, recurring: null, createdByStudent: true, approvalStatus: 'pending', workType: 'work', workStatus: 'notCompleted',
+const data = (overrides = {}) => ({ title: 'Student session', preference: 'General', start, end, recurring: null, createdByStudent: true, approvalStatus: 'pending', workType: 'work', workStatus: 'notCompleted',
     staff: [{ value: tutor.email }], students: [{ value: student.email }], staffEmails: [tutor.email], studentEmails: [student.email], emailsList: [tutor.email, student.email], ...overrides });
 const call = (input, actor = teacher, time = clock) => scheduleMutation(db, actor, { operationId: randomUUID(), ...input }, { now: () => time });
 const seed = (id, overrides = {}) => db.collection('studentEventRequests').doc(id).set(data(overrides));
@@ -349,4 +349,33 @@ test('teacher-created and approved student sessions do not create tutor assignme
     const notices = (await db.collection('bookingNotifications').get()).docs.map(doc => doc.data());
     expect(notices).toHaveLength(1);
     expect(notices[0]).toMatchObject({ recipientEmail: student.email, kind: 'approved' });
+});
+
+test.each([null, '', 'Unrecognised focus'])('student request with missing/invalid focus %j is rejected before writing', async preference => {
+    await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: data({ preference }) }, student)).rejects.toThrow('Select a session focus');
+    expect((await db.collection('studentEventRequests').get()).empty).toBe(true);
+});
+test('focus and optional topics survive student edit, approval and later teacher edits', async () => {
+    await db.collection('shifts').doc('work').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved' }));
+    const created = await call({ action: 'create', collectionName: 'studentEventRequests', data: data({ preference: 'Exam Help', sessionTopics: '  Quadratic equations  ' }) }, student);
+    await call({ action: 'update', collectionName: 'studentEventRequests', id: created.id, data: { sessionTopics: '  Questions 4–8  ' } }, student);
+    const request = (await db.collection('studentEventRequests').doc(created.id).get()).data();
+    expect(request.preference).toBe('Exam Help'); expect(request.sessionTopics).toBe('Questions 4–8');
+    const approved = await call({ action: 'approve', id: created.id });
+    await call({ action: 'update', id: approved.id, data: { title: 'Teacher edited title' } });
+    const session = (await db.collection('shifts').doc(approved.id).get()).data();
+    expect(session.preference).toBe('Exam Help'); expect(session.sessionTopics).toBe('Questions 4–8');
+});
+test('old requests without focus can still be approved and completed, but student edits require a focus', async () => {
+    const legacy = data(); delete legacy.preference;
+    await db.collection('studentEventRequests').doc('legacy').set(legacy);
+    await expect(call({ action: 'update', collectionName: 'studentEventRequests', id: 'legacy', data: { title: 'Edited' } }, student)).rejects.toThrow('Select a session focus');
+    const approved = await call({ action: 'approve', id: 'legacy' });
+    await call({ action: 'complete', id: approved.id, data: { workStatus: 'completed' } }, tutor);
+    const session = (await db.collection('shifts').doc(approved.id).get()).data();
+    expect(session.preference).toBeUndefined(); expect(session.workStatus).toBe('completed');
+});
+test.each([123, 'x'.repeat(2001)])('topics to cover rejects non-text or oversized input without saving', async sessionTopics => {
+    await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: data({ sessionTopics }) }, student)).rejects.toThrow('Topics to cover');
+    expect((await db.collection('studentEventRequests').get()).empty).toBe(true);
 });

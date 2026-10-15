@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { FieldValue } from 'firebase-admin/firestore';
 import { asDate, emailOf, requestOwnerEmail, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
 import { documentEvent, readSchedule, resolveClassParticipants } from './readSchedule';
+import { isValidSessionFocus, SESSION_TOPICS_MAX_LENGTH } from './sessionFocus';
 
 export class SchedulingError extends Error {
     constructor(message, status = 400, details = {}) { super(message); this.status = status; this.details = details; }
@@ -11,7 +12,7 @@ const fail = (condition, message, status = 400, details) => { if (condition) thr
 const rolesFor = user => new Set([user.defaultRole || user.role, ...(user.userRoles || [])]);
 const manage = roles => roles.has('admin') || roles.has('teacher');
 const allowedCollections = new Set(['shifts', 'studentEventRequests', 'tutorAvailabilities']);
-const allowedFields = new Set(['title', 'description', 'start', 'end', 'staff', 'students', 'additionalStudents', 'classes', 'subject', 'preference', 'createdByStudent', 'approvalStatus', 'workStatus', 'workType', 'locationType', 'recurring', 'occurenceNum', 'until', 'createTeamsMeeting', 'teamsEventId', 'teamsMeetingUrl', 'teamsJoinUrl', 'onlineMeetingId', 'tutor', 'eventExceptions', 'recordAutomatically']);
+const allowedFields = new Set(['title', 'description', 'start', 'end', 'staff', 'students', 'additionalStudents', 'classes', 'subject', 'preference', 'sessionTopics', 'createdByStudent', 'approvalStatus', 'workStatus', 'workType', 'locationType', 'recurring', 'occurenceNum', 'until', 'createTeamsMeeting', 'teamsEventId', 'teamsMeetingUrl', 'teamsJoinUrl', 'onlineMeetingId', 'tutor', 'eventExceptions', 'recordAutomatically']);
 const cleanData = data => Object.fromEntries(Object.entries(data || {}).filter(([key, value]) => allowedFields.has(key) && value !== undefined));
 const participant = value => { const email = emailOf(value); fail(!email.includes('@') || email.includes('/'), 'Invalid participant.'); return { value: email, label: String(value?.label || email).slice(0, 200) }; };
 const flatten = event => {
@@ -98,6 +99,13 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                 fail(!roles.has('student') || originalCollection !== 'studentEventRequests' || !['create', 'update'].includes(action), 'Only teachers can manage bookings.', 403);
                 fail(action !== 'create' && (!owner || saved.approvalStatus !== 'pending'), 'Only your pending request can be edited.', 403);
             }
+        }
+        if (!manager && originalCollection === 'studentEventRequests' && ['create', 'update'].includes(action)) {
+            fail(!isValidSessionFocus(event.preference), 'Select a session focus before submitting your request.');
+        }
+        if (raw.sessionTopics !== undefined) {
+            fail(typeof raw.sessionTopics !== 'string' || raw.sessionTopics.length > SESSION_TOPICS_MAX_LENGTH, `Topics to cover must be text of up to ${SESSION_TOPICS_MAX_LENGTH} characters.`);
+            event.sessionTopics = raw.sessionTopics.trim();
         }
         if (action === 'approve' || action === 'deny') {
             fail(!manager, 'Only teachers can decide requests.', 403);

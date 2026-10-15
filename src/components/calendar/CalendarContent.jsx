@@ -17,7 +17,8 @@ import { updateEventInFirestore, createEventInFirestore, updateWorkStatusInFires
 import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
-import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
+import { CalendarEntityType, CalendarFlow } from '@lib/patterns/calendarStrategy';
+import { isValidSessionFocus } from '@/lib/scheduling/sessionFocus';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent, { getEventParticipantInitials } from './CustomEvent.jsx';
@@ -365,6 +366,13 @@ const CalendarContent = () => {
                 isRecurringInstance: false,
                 recurringEventId: null,
             };
+
+            // Older requests have no focus: let the student choose one before duplicating.
+            if (userRole === 'student' && entityType === CalendarEntityType.STUDENT_REQUEST && !isValidSessionFocus(duplicatedEvent.preference)) {
+                setCalendarTarget({ ...duplicatedEvent, entityType, isStudentRequest: true });
+                setCalendarAction(CalendarFlow.CREATE_STUDENT_REQUEST);
+                return;
+            }
 
             // determine collection name based on entity type
             let collectionName;

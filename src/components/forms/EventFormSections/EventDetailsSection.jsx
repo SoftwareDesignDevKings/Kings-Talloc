@@ -50,9 +50,8 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
             recurring: prev.recurring === 'fortnightly' ? null : 'fortnightly',
         }));
     }, [setNewEvent]);
-    // Collapse by default for student requests (teacher viewing)
-    const isStudentRequest = newEvent.createdByStudent;
-    const isExpanded = !isStudentRequest;
+    // Pending requests open their focus; approved bookings open their time and details.
+    const isExpanded = !(newEvent.createdByStudent && newEvent.approvalStatus === 'pending');
 
     return (
         <div className="accordion-item">

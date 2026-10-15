@@ -11,6 +11,7 @@ import { updateEventInFirestore, createEventInFirestore } from '@/firestore/fire
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 import { rangeCovered, emailOf } from '@/lib/scheduling/eventRules';
 import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
+import { SESSION_FOCUS_OPTIONS, SESSION_TOPICS_MAX_LENGTH, isValidSessionFocus, sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
 
 import useAlert from '@/hooks/useAlert.js';
 
@@ -72,10 +73,10 @@ const StudentEventForm = ({
     const [selectedTutor, setSelectedTutor] = useState(
         newEvent.staff && newEvent.staff.length > 0 ? newEvent.staff[0] : null,
     );
-    const [selectedPreference, setSelectedPreference] = useState(newEvent.preference || null);
+    const selectedPreference = newEvent.preference || '';
+    const [focusError, setFocusError] = useState(null);
     const { addAlert } = useAlert();
 
-    const preferenceOptions = ['Homework (Prep)', 'Assignments', 'Exam Help', 'General'];
 
     const getTutorsAvailableForRange = useCallback((start, end) => {
         if (
@@ -126,7 +127,7 @@ const StudentEventForm = ({
     };
 
     const handlePreferenceClick = (preference) => {
-        setSelectedPreference(preference);
+        setFocusError(null);
         setNewEvent(prev => ({ ...prev, preference }));
     };
 
@@ -158,6 +159,11 @@ const StudentEventForm = ({
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!isValidSessionFocus(newEvent.preference)) {
+            setFocusError('Select a session focus before submitting your request.');
+            return false;
+        }
+
         // Validate tutor selection
         if (!bookableAvailability.ready || !selectedTutor || !filteredTutors.some(tutor => tutor.value === selectedTutor.value)) {
             addAlert('error', 'You must select a tutor available to have a tutor session');
@@ -179,6 +185,7 @@ const StudentEventForm = ({
             classes: [],
             subject: null,
             preference: newEvent.preference,
+            sessionTopics: (newEvent.sessionTopics || '').trim(),
             createdByStudent: true,
             approvalStatus: 'pending',
             isStudentRequest: true,
@@ -261,6 +268,7 @@ const StudentEventForm = ({
             loading={isSubmitting}
             deleteButton={null}
             showFooter={!isView}
+            noValidate
         >
             <div className="mb-3">
                 <label htmlFor="start" className="form-label">
@@ -296,23 +304,44 @@ const StudentEventForm = ({
                     aria-required="true"
                 />
             </div>
+            <fieldset className="mb-3">
+                <legend className="form-label fs-6">Session focus{!isView && ' (required)'}</legend>
+                {isView ? <div>{sessionFocusLabel(newEvent.preference)}</div> : <>
+                    <div className="d-flex flex-wrap gap-2">
+                        {SESSION_FOCUS_OPTIONS.map(({ value, label }) => (
+                            <React.Fragment key={value}>
+                                <input
+                                    type="radio"
+                                    className="btn-check"
+                                    name="preference"
+                                    value={value}
+                                    id={`session-focus-${value.replace(/[^a-z]/gi, '')}`}
+                                    checked={selectedPreference === value}
+                                    onChange={() => handlePreferenceClick(value)}
+                                    required
+                                    aria-describedby={focusError ? 'session-focus-error' : undefined}
+                                />
+                                <label className="btn btn-sm btn-outline-primary" htmlFor={`session-focus-${value.replace(/[^a-z]/gi, '')}`}>{label}</label>
+                            </React.Fragment>
+                        ))}
+                    </div>
+                    {focusError && <div id="session-focus-error" className="text-danger small mt-2" role="alert">{focusError}</div>}
+                </>}
+            </fieldset>
             <div className="mb-3">
-                <label className="form-label" id="preference-label">Preference</label>
-                <div className="d-flex flex-wrap gap-2" role="group" aria-labelledby="preference-label">
-                    {preferenceOptions.map((preference) => (
-                        <button
-                            key={preference}
-                            type="button"
-                            className={`btn btn-sm ${selectedPreference === preference ? 'btn-primary' : 'btn-outline-primary'}`}
-                            onClick={() => handlePreferenceClick(preference)}
-                            disabled={isView}
-                            aria-pressed={selectedPreference === preference}
-                            aria-label={`Select ${preference} as preference`}
-                        >
-                            {preference}
-                        </button>
-                    ))}
-                </div>
+                <label htmlFor="sessionTopics" className="form-label">Topics to cover (optional)</label>
+                <textarea
+                    id="sessionTopics"
+                    name="sessionTopics"
+                    className="form-control"
+                    rows={3}
+                    value={newEvent.sessionTopics || ''}
+                    onChange={handleInputChange}
+                    maxLength={SESSION_TOPICS_MAX_LENGTH}
+                    disabled={isView}
+                    aria-describedby="session-topics-help"
+                />
+                <div id="session-topics-help" className="form-text">Include specific topics, questions or tasks you would like to cover.</div>
             </div>
             <div className="mb-3">
                 <label htmlFor="tutor" className="form-label">
