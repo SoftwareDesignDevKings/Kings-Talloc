@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { formatDisplayDateTime, formatDisplayTime } from '@/utils/displayDate';
 
 const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly, disabled = false }) => (
     <div className="list-group-item">
@@ -29,8 +29,8 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly,
 
             <div className="small text-muted">
                 <div>
-                    {format(request.start, 'MMM d, yyyy h:mm a')}{' '}
-                    - {format(request.end, 'h:mm a')}
+                    {formatDisplayDateTime(request.start)}{' '}
+                    - {formatDisplayTime(request.end)}
                 </div>
                 {request.additionalStudents?.length > 0 && <div>Other students: {request.additionalStudents.join(', ')}</div>}
                 {request.classes?.length > 0 && (

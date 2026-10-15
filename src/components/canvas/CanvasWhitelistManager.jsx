@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useAlert from '@/hooks/useAlert';
 import t from '@/styles/manageTable.module.css';
+import { formatDisplayDate, formatDisplayDateTime } from '@/utils/displayDate';
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -10,19 +11,14 @@ const formatDateTime = (value) => {
     if (!value) return 'Never';
     const date = value._seconds ? new Date(value._seconds * 1000) : new Date(value);
     if (isNaN(date)) return 'Never';
-    return date.toLocaleString(undefined, {
-        day: 'numeric', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-    });
+    return formatDisplayDateTime(date);
 };
 
 const formatShortDate = (value) => {
     if (!value) return '';
     const date = new Date(value);
     if (isNaN(date)) return '';
-    return date.toLocaleDateString(undefined, {
-        day: 'numeric', month: 'short', year: 'numeric',
-    });
+    return formatDisplayDate(date);
 };
 
 const formatTermDateRange = (startAt, endAt) => {

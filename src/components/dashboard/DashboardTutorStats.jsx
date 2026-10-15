@@ -1,6 +1,7 @@
 import { formatDuration } from '@/lib/scheduling/hours';
 import { FiCalendar, FiUsers, FiAlertCircle, FiActivity } from '@/components/icons';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { startOfWeek, endOfWeek } from 'date-fns';
+import { formatDisplayDate } from '@/utils/displayDate';
 import BaseStatsCard from './cards/BaseStatsCard';
 
 const DashboardTutorStats = ({ data }) => (
@@ -25,7 +26,7 @@ const DashboardTutorStats = ({ data }) => (
             iconBgColor="bg-warning"
             title="Uncompleted Shifts"
             value={data.uncompletedShifts}
-            subtitle={`${format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')} - ${format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')}`}
+            subtitle={`${formatDisplayDate(startOfWeek(new Date(), { weekStartsOn: 1 }))} - ${formatDisplayDate(endOfWeek(new Date(), { weekStartsOn: 1 }))}`}
             delay={250}
         />
         <BaseStatsCard

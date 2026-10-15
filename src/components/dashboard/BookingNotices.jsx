@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { collection, doc, onSnapshot, query, where, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
 import useAuthSession from '@/hooks/useAuthSession';
+import { formatDisplayDateTime } from '@/utils/displayDate';
 
 export default function BookingNotices() {
     const { session } = useAuthSession();
@@ -39,7 +40,7 @@ export default function BookingNotices() {
     if (!unseen.length && !error) return null;
     return <div className="alert alert-info mb-3" aria-label="Booking updates">
         {error && <div role="status">{error}</div>}
-        <div style={{ maxHeight: '16rem', overflowY: 'auto' }}>{unseen.map(notice => <div key={notice.id} className="mb-1"><a href={`/calendar?date=${encodeURIComponent(notice.start.toDate().toISOString())}`}>{notice.title} — {notice.start.toDate().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</a>: {notice.message}</div>)}
+        <div style={{ maxHeight: '16rem', overflowY: 'auto' }}>{unseen.map(notice => <div key={notice.id} className="mb-1"><a href={`/calendar?date=${encodeURIComponent(notice.start.toDate().toISOString())}`}>{notice.title} — {formatDisplayDateTime(notice.start)}</a>: {notice.message}</div>)}
         </div>
         {unseen.length > 0 && <button type="button" className="btn btn-sm btn-outline-secondary mt-2" disabled={!ready} onClick={dismiss}>Dismiss updates</button>}
     </div>;

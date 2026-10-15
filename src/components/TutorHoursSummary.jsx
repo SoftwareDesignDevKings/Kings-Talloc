@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
+import enAU from 'date-fns/locale/en-AU';
 import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
@@ -11,6 +12,7 @@ import useAlert from '@/hooks/useAlert';
 import useAuthSession from '@/hooks/useAuthSession';
 import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
+import { DISPLAY_DATE_FORMAT, formatDisplayDate } from '@/utils/displayDate';
 
 const getMonday = (d) => {
     d = new Date(d);
@@ -156,8 +158,8 @@ const TutorHoursSummary = () => {
         'Work Hours': decimalHours(tutor.workMs),
         'Coaching Hours': decimalHours(tutor.coachingMs),
         'Total Hours': decimalHours(tutor.workMs + tutor.coachingMs),
-        Details: tutor.days.map(day => `${day.date} ${day.category}: ${day.start.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}–${day.end.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}; paid ${formatDuration(day.paidMs)}; deduction ${formatDuration(day.deductionMs)}`).join(' | '),
-        Warnings: tutor.warnings.map(warning => `${warning.date}: ${warning.message}`).join(' '),
+        Details: tutor.days.map(day => `${formatDisplayDate(day.date)} ${day.category}: ${day.start.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}–${day.end.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}; paid ${formatDuration(day.paidMs)}; deduction ${formatDuration(day.deductionMs)}`).join(' | '),
+        Warnings: tutor.warnings.map(warning => `${formatDisplayDate(warning.date)}: ${warning.message}`).join(' '),
     }));
 
     const handleGenerateTimesheet = async (tutorEmail, tutorName, roleType) => {
@@ -187,7 +189,7 @@ const TutorHoursSummary = () => {
             const blob = await response.blob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${tutorName}_${roleType}_timesheet_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.${response.headers.get('Content-Type')?.includes('zip') ? 'zip' : 'docx'}`;
+            link.download = `${tutorName}_${roleType}_timesheet_${formatDisplayDate(startDate)}_to_${formatDisplayDate(endDate)}.${response.headers.get('Content-Type')?.includes('zip') ? 'zip' : 'docx'}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -212,6 +214,8 @@ const TutorHoursSummary = () => {
                     </label>
                     <DatePicker
                         selected={startDate}
+                        dateFormat={DISPLAY_DATE_FORMAT}
+                        locale={enAU}
                         onChange={(date) => setStartDate(getMonday(date))}
                         className="form-control form-control-sm"
                     />
@@ -222,13 +226,15 @@ const TutorHoursSummary = () => {
                     </label>
                     <DatePicker
                         selected={endDate}
+                        dateFormat={DISPLAY_DATE_FORMAT}
+                        locale={enAU}
                         onChange={(date) => setEndDate(new Date(date.setHours(23, 59, 59, 999)))}
                         className="form-control form-control-sm"
                     />
                 </div>
                 <CSVLink
                     data={csvData}
-                    filename={`tutor_hours_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.csv`}
+                    filename={`tutor_hours_${formatDisplayDate(startDate)}_to_${formatDisplayDate(endDate)}.csv`}
                     className={`btn btn-outline-primary btn-sm${loadState !== 'ready' ? ' disabled' : ''}`}
                     aria-disabled={loadState !== 'ready'}
                     onClick={() => loadState === 'ready'}
@@ -270,7 +276,7 @@ const TutorHoursSummary = () => {
                         {tutorHours.map((tutor, index) => (
                             <tr key={index}>
                                 <td className="small text-break align-middle">{tutor.email}</td>
-                                <td className="small align-middle">{tutor.name}{tutor.warnings.map((warning, i) => <div key={i} className="text-warning-emphasis small" role="status">⚠ {warning.date}: {warning.message}</div>)}</td>
+                                <td className="small align-middle">{tutor.name}{tutor.warnings.map((warning, i) => <div key={i} className="text-warning-emphasis small" role="status">⚠ {formatDisplayDate(warning.date)}: {warning.message}</div>)}</td>
                                 <td className="small align-middle">{formatDuration(tutor.workMs)}</td>
                                 <td className="small align-middle">{formatDuration(tutor.coachingMs)}</td>
                                 <td className="small fw-semibold align-middle">

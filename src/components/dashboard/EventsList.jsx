@@ -1,6 +1,7 @@
 import React from 'react';
 import { FiCalendar } from '@/components/icons';
 import { format } from 'date-fns';
+import { formatDisplayDate } from '@/utils/displayDate';
 
 const WORK_TYPE_BADGE = {
     coaching: {
@@ -43,7 +44,7 @@ const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
             {/* Time column */}
             <div
                 className="shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
-                style={{ width: '80px' }}
+                style={{ width: isToday ? '80px' : '108px' }}
             >
                 <span
                     className="text-muted tabular-nums text-nowrap"
@@ -51,7 +52,7 @@ const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
                 >
                     {isToday
                         ? format(new Date(event.start), 'h:mm a')
-                        : format(new Date(event.start), 'd MMM')}
+                        : formatDisplayDate(event.start)}
                 </span>
                 {isToday && (
                     <span

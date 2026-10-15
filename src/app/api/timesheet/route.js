@@ -3,6 +3,7 @@ import Docxtemplater from 'docxtemplater';
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { getRequiredAdminOrTeacherSession } from '@/lib/security/serverAuth';
 import { DateTime } from 'luxon';
+import { formatDisplayDate } from '@/utils/displayDate';
 import { readSchedule } from '@/lib/scheduling/readSchedule';
 import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
 import { SYDNEY_ZONE } from '@/lib/scheduling/eventRules';
@@ -49,7 +50,7 @@ export async function POST(req) {
                 data[`${key}Total`] = day ? `${decimalHours(day.paidMs)}${day.warnings.length ? ' ⚠' : ''}` : '';
                 if (day) {
                     totalMs += day.paidMs;
-                    day.warnings.forEach(warning => warnings.push(`${day.date}: ${warning.message} Counted ${formatDuration(day.paidMs)}.`));
+                    day.warnings.forEach(warning => warnings.push(`${formatDisplayDate(day.date)}: ${warning.message} Counted ${formatDuration(day.paidMs)}.`));
                 }
             });
             data.totalHours = decimalHours(totalMs);

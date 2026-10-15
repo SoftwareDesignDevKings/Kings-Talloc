@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays, endOfWeek } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
+import { DISPLAY_DATE_FORMAT } from '@/utils/displayDate';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
@@ -47,6 +48,15 @@ const localizer = dateFnsLocalizer({
     getDay,
     locales,
 });
+
+const calendarFormats = {
+    dayHeaderFormat: `${DISPLAY_DATE_FORMAT} (EEEE)`,
+    dayRangeHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
+        `${calendarLocalizer.format(start, DISPLAY_DATE_FORMAT, culture)} – ${calendarLocalizer.format(end, DISPLAY_DATE_FORMAT, culture)}`,
+    agendaDateFormat: DISPLAY_DATE_FORMAT,
+    agendaHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
+        `${calendarLocalizer.format(start, DISPLAY_DATE_FORMAT, culture)} – ${calendarLocalizer.format(end, DISPLAY_DATE_FORMAT, culture)}`,
+};
 
 const DnDCalendar = withDragAndDrop(Calendar);
 
@@ -555,6 +565,7 @@ const CalendarContent = () => {
                     <DnDCalendar
                         culture="en-AU"
                         localizer={localizer}
+                        formats={calendarFormats}
                         events={rbcEvents}
                         backgroundEvents={rbcBackgroundEvents}
                         startAccessor="start"

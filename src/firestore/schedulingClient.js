@@ -1,3 +1,4 @@
+import { formatDisplayDateTime } from '@/utils/displayDate';
 const revive = event => ({ ...event, ...(event?.start && { start: new Date(event.start) }), ...(event?.end && { end: new Date(event.end) }) });
 
 export const schedulingMutation = async (input) => {
@@ -6,7 +7,7 @@ export const schedulingMutation = async (input) => {
         const response = await fetch('/api/scheduling', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const result = await response.json();
         if (!response.ok) {
-            if (result.canSkip && !payload.allowSkipConflicts && window.confirm(`These dates conflict:\n${result.conflictingDates.map(date => new Date(date).toLocaleString('en-AU')).join('\n')}\n\nCreate only the dates without a clash?`)) {
+            if (result.canSkip && !payload.allowSkipConflicts && window.confirm(`These dates conflict:\n${result.conflictingDates.map(date => formatDisplayDateTime(date)).join('\n')}\n\nCreate only the dates without a clash?`)) {
                 payload.allowSkipConflicts = true;
                 return send();
             }
