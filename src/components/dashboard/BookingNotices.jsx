@@ -16,7 +16,7 @@ export default function BookingNotices() {
         if (!email) return;
         const fail = () => { setReady(false); setError('Unable to refresh booking updates.'); };
         const unsubscribe = onSnapshot(query(collection(db, 'bookingNotifications'), where('recipientEmail', '==', email)), snapshot => {
-            setNotices(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
+            setNotices(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(notice => notice.kind !== 'assigned').sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
             setReady(!snapshot.metadata.fromCache); setError(null);
         }, fail);
         const unsubscribeAck = onSnapshot(doc(db, 'bookingNotificationState', email), snapshot => setAck(snapshot.data()?.acknowledgedAt || null), fail);

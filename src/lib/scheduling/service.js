@@ -42,7 +42,6 @@ const notice = (transaction, db, id, recipientEmail, event, kind, message, now) 
 };
 const decisionNotices = (transaction, db, id, event, approved, now) => {
     for (const student of event.students || []) notice(transaction, db, id, emailOf(student), event, approved ? 'approved' : 'denied', approved ? 'Your tutoring request was approved.' : 'Your tutoring request was denied.', now);
-    if (approved) for (const email of staffEmails(event)) notice(transaction, db, id, email, event, 'assigned', 'A student session has been assigned to you.', now);
 };
 
 /** All calendar mutations share transactional reads and one guard per affected tutor. */
@@ -264,8 +263,6 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             if (action === 'approve') {
                 transaction.delete(source);
                 decisionNotices(transaction, db, operationId, event, true, timestamp);
-            } else if (collectionName === 'shifts' && isStudentSession(event)) {
-                for (const email of staffEmails(event).filter(email => action === 'create' || !staffEmails(saved || {}).includes(email))) notice(transaction, db, operationId, email, event, 'assigned', 'A student session has been assigned to you.', timestamp);
             }
         }
         // Any new approved student booking resolves competing pending requests.

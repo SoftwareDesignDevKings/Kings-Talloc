@@ -52,7 +52,7 @@ The dedicated browser suite runs with `npm run test:e2e:work-hours`. It uses por
 - Whole-series deletion uses the base document ID. Coverage-loss checks include adjoining support and older recurring Work; bookings remain intact and Michael receives the warning.
 - Free intervals retain remote/onsite information. Teacher tutor options now use the combined Work/availability coverage, subtracting occupied bookings.
 - The summary uses the existing deployed start-date index, retains last-loaded results on failure, rejects stale asynchronous results, and requires a current result for export. Short/complex warnings themselves never block export. Word warning paragraphs preserve section markup.
-- Recurring meeting edits/moves update the occurrence, rather than losing the follow-up or moving the whole series. Duplicates reset all meeting identifiers and completion; pending student duplicates cannot create meetings before approval. Reassignment notifies a newly assigned tutor.
+- Recurring meeting edits/moves update the occurrence, rather than losing the follow-up or moving the whole series. Duplicates reset all meeting identifiers and completion; pending student duplicates cannot create meetings before approval. Assigned sessions appear in the existing events list; no separate tutor assignment banner is shown.
 - All loaded booking notices are visible in a scrollable area before dismissal; acknowledgement uses a transaction so a stale tab cannot move the shared watermark backwards.
 - Rules deployment is gated on the matching live app, with a refresh grace period and superseded-commit checks. Browser regressions start Auth as well as Firestore and seed explicit role/auth fixtures.
 
@@ -75,3 +75,5 @@ No audit-history feature or new purpose field was added. Unresolved class-only l
 - Availability filters and transaction-time checks require a tutor eligible for every selected student. Eligibility is checked again on approval; a rejected approval leaves the pending request intact. Every selected student receives the decision.
 - Selected group size does not multiply paid hours. The existing empty-save and saved-Work-purpose safeguards still apply through the single Students selector.
 - Local verification: full unit suite, the isolated approval emulator suite and browser checks cover group creation, fixed requester, ineligible peer filtering, teacher review and participant replacement.
+
+Tutor assignment banners have been removed, including hiding older stored assignment notices. Student approval/denial updates and Michael’s lost-coverage warnings remain. No production notification records are deleted.

@@ -32,7 +32,7 @@ test('concurrent approval converts once, auto-denies the loser and writes recipi
     expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
     expect((await db.collection('shifts').get()).size).toBe(1);
     const remaining = await db.collection('studentEventRequests').get(); expect(remaining.size).toBe(1); expect(remaining.docs[0].data().approvalStatus).toBe('denied');
-    const notices = await db.collection('bookingNotifications').get(); expect(notices.docs.map(doc => doc.data().kind).sort()).toEqual(['approved', 'assigned', 'denied']);
+    const notices = await db.collection('bookingNotifications').get(); expect(notices.docs.map(doc => doc.data().kind).sort()).toEqual(['approved', 'denied']);
 });
 test('concurrent different-time bookings both succeed', async () => {
     await seed('a'); await seed('b', { start: end, end: new Date(+end + 3600000) });
@@ -65,7 +65,7 @@ test('failed writes preserve request and do not emit notices', async () => {
 });
 test('idempotent retry returns the same shift without duplicate notices', async () => {
     await seed('a'); const input = { action: 'approve', id: 'a', operationId: randomUUID() };
-    const first = await call(input); const second = await call(input); expect(first.id).toBe(second.id); expect((await db.collection('shifts').get()).size).toBe(1); expect((await db.collection('bookingNotifications').get()).size).toBe(2);
+    const first = await call(input); const second = await call(input); expect(first.id).toBe(second.id); expect((await db.collection('shifts').get()).size).toBe(1); expect((await db.collection('bookingNotifications').get()).size).toBe(1);
 });
 test('student requests use combined Work and availability and always stay pending', async () => {
     await db.collection('tutorAvailabilities').doc('available').set({ tutor: tutor.email, start: new Date(+start - 3600000), end: start });
@@ -339,4 +339,14 @@ test('denial of a group request notifies all selected students without multiplyi
     await call({ action: 'deny', id: 'group' });
     const notices = (await db.collection('bookingNotifications').get()).docs.map(doc => doc.data());
     expect(notices.filter(notice => notice.kind === 'denied').map(notice => notice.recipientEmail).sort()).toEqual([peer, student.email].sort());
+});
+
+test('teacher-created and approved student sessions do not create tutor assignment banners', async () => {
+    await call({ action: 'create', data: data({ createdByStudent: false, approvalStatus: 'approved' }) });
+    expect((await db.collection('bookingNotifications').get()).empty).toBe(true);
+    await seed('group', { start: end, end: new Date(+end + 3600000) });
+    await call({ action: 'approve', id: 'group' });
+    const notices = (await db.collection('bookingNotifications').get()).docs.map(doc => doc.data());
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toMatchObject({ recipientEmail: student.email, kind: 'approved' });
 });

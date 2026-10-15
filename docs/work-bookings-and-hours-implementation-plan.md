@@ -72,9 +72,9 @@ Primary areas: `studentRequestApprovals`, `firestoreOperations`, `useApprovalHan
 
 ## 4 Add the agreed in app notices
 
-- Approval and denial notices go to the requesting student; approval also notifies the assigned tutor.
+- Approval and denial notices go to the requesting student; tutors see assigned sessions in the existing events list, without a separate assignment banner.
 - Availability-loss notices go only to Michael Ienna at `mienna@kings.edu.au` for now.
-- Every selected group member receives the approval or denial in the app. Tutor approval notifications stay unchanged.
+- Every selected group member receives the approval or denial in the app. Tutor assignment banners are omitted because the events list already shows these sessions.
 - Use compact dashboard notices linking to the relevant event. Do not restore the removed header approval link or add a notification bell, acceptance buttons or a separate notifications page.
 - Persist notices for their recipients and acknowledge them with one recipient watermark rather than introducing request-by-request read/unread state. Do not reuse that watermark for the existing pending-request title counter.
 - Preserve teacher eligibility and the existing preference for pending-request title notifications, including admin accounts that also have the teacher role. Michael remains the default enabled recipient. Booking-decision notices to students and tutors must not depend on this teacher preference.
