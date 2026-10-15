@@ -15,6 +15,7 @@ const ParticipantsSection = ({
     handleStudentSelectChange,
     studentOptions,
     readOnly,
+    children,
 }) => {
     return (
         <div className="accordion-item">
@@ -102,6 +103,7 @@ const ParticipantsSection = ({
                             />
                         </div>
                     </div>
+                    {children}
                 </div>
             </div>
         </div>

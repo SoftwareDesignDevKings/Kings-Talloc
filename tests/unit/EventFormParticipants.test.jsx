@@ -10,10 +10,11 @@ jest.mock('@/components/forms/useEventFormData', () => ({ useEventFormData: () =
 jest.mock('@/firestore/firestoreOperations', () => ({ updateEventInFirestore: jest.fn(), queueEmailNotification: jest.fn() }));
 jest.mock('@/utils/calendarEvent', () => ({ calendarEventHandleTeamsMeetingUpdate: jest.fn() }));
 jest.mock('@/components/forms/EventFormSections/EventDetailsSection', () => () => null);
-jest.mock('@/components/forms/EventFormSections/ParticipantsSection', () => function MockParticipants({ selectedStudents, handleStudentSelectChange }) { return <div>
+jest.mock('@/components/forms/EventFormSections/ParticipantsSection', () => function MockParticipants({ selectedStudents, handleStudentSelectChange, children }) { return <div>
     <span data-testid="participants">{selectedStudents.map(student => student.value).join(',')}</span>
     <button onClick={() => handleStudentSelectChange([])}>Remove student</button>
     <button onClick={() => handleStudentSelectChange([{ value: 'replacement@kings.edu.au' }])}>Choose replacement</button>
+    {children}
 </div>; });
 jest.mock('@/components/forms/EventFormSections/SettingsSection', () => () => null);
 jest.mock('@/components/forms/EventFormSections/StudentRequestSection', () => () => null);
