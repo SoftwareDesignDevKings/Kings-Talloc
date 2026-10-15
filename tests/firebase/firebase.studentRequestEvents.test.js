@@ -167,7 +167,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
         });
 
-        test('student CAN create their own event request', async () => {
+        test('student must use the scheduling API to create their own event request', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
                 defaultRole: 'student',
@@ -175,10 +175,10 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('studentEventRequests').add(requestData));
+            await assertFails(db.collection('studentEventRequests').add(requestData));
         });
 
-        test('teacher CAN create student event requests', async () => {
+        test('teacher must use the scheduling API to create student event requests', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
                 defaultRole: 'teacher',
@@ -186,10 +186,10 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('studentEventRequests').add(requestData));
+            await assertFails(db.collection('studentEventRequests').add(requestData));
         });
 
-        test('admin CAN create student event requests', async () => {
+        test('admin must use the scheduling API to create student event requests', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -197,7 +197,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('studentEventRequests').add(requestData));
+            await assertFails(db.collection('studentEventRequests').add(requestData));
         });
 
         test('tutor CANNOT create student event requests', async () => {
@@ -300,7 +300,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
         });
 
-        test('teacher CAN update any student event request', async () => {
+        test('teacher must use the scheduling API to update any student event request', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
                 defaultRole: 'teacher',
@@ -308,14 +308,14 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('studentEventRequests').doc(requestId).update({
                     approvalStatus: 'approved',
                 }),
             );
         });
 
-        test('admin CAN update any student event request', async () => {
+        test('admin must use the scheduling API to update any student event request', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -323,14 +323,14 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('studentEventRequests').doc(requestId).update({
                     approvalStatus: 'approved',
                 }),
             );
         });
 
-        test('student CAN update their own event request', async () => {
+        test('student must use the scheduling API to update their own event request', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
                 defaultRole: 'student',
@@ -338,7 +338,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('studentEventRequests').doc(requestId).update({
                     subject: 'Physics',
                 }),
@@ -448,7 +448,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
         });
 
-        test('teacher CAN delete any student event request', async () => {
+        test('teacher must use the scheduling API to delete any student event request', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
                 defaultRole: 'teacher',
@@ -456,10 +456,10 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('studentEventRequests').doc(requestId).delete());
+            await assertFails(db.collection('studentEventRequests').doc(requestId).delete());
         });
 
-        test('admin CAN delete any student event request', async () => {
+        test('admin must use the scheduling API to delete any student event request', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -467,10 +467,10 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('studentEventRequests').doc(requestId).delete());
+            await assertFails(db.collection('studentEventRequests').doc(requestId).delete());
         });
 
-        test('student CAN delete their own event request', async () => {
+        test('student must use the scheduling API to delete their own event request', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
                 defaultRole: 'student',
@@ -478,7 +478,7 @@ describe('Firebase Security Rules - Student Event Requests Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('studentEventRequests').doc(requestId).delete());
+            await assertFails(db.collection('studentEventRequests').doc(requestId).delete());
         });
 
         test('student CANNOT delete their own denied request', async () => {

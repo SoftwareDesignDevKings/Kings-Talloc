@@ -117,15 +117,17 @@ describe('request notifications', () => {
         expect(document.title).toBe('Kings-Talloc');
     });
 
-    test('session-start timer removes a pending request from both counts without a snapshot', () => {
+    test('session start clears title but retains approval until the grace deadline', () => {
         mount();
         snapshot([]);
         focus(false);
         snapshot([request('soon', timestamp(100), new Date(Date.now() + 1000))]);
         expect(document.title).toBe('(1) Kings-Talloc');
         act(() => jest.advanceTimersByTime(1000));
-        expect(state().count).toBe(0);
+        expect(state().count).toBe(1);
         expect(document.title).toBe('Kings-Talloc');
+        act(() => jest.advanceTimersByTime(900001));
+        expect(state().count).toBe(0);
     });
 
     test('hidden foreground window is away, and returning recomputes expired sessions', () => {
@@ -138,7 +140,7 @@ describe('request notifications', () => {
         snapshot([request('soon', timestamp(100), new Date(Date.now() + 1000))]);
         expect(document.title).toBe('(1) Kings-Talloc');
         act(() => {
-            jest.setSystemTime(Date.now() + 2000);
+            jest.setSystemTime(Date.now() + 902000);
             visible = true;
             document.dispatchEvent(new Event('visibilitychange'));
         });

@@ -57,8 +57,9 @@ const storage = getStorage(app);
 // Connect to emulators in development mode (client-side only)
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
     try {
-        connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-        connectFirestoreEmulator(db, '127.0.0.1', 8080);
+        connectAuthEmulator(auth, `http://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099'}`,  { disableWarnings: true });
+        const [host, port] = (process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':');
+        connectFirestoreEmulator(db, host, Number(port));
         console.log('Connected to Firebase emulators');
     } catch (error) {
         // Ignore "already started" errors (hot reload)

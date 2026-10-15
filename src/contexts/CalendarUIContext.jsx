@@ -5,6 +5,7 @@ import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
 import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
+import { bookableIntervals, workCategory } from '@/lib/scheduling/eventRules';
 import { calendarAvailabilitySplit, normaliseWorkType } from "@/utils/calendarAvailability"
 
 /**
@@ -52,7 +53,7 @@ export const CalendarUIContextProvider = ({ children }) => {
         calendarShifts,
         calendarAvailabilities,
         calendarStudentRequests,
-        studentTutorEligibility,
+        bookableAvailability,
     } = useAppData();
 
     // cal strategy for filters and scope
@@ -144,14 +145,11 @@ export const CalendarUIContextProvider = ({ children }) => {
         }
 
         // filter by tutoring/coaching/work type
-        if (!showTutoringEvents) {
-            filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'tutoring'));
-        }
         if (!showCoachingEvents) {
             filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'coaching'));
         }
         if (!showWorkEvents) {
-            filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && e.workType === 'work'));
+            filtered = filtered.filter(e => !(e.entityType === CalendarEntityType.SHIFT && workCategory(e) === 'work'));
         }
 
         // filter by tutor selection
@@ -190,7 +188,7 @@ export const CalendarUIContextProvider = ({ children }) => {
         }
 
         return filtered;
-    }, [calendarEntities, showAllEvents, showTutoringEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, showTutorInitials, hideOwnAvailabilities, calendarAvailabilities, filterAvailabilityByWorkType, userEmail]);
+    }, [calendarEntities, showAllEvents, showCoachingEvents, showWorkEvents, filterByTutor, hideDeniedStudentRequests, userRole, showTutorInitials, hideOwnAvailabilities, calendarAvailabilities, filterAvailabilityByWorkType, userEmail]);
 
     // ─────────────────────────────────────
     // Filter availabilities by panel controls
@@ -214,21 +212,10 @@ export const CalendarUIContextProvider = ({ children }) => {
             }
         }
 
-        // students: restrict to tutoring availabilities and relevant tutors
-        if (userRole === 'student') {
-            // tutoring workType only
-            filtered = filtered.filter(a => {
-                const types = normaliseWorkType(a.workType);
-                return types.length === 0 || types.includes('tutoring');
-            });
-
-            const eligibleTutorEmails = new Set(
-                (studentTutorEligibility?.eligibleTutorEmails || [])
-                    .map((email) => (typeof email === 'string' ? email.toLowerCase() : '')),
-            );
-            filtered = filtered.filter(a => eligibleTutorEmails.has(
-                typeof a.tutor === 'string' ? a.tutor.toLowerCase() : '',
-            ));
+        if (userRole === 'student') filtered = bookableAvailability?.slots || [];
+        else if (userRole === 'admin' || userRole === 'teacher') {
+            const emails = [...new Set([...calendarAvailabilities.map(a => a.tutor), ...calendarShifts.flatMap(event => (event.staff || []).map(s => s.value || s.email || s))])];
+            filtered = emails.flatMap(email => bookableIntervals(email, calendarAvailabilities, calendarShifts));
         }
 
         // filter by selected tutors from CalendarUIContextProvider
@@ -245,10 +232,10 @@ export const CalendarUIContextProvider = ({ children }) => {
         }
 
         // Split availabilities around clashing shifts (always use actual shifts, not filtered)
-        const splitAvailabilities = calendarAvailabilitySplit(filtered, calendarShifts);
+        const splitAvailabilities = userRole === 'student' || userRole === 'teacher' || userRole === 'admin' ? filtered : calendarAvailabilitySplit(filtered, calendarShifts);
 
         return splitAvailabilities;
-    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterBySubject, filterByTutor, filterAvailabilityByWorkType, calendarShifts, studentTutorEligibility]);
+    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterByTutor, filterAvailabilityByWorkType, calendarShifts, bookableAvailability]);
 
     // ─────────────────────────────────────
     // context values

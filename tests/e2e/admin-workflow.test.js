@@ -89,7 +89,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('button', { name: 'Add Event' })).toBeVisible();
             await page.getByRole('button', { name: 'Add Event' }).click();
 
-            // Change Work Type → Tutoring
+            // Work remains the academic type
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeVisible();
             await page.getByRole('button', { name: /Software Lesson/ }).first().click();
 
@@ -97,8 +97,8 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await page.getByRole('button', { name: 'Settings & Status' }).click();
             await page.locator('div').filter({ hasText: /^Work$/ }).nth(1).click();
 
-            await expect(page.getByRole('option', { name: 'Tutoring' })).toBeVisible();
-            await page.getByRole('option', { name: 'Tutoring' }).click();
+            await expect(page.getByRole('option', { name: 'Tutoring' })).toHaveCount(0);
+            await page.getByRole('option', { name: 'Work', exact: true }).click();
 
             await expect(page.getByRole('button', { name: 'Save Changes' })).toBeVisible();
             await page.getByRole('button', { name: 'Save Changes' }).click();
@@ -110,7 +110,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
             await page.getByRole('button', { name: 'Settings & Status' }).click();
 
-            await expect(page.getByText('Work TypeTutoring')).toBeVisible();
+            await expect(page.getByText('Work TypeWork')).toBeVisible();
 
             // Change Status → Completed
             await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();

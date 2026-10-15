@@ -170,11 +170,11 @@ const RequestSubscriptions = ({ email, notificationEligible, children }) => {
     }, [acknowledge, subscriptionVersion]);
 
     const pendingRequests = useMemo(() => futurePendingRequests(requests, now), [requests, now]);
-    const newCount = countNewRequests(pendingRequests, acknowledgedAt);
+    const newCount = countNewRequests(pendingRequests.filter(request => request.start.getTime() > now), acknowledgedAt);
 
     useEffect(() => {
-        const nextStart = pendingRequests[0]?.start.getTime();
-        if (!nextStart) return;
+        const nextStart = Math.min(...pendingRequests.flatMap(request => [request.start.getTime(), request.start.getTime() + 900001]).filter(time => time > Date.now()));
+        if (!Number.isFinite(nextStart)) return;
         const timer = setTimeout(() => setNow(Date.now()), Math.min(Math.max(1, nextStart - Date.now()), 2147483647));
         return () => clearTimeout(timer);
     }, [pendingRequests]);

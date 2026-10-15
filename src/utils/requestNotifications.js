@@ -1,3 +1,4 @@
+import { APPROVAL_GRACE_MS } from '@/lib/scheduling/eventRules';
 // Initial preference for existing accounts. Manage Users can enable notifications for teachers.
 export const getRequestNotificationPreference = (email, user = {}) =>
     typeof user.requestNotificationsEnabled === 'boolean'
@@ -19,7 +20,7 @@ export const latestRequestTimestamp = (requests) => requests.reduce((latest, req
 }, { seconds: 0, nanoseconds: 0 });
 
 export const futurePendingRequests = (requests, now) => requests
-    .filter(request => request.approvalStatus === 'pending' && request.start.getTime() > now)
+    .filter(request => request.approvalStatus === 'pending' && request.start.getTime() + APPROVAL_GRACE_MS >= now)
     .sort((a, b) => a.start - b.start || a.id.localeCompare(b.id));
 
 export const countNewRequests = (requests, acknowledgedAt) => acknowledgedAt === null ? 0 : requests.filter(request => {

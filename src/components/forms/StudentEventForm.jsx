@@ -1,12 +1,14 @@
 'use client';
 
+import useBookableAvailability from '@/hooks/useBookableAvailability';
 import React, { useState, useEffect, useCallback } from 'react';
 import { isAfter, format } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
 import { useAppData } from '@/contexts/AppDataContext';
-import { updateEventInFirestore, createEventInFirestore, deleteEventFromFirestore } from '@/firestore/firestoreOperations';
+import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
+import { rangeCovered } from '@/lib/scheduling/eventRules';
 import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 
 import useAlert from '@/hooks/useAlert.js';
@@ -22,7 +24,6 @@ const StudentEventForm = ({
     const {
         setCalendarStudentRequests,
         calendarStudentRequests,
-        calendarAvailabilities,
         tutors,
         studentTutorEligibility,
     } = useAppData();
@@ -31,6 +32,12 @@ const StudentEventForm = ({
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView; 
+    const rangeStart = new Date(newEvent.start), rangeEnd = new Date(newEvent.end);
+    const bookableAvailability = useBookableAvailability(studentEmail, !isView, {
+        start: Number.isNaN(+rangeStart) ? new Date() : rangeStart,
+        end: !Number.isFinite(+rangeEnd) || rangeEnd <= rangeStart ? new Date((+rangeStart || Date.now()) + 86400000) : rangeEnd,
+    });
+
     // for backward compat with existing logic
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,24 +65,8 @@ const StudentEventForm = ({
             return [];
         }
 
-        return tutorOptions.filter((tutor) => {
-            const tutorAvailabilities = calendarAvailabilities.filter(
-                (availability) => availability.tutor === tutor.value,
-            );
-
-            return tutorAvailabilities.some((availability) => {
-                const availStart = new Date(availability.start);
-                const availEnd = new Date(availability.end);
-                const types = Array.isArray(availability.workType) ? availability.workType : [availability.workType];
-                return (
-                    (availStart <= start || availStart.getTime() === start.getTime()) &&
-                    (availEnd >= end || availEnd.getTime() === end.getTime()) &&
-                    (types.some(t => t === 'tutoring' || t === 'tutoringOrWork') ||
-                        availability.workType === undefined)
-                ); // undefined check for backwards compatibility
-            });
-        });
-    }, [calendarAvailabilities, tutorOptions]);
+        return tutorOptions.filter(tutor => rangeCovered(start, end, bookableAvailability.slots.filter(slot => slot.tutor === tutor.value)));
+    }, [bookableAvailability.slots, tutorOptions]);
 
     const filterTutorsByAvailability = useCallback((start, end) => {
         setFilteredTutors(getTutorsAvailableForRange(start, end));
@@ -99,19 +90,20 @@ const StudentEventForm = ({
                 approvalStatus: 'pending',
             }));
         }
-    }, [selectedStudent, isEditing, setNewEvent]);
+    // Student identity is fixed for this form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentEmail, isEditing, setNewEvent]);
 
     // guard against stale selectedTutor when time changes
     useEffect(() => {
         if (
-            selectedTutor &&
-            filteredTutors.length > 0 &&
-            !filteredTutors.some(t => t.value === selectedTutor.value)
+            selectedTutor && bookableAvailability.ready && tutorOptions.length > 0 &&
+            !getTutorsAvailableForRange(new Date(newEvent.start), new Date(newEvent.end)).some(t => t.value === selectedTutor.value)
         ) {
             setSelectedTutor(null);
             setNewEvent(prev => ({ ...prev, staff: [] }));
         }
-    }, [filteredTutors, selectedTutor, setNewEvent]);
+    }, [selectedTutor, setNewEvent, bookableAvailability.ready, tutorOptions, getTutorsAvailableForRange, newEvent.start, newEvent.end]);
 
     const handleTutorSelectChange = (selectedOption) => {
         setSelectedTutor(selectedOption);
@@ -152,13 +144,15 @@ const StudentEventForm = ({
         e.preventDefault();
 
         // Validate tutor selection
-        if (!selectedTutor || filteredTutors.length === 0) {
+        if (!bookableAvailability.ready || !selectedTutor || !filteredTutors.some(tutor => tutor.value === selectedTutor.value)) {
             addAlert('error', 'You must select a tutor available to have a tutor session');
             return false; // Don't close modal
         }
 
         const eventData = {
             title: 'Tutoring',
+            workType: 'work',
+            additionalStudents: (Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(',') : newEvent.additionalStudents || '').split(/[,\n]/).map(name => name.trim()).filter(Boolean),
             start: new Date(newEvent.start),
             end: new Date(newEvent.end),
             students: newEvent.students || [],
@@ -170,7 +164,7 @@ const StudentEventForm = ({
             subject: null,
             preference: newEvent.preference,
             createdByStudent: true,
-            approvalStatus: newEvent.approvalStatus || 'pending',
+            approvalStatus: 'pending',
             isStudentRequest: true,
         };
 
@@ -216,20 +210,6 @@ const StudentEventForm = ({
         }
     };
 
-    const handleDelete = async () => {
-        try {
-            await deleteEventFromFirestore(eventToEdit.id, 'studentEventRequests');
-            setCalendarStudentRequests(
-                calendarStudentRequests.filter((req) => req.id !== eventToEdit.id)
-            );
-            return true; // Success - allow modal to close
-        } catch (error) {
-            console.error('Failed to delete student event request:', error);
-            addAlert('error', 'Failed to delete event request');
-            return false; // Error - don't close modal
-        }
-    };
-
     const handleMenuOpen = () => {
         const start = new Date(newEvent.start);
         const end = new Date(newEvent.end);
@@ -263,15 +243,7 @@ const StudentEventForm = ({
             onSubmit={isView ? undefined : onSubmit}
             submitText={isEdit ? 'Save Changes' : 'Add Event'}
             loading={isSubmitting}
-            deleteButton={
-                isEdit
-                    ? {
-                          text: 'Delete',
-                          onClick: handleDelete,
-                          variant: 'danger',
-                      }
-                    : null
-            }
+            deleteButton={null}
             showFooter={!isView}
         >
             <div className="mb-3">
@@ -343,22 +315,12 @@ const StudentEventForm = ({
                     inputId="tutor"
                 />
             </div>
-            {newEvent.minStudents > 0 && (
-                <div className="mb-3">
-                    <label className="form-label">Student Responses</label>
-                    {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                        <ul className="list-unstyled" aria-label="List of student responses">
-                            {newEvent.studentResponses.map((response, index) => (
-                                <li key={index} className="mb-1">
-                                    {response.email}: {response.response ? 'Accepted' : 'Declined'}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-muted" role="status">No students have responded yet.</p>
-                    )}
-                </div>
-            )}
+            <div className="mb-3">
+                <label htmlFor="additionalStudents" className="form-label">Other students (optional)</label>
+                <textarea id="additionalStudents" name="additionalStudents" className="form-control" value={Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(', ') : newEvent.additionalStudents || ''} onChange={handleInputChange} disabled={isView} placeholder="Names, separated by commas" />
+            </div>
+            {!isView && (!bookableAvailability.ready || bookableAvailability.error) && <div role="status" className="small text-warning-emphasis">{bookableAvailability.error || 'Refreshing availability…'} <button type="button" className="btn btn-link btn-sm" onClick={bookableAvailability.refresh}>Retry</button></div>}
+
         </BaseModal>
     );
 };

@@ -70,10 +70,10 @@ export async function middleware(req) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
-    // tutor hours — admin, tutor, coach routes
+    // tutor hours — admin, teacher, tutor and coach routes
     const tutorOnlyRoutes = ['/tutorHours'];
     const isTutorOnlyRoute = tutorOnlyRoutes.some(route => pathname.startsWith(route));
-    const canAccessTutorHours = ['admin', 'tutor', 'coach'].includes(userRole) || userRoles.some(r => ['admin', 'tutor', 'coach'].includes(r));
+    const canAccessTutorHours = ['admin', 'teacher', 'tutor', 'coach'].includes(userRole) || userRoles.some(r => ['admin', 'teacher', 'tutor', 'coach'].includes(r));
     if (isTutorOnlyRoute && !canAccessTutorHours) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
     }

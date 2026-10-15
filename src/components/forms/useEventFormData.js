@@ -1,3 +1,4 @@
+import { isStudentSession } from '@/lib/scheduling/eventRules';
 import { useMemo } from 'react';
 import { useAppData } from '@/contexts/AppDataContext';
 
@@ -18,7 +19,7 @@ export const useEventFormData = (newEvent) => {
 
         let options = [];
         for (const tutor of tutors) {
-            if (workType === 'tutoring' && !tutor.roles?.includes('tutor')) continue;
+            if (isStudentSession(newEvent) && !tutor.roles?.includes('tutor')) continue;
             if (workType === 'coaching' && !tutor.roles?.includes('coach')) continue;
 
             const matchingAvailability = calendarAvailabilities.find(
@@ -38,7 +39,7 @@ export const useEventFormData = (newEvent) => {
             });
         }
         return options;
-    }, [tutors, calendarAvailabilities, newEvent.start, newEvent.end, newEvent.workType]);
+    }, [tutors, calendarAvailabilities, newEvent]);
 
     const classOptions = useMemo(() =>
         classes.map((cls) => ({

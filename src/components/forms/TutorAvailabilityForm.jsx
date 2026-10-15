@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { isAfter, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
-import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
+import { MdAccessTime, MdLocationOn } from '@/components/icons';
 import { useAppData } from '@/contexts/AppDataContext';
 import styles from '@/styles/availabilityForm.module.css';
 import {
@@ -45,13 +45,6 @@ const TutorAvailabilityForm = ({
         { value: 'remote', label: 'Remote' },
     ];
 
-    const allRoles = [userRole, ...userRoles].filter(Boolean);
-    const workTypeOptions = [
-        ...(allRoles.includes('tutor') ? [{ value: 'tutoring', label: 'Tutoring' }] : []),
-        ...(allRoles.includes('coach') ? [{ value: 'coaching', label: 'Coaching' }] : []),
-        { value: 'work', label: 'Work' },
-    ];
-
     const validateDates = () => {
         const start = new Date(newAvailability.start);
         const end = new Date(newAvailability.end);
@@ -70,7 +63,7 @@ const TutorAvailabilityForm = ({
             start: new Date(newAvailability.start),
             end: new Date(newAvailability.end),
             tutor: newAvailability.tutor,
-            workType: Array.isArray(newAvailability.workType) ? newAvailability.workType : [newAvailability.workType || 'work'],
+            workType: isEditing ? normaliseWorkType(eventToEdit.workType) : [userRole === 'coach' ? 'coaching' : 'work'],
             locationType: newAvailability.locationType,
         };
 
@@ -143,11 +136,6 @@ const TutorAvailabilityForm = ({
 
     const handleLocationChange = (selectedOption) => {
         setNewAvailability({ ...newAvailability, locationType: selectedOption.value });
-    };
-
-    const handleWorkTypeChange = (selectedOptions) => {
-        const values = selectedOptions ? selectedOptions.map(o => o.value) : [];
-        setNewAvailability({ ...newAvailability, workType: values });
     };
 
     return (
@@ -230,33 +218,6 @@ const TutorAvailabilityForm = ({
                 {/* Work Type & Location Section */}
                 <div className={styles.section}>
                     <div className={styles.typeGrid}>
-                        <div>
-                            <div className={styles.sectionTitle}>
-                                <MdWork size={16} className="text-primary" aria-hidden="true" />
-                                <span className="fw-bold">Assignment Type</span>
-                            </div>
-                            <Select
-                                isMulti
-                                name="workType"
-                                options={workTypeOptions}
-                                value={workTypeOptions.filter((option) =>
-                                    normaliseWorkType(newAvailability.workType).includes(option.value)
-                                )}
-                                onChange={handleWorkTypeChange}
-                                classNamePrefix="select"
-                                placeholder="Select types..."
-                                isDisabled={isView}
-                                aria-label="Work type"
-                                inputId="workType"
-                                styles={{
-                                    control: (base) => ({
-                                        ...base,
-                                        padding: '4px',
-                                        borderRadius: '0.5rem',
-                                    }),
-                                }}
-                            />
-                        </div>
                         <div>
                             <div className={styles.sectionTitle}>
                                 <MdLocationOn size={16} className="text-primary" aria-hidden="true" />

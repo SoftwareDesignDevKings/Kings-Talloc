@@ -67,43 +67,6 @@ service cloud.firestore {
         && resource.data.emailsList.hasAny([studentEmail]);
     }
 
-    function requestHasNoClasses() {
-      return !('classes' in request.resource.data)
-        || request.resource.data.classes.size() == 0;
-    }
-
-    function resourceHasNoClasses() {
-      return !('classes' in resource.data)
-        || resource.data.classes.size() == 0;
-    }
-
-    function requestIsPending() {
-      return 'approvalStatus' in request.resource.data
-        && request.resource.data.approvalStatus == 'pending';
-    }
-
-    function resourceIsPending() {
-      return 'approvalStatus' in resource.data
-        && resource.data.approvalStatus == 'pending';
-    }
-
-    function studentWritesOwnRequest() {
-      return isStudent()
-        && 'studentEmails' in request.resource.data
-        && 'emailsList' in request.resource.data
-        && 'staffEmails' in request.resource.data
-        && request.resource.data.studentEmails.size() == 1
-        && request.resource.data.studentEmails.hasOnly([request.auth.token.email])
-        && request.resource.data.studentEmails.hasAll([request.auth.token.email])
-        && request.resource.data.staffEmails.size() == 1
-        && request.resource.data.emailsList.size() == 2
-        && request.resource.data.emailsList.hasAll(request.resource.data.staffEmails)
-        && request.resource.data.emailsList.hasAll(request.resource.data.studentEmails)
-        && get(/databases/$(database)/documents/studentTutorEligibility/$(request.auth.token.email)).data.eligibleTutorEmails.hasAny(request.resource.data.staffEmails)
-        && requestIsPending()
-        && requestHasNoClasses();
-    }
-
     // Students can acknowledge each introduction independently, without editing their profile.
     function studentAcknowledgesIntroduction(documentEmail) {
       let changedFields = request.resource.data.diff(resource.data).affectedKeys();
@@ -132,14 +95,13 @@ service cloud.firestore {
     match /shifts/{shiftId} {
       allow read: if isAdminOrTeacher()
         || resource.data.emailsList.hasAny([request.auth.token.email]);
-      allow create, delete: if isAdminOrTeacher();
-      allow update: if isAdminOrTeacher()
-        || (isTutorOrCoach() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
+      // All mutations go through the authenticated scheduling service.
+      allow write: if false;
     }
 
     // Shared transaction guard for approvals assigning the same tutor.
     match /tutorBookingGuards/{tutorEmail} {
-      allow read, create, update: if isAdminOrTeacher();
+      allow read, write: if false;
     }
 
     // Email Events Queue — only admins/teachers can read or write; only admins can delete
@@ -151,33 +113,38 @@ service cloud.firestore {
     // Email Notifications — admins read/write from client (queueEmailNotification uses client SDK);
     // server reads/deletes via Admin SDK which bypasses these rules
     match /emailNotifications/{shiftId} {
-      allow read, create, update, delete: if isAdmin();
+      allow read, create, update, delete: if isAdminOrTeacher();
     }
 
     // Student Event Requests — admins/teachers read all; students read their own only; tutors/coaches blocked
     match /studentEventRequests/{requestId} {
       allow read: if isAdminOrTeacher()
         || (isStudent() && studentOwnsRequest(request.auth.token.email));
-      allow create: if isAdminOrTeacher() || studentWritesOwnRequest();
-      allow update: if isAdminOrTeacher()
-        || (isStudent()
-          && studentOwnsRequest(request.auth.token.email)
-          && resourceIsPending()
-          && studentWritesOwnRequest());
-      allow delete: if isAdminOrTeacher()
-        || (isStudent()
-          && studentOwnsRequest(request.auth.token.email)
-          && resourceIsPending()
-          && resourceHasNoClasses());
+      allow write: if false;
     }
 
     // Tutor Availabilities — tutors and coaches manage their own (tutor field = email)
     match /tutorAvailabilities/{availabilityId} {
       allow read: if isAuthenticated();
-      allow create: if isTutorOrCoach()
-        && request.auth.token.email == request.resource.data.tutor;
-      allow update, delete: if isTutorOrCoach()
-        && request.auth.token.email == resource.data.tutor;
+      allow write: if false;
+    }
+
+    // Recipient-only updates; decisions are written atomically by the server.
+    match /bookingNotifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.recipientEmail == request.auth.token.email;
+      allow write: if false;
+    }
+    match /bookingNotificationState/{email} {
+      allow read: if isAuthenticated() && email == request.auth.token.email;
+      allow create, update: if isAuthenticated() && email == request.auth.token.email
+        && request.resource.data.keys().hasOnly(['acknowledgedAt', 'updatedAt'])
+        && request.resource.data.acknowledgedAt is timestamp
+        && request.resource.data.acknowledgedAt <= request.time
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /schedulingOperations/{operationId} {
+      allow read, write: if false;
     }
 
     // Student-safe tutor eligibility generated from Canvas rosters and admin tutor coverage.

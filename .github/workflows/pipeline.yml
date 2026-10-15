@@ -56,6 +56,9 @@ jobs:
                 NEXTAUTH_SECRET: Dummy-Secret
                 NEXTAUTH_URL: http://localhost:3000
 
+            - name: Verify Work bookings and weekly timesheets
+              run: xvfb-run --auto-servernum npm run test:e2e:work-hours
+
     deploy-firestore-rules:
         name: Deploy production Firestore rules
         needs: test-lint-firebase

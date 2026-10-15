@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addDays, endOfWeek } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
@@ -24,7 +24,6 @@ import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
-import { isRangeCoveredByTutorAvailability, getTutorShiftConflicts } from '@/utils/calendarAvailability';
 
 const { memo } = React;
 
@@ -80,8 +79,17 @@ const CalendarContent = () => {
     } = useAppData();
 
     // track the calendar's displayed date to keep it in sync with the data provider
-    const [calendarDate, setCalendarDate] = useState(() => calendarDateRange.start);
+    const [calendarDate, setCalendarDate] = useState(() => {
+        const requested = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null;
+        const date = requested ? new Date(requested) : calendarDateRange.start;
+        return Number.isNaN(+date) ? calendarDateRange.start : date;
+    });
     const [calendarView, setCalendarView] = useState(Views.WEEK);
+    useEffect(() => {
+        const requested = new URLSearchParams(window.location.search).get('date');
+        if (requested && Number.isFinite(+new Date(requested))) setCalendarDateRange({ start: startOfWeek(new Date(requested), { weekStartsOn: 1 }), end: endOfWeek(new Date(requested), { weekStartsOn: 1 }) });
+    }, [setCalendarDateRange]);
+
 
     useEffect(() => {
         if (device === 'mobile') {                                                                           
@@ -319,8 +327,6 @@ const CalendarContent = () => {
             // A student must not be able to bypass the availability check by
             // creating a request in a free slot and duplicating it onto a day
             // where the assigned tutor is no longer available.
-            if (blockIfTutorUnavailable(event, newStart, newEnd, 'duplicate')) return;
-            if (blockIfTutorConflict(event, newStart, newEnd)) return;
 
             // copy event data but remove properties that shouldn't be duplicated and create duplication event dictionary
             const {
@@ -338,6 +344,10 @@ const CalendarContent = () => {
             } = event;
             const duplicatedEvent = {
                 ...eventData,
+                workStatus: 'notCompleted',
+                ...(entityType === CalendarEntityType.STUDENT_REQUEST && { approvalStatus: 'pending', createdByStudent: true }),
+                teamsEventId: null, teamsJoinUrl: null,
+
                 start: newStart,
                 end: newEnd,
                 recurring: null,  // Explicitly set to null (not missing) so it matches the non-recurring query
@@ -467,66 +477,13 @@ const CalendarContent = () => {
         }
     };
 
-    // For a pending student request, the new slot must still sit inside the
-    // assigned tutor's remaining availability. Returns true if blocked.
-    // Only students are gated — teachers/admins can move requests anywhere.
-    const blockIfTutorUnavailable = (event, start, end, action = 'move') => {
-        if (userRole !== 'student') return false;
-        const isPendingStudentRequest =
-            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.createdByStudent === true &&
-            event.approvalStatus === 'pending';
-        if (!isPendingStudentRequest) return false;
-
-        const tutorEmail = event.staff?.[0]?.value || event.staff?.[0];
-        if (!tutorEmail) return false;
-
-        const covered = isRangeCoveredByTutorAvailability(
-            tutorEmail,
-            start,
-            end,
-            overlayAvailabilities,
-        );
-        if (!covered) {
-            const message =
-                action === 'duplicate'
-                    ? 'Cannot duplicate this request — the tutor is not available at the same time on the next day.'
-                    : 'Tutor is not available during the selected time.';
-            addAlert('warning', message);
-            return true;
-        }
-        return false;
-    };
-
-    // A shift must not be dragged/resized/duplicated onto another of the
-    // assigned tutor's events. Returns true if blocked (caller early-returns,
-    // so the calendar simply snaps the event back — no Firestore write occurs).
-    const blockIfTutorConflict = (event, start, end) => {
-        if (event.entityType !== CalendarEntityType.SHIFT) return false;
-        if (!event.staff?.length) return false;
-
-        const conflicts = getTutorShiftConflicts(
-            event.staff,
-            start,
-            end,
-            calendarShifts,
-            event.recurringEventId || event.id,
-        );
-        if (conflicts.length > 0) {
-            addAlert('warning', 'Tutor already has an event at this time.');
-            return true;
-        }
-        return false;
-    };
-
+    // The scheduling service checks actual destination dates before saving; the
+    // existing optimistic update rolls back if coverage or conflicts changed.
     // handle RBC event drop
     const handleEventDrop = async ({ event, start, end }) => {
         if (!strategy.permissions.canDrag(event)) {
             return;
         }
-
-        if (blockIfTutorUnavailable(event, start, end)) return;
-        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -541,9 +498,6 @@ const CalendarContent = () => {
         if (!strategy.permissions.canResize(event)) {
             return;
         }
-
-        if (blockIfTutorUnavailable(event, start, end)) return;
-        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {

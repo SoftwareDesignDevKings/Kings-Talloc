@@ -9,6 +9,7 @@ import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 import useAuthSession from '@/hooks/useAuthSession';
+import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 
 const getMonday = (d) => {
@@ -18,24 +19,6 @@ const getMonday = (d) => {
     const monday = new Date(d.setDate(diff));
     monday.setHours(0, 0, 0, 0);
     return monday;
-};
-
-const isShiftValid = (shift) => {
-    if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
-        return false;
-    }
-    if (shift.workStatus !== 'completed') {
-        return false;
-    }
-    return true;
-};
-
-const isTutorConfirmed = (event, tutorEmail) => {
-    return event.confirmationRequired
-        ? event.tutorResponses.some(
-              (response) => response.email === tutorEmail && response.response,
-          )
-        : true;
 };
 
 const buildUserNameMap = (userDocs) => {
@@ -52,16 +35,6 @@ const buildUserNameMap = (userDocs) => {
     return namesByEmail;
 };
 
-const getStaffEmail = (staff) => {
-    if (!staff) return '';
-    return typeof staff === 'string' ? staff : staff.value || '';
-};
-
-const getStaffFallbackName = (staff, staffEmail) => {
-    if (!staff || typeof staff === 'string') return staffEmail;
-    return staff.label || staffEmail;
-};
-
 /**
  * Component to display and manage tutor hours summary
  */
@@ -69,7 +42,7 @@ const TutorHoursSummary = () => {
     const { addAlert } = useAlert();
     const { userRole, userRoles, session } = useAuthSession();
     const userEmail = session?.user?.email;
-    const isAdmin = userRole === 'admin';
+    const isAdmin = userRole === 'admin' || userRoles?.includes('admin') || userRole === 'teacher' || userRoles?.includes('teacher');
     
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
@@ -93,9 +66,7 @@ const TutorHoursSummary = () => {
         // Query 1: Non-recurring shifts in the date range
         const nonRecurringQuery = query(
             collection(db, 'shifts'),
-            where('start', '>=', startDate),
-            where('start', '<=', endDate),
-            where('recurring', '==', null),
+            where('end', '>', startDate),
             ...accessFilter
         );
 
@@ -117,16 +88,20 @@ const TutorHoursSummary = () => {
         let shifts = nonRecurringSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
+                id: doc.id,
                 ...data,
                 start: data.start.toDate(),
                 end: data.end.toDate(),
             };
         });
 
+        shifts = shifts.filter(shift => !shift.recurring && shift.start >= startDate && shift.start <= endDate);
+
         // Process recurring events - expand and filter to date range
         let recurringShifts = recurringSnapshot.docs.map((doc) => {
             const data = doc.data();
             return {
+                id: doc.id,
                 ...data,
                 start: data.start.toDate(),
                 end: data.end.toDate(),
@@ -139,7 +114,6 @@ const TutorHoursSummary = () => {
             rangeStart: startDate,
             rangeEnd: endDate,
             maxOccurrences: 52,
-            // TODO: double check maxOccurance to what Ienna defines in the new version. 
 
         }).filter(shift => shift.start >= startDate && shift.start <= endDate);
     
@@ -147,62 +121,16 @@ const TutorHoursSummary = () => {
         // Combine non-recurring and expanded recurring events
         shifts = [...shifts, ...recurringShifts];
 
-        const tutorHoursMap = {};
-        for (const shift of shifts) {
-            if (!isShiftValid(shift)) {
-                continue;
-            }
-
-            for (const staff of shift.staff || []) {
-                const staffEmail = getStaffEmail(staff);
-                if (!staffEmail) {
-                    continue;
-                }
-
-                // TODO: check if this is even required - as curr system doent care if we tutor has confirmed it
-                if (!isTutorConfirmed(shift, staffEmail)) {
-                    continue;
-                }
-
-                const currentUserName = userNamesByEmail.get(staffEmail.toLowerCase());
-
-                if (!tutorHoursMap[staffEmail]) {
-                    tutorHoursMap[staffEmail] = {
-                        name: currentUserName || getStaffFallbackName(staff, staffEmail),
-                        tutoringHours: 0,
-                        coachingHours: 0,
-                    };
-                }
-
-                // Calculate event duration in hours, deducting breaks (>3-6hrs: -30min, >6hrs: -1hr)
-                let shiftDuration = (shift.end - shift.start) / 3600000; // milliseconds to hours
-                if (shiftDuration > 6) shiftDuration -= 1;
-                else if (shiftDuration > 3) shiftDuration -= 0.5;
-
-                // Add to appropriate category based on workType
-                if (shift.workType === 'coaching') {
-                    tutorHoursMap[staffEmail].coachingHours += shiftDuration;
-                } else {
-                    tutorHoursMap[staffEmail].tutoringHours += shiftDuration;
-                }
-            }
-        }
-
-        // map hours to array & filter by user role
-        let tutorHoursArray = Object.entries(tutorHoursMap).map(([email, data]) => ({
-            email,
-            ...data,
+        let tutorHoursArray = calculateHours(shifts).tutors.map(tutor => ({
+            ...tutor,
+            name: userNamesByEmail.get(tutor.email) || tutor.name,
+            tutoringHours: tutor.workMs / 3600000,
+            coachingHours: tutor.coachingMs / 3600000,
         }));
-
-        // Tutors only see their own summary, admins see everyone
-        if (!isAdmin) {
-            tutorHoursArray = tutorHoursArray.filter(
-                (tutor) => tutor.email.toLowerCase() === userEmail?.toLowerCase(),
-            );
-        }
+        if (!isAdmin) tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail?.toLowerCase());
 
         setTutorHours(tutorHoursArray);
-    }, [startDate, endDate, userRole, userRoles, userEmail, isAdmin]);
+    }, [startDate, endDate, userEmail, isAdmin]);
 
     useEffect(() => {
         fetchTutorHours();
@@ -211,9 +139,11 @@ const TutorHoursSummary = () => {
     const csvData = tutorHours.map((tutor) => ({
         Email: tutor.email,
         Name: tutor.name,
-        'Tutor / Work Hours': tutor.tutoringHours.toFixed(2),
-        'Coaching Hours': tutor.coachingHours.toFixed(2),
-        'Total Hours': (tutor.tutoringHours + tutor.coachingHours).toFixed(2),
+        'Work Hours': decimalHours(tutor.workMs),
+        'Coaching Hours': decimalHours(tutor.coachingMs),
+        'Total Hours': decimalHours(tutor.workMs + tutor.coachingMs),
+        Details: tutor.days.map(day => `${day.date} ${day.category}: ${day.start.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}–${day.end.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}; paid ${formatDuration(day.paidMs)}; deduction ${formatDuration(day.deductionMs)}`).join(' | '),
+        Warnings: tutor.warnings.map(warning => `${warning.date}: ${warning.message}`).join(' '),
     }));
 
     const handleGenerateTimesheet = async (tutorEmail, tutorName, roleType) => {
@@ -243,7 +173,7 @@ const TutorHoursSummary = () => {
             const blob = await response.blob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${tutorName}_${roleType}_timesheet_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.docx`;
+            link.download = `${tutorName}_${roleType}_timesheet_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.${response.headers.get('Content-Type')?.includes('zip') ? 'zip' : 'docx'}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -310,7 +240,7 @@ const TutorHoursSummary = () => {
                         <tr>
                             <th className="small fw-medium text-secondary">Email</th>
                             <th className="small fw-medium text-secondary">Name</th>
-                            <th className="small fw-medium text-secondary">Tutor / Work</th>
+                            <th className="small fw-medium text-secondary">Work</th>
                             <th className="small fw-medium text-secondary">Coaching</th>
                             <th className="small fw-medium text-secondary">Total</th>
                             {isAdmin && (
@@ -322,11 +252,11 @@ const TutorHoursSummary = () => {
                         {tutorHours.map((tutor, index) => (
                             <tr key={index}>
                                 <td className="small text-break align-middle">{tutor.email}</td>
-                                <td className="small align-middle">{tutor.name}</td>
-                                <td className="small align-middle">{tutor.tutoringHours.toFixed(2)}</td>
-                                <td className="small align-middle">{tutor.coachingHours.toFixed(2)}</td>
+                                <td className="small align-middle">{tutor.name}{tutor.warnings.map((warning, i) => <div key={i} className="text-warning-emphasis small" role="status">⚠ {warning.date}: {warning.message}</div>)}</td>
+                                <td className="small align-middle">{formatDuration(tutor.workMs)}</td>
+                                <td className="small align-middle">{formatDuration(tutor.coachingMs)}</td>
                                 <td className="small fw-semibold align-middle">
-                                    {(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}
+                                    {formatDuration(tutor.workMs + tutor.coachingMs)}
                                 </td>
                                 {isAdmin && (
                                     <td className="small align-middle">

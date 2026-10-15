@@ -4,6 +4,8 @@ import StudentEventForm from '@/components/forms/StudentEventForm.jsx';
 import { useAppData } from '@/contexts/AppDataContext';
 import { createEventInFirestore } from '@/firestore/firestoreOperations';
 
+jest.mock('@/hooks/useBookableAvailability', () => { const state = { ready: true, slots: [{ tutor: 'tutor@example.edu', start: new Date('2026-05-04T09:00:00'), end: new Date('2026-05-04T12:00:00') }] }; return () => state; });
+
 jest.mock('@/contexts/AppDataContext', () => ({
     useAppData: jest.fn(),
 }));
@@ -67,6 +69,7 @@ describe('StudentEventForm', () => {
         useAppData.mockReturnValue({
             setCalendarStudentRequests: jest.fn(),
             calendarStudentRequests: [],
+            bookableAvailability: { ready: true, slots: [{ tutor: 'tutor@example.edu', start: new Date('2026-05-04T09:00:00'), end: new Date('2026-05-04T12:00:00') }] },
             calendarAvailabilities: [{
                 tutor: 'tutor@example.edu',
                 start: new Date('2026-05-04T09:00:00'),

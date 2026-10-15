@@ -1,4 +1,5 @@
 'use client';
+import { isStudentSession, workCategory } from '@/lib/scheduling/eventRules';
 
 import React, { useState, useCallback } from 'react';
 import { isAfter } from 'date-fns';
@@ -26,8 +27,6 @@ import {
     createEventInFirestore,
     queueEmailNotification,
 } from '@/firestore/firestoreOperations';
-import { getTutorShiftConflicts, getRecurringSeriesConflicts } from '@/utils/calendarAvailability';
-import { format } from 'date-fns';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
 import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
@@ -53,7 +52,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { addAlert } = useAlert();
-    const { handleApprove } = useApprovalHandlers();
+    const { handleApprove, handleReject } = useApprovalHandlers();
 
     // fetch form data using custom hook
     const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
@@ -84,10 +83,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         setNewEvent((prev) => ({ ...prev, students: selectedOptions }));
     }, [setNewEvent]);
 
-    const handleMinStudentsChange = useCallback((e) => {
-        setNewEvent((prev) => ({ ...prev, minStudents: parseInt(e.target.value, 10) }));
-    }, [setNewEvent]);
-
     const handleApprovalChange = useCallback((selectedOption) => {
         const approvalStatus = selectedOption.value;
         setNewEvent((prev) => ({ ...prev, approvalStatus }));
@@ -105,9 +100,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const validateStaffRoles = () => {
         const workType = newEvent.workType;
-        if (workType !== 'tutoring' && workType !== 'coaching') return true;
-
-        const requiredRole = workType === 'tutoring' ? 'tutor' : 'coach';
+        const requiredRole = workCategory(newEvent) === 'coaching' ? 'coach' : isStudentSession(newEvent) ? 'tutor' : null;
+        if (!requiredRole) return true;
         const invalidStaff = (newEvent.staff || []).filter((staffMember) => {
             if (!staffMember.roles) return false;
             return !staffMember.roles.includes(requiredRole);
@@ -139,31 +133,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             return false;
         }
 
-        const conflicts = newEvent.recurring
-            ? getRecurringSeriesConflicts(
-                newEvent.staff,
-                newEvent.start,
-                newEvent.end,
-                newEvent.recurring,
-                Number(newEvent.occurenceNum) || newEvent.occurenceNum,
-                calendarShifts,
-                eventToEdit?.id,
-            )
-            : getTutorShiftConflicts(
-                newEvent.staff,
-                newEvent.start,
-                newEvent.end,
-                calendarShifts,
-                eventToEdit?.id,
-            );
-        if (conflicts.length > 0) {
-            const details = conflicts
-                .map((c) => `${c.tutorName} (conflicts with "${c.conflictTitle}" ${format(new Date(c.conflictStart), 'HH:mm')}–${format(new Date(c.conflictEnd), 'HH:mm')})`)
-                .join(', ');
-            addAlert('error', `Scheduling conflict: ${details}`);
-            return false;
-        }
-
         if (!newEvent.title) {
             addAlert('error', 'Title is required');
             return false;
@@ -192,6 +161,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         return true;
     };
 
+    const queueSavedEventEmail = async (...args) => {
+        try { await queueEmailNotification(...args); }
+        catch (error) { addAlert('warning', `Event saved, but the allocation email could not be queued: ${error.message}`); }
+    };
+
     const onSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return false;
@@ -204,7 +178,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         // must not gate the tutor/coach single-field write path.
         if (isTutorPartialEdit) {
             try {
-                await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted');
+                if (eventToEdit.isRecurringInstance) await detachRecurringInstance(eventToEdit, { workStatus: newEvent.workStatus || 'notCompleted' });
+                else await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted');
                 return true;
             } catch (error) {
                 console.error('Failed to update work status:', error);
@@ -224,17 +199,14 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             start: new Date(newEvent.start),
             end: new Date(newEvent.end),
             description: newEvent.description || '',
-            confirmationRequired: newEvent.confirmationRequired || false,
             staff: newEvent.staff || [],
             classes: newEvent.classes || [],
             students: newEvent.students || [],
-            tutorResponses: newEvent.tutorResponses || [],
-            studentResponses: newEvent.studentResponses || [],
-            minStudents: newEvent.minStudents || 0,
+            additionalStudents: newEvent.additionalStudents || [],
             createdByStudent: newEvent.createdByStudent || false,
             approvalStatus: newEvent.approvalStatus || 'pending',
             workStatus: newEvent.workStatus || 'notCompleted',
-            workType: newEvent.workType || 'work',
+            workType: workCategory(newEvent),
             locationType: newEvent.locationType || '',
             subject: newEvent.subject || null,
             preference: newEvent.preference || null,
@@ -258,13 +230,15 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
                     return await handleApprove(eventToEdit, eventData);
+                } else if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'denied') {
+                    return await handleReject(eventToEdit.id);
                 } else if (eventToEdit.isStudentRequest) {
                     await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                    await queueEmailNotification({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
+                    await queueSavedEventEmail({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
                     const newDocId = await detachRecurringInstance(eventToEdit, eventData);
-                    await queueEmailNotification({ ...eventData, id: newDocId }, 'allocated', userEmail);
+                    await queueSavedEventEmail({ ...eventData, id: newDocId }, 'allocated', userEmail);
 
                     if (eventData.teamsEventId) {
                         try {
@@ -291,7 +265,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     }
                 } else {
                     await updateEventInFirestore(eventToEdit.id, eventData);
-                    await queueEmailNotification({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
+                    await queueSavedEventEmail({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
 
                     // Handle Teams meeting update/delete
                     await calendarEventHandleTeamsMeetingUpdate(eventToEdit, eventData, {
@@ -301,7 +275,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             } else {
                 // Create single event (recurring or not)
                 const docId = await createEventInFirestore(eventData);
-                await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
+                await queueSavedEventEmail({ ...eventData, id: docId }, 'allocated', userEmail);
 
                 // Handle Teams meeting creation for new events
                 if (eventData.approvalStatus === 'approved' || eventData.createTeamsMeeting) {
@@ -389,7 +363,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     ];
 
     const workTypeOptions = [
-        { value: 'tutoring', label: 'Tutoring' },
         { value: 'coaching', label: 'Coaching' },
         { value: 'work', label: 'Work' },
     ];
@@ -472,10 +445,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         readOnly={isView}
                     />
 
+                    {isStudentSession(newEvent) && <div className="p-3"><label htmlFor="groupNames" className="form-label">Other students (optional)</label><textarea id="groupNames" className="form-control" disabled={isView} value={Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(', ') : newEvent.additionalStudents || ''} onChange={event => setNewEvent(previous => ({ ...previous, additionalStudents: event.target.value }))} /></div>}
                     <SettingsSection
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}
-                        handleMinStudentsChange={handleMinStudentsChange}
                         onWorkTypeChange={handleWorkTypeChange}
                         workTypeOptions={workTypeOptions}
                         workStatusOptions={workStatusOptions}
@@ -487,7 +460,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         newEvent={newEvent}
                         handleApprovalChange={handleApprovalChange}
                         approvalOptions={approvalOptions}
-                        readOnly={isView}
+                        readOnly={isView || !eventToEdit?.isStudentRequest}
                     />
                 </div>
             </BaseModal>

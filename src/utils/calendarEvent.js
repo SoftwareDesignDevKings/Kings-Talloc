@@ -59,7 +59,7 @@ export const calendarEventGetDefaults = (slotInfo, userRole, userEmail) => {
             start,
             end,
             tutor: userEmail,
-            workType: ['tutoring', 'work'],
+            workType: ['work'],
             locationType: '',
         };
     }
@@ -72,7 +72,7 @@ export const calendarEventGetDefaults = (slotInfo, userRole, userEmail) => {
             description: '',
             staff: [],
             students: [{ value: userEmail, label: userEmail }],
-            confirmationRequired: false,
+
             createdByStudent: true,
             approvalStatus: 'pending',
             workStatus: 'notCompleted',
@@ -86,13 +86,13 @@ export const calendarEventGetDefaults = (slotInfo, userRole, userEmail) => {
         start,
         end,
         description: '',
-        confirmationRequired: false,
+
         staff: [],
         classes: [],
         students: [],
-        tutorResponses: [],
-        studentResponses: [],
-        minStudents: 0,
+
+
+
         workStatus: 'notCompleted',
         workType: 'work',
         locationType: '',
@@ -811,29 +811,7 @@ export const calendarEventHandleDelete = async (
         await removeEmailNotification(eventToDelete.id);
     } catch (error) {
         console.error('Failed to delete event:', error);
-    }
-};
-
-/**
- * Handle student confirmation
- */
-export const calendarEventHandleConfirmation = async (
-    event,
-    confirmed,
-    userEmail,
-    { setAllEvents },
-) => {
-    const existingResponses = event.studentResponses || [];
-    const updatedStudentResponses = existingResponses.filter((r) => r.email !== userEmail);
-    updatedStudentResponses.push({ email: userEmail, response: confirmed });
-
-    const updatedEvent = { ...event, studentResponses: updatedStudentResponses };
-
-    try {
-        await updateEventInFirestore(event.id, { studentResponses: updatedStudentResponses });
-        setAllEvents((prev) => prev.map((evt) => (evt.id === event.id ? updatedEvent : evt)));
-    } catch (error) {
-        console.error('Failed to update student response:', error);
+        throw error;
     }
 };
 
@@ -875,8 +853,8 @@ export const calendarEventHandleDuplicate = async (
             ...event,
             start: nextDayStart,
             end: nextDayEnd,
-            tutorResponses: [],
-            studentResponses: [],
+
+
             recurring: null,  // Duplicated shifts should always be non-recurring
             until: null,
             isRecurringInstance: false,

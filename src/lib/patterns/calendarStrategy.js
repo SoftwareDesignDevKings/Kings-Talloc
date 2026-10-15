@@ -53,7 +53,7 @@ export const adminCalendarStrategy = () => ({
         canFilterByTutor: true,
         canFilterBySubject: false,
         canFilterByWorkType: true,
-        canFilterByAvailabilityType: true,
+        canFilterByAvailabilityType: false,
     },
 
     // teacher can see all tutor availabilities, but UI view is initials not CustomEvent.
@@ -81,56 +81,7 @@ export const adminCalendarStrategy = () => ({
     },
 });
 
-export const teacherCalendarStrategy = () => ({
-    // Fetch all data — teacher has full visibility but limited write access
-    firestoreConstraints: {
-        shifts:          () => [],   // fetch all (read-only view)
-        studentRequests: () => [],   // fetch all (can manage)
-        availabilities:  () => [],   // fetch all
-    },
-
-    permissions: {
-        canEdit:   (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canDrag:   (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canResize: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-    },
-
-    visibility: {
-        includeInCalendar: (event) =>
-            event.entityType === CalendarEntityType.SHIFT ||
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        showAvailabilitySlots: true,
-    },
-
-    calendarFilters: {
-        canFilterByTutor: true,
-        canFilterBySubject: false,
-        canFilterByWorkType: true,
-        canFilterByAvailabilityType: true,
-    },
-
-    calendarScope: {
-        canToggleDeniedStudentRequests: true,
-        canToggleTutorAvailabilities: true,
-        canToggleCoachingShifts: true,
-        canToggleTutoringShifts: true,
-    },
-
-    actions: {
-        canCreateEvent:    (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canModifyEvent:    (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canDuplicateEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canCompleteEvent: () => false,
-
-        getCreateFlow: () => CalendarFlow.CREATE_STUDENT_REQUEST,
-        getEventFlow: (event) => {
-            if (event.entityType === CalendarEntityType.SHIFT) {
-                return CalendarFlow.VIEW_SHIFT;
-            }
-            return CalendarFlow.EDIT_STUDENT_REQUEST;
-        },
-    },
-});
+export const teacherCalendarStrategy = () => adminCalendarStrategy();
 
 // temp sol - coaches r the same as just tutors.
 export const coachCalendarStrategy = (userEmail) => tutorCalendarStrategy(userEmail)
@@ -161,7 +112,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
         canFilterByTutor: true,
         canFilterBySubject: false,
         canFilterByWorkType: true,
-        canFilterByAvailabilityType: true,
+        canFilterByAvailabilityType: false,
     },
 
     // panel scopes - studenRequests, tutor shifts / availabilities

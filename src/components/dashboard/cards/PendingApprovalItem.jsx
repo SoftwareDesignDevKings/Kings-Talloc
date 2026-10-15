@@ -32,6 +32,7 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly,
                     {format(request.start, 'MMM d, yyyy h:mm a')}{' '}
                     - {format(request.end, 'h:mm a')}
                 </div>
+                {request.additionalStudents?.length > 0 && <div>Other students: {request.additionalStudents.join(', ')}</div>}
                 {request.classes?.length > 0 && (
                     <div>
                         Class:{' '}

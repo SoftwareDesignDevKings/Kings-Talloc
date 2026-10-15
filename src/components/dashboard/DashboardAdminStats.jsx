@@ -1,3 +1,4 @@
+import { formatDuration } from '@/lib/scheduling/hours';
 import { FiCalendar, FiUsers, FiActivity, FiCheckCircle, FiClock } from '@/components/icons';
 import BaseStatsCard from './cards/BaseStatsCard';
 import PendingApprovalsCard from './cards/PendingApprovalsCard';
@@ -32,8 +33,8 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
             icon={FiActivity}
             iconBgColor="bg-success"
             title="Total Allocated Hours"
-            value={(data.weeklyHours.tutoring + data.weeklyHours.coaching + data.weeklyHours.work).toFixed(1)}
-            subtitle={`T: ${data.weeklyHours.tutoring} | C: ${data.weeklyHours.coaching} | W: ${data.weeklyHours.work}`}
+            value={formatDuration((data.weeklyHours.work + data.weeklyHours.coaching) * 3600000)}
+            subtitle={`Work: ${formatDuration(data.weeklyHours.work * 3600000)} | Coaching: ${formatDuration(data.weeklyHours.coaching * 3600000)}`}
             delay={250}
             colClass={ADMIN_COL}
         />
@@ -41,8 +42,8 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
             icon={FiCheckCircle}
             iconBgColor="bg-success"
             title="Completed Hours"
-            value={(data.completedHours.tutoring + data.completedHours.coaching + data.completedHours.work).toFixed(1)}
-            subtitle={`T: ${data.completedHours.tutoring} | C: ${data.completedHours.coaching} | W: ${data.completedHours.work}`}
+            value={formatDuration((data.completedHours.work + data.completedHours.coaching) * 3600000)}
+            subtitle={`Work: ${formatDuration(data.completedHours.work * 3600000)} | Coaching: ${formatDuration(data.completedHours.coaching * 3600000)}`}
             delay={350}
             colClass={ADMIN_COL}
         />
@@ -50,8 +51,8 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
             icon={FiClock}
             iconBgColor="bg-warning"
             title="Allocated Hours (Next Week)"
-            value={(data.nextWeekHours.tutoring + data.nextWeekHours.coaching + data.nextWeekHours.work).toFixed(1)}
-            subtitle={`T: ${data.nextWeekHours.tutoring} | C: ${data.nextWeekHours.coaching} | W: ${data.nextWeekHours.work}`}
+            value={formatDuration((data.nextWeekHours.work + data.nextWeekHours.coaching) * 3600000)}
+            subtitle={`Work: ${formatDuration(data.nextWeekHours.work * 3600000)} | Coaching: ${formatDuration(data.nextWeekHours.coaching * 3600000)}`}
             delay={400}
             colClass={ADMIN_COL}
         />

@@ -76,3 +76,5 @@ async function seedDocumentInEmulator(collectionName, id, document) {
         throw new Error(`Failed to seed ${collectionName}/${id}: ${res.status}`);
     }
 }
+
+export async function seedStudentEligibilityInEmulator(email, tutors) { return seedDocumentInEmulator('studentTutorEligibility', email, { eligibleTutorEmails: tutors }); }
