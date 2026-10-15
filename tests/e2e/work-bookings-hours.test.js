@@ -80,6 +80,8 @@ test('student books during Work, names a group, and teacher approves through the
         const session = (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).data();
         expect(session.preference).toBe('Exam Help'); expect(session.sessionTopics).toBe('Quadratic equations, questions 4–8.');
         await page.goto('/dashboard'); await expect(page.getByText('Your tutoring request was approved.')).toBeVisible();
+        const approvedCard = page.locator('.card').filter({ has: page.getByRole('heading', { name: 'Approved Requests', exact: true }) });
+        await expect(approvedCard.getByRole('heading', { level: 3 })).toHaveText('1');
     } finally { await teacherContext.close(); }
 });
 

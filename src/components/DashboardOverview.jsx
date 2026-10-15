@@ -188,7 +188,8 @@ const DashboardOverview = () => {
             uncompletedShifts,
             uniqueStudents: uniqueStudentEmails.size,
             pendingRequests: pendingRequestsData.length,
-            approvedRequests: 0,
+            // Approval moves the request into shifts, so count its approved session.
+            approvedRequests: calendarShifts.filter(event => event.createdByStudent && event.approvalStatus === 'approved').length,
             tutorsScheduledToday: uniqueTutorEmailsToday.size,
             teacherStats: {
                 studentSessions: teacherStudentSessions,
