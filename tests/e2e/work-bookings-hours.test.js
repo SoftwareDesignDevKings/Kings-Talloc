@@ -224,3 +224,59 @@ test('complex completed hours agree across dashboard, summary, CSV and Word; sho
         expect(xml).toContain(`TOTAL ${total}`); expect(xml).toContain(warning);
     }
 });
+
+test('Reject retains a visible decision; confirmed calendar Delete removes it and its notice', async ({ page, browser }) => {
+    const request = data({ title: 'Deletion test session', createdByStudent: true, approvalStatus: 'pending', preference: 'General', students: [{ value: student, label: 'John Doe' }], emailsList: [tutor, student] });
+    await db.collection('studentEventRequests').doc('decision-delete').set(request);
+    await signIn(page, 'Teacher');
+    await page.getByRole('button', { name: /Pending Approvals/ }).click();
+    const reject = page.getByRole('button', { name: 'Reject', exact: true });
+    await expect(reject).toHaveClass(/btn-outline-danger/);
+    page.once('dialog', dialog => dialog.dismiss());
+    await reject.click();
+    expect((await db.collection('studentEventRequests').doc('decision-delete').get()).data().approvalStatus).toBe('pending');
+    page.once('dialog', dialog => dialog.accept());
+    const rejected = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await reject.click(); expect((await rejected).status()).toBe(200);
+    expect((await db.collection('studentEventRequests').doc('decision-delete').get()).data().approvalStatus).toBe('denied');
+    const studentContext = await browser.newContext(); const studentPage = await studentContext.newPage();
+    try {
+        await signIn(studentPage, 'Student');
+        await expect(studentPage.getByText('Your tutoring request was denied.')).toBeVisible();
+        await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+        await page.getByText('Deletion test session', { exact: true }).click();
+        await page.getByRole('button', { name: 'Delete', exact: true }).click();
+        await expect(page.getByText(/Students will no longer be able to see that it was rejected/)).toBeVisible();
+        await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Delete Student Request', exact: true })).toBeHidden();
+        expect((await db.collection('studentEventRequests').doc('decision-delete').get()).exists).toBe(true);
+        const editor = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Edit Event', exact: true }) });
+        await editor.getByRole('button', { name: 'Delete', exact: true }).click();
+        const removed = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+        const confirmation = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Delete Student Request', exact: true }) });
+        await confirmation.getByRole('button', { name: 'Delete', exact: true }).click();
+        expect((await removed).status()).toBe(200);
+        expect((await db.collection('studentEventRequests').doc('decision-delete').get()).exists).toBe(false);
+        expect((await db.collection('bookingNotifications').where('eventId', '==', 'decision-delete').get()).empty).toBe(true);
+        await expect(studentPage.getByText('Your tutoring request was denied.')).toHaveCount(0);
+    } finally { await studentContext.close(); }
+});
+
+test('dashboard Delete warns, cancellation keeps the request, and confirmation removes without rejection', async ({ page }) => {
+    await db.collection('studentEventRequests').doc('pending-delete').set(data({ title: 'Pending deletion test', createdByStudent: true, approvalStatus: 'pending', preference: 'General', students: [{ value: student }], emailsList: [tutor, student] }));
+    await signIn(page, 'Teacher');
+    await page.getByRole('button', { name: /Pending Approvals/ }).click();
+    const remove = page.getByRole('button', { name: 'Delete', exact: true });
+    await expect(remove).toHaveClass(/btn-danger/);
+    let message;
+    page.once('dialog', dialog => { message = dialog.message(); return dialog.dismiss(); });
+    await remove.click();
+    expect(message).toContain('Students will no longer be able to see that it was rejected');
+    expect((await db.collection('studentEventRequests').doc('pending-delete').get()).exists).toBe(true);
+    page.once('dialog', dialog => dialog.accept());
+    const removed = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await remove.click(); expect((await removed).status()).toBe(200);
+    expect((await db.collection('studentEventRequests').doc('pending-delete').get()).exists).toBe(false);
+    expect((await db.collection('bookingNotifications').get()).empty).toBe(true);
+    await expect(page.getByText('Pending deletion test', { exact: true })).toHaveCount(0);
+});

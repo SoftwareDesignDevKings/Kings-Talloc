@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
-import { approveStudentRequest } from '@/firestore/studentRequestApprovals';
+import { approveStudentRequest, resolveStudentRequest } from '@/firestore/studentRequestApprovals';
 import { queueEmailNotification } from '@/firestore/firestoreOperations';
 import { calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
 
@@ -14,6 +14,8 @@ jest.mock('@/utils/calendarEvent', () => ({ calendarEventCreateTeamsMeeting: jes
 describe('approval handlers', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.spyOn(window, 'confirm').mockReturnValue(true);
+        resolveStudentRequest.mockResolvedValue({});
         approveStudentRequest.mockResolvedValue({ id: 'shift', eventData: { title: 'Tutoring' } });
         queueEmailNotification.mockResolvedValue();
         calendarEventCreateTeamsMeeting.mockResolvedValue();
@@ -63,4 +65,22 @@ describe('approval handlers', () => {
         expect(mockAddAlert).toHaveBeenCalledWith('success', 'Request approved successfully');
         expect(mockAddAlert.mock.calls.some(([type]) => type === 'error')).toBe(false);
     });
+
+test.each(['handleReject', 'handleDelete'])('%s cancellation performs no write and does not refresh', async handler => {
+    window.confirm.mockReturnValue(false);
+    const refresh = jest.fn();
+    const { result } = renderHook(() => useApprovalHandlers(refresh));
+    await act(async () => { expect(await result.current[handler]('request')).toBe(false); });
+    expect(resolveStudentRequest).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(result.current.processingIds.size).toBe(0);
+});
+test.each([['handleReject', 'deny'], ['handleDelete', 'delete']])('%s confirms the distinct server action %s', async (handler, action) => {
+    window.confirm.mockReturnValue(true);
+    const { result } = renderHook(() => useApprovalHandlers());
+    await act(async () => { expect(await result.current[handler]('request')).toBe(true); });
+    expect(resolveStudentRequest).toHaveBeenCalledWith('request', action);
+    if (action === 'delete') expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Students will no longer be able to see that it was rejected'));
+});
+
 });

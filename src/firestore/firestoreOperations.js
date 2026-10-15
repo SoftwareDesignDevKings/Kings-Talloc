@@ -157,7 +157,7 @@ export const createEventInFirestore = async (eventData, collectionName = 'shifts
  * @returns {Promise<void>}
  */
 export const deleteEventFromFirestore = async (eventId, collectionName = 'shifts') => {
-    return schedulingMutation({ action: 'delete', collectionName, id: eventId });
+    return schedulingMutation({ action: 'delete', collectionName, id: eventId, ...(collectionName === 'studentEventRequests' && { confirmPermanentDelete: true }) });
 };
 
 /**

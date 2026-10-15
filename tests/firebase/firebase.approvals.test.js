@@ -379,3 +379,58 @@ test.each([123, 'x'.repeat(2001)])('topics to cover rejects non-text or oversize
     await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: data({ sessionTopics }) }, student)).rejects.toThrow('Topics to cover');
     expect((await db.collection('studentEventRequests').get()).empty).toBe(true);
 });
+
+test('Reject retains the denied request and notifies every student; Delete removes both the request and its notices', async () => {
+    const peer = 'peer@kings.edu.au';
+    await seed('a', { students: [{ value: student.email }, { value: peer }] });
+    await call({ action: 'deny', id: 'a' });
+    expect((await db.collection('studentEventRequests').doc('a').get()).data().approvalStatus).toBe('denied');
+    const notices = await db.collection('bookingNotifications').get();
+    expect(notices.docs.map(doc => doc.data().recipientEmail).sort()).toEqual([student.email, peer].sort());
+    expect(notices.docs.every(doc => doc.data().kind === 'denied')).toBe(true);
+    await db.collection('bookingNotifications').doc('unrelated').set({ eventId: 'other', kind: 'denied' });
+    await call({ action: 'delete', collectionName: 'studentEventRequests', confirmPermanentDelete: true, id: 'a' });
+    expect((await db.collection('studentEventRequests').doc('a').get()).exists).toBe(false);
+    expect((await db.collection('bookingNotifications').get()).docs.map(doc => doc.id)).toEqual(['unrelated']);
+    expect((await db.collection('shifts').get()).empty).toBe(true);
+});
+test('deleting a pending request does not generate a false rejection, and retry is idempotent', async () => {
+    await seed('a');
+    const input = { action: 'delete', collectionName: 'studentEventRequests', confirmPermanentDelete: true, id: 'a', operationId: randomUUID() };
+    await call(input); await call(input);
+    expect((await db.collection('studentEventRequests').doc('a').get()).exists).toBe(false);
+    expect((await db.collection('bookingNotifications').get()).empty).toBe(true);
+});
+test.each([student, tutor])('request deletion is denied to non-managers: $defaultRole', async actor => {
+    await seed('a');
+    await expect(call({ action: 'delete', collectionName: 'studentEventRequests', confirmPermanentDelete: true, id: 'a' }, actor)).rejects.toMatchObject({ status: 403 });
+    expect((await db.collection('studentEventRequests').doc('a').get()).exists).toBe(true);
+});
+test('a failed delete transaction preserves the request and its existing rejection notice', async () => {
+    await seed('a'); await call({ action: 'deny', id: 'a' });
+    const failing = Object.create(db); failing.runTransaction = operation => db.runTransaction(transaction => {
+        const remove = transaction.delete.bind(transaction);
+        transaction.delete = ref => { if (ref.parent.id === 'bookingNotifications') throw new Error('Injected delete failure'); return remove(ref); };
+        return operation(transaction);
+    });
+    await expect(scheduleMutation(failing, teacher, { action: 'delete', collectionName: 'studentEventRequests', confirmPermanentDelete: true, id: 'a', operationId: randomUUID() }, { now: () => clock })).rejects.toThrow('Injected');
+    expect((await db.collection('studentEventRequests').doc('a').get()).exists).toBe(true);
+    expect((await db.collection('bookingNotifications').get()).size).toBe(1);
+});
+test('concurrent approval and deletion cannot leave both an approved session and a deleted decision', async () => {
+    await seed('a');
+    const outcomes = await Promise.allSettled([call({ action: 'approve', id: 'a' }), call({ action: 'delete', collectionName: 'studentEventRequests', confirmPermanentDelete: true, id: 'a' })]);
+    expect(outcomes.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect((await db.collection('studentEventRequests').doc('a').get()).exists).toBe(false);
+    const shifts = await db.collection('shifts').get(), notices = await db.collection('bookingNotifications').get();
+    expect(shifts.size).toBeLessThanOrEqual(1);
+    expect(notices.size).toBe(shifts.size);
+    if (notices.size) expect(notices.docs[0].data().kind).toBe('approved');
+});
+
+test('an old client Delete without explicit permanent intent cannot erase or reject a request', async () => {
+    await seed('a');
+    await expect(call({ action: 'delete', collectionName: 'studentEventRequests', id: 'a' })).rejects.toMatchObject({ status: 409 });
+    expect((await db.collection('studentEventRequests').doc('a').get()).data().approvalStatus).toBe('pending');
+    expect((await db.collection('bookingNotifications').get()).empty).toBe(true);
+});

@@ -104,6 +104,8 @@ const TutorAvailabilityForm = ({
     };
 
     const handleDelete = async () => {
+        if (isSubmitting || !window.confirm('Delete this availability? Students will no longer be able to book this time unless a Work shift or other availability covers it. Existing approved sessions will remain. This cannot be undone.')) return false;
+        setIsSubmitting(true);
         const availabilityDocId = eventToEdit.originalAvailabilityId || eventToEdit.id;
         try {
             await deleteEventFromFirestore(availabilityDocId, 'tutorAvailabilities');
@@ -117,6 +119,8 @@ const TutorAvailabilityForm = ({
             console.error('Failed to delete availability:', error);
             addAlert('error', 'Failed to delete availability');
             return false; // Error - don't close modal
+        } finally {
+            setIsSubmitting(false);
         }
     };
 

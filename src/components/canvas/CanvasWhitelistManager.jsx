@@ -172,6 +172,7 @@ const CanvasWhitelistManager = () => {
     };
 
     const handleRemove = async (courseId, name) => {
+        if (!window.confirm(`Remove "${name}" from the Canvas whitelist? It will no longer be included in future course syncs.`)) return;
         const id = String(courseId);
         setRemoving((prev) => new Set(prev).add(id));
         try {

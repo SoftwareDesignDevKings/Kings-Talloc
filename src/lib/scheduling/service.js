@@ -145,6 +145,9 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             fail(!Number.isFinite(+event.until), 'Invalid recurrence end.');
         }
         const deletes = action === 'delete';
+        // Old clients treated Delete as rejection. Require the new explicit intent
+        // so an already-open old tab cannot silently erase a request after release.
+        fail(deletes && originalCollection === 'studentEventRequests' && input.confirmPermanentDelete !== true, 'Refresh the app and confirm permanent deletion of this request.', 409);
         const statusOnly = action === 'complete';
         if (!deletes && !['deny', 'exception'].includes(action)) {
             event.start = asDate(event.start); event.end = asDate(event.end);
@@ -210,11 +213,13 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         const rangeStart = new Date(Math.min(+(saved?.start || event.start), +event.start) - (coverageChange ? 86400000 : 0));
         let rangeEnd = new Date(Math.max(+expansionEnd(saved || event, timestamp), +expansionEnd(event, timestamp)) + (coverageChange ? 86400000 : 0));
         fail(!Number.isFinite(+rangeStart) || !Number.isFinite(+rangeEnd), 'Invalid event time.');
-        const [shifts, availabilitySnapshot, pendingSnapshot, staffSnapshots] = await Promise.all([
+        const [shifts, availabilitySnapshot, pendingSnapshot, staffSnapshots, requestNotices] = await Promise.all([
             readSchedule(db, rangeStart, rangeEnd, transaction, { includeFuture: Boolean(saved?.recurring || event.recurring) }),
             transaction.get(db.collection('tutorAvailabilities').where('end', '>', rangeStart)),
             transaction.get(db.collection('studentEventRequests').where('approvalStatus', '==', 'pending')),
             Promise.all(emails.map(email => transaction.get(db.collection('users').doc(email)))),
+            deletes && originalCollection === 'studentEventRequests'
+                ? transaction.get(db.collection('bookingNotifications').where('eventId', '==', id)) : null,
         ]);
         if (saved?.recurring || event.recurring) rangeEnd = new Date(Math.max(+rangeEnd, ...shifts.map(shift => +shift.end + 1), ...pendingSnapshot.docs.map(doc => +asDate(doc.data().end) + 1)));
         const availabilities = availabilitySnapshot.docs.map(documentEvent);
@@ -254,10 +259,13 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         // No reads below this line: all state changes and notifications commit together.
         guardRefs.forEach((ref, index) => transaction.set(ref, { revision: (guards[index].data()?.revision || 0) + 1 }));
         if (deletes || action === 'deny') {
-            if (originalCollection === 'studentEventRequests') {
+            if (action === 'deny') {
                 transaction.update(source, { approvalStatus: 'denied', deniedAt: timestamp });
                 decisionNotices(transaction, db, operationId, saved, false, timestamp);
-            } else transaction.delete(source);
+            } else {
+                transaction.delete(source);
+                requestNotices?.docs.forEach(doc => transaction.delete(doc.ref));
+            }
         } else if (action === 'exception') {
             fail(!saved.recurring || !Number.isInteger(input.occurrenceIndex) || input.occurrenceIndex < 0, 'Invalid recurring occurrence.');
             transaction.update(source, { eventExceptions: FieldValue.arrayUnion(input.occurrenceIndex) });

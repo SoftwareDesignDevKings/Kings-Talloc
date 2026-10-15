@@ -67,7 +67,7 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly,
                         Approve
                     </button>
                     <button
-                        className="btn btn-sm btn-secondary"
+                        className="btn btn-sm btn-outline-danger"
                         disabled={disabled}
                         onClick={(e) => { e.stopPropagation(); onReject(request.id); }}
                     >

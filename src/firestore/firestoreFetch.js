@@ -29,6 +29,7 @@ const deserializeShift = (doc) => {
         end: data.end.toDate(),
         ...(data.until && { until: data.until.toDate() }),
         entityType: CalendarEntityType.SHIFT,
+        isStudentRequest: false,
     };
 };
 
@@ -175,6 +176,7 @@ export const firestoreFetchStudentRequests = (setCalendarStudentRequests, calend
                 start: data.start.toDate(),
                 end: data.end.toDate(),
                 entityType: CalendarEntityType.STUDENT_REQUEST,
+                isStudentRequest: true,
             };
         });
         setCalendarStudentRequests(requests);

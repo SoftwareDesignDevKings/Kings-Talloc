@@ -79,3 +79,13 @@ No audit-history feature or new purpose field was added. Unresolved class-only l
 Tutor assignment banners have been removed, including hiding older stored assignment notices. Student approval/denial updates and Michael’s lost-coverage warnings remain. No production notification records are deleted.
 
 Dashboard approval badges are visible for teachers/admins and students, and hidden in tutor/coach views in both Today and Upcoming Events. Event details and participant counts remain visible.
+
+
+## Rejection and deletion safeguards (16/10/2026)
+
+- Reject retains a denied request and sends an in-app decision to each student. Delete permanently removes the request and its existing decision notices in one transaction, without generating a false rejection.
+- Both actions require confirmation and use red controls. Request deletion explicitly warns that students will lose visibility of the rejection and suggests Reject to preserve it. Teachers/admins can delete pending or denied requests; students and tutors cannot.
+- Calendar single-event deletions now use the existing deletion confirmation, including recurring scope choices. Availability, app-account, subject, tutor-assignment and Canvas-whitelist removals require confirmation. Removing a saved Teams meeting or removing completed paid hours confirms before saving; their Save controls turn red. The keyboard completion shortcut also confirms removing completed hours. Unsaved participant replacement remains unrestricted until save validation.
+- Calendar requests receive their canonical request marker when loaded; approved shifts clear stale request markers. Fast cancellation during Bootstrap modal transitions restores the editor and still allows closing it.
+- A permanent request deletion must carry the new explicit intent; older open clients receive a refresh message instead of unexpectedly deleting a request.
+- Validation: 214 unit tests (38 suites), 63 scheduling integration tests on the isolated emulator, all 10 dedicated browser flows, lint and whitespace checks. After the final compatibility safeguard, both deletion browser flows were rerun successfully. Database cases include rejection visibility, unrelated-notice preservation, rollback, permission checks, idempotency, concurrent approval/deletion and old-client protection. Production and demo records were not deleted during verification.

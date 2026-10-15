@@ -92,6 +92,7 @@ const SubjectList = () => {
 
     const handleDeleteSubject = async (subjectToDelete) => {
         if (subjectToDelete) {
+            if (!window.confirm(`Delete the subject "${subjectToDelete.name}" and its tutor assignments? This cannot be undone.`)) return;
             try {
                 await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
                 setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
@@ -174,6 +175,7 @@ const SubjectList = () => {
     };
 
     const handleRemoveTutor = async (tutor, subject) => {
+        if (!window.confirm(`Remove ${tutor.name || tutor.email} from "${subject.name}"? They will no longer be assigned to this subject.`)) return;
         const updatedTutors = subject.tutors.filter((t) => t.email !== tutor.email);
         const subjectRef = doc(db, 'subjects', subject.id);
         try {

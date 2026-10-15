@@ -209,6 +209,7 @@ const UserRolesManager = () => {
     };
 
     const handleDelete = async (userEmail) => {
+        if (!window.confirm(`Delete the app account for ${userEmail}? This removes their app profile and access settings. This cannot be undone.`)) return;
         try {
             const res = await fetch('/api/users', {
                 method: 'DELETE',

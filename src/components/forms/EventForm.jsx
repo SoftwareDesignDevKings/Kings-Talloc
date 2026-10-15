@@ -55,6 +55,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [participantError, setParticipantError] = useState(null);
+    const isRejectingRequest = eventToEdit?.isStudentRequest && newEvent.approvalStatus === 'denied';
+    const removesPaidTime = isEditing && newEvent.workStatus !== eventToEdit?.workStatus
+        && (eventToEdit?.workStatus === 'completed' || newEvent.workStatus === 'notAttended');
+    const removesMeeting = isEditing && eventToEdit?.teamsEventId && eventToEdit.createTeamsMeeting && !newEvent.createTeamsMeeting;
     const { addAlert } = useAlert();
     const { handleApprove, handleReject } = useApprovalHandlers();
 
@@ -182,6 +186,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
         e.preventDefault();
         if (isSubmitting) return false;
 
+        if (removesPaidTime && !window.confirm('Change this session’s completion status? This can reduce the hours counted for payment.')) return false;
+        if (removesMeeting && !window.confirm('Remove this session’s Teams meeting? The existing meeting and its joining link will be deleted.')) return false;
         setIsSubmitting(true);
         try {
         // Tutors/coaches may only update workStatus — send only that field to satisfy
@@ -314,32 +320,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
 
     const handleDeleteClick = async () => {
         if (isSubmitting) return false;
-        // Check if this is a recurring event
-        const isRecurring = eventToEdit.recurring || eventToEdit.isRecurringInstance;
-
-        if (isRecurring) {
-            // Show confirmation modal for recurring events
-            setShowDeleteConfirm(true);
-            return false; // Don't close main modal yet - wait for confirmation
-        } else {
-            // Delete non-recurring event directly
-            setIsSubmitting(true);
-            try {
-                await calendarEventHandleDelete(eventToEdit, 'this', {
-                    setAllEvents: setCalendarShifts,
-                    setAvailabilities: setCalendarAvailabilities,
-                    setStudentRequests: setCalendarStudentRequests,
-                    addAlert,
-                });
-                return true; // Success - allow modal to close
-            } catch (error) {
-                console.error('Failed to delete event:', error);
-                addAlert('error', 'Failed to delete event');
-                return false; // Error - don't close modal
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
+        setShowDeleteConfirm(true);
+        return false; // Keep the editor until deletion is explicitly confirmed.
     };
 
     const handleConfirmDelete = async (deleteOption) => {
@@ -420,7 +402,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                 size="lg"
                 suppressOnHidden={showDeleteConfirm}
                 onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
-                submitText={isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
+                submitText={isRejectingRequest ? 'Reject Request' : isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
+                submitVariant={isRejectingRequest || removesPaidTime || removesMeeting ? 'danger' : 'outline-primary'}
                 loading={isSubmitting}
                 deleteButton={
                     isEdit
@@ -485,6 +468,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                 show={showDeleteConfirm}
                 onHide={() => setShowDeleteConfirm(false)}
                 onConfirm={handleConfirmDelete}
+                loading={isSubmitting}
+                isStudentRequest={Boolean(eventToEdit?.isStudentRequest)}
                 isRecurring={eventToEdit?.recurring || eventToEdit?.isRecurringInstance}
                 isOriginal={eventToEdit?.recurring && !eventToEdit?.isRecurringInstance}
             />

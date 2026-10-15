@@ -1,0 +1,1 @@
+export const REQUEST_DELETE_WARNING = 'This permanently removes the request and any rejection notice. Students will no longer be able to see that it was rejected. Use Reject instead to keep the record and notify the students. This cannot be undone.';

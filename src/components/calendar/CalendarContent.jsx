@@ -274,6 +274,7 @@ const CalendarContent = () => {
                 return;
             }
             const newStatus = calEvent.workStatus === 'completed' ? 'notCompleted' : 'completed';
+            if (newStatus === 'notCompleted' && !window.confirm('Mark this session as not completed? Its hours will no longer count towards payment.')) return;
             setCalendarShifts(prev =>
                 prev.map(e => e.id === calEvent.id ? { ...e, workStatus: newStatus } : e)
             );
