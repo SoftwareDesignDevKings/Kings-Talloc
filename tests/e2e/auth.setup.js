@@ -1,6 +1,8 @@
 import { test as setup, expect } from '@playwright/test';
 import { TEST_USERS } from '@/lib/security/testUsers';
 import fs from 'fs';
+import { initializeApp, deleteApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 
 const TEAL = '\x1b[36m';
 const RESET = '\x1b[0m';
@@ -20,6 +22,12 @@ process.env.NODE_ENV = 'development';
 
 setup('authenticate users', async ({ browser }) => {
     setup.setTimeout(120000);
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+    const app = initializeApp({ projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-talloc' }, 'e2e-auth-fixtures');
+    try {
+        await Promise.all(Object.keys(TEST_USERS).map(email => getAuth(app).updateUser(email.toLowerCase(), { email: email.toLowerCase() })
+            .catch(() => getAuth(app).createUser({ uid: email.toLowerCase(), email: email.toLowerCase() }))));
+    } finally { await deleteApp(app); }
     if (!fs.existsSync('tests/e2e/.auth')) {
         fs.mkdirSync('tests/e2e/.auth', { recursive: true });
     }
@@ -36,7 +44,9 @@ setup('authenticate users', async ({ browser }) => {
         
         try {
             
+            const hydrated = page.waitForResponse(response => response.url().endsWith('/api/auth/session'));
             await page.goto('/login');
+            await hydrated;
             
             // click the dev button
             const devButton = page.getByRole('button', { name: buttonLabel, exact: true });

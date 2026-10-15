@@ -8,7 +8,7 @@ export const staffEmails = event => [...new Set((event.staff || []).map(emailOf)
 export const workCategory = event => event.workType === 'coaching' ? 'coaching' : 'work';
 // Class-linked legacy bookings are occupied until their participants can be resolved.
 export const isStudentSession = event => workCategory(event) === 'work' &&
-    Boolean(event.students?.length || event.additionalStudents?.length || event.classes?.length);
+    Boolean(event.students?.length || event.additionalStudents?.length || (event.classes?.length && !event.studentParticipantsResolved));
 export const isGeneralWork = event => workCategory(event) === 'work' && !isStudentSession(event);
 export const isApproved = event => !event.createdByStudent || event.approvalStatus === 'approved';
 export const canApproveAt = (event, now = Date.now()) => event.approvalStatus === 'pending' &&
@@ -38,23 +38,26 @@ export const rangeCovered = (start, end, intervals) => +asDate(end) > +asDate(st
 export const bookableIntervals = (tutor, availabilities, shifts) => {
     const email = emailOf(tutor);
     const ownShifts = shifts.filter(s => staffEmails(s).includes(email) && isApproved(s));
-    const coverage = unionIntervals([
+    const sources = [
         ...availabilities.filter(a => emailOf(a.tutor) === email && isAcademicAvailability(a)),
         ...ownShifts.filter(isGeneralWork),
-    ]);
+    ].map(source => ({ start: +asDate(source.start), end: +asDate(source.end), locationType: source.locationType || 'onsite' }))
+        .filter(source => Number.isFinite(source.start) && Number.isFinite(source.end) && source.end > source.start);
     const busy = unionIntervals(ownShifts.filter(s => !isGeneralWork(s)));
+    const boundaries = [...new Set([...sources, ...busy].flatMap(slot => [slot.start, slot.end]))].sort((a, b) => a - b);
     const free = [];
-    for (const slot of coverage) {
-        let cursor = slot.start;
-        for (const block of busy) {
-            if (block.end <= cursor || block.start >= slot.end) continue;
-            if (block.start > cursor) free.push({ start: cursor, end: block.start });
-            cursor = Math.max(cursor, block.end);
+    for (let index = 0; index < boundaries.length - 1; index++) {
+        const start = boundaries[index], end = boundaries[index + 1];
+        if (busy.some(block => block.start < end && block.end > start)) continue;
+        const locations = [...new Set(sources.filter(source => source.start <= start && source.end >= end).map(source => source.locationType))].sort();
+        for (const locationType of locations) {
+            const last = free.findLast(slot => slot.locationType === locationType);
+            if (last?.end === start) last.end = end;
+            else free.push({ start, end, locationType });
         }
-        if (cursor < slot.end) free.push({ start: cursor, end: slot.end });
     }
     return free.map((slot, index) => ({ ...slot, start: new Date(slot.start), end: new Date(slot.end),
-        tutor: email, id: `free:${email}:${index}:${slot.start}`, locationType: 'onsite' }));
+        tutor: email, id: `free:${email}:${index}:${slot.start}` }));
 };
 
 // Pure and server-safe. Preserve Sydney wall time across daylight-saving changes.

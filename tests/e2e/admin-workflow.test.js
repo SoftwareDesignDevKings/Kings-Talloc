@@ -184,8 +184,8 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('cell', { name: 'Viraj Patel' })).toBeVisible();
             await page.getByRole('cell', { name: 'Viraj Patel' }).click();
 
-            await expect(page.getByRole('cell', { name: '0.50' }).first()).toBeVisible();
-            await expect(page.getByRole('cell', { name: '0.00' })).toBeVisible();
+            await expect(page.getByRole('cell', { name: '0h 30m' }).first()).toBeVisible();
+            await expect(page.getByRole('cell', { name: '0h 0m' })).toBeVisible();
         });
     });
 });

@@ -54,7 +54,7 @@ export const calculateHours = (events, { completedOnly = true } = {}) => {
         const mixedChain = sorted.length > 2 && sorted.some(isStudentSession) && sorted.some(e => !isStudentSession(e)) &&
             !sorted.some(e => !isStudentSession(e) && e.start <= sorted[0].start && e.end >= Math.max(...sorted.map(s => s.end)));
         const overlappingBookings = sorted.some((event, index) => isStudentSession(event) && sorted.slice(index + 1).some(other => isStudentSession(other) && other.start < event.end));
-        if (groups.length > 1 || mixedChain || overlappingBookings || sorted.some(e => e.classes?.length && !e.students?.length)) {
+        if (groups.length > 1 || mixedChain || overlappingBookings || sorted.some(e => e.classes?.length && !e.students?.length && !e.additionalStudents?.length && !e.studentParticipantsResolved)) {
             warnings.push({ code: 'complex-day', message: 'Complex day: check start, finish, breaks and paid hours manually. A teacher can record one covering Work shift where appropriate.' });
         }
         // If a day's separate short sessions total at least the minimum, the complex warning explains it.

@@ -161,8 +161,12 @@ export const calendarEventUpdateTeamsMeeting = async (
     const attendees = [...(event.students || []), ...(event.staff || [])].map((p) => p.value || p);
 
     try {
-        await updateTeamsMeeting(
-            event.teamsEventId,
+        const meetingId = event.isRecurringInstance
+            ? await getTeamsMeetingOccurrenceId(event.teamsEventId, event.start)
+            : event.teamsEventId;
+        const updateMeeting = event.isRecurringInstance ? updateTeamsMeetingOccurrence : updateTeamsMeeting;
+        await updateMeeting(
+            meetingId,
             subject,
             description,
             startTime,
@@ -172,7 +176,7 @@ export const calendarEventUpdateTeamsMeeting = async (
         addAlert('success', 'Teams meeting updated successfully');
     } catch (error) {
         console.error('Failed to update Teams meeting:', error);
-        addAlert('error', `Failed to update Teams meeting: ${error.message}`);
+        addAlert('error', `Event saved, but Teams could not update: ${error.message}`);
     }
 };
 
@@ -694,8 +698,9 @@ export const calendarEventHandleDelete = async (
 
     try {
         if (hasRecurring && deleteOption === 'all') {
-            await deleteEventFromFirestore(eventToDelete.id, collectionName);
-            await removeEmailNotification(eventToDelete.id);
+            const seriesId = recurringEventId || eventToDelete.id;
+            await deleteEventFromFirestore(seriesId, collectionName);
+            await removeEmailNotification(seriesId);
 
             // Delete Teams meeting if the original recurring event had one
             if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
@@ -711,8 +716,8 @@ export const calendarEventHandleDelete = async (
             setAllEvents((prev) =>
                 prev.filter(
                     (event) =>
-                        event.id !== eventToDelete.id &&
-                        event.recurringEventId !== eventToDelete.id,
+                        event.id !== seriesId &&
+                        event.recurringEventId !== seriesId,
                 ),
             );
         } else if (recurringEventId && deleteOption === 'thisAndFuture') {

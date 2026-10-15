@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
@@ -53,87 +53,101 @@ const TutorHoursSummary = () => {
         return sunday;
     });
     const [tutorHours, setTutorHours] = useState([]);
+    const [loadState, setLoadState] = useState('loading');
+    const loadGeneration = useRef(0);
 
     const fetchTutorHours = useCallback(async () => {
-        let accessFilter = [];
+        const generation = ++loadGeneration.current;
+        if (!userEmail) return;
+        setLoadState('loading');
+        try {
+            let accessFilter = [];
 
-        // Tutors/Coaches: only see their own shifts
-        // Admins: see all shifts (no filter)
-        if (!isAdmin) {
-            accessFilter = [where('emailsList', 'array-contains', userEmail)];
-        }
+            // Tutors/Coaches: only see their own shifts
+            // Admins: see all shifts (no filter)
+            if (!isAdmin) {
+                accessFilter = [where('emailsList', 'array-contains', userEmail)];
+            }
 
-        // Query 1: Non-recurring shifts in the date range
-        const nonRecurringQuery = query(
-            collection(db, 'shifts'),
-            where('end', '>', startDate),
-            ...accessFilter
-        );
+            // Query 1: Non-recurring shifts in the date range
+            const nonRecurringQuery = query(
+                collection(db, 'shifts'),
+                // Use the deployed emailsList/start index; overnight shifts are outside scope.
+                where('start', '>=', startDate),
+                where('start', '<=', endDate),
+                ...accessFilter
+            );
 
-        // Query 2: ALL recurring shifts (no date filter)
-        const recurringQuery = query(
-            collection(db, 'shifts'),
-            where('recurring', 'in', ['weekly', 'fortnightly']),
-            ...accessFilter
-        );
+            // Query 2: ALL recurring shifts (no date filter)
+            const recurringQuery = query(
+                collection(db, 'shifts'),
+                where('recurring', 'in', ['weekly', 'fortnightly']),
+                ...accessFilter
+            );
 
-        const [nonRecurringSnapshot, recurringSnapshot, usersSnapshot] = await Promise.all([
-            getDocs(nonRecurringQuery),
-            getDocs(recurringQuery),
-            getDocs(collection(db, 'users')),
-        ]);
-        const userNamesByEmail = buildUserNameMap(usersSnapshot.docs);
+            const [nonRecurringSnapshot, recurringSnapshot, usersSnapshot] = await Promise.all([
+                getDocs(nonRecurringQuery),
+                getDocs(recurringQuery),
+                getDocs(collection(db, 'users')),
+            ]);
+            const userNamesByEmail = buildUserNameMap(usersSnapshot.docs);
 
-        // Process non-recurring shifts
-        let shifts = nonRecurringSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-            };
-        });
+            // Process non-recurring shifts
+            let shifts = nonRecurringSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    start: data.start.toDate(),
+                    end: data.end.toDate(),
+                };
+            });
 
-        shifts = shifts.filter(shift => !shift.recurring && shift.start >= startDate && shift.start <= endDate);
+            shifts = shifts.filter(shift => !shift.recurring && shift.start >= startDate && shift.start <= endDate);
 
-        // Process recurring events - expand and filter to date range
-        let recurringShifts = recurringSnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-                ...(data.until && { until: data.until.toDate() }),
-            };
-        });
+            // Process recurring events - expand and filter to date range
+            let recurringShifts = recurringSnapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    start: data.start.toDate(),
+                    end: data.end.toDate(),
+                    ...(data.until && { until: data.until.toDate() }),
+                };
+            });
 
-        // Expand recurring events, then filter for this time sheet date range
-        recurringShifts = recurringCalendarExpand(recurringShifts, {
-            rangeStart: startDate,
-            rangeEnd: endDate,
-            maxOccurrences: 52,
+            // Expand recurring events, then filter for this time sheet date range
+            recurringShifts = recurringCalendarExpand(recurringShifts, {
+                rangeStart: startDate,
+                rangeEnd: endDate,
+                maxOccurrences: 52,
 
-        }).filter(shift => shift.start >= startDate && shift.start <= endDate);
+            }).filter(shift => shift.start >= startDate && shift.start <= endDate);
     
 
-        // Combine non-recurring and expanded recurring events
-        shifts = [...shifts, ...recurringShifts];
+            // Combine non-recurring and expanded recurring events
+            shifts = [...shifts, ...recurringShifts];
 
-        let tutorHoursArray = calculateHours(shifts).tutors.map(tutor => ({
-            ...tutor,
-            name: userNamesByEmail.get(tutor.email) || tutor.name,
-            tutoringHours: tutor.workMs / 3600000,
-            coachingHours: tutor.coachingMs / 3600000,
-        }));
-        if (!isAdmin) tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail?.toLowerCase());
+            let tutorHoursArray = calculateHours(shifts).tutors.map(tutor => ({
+                ...tutor,
+                name: userNamesByEmail.get(tutor.email) || tutor.name,
+                tutoringHours: tutor.workMs / 3600000,
+                coachingHours: tutor.coachingMs / 3600000,
+            }));
+            if (!isAdmin) tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail?.toLowerCase());
 
-        setTutorHours(tutorHoursArray);
+            if (generation === loadGeneration.current) { setTutorHours(tutorHoursArray); setLoadState('ready'); }
+        } catch (error) {
+            console.error('Hours summary could not refresh', error);
+            if (generation === loadGeneration.current) setLoadState('error');
+        }
     }, [startDate, endDate, userEmail, isAdmin]);
 
     useEffect(() => {
+        const tracker = loadGeneration;
         fetchTutorHours();
+        return () => { tracker.current++; };
     }, [startDate, endDate, fetchTutorHours]);
 
     const csvData = tutorHours.map((tutor) => ({
@@ -215,7 +229,9 @@ const TutorHoursSummary = () => {
                 <CSVLink
                     data={csvData}
                     filename={`tutor_hours_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.csv`}
-                    className="btn btn-outline-primary btn-sm"
+                    className={`btn btn-outline-primary btn-sm${loadState !== 'ready' ? ' disabled' : ''}`}
+                    aria-disabled={loadState !== 'ready'}
+                    onClick={() => loadState === 'ready'}
                 >
                     Export as CSV
                 </CSVLink>
@@ -233,6 +249,8 @@ const TutorHoursSummary = () => {
                 </div>
             </div>
 
+            {loadState === 'loading' && <p role="status">Refreshing hours…</p>}
+            {loadState === 'error' && <p role="alert">Hours could not refresh. Any displayed hours are the last loaded result. <button className="btn btn-link btn-sm" onClick={fetchTutorHours}>Retry</button></p>}
             <div className="grow overflow-auto">
                 <div className="table-responsive">
                     <table className="table table-sm table-hover bg-white">
@@ -269,6 +287,7 @@ const TutorHoursSummary = () => {
                                                         'tutor',
                                                     )
                                                 }
+                                                disabled={loadState !== 'ready'}
                                                 className="btn btn-sm btn-outline-success"
                                             >
                                                 Generate Tutor Timesheet
@@ -282,6 +301,7 @@ const TutorHoursSummary = () => {
                                                             'coach',
                                                         )
                                                     }
+                                                    disabled={loadState !== 'ready'}
                                                     className="btn btn-sm btn-outline-secondary"
                                                 >
                                                     Generate Coach Timesheet

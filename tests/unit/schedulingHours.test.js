@@ -34,3 +34,12 @@ test('Work supplies coverage; only approved bookings and coaching consume it', (
 test('Work overlaps permitted, student clashes and coaching blocked', () => { expect(commitmentsConflict(event(9, 12), event(10, 11, true))).toBe(false); expect(commitmentsConflict(event(9, 12, true), event(10, 11, true))).toBe(true); expect(commitmentsConflict(event(9, 12, false, { workType: 'coaching' }), event(10, 11))).toBe(true); });
 test('approval includes exact 15 minute boundary', () => { const request = event(9, 10, true, { approvalStatus: 'pending' }); expect(canApproveAt(request, +request.start + 900000)).toBe(true); expect(canApproveAt(request, +request.start + 900001)).toBe(false); });
 test('recurrence preserves Sydney wall time across DST', () => { const start = new Date('2026-09-28T09:00:00+10:00'); const end = new Date('2026-09-28T10:00:00+10:00'); const events = expandRecurringEvents([{ ...event(9, 10), start, end, recurring: 'weekly', occurenceNum: 3 }], { rangeStart: start, rangeEnd: new Date('2026-10-20') }); expect(events[1].start.toISOString()).toBe('2026-10-04T22:00:00.000Z'); });
+
+test('free intervals preserve remote and onsite locations while allowing continuous coverage', () => {
+    const free = bookableIntervals('tutor@school.test', [
+        { tutor: 'tutor@school.test', start: date(9), end: date(10), locationType: 'remote' },
+        { tutor: 'tutor@school.test', start: date(10), end: date(11), locationType: 'onsite' },
+    ], []);
+    expect(free.map(slot => slot.locationType)).toEqual(['remote', 'onsite']);
+    expect(rangeCovered(date(9), date(11), free)).toBe(true);
+});

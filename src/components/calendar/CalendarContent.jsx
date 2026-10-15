@@ -346,7 +346,7 @@ const CalendarContent = () => {
                 ...eventData,
                 workStatus: 'notCompleted',
                 ...(entityType === CalendarEntityType.STUDENT_REQUEST && { approvalStatus: 'pending', createdByStudent: true }),
-                teamsEventId: null, teamsJoinUrl: null,
+                teamsEventId: null, teamsJoinUrl: null, teamsMeetingUrl: null, onlineMeetingId: null,
 
                 start: newStart,
                 end: newEnd,
@@ -387,7 +387,7 @@ const CalendarContent = () => {
             stateSetter([...stateArray, newEvent]);
 
             // Create Teams meeting only if the original event had createTeamsMeeting enabled
-            if (duplicatedEvent.createTeamsMeeting && entityType !== CalendarEntityType.AVAILABILITY &&
+            if (duplicatedEvent.createTeamsMeeting && entityType === CalendarEntityType.SHIFT &&
                 (duplicatedEvent.staff?.length > 0 || duplicatedEvent.students?.length > 0)) {
                 calendarEventCreateTeamsMeeting(docId, duplicatedEvent, { addAlert }).catch((error) => {
                     console.error('Teams meeting creation failed:', error);
@@ -432,6 +432,8 @@ const CalendarContent = () => {
 
             // Remove the recurring instance from state (Firestore listener will add the new standalone event)
             setStateFn(prev => prev.filter(e => e.id !== event.id));
+            // Update only this meeting occurrence after the scheduling write succeeds.
+            await calendarEventUpdateTeamsMeeting(event, start, end, false, false, { addAlert });
 
             addAlert('success', `Event detached and ${actionLabel}d successfully`);
 

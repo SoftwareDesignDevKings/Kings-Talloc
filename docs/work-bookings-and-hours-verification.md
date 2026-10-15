@@ -15,10 +15,11 @@ Branch: `codex/work-bookings-hours`, isolated from the UI branch and based on ma
 
 ## Verification
 
-- Unit suite: 23 suites / 123 tests passed, including 21 scheduling and hours fixtures and notification expiry/recovery tests.
-- Firestore rules and scheduling integration: seven suites passed. The scheduling suite now covers 20 cases, including concurrency, failed-write rollback, idempotent retry, future recurring conflicts, subject eligibility, the exact approval boundary, coverage-loss notices, ownership and bypass attempts.
+- Unit suite: 26 suites / 133 tests passed, including 22 scheduling and hours fixtures and notification expiry/recovery tests.
+- Firestore rules and scheduling integration: seven suites passed (164 tests, including the final scheduling regression rerun). The scheduling suite now covers 35 cases, including concurrency, failed-write rollback, idempotent retry, future recurring conflicts, subject eligibility, the exact approval boundary, coverage-loss notices, ownership and bypass attempts.
 - Five browser scenarios cover student booking during Work and named group members; teacher approval and student notice; availability without a type selector; teacher completion; distinct Monday exports and non-blocking short-shift warnings; and cross-tab acknowledgement with the five-total/three-new example.
 - The cross-tab test uses real browser tabs, Firestore snapshots and browser storage events, with controlled focus/visibility signals because this host's Chromium automation keeps background targets focused. Native window-focus behavior is not certified by this automated run.
+- Existing browser regressions: the 11 selected admin, approvals, tutor and coaching scenarios passed, including a targeted rerun after updating the old decimal-hours assertion. Three native-focus scenarios were excluded on this host; the dedicated two-tab flow covers acknowledgement with controlled focus signals.
 - Lint, whitespace checks and production build passed. Local builds still report the pre-existing Upstash Edge-runtime warning and missing local Redis settings.
 - Teams calls in browser tests use the app's development mocks. No production bookings, emails, meetings, database rules or deployments were changed.
 
@@ -39,6 +40,20 @@ These are regression fixtures, not a recalculation of production records.
 
 Complex mixed sequences, separate short sessions and unresolved class-only legacy entries remain flagged for teacher review. A teacher can record one covering general Work shift where appropriate, keeping student bookings and counting shared time once. Exports remain available for manual correction; the warning case's displayed figure is provisional.
 
-Publish the compatible app/server routes before stricter scheduling rules. Allow the existing version guard to reload older tabs (its interval is five minutes), then verify the GitHub rules-deployment job against the same app commit. Refresh an old tab before retrying a write rejected during the transition. Review and coordinate this release with the separate UI branch; isolation prevents working-directory interference, but shared components may need merge reconciliation.
+The GitHub rules job now waits for production version metadata matching the exact tested commit and scheduling API version, gives the existing version guard five minutes to refresh open tabs, and rechecks both production and the main branch before obtaining deployment credentials. If the app deployment fails or main advances, rules publication fails closed. Refresh an old tab before retrying a write rejected during the transition. Review and coordinate this release with the separate UI branch; isolation prevents working-directory interference, but shared components may need merge reconciliation.
 
 The dedicated browser suite runs with `npm run test:e2e:work-hours`. It uses port 3100 and separate Firestore/Auth emulators on 8180/9199 with project `demo-talloc-work-hours`; it never clears the other development app's data. CI runs this suite after the existing browser regressions.
+
+## Review corrections before PR
+
+- Group-name, class and recurrence edits now recheck conflicts; an empty submitted student list cannot bypass the one-tutor rule. Canonical student ownership is applied before validation.
+- Legacy class rosters are resolved where cached data exists. Unknown class bookings remain occupied and visibly warn. Explicitly removing the last known student preserves approval and makes the event general Work; changing to a different unresolved class cannot silently open it.
+- Editing an old open-ended series no longer imposes a 52-occurrence cutoff. Occurrences beyond the first year can be completed. Future recurrence changes are checked against already stored future commitments and pending requests, including dates beyond one year. Extending a booked series resolves competing pending requests atomically.
+- Whole-series deletion uses the base document ID. Coverage-loss checks include adjoining support and older recurring Work; bookings remain intact and Michael receives the warning.
+- Free intervals retain remote/onsite information. Teacher tutor options now use the combined Work/availability coverage, subtracting occupied bookings.
+- The summary uses the existing deployed start-date index, retains last-loaded results on failure, rejects stale asynchronous results, and requires a current result for export. Short/complex warnings themselves never block export. Word warning paragraphs preserve section markup.
+- Recurring meeting edits/moves update the occurrence, rather than losing the follow-up or moving the whole series. Duplicates reset all meeting identifiers and completion; pending student duplicates cannot create meetings before approval. Reassignment notifies a newly assigned tutor.
+- All loaded booking notices are visible in a scrollable area before dismissal; acknowledgement uses a transaction so a stale tab cannot move the shared watermark backwards.
+- Rules deployment is gated on the matching live app, with a refresh grace period and superseded-commit checks. Browser regressions start Auth as well as Firestore and seed explicit role/auth fixtures.
+
+The agreed manual handling of complex days remains intentional. This review found implementation defects, not further business-policy decisions. Production data and live Teams/email integrations were not exercised.

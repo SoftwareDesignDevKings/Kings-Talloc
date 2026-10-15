@@ -1,9 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 // on npm build - script npm prebuild will create a version. 
 const version = {
-    build: Date.now().toString()
+    build: Date.now().toString(),
+    gitCommit: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+    schedulingApiVersion: 1
 };
 
 const outPath = path.join(__dirname, '..', 'public', 'version.json');

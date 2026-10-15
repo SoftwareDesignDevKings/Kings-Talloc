@@ -240,13 +240,13 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                     const newDocId = await detachRecurringInstance(eventToEdit, eventData);
                     await queueSavedEventEmail({ ...eventData, id: newDocId }, 'allocated', userEmail);
 
-                    if (eventData.teamsEventId) {
+                    if (eventToEdit.teamsEventId) {
                         try {
                             const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
                                 (p) => p.value || p,
                             );
                             const occurrenceId = await getTeamsMeetingOccurrenceId(
-                                eventData.teamsEventId,
+                                eventToEdit.teamsEventId,
                                 eventToEdit.start,
                             );
                             await updateTeamsMeetingOccurrence(
@@ -445,7 +445,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         readOnly={isView}
                     />
 
-                    {isStudentSession(newEvent) && <div className="p-3"><label htmlFor="groupNames" className="form-label">Other students (optional)</label><textarea id="groupNames" className="form-control" disabled={isView} value={Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(', ') : newEvent.additionalStudents || ''} onChange={event => setNewEvent(previous => ({ ...previous, additionalStudents: event.target.value }))} /></div>}
+                    {newEvent.classes?.length > 0 && !newEvent.students?.length && !newEvent.additionalStudents?.length && !newEvent.studentParticipantsResolved && <p className="text-warning-emphasis p-3" role="status">This legacy class booking has unresolved students. It remains occupied; check its participants before changing it.</p>}
+                    {workCategory(newEvent) === 'work' && <div className="p-3"><label htmlFor="groupNames" className="form-label">Other students (optional)</label><textarea id="groupNames" className="form-control" disabled={isView} value={Array.isArray(newEvent.additionalStudents) ? newEvent.additionalStudents.join(', ') : newEvent.additionalStudents || ''} onChange={event => setNewEvent(previous => ({ ...previous, additionalStudents: event.target.value }))} /></div>}
                     <SettingsSection
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}

@@ -1,7 +1,8 @@
 import 'server-only';
+import { DateTime } from 'luxon';
 import { FieldValue } from 'firebase-admin/firestore';
-import { asDate, emailOf, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, APPROVAL_GRACE_MS } from './eventRules';
-import { documentEvent, readSchedule } from './readSchedule';
+import { asDate, emailOf, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
+import { documentEvent, readSchedule, resolveClassParticipants } from './readSchedule';
 
 export class SchedulingError extends Error {
     constructor(message, status = 400, details = {}) { super(message); this.status = status; this.details = details; }
@@ -18,7 +19,22 @@ const flatten = event => {
     const staffList = staff.map(emailOf), studentList = students.map(emailOf);
     return { ...event, staff, students, staffEmails: staffList, studentEmails: studentList, emailsList: [...new Set([...staffList, ...studentList])] };
 };
-const expand = event => expandRecurringEvents([event], { rangeStart: event.start, rangeEnd: new Date(+event.start + 367 * 86400000), maxOccurrences: 52 });
+const YEAR = 367 * 86400000;
+const expansionEnd = (event, timestamp) => {
+    let end = Math.max(+asDate(event.end), +timestamp) + (event.recurring ? YEAR : 1);
+    if (event.recurring && event.occurenceNum) end = Math.max(end, +DateTime.fromJSDate(asDate(event.end), { zone: SYDNEY_ZONE })
+        .plus({ weeks: (event.occurenceNum - 1) * (event.recurring === 'weekly' ? 1 : 2) }) + 1);
+    return new Date(end);
+};
+const expand = (event, rangeEnd = expansionEnd(event, new Date())) => expandRecurringEvents([event], { rangeStart: event.start, rangeEnd });
+const bookingShape = (event, includeRecurrence = true) => JSON.stringify({
+    start: +asDate(event.start), end: +asDate(event.end), staff: staffEmails(event).sort(),
+    students: (event.students || []).map(emailOf).sort(), names: event.additionalStudents || [],
+    classes: (event.classes || []).map(item => item.value || item.id || item).sort(),
+    studentSession: isStudentSession(event), category: workCategory(event),
+    ...(includeRecurrence && { recurring: event.recurring || null, count: event.occurenceNum || null,
+        until: event.until ? +asDate(event.until) : null, exceptions: event.eventExceptions || [] }),
+});
 const notice = (transaction, db, id, recipientEmail, event, kind, message, now) => {
     transaction.set(db.collection('bookingNotifications').doc(encodeURIComponent(`${id}|${kind}|${recipientEmail}`)), {
         recipientEmail, eventId: event.id, start: event.start, end: event.end, title: event.title || 'Tutoring', kind, message, createdAt: now,
@@ -52,15 +68,23 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         if (operationSnapshot.exists) return operationSnapshot.data().result;
         const snapshot = action === 'create' ? null : await transaction.get(source);
         fail(action !== 'create' && !snapshot?.exists, 'This event has already been handled or removed.', 409);
-        const saved = snapshot?.exists ? documentEvent(snapshot) : null;
+        const saved = snapshot?.exists ? await resolveClassParticipants(db, documentEvent(snapshot), transaction) : null;
         const raw = cleanData(input.data);
+        const classIds = classes => (classes || []).map(item => String(item.value || item.id || item)).sort();
+        const classesChanged = raw.classes && JSON.stringify(classIds(raw.classes)) !== JSON.stringify(classIds(saved?.classes));
         let event = { ...(saved || {}), ...raw, id: target.id };
+        if (classesChanged) delete event.studentParticipantsResolved;
         const originalCollection = ['approve', 'deny'].includes(action) ? 'studentEventRequests' : collectionName;
         const owner = saved && ((saved.studentEmails || (saved.students || []).map(emailOf)).includes(actor));
         const ownAvailability = emailOf(saved?.tutor || raw.tutor) === actor;
         const isAvailability = collectionName === 'tutorAvailabilities';
         if (originalCollection === 'studentEventRequests') event.workType = 'work';
         if (!isAvailability) delete event.tutor;
+        // Canonicalise student-owned requests before any structural/eligibility checks.
+        if (!manager && originalCollection === 'studentEventRequests' && ['create', 'update'].includes(action)) {
+            event.students = [{ value: actor, label: sessionUser.name || actor }];
+            event.classes = []; event.recurring = null; event.occurenceNum = null; event.until = null;
+        }
         if (isAvailability) fail(!(roles.has('tutor') || roles.has('coach')) || !ownAvailability || (raw.tutor && emailOf(raw.tutor) !== actor), 'Only the tutor can manage their availability.', 403);
         else if (!manager) {
             if (action === 'complete' || (action === 'detach' && collectionName === 'shifts')) {
@@ -85,21 +109,32 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         }
         if (action === 'create') {
             event.createdAt = timestamp;
-            if (!isAvailability) event.workStatus = 'notCompleted';
+            if (!isAvailability) {
+                event.workStatus = 'notCompleted';
+                // A duplicate gets its own meeting after saving; never inherit the original IDs.
+                event.teamsEventId = null; event.teamsJoinUrl = null; event.teamsMeetingUrl = null; event.onlineMeetingId = null;
+            }
         }
         if (saved) event.createdAt = saved.createdAt || null;
         let previousScheduling = saved;
         if (action === 'detach') {
             fail(!saved.recurring || !Number.isInteger(input.occurrenceIndex) || input.occurrenceIndex < 0 || (saved.eventExceptions || []).includes(input.occurrenceIndex), 'This recurring occurrence is no longer available.', 409);
-            const occurrence = expand(saved).find(item => item.occurrenceIndex === input.occurrenceIndex);
+            const occurrenceEnd = DateTime.fromJSDate(saved.end, { zone: SYDNEY_ZONE })
+                .plus({ weeks: input.occurrenceIndex * (saved.recurring === 'weekly' ? 1 : 2) }).plus({ milliseconds: 1 }).toJSDate();
+            const occurrence = expand(saved, occurrenceEnd).find(item => item.occurrenceIndex === input.occurrenceIndex);
             fail(!occurrence, 'Invalid recurring occurrence.');
             previousScheduling = occurrence;
             event = { ...event, start: raw.start || occurrence.start, end: raw.end || occurrence.end, recurring: null, until: null, occurenceNum: null, eventExceptions: [], createdAt: saved.createdAt || timestamp };
             // A detached occurrence keeps its existing Teams series identifiers for follow-up updates.
         }
+        if (action === 'until') {
+            fail(!saved.recurring, 'This event is not recurring.');
+            event.until = asDate(input.until);
+            fail(!Number.isFinite(+event.until), 'Invalid recurrence end.');
+        }
         const deletes = action === 'delete';
         const statusOnly = action === 'complete';
-        if (!deletes && !['deny', 'exception', 'until'].includes(action)) {
+        if (!deletes && !['deny', 'exception'].includes(action)) {
             event.start = asDate(event.start); event.end = asDate(event.end);
             fail(!Number.isFinite(+event.start) || !Number.isFinite(+event.end) || event.end <= event.start, 'Choose a valid start and finish.');
             fail(event.end - event.start > 24 * 3600000, 'Sessions must be shorter than one day.');
@@ -107,9 +142,10 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             if (event.recurring) {
                 fail(!['weekly', 'fortnightly'].includes(event.recurring), 'Invalid recurrence.');
                 const max = event.recurring === 'weekly' ? 10 : 5;
-                const count = Number(event.occurenceNum) || (saved?.recurring ? 52 : 0);
-                fail(!Number.isInteger(count) || count < 2 || (count > max && !saved?.recurring), `Choose 2 to ${max} occurrences.`);
-                event.occurenceNum = count;
+                const legacyOpenEnded = saved?.recurring && !saved.occurenceNum && !event.occurenceNum;
+                const count = Number(event.occurenceNum);
+                fail(!legacyOpenEnded && (!Number.isInteger(count) || count < 2 || (count > max && count !== Number(saved?.occurenceNum))), `Choose 2 to ${max} occurrences.`);
+                if (!legacyOpenEnded) event.occurenceNum = count;
                 fail(event.workStatus === 'completed', 'Complete individual recurring occurrences.');
             }
             if (isAvailability) {
@@ -117,13 +153,20 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                 if (!saved && roles.has('coach') && !roles.has('tutor')) event.workType = ['coaching'];
                 else event.workType = saved?.workType || event.workType || ['work'];
             } else {
-                event = flatten(event);
+                if (!classesChanged && saved && (saved.students?.length || saved.additionalStudents?.length) && (raw.students !== undefined || raw.additionalStudents !== undefined)) event.studentParticipantsResolved = true;
+                event = flatten(await resolveClassParticipants(db, event, transaction));
                 event.workType = workCategory(event);
                 event.recurring = event.recurring || null;
                 event.until = event.until || null;
                 fail(!event.staff.length, 'Assign at least one staff member.');
                 const names = Array.isArray(event.additionalStudents) ? event.additionalStudents : typeof event.additionalStudents === 'string' ? event.additionalStudents.split(/[,\n]/) : [];
                 event.additionalStudents = names.map(name => String(name).trim().slice(0, 200)).filter(Boolean).slice(0, 30);
+                // Explicitly removing the last known participant makes approved Work general again.
+                // Class-only legacy records remain occupied until a teacher resolves participants.
+                if (event.students.length || event.additionalStudents.length ||
+                    (!classesChanged && saved && (saved.students?.length || saved.additionalStudents?.length) && (raw.students !== undefined || raw.additionalStudents !== undefined))) {
+                    event.studentParticipantsResolved = true;
+                }
                 if (isStudentSession(event)) fail(event.staff.length !== 1, 'Student sessions have one tutor.');
             }
             if (originalCollection === 'studentEventRequests' && !['approve', 'deny'].includes(action)) {
@@ -131,7 +174,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                 event.approvalStatus = 'pending'; event.workStatus = 'notCompleted'; event.createdByStudent = true;
                 if (!manager) {
                     event.students = [{ value: actor, label: sessionUser.name || actor }]; event.classes = []; event.recurring = null;
-                    event.createTeamsMeeting = false; event.teamsEventId = null; event.teamsJoinUrl = null;
+                    event.createTeamsMeeting = false; event.teamsEventId = null; event.teamsJoinUrl = null; event.teamsMeetingUrl = null; event.onlineMeetingId = null;
                     event = flatten(event);
                     fail(event.start <= timestamp, 'Student requests must start in the future.');
                 }
@@ -146,21 +189,24 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         const emails = [...new Set([...(saved ? staffEmails(saved) : []), ...staffEmails(event), ...(isAvailability ? [actor] : [])])].sort();
         const guardRefs = emails.map(email => db.collection('tutorBookingGuards').doc(encodeURIComponent(email)));
         const guards = await Promise.all(guardRefs.map(ref => transaction.get(ref)));
-        const rangeStart = new Date(Math.min(+(saved?.start || event.start), +event.start));
-        const rangeEnd = new Date(Math.max(+(saved?.end || event.end), +event.end) + ((saved?.recurring || event.recurring) ? 367 * 86400000 : 0));
+        // Include adjacent support for sessions spanning more than the edited Work record.
+        const coverageChange = saved && (isAvailability || (collectionName === 'shifts' && isGeneralWork(saved)));
+        const rangeStart = new Date(Math.min(+(saved?.start || event.start), +event.start) - (coverageChange ? 86400000 : 0));
+        let rangeEnd = new Date(Math.max(+expansionEnd(saved || event, timestamp), +expansionEnd(event, timestamp)) + (coverageChange ? 86400000 : 0));
         fail(!Number.isFinite(+rangeStart) || !Number.isFinite(+rangeEnd), 'Invalid event time.');
         const [shifts, availabilitySnapshot, pendingSnapshot, staffSnapshots] = await Promise.all([
-            readSchedule(db, rangeStart, rangeEnd, transaction),
+            readSchedule(db, rangeStart, rangeEnd, transaction, { includeFuture: Boolean(saved?.recurring || event.recurring) }),
             transaction.get(db.collection('tutorAvailabilities').where('end', '>', rangeStart)),
             transaction.get(db.collection('studentEventRequests').where('approvalStatus', '==', 'pending')),
             Promise.all(emails.map(email => transaction.get(db.collection('users').doc(email)))),
         ]);
+        if (saved?.recurring || event.recurring) rangeEnd = new Date(Math.max(+rangeEnd, ...shifts.map(shift => +shift.end + 1), ...pendingSnapshot.docs.map(doc => +asDate(doc.data().end) + 1)));
         const availabilities = availabilitySnapshot.docs.map(documentEvent);
         const otherShifts = shifts.filter(shift => action === 'detach'
             ? !(shift.recurringEventId === saved?.id && shift.occurrenceIndex === input.occurrenceIndex)
             : !saved || (shift.id !== saved.id && shift.recurringEventId !== saved.id));
-        let proposed = !deletes && !['deny', 'exception', 'until'].includes(action) ? expand(event) : [];
-        const bookingChanged = !previousScheduling || action === 'approve' || +event.start !== +previousScheduling.start || +event.end !== +previousScheduling.end || JSON.stringify(staffEmails(event)) !== JSON.stringify(staffEmails(previousScheduling)) || JSON.stringify((event.students || []).map(emailOf)) !== JSON.stringify((previousScheduling.students || []).map(emailOf)) || workCategory(previousScheduling) !== event.workType;
+        let proposed = !deletes && !['deny', 'exception'].includes(action) ? expand(event, rangeEnd) : [];
+        const bookingChanged = !previousScheduling || action === 'approve' || bookingShape(event, action !== 'detach') !== bookingShape(previousScheduling, action !== 'detach');
         if (!isAvailability && !statusOnly && proposed.length) {
             const requiredRole = event.workType === 'coaching' ? 'coach' : isStudentSession(event) ? 'tutor' : null;
             for (const email of staffEmails(event)) {
@@ -172,7 +218,10 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                 const eligibilityDocs = await Promise.all((event.students || []).map(student => transaction.get(db.collection('studentTutorEligibility').doc(emailOf(student)))));
                 for (const eligibility of eligibilityDocs) fail(!eligibility.data()?.eligibleTutorEmails?.map(emailOf).includes(staffEmails(event)[0]), 'The tutor is not eligible for this student’s subjects.');
             }
-            const clashing = bookingChanged ? proposed.filter(occurrence => otherShifts.some(existing => isApproved(existing) && staffEmails(existing).some(email => staffEmails(event).includes(email)) && commitmentsConflict(occurrence, existing))) : [];
+            const previousOccurrences = saved ? expand(saved, rangeEnd) : [];
+            const clashing = bookingChanged ? proposed.filter(occurrence =>
+                // Trimming a series does not reschedule its surviving occurrences.
+                !(action === 'until' && previousOccurrences.some(old => +old.start === +occurrence.start && +old.end === +occurrence.end)) && otherShifts.some(existing => isApproved(existing) && staffEmails(existing).some(email => staffEmails(event).includes(email)) && commitmentsConflict(occurrence, existing))) : [];
             if (clashing.length) {
                 fail(!event.recurring || !allowSkipConflicts, 'Scheduling conflict. Review the conflicting dates.', 409, { conflictingDates: clashing.map(item => item.start.toISOString()), canSkip: Boolean(event.recurring) });
                 event.eventExceptions = [...new Set([...(event.eventExceptions || []), ...clashing.map(item => item.occurrenceIndex)])];
@@ -197,8 +246,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             fail(!saved.recurring || !Number.isInteger(input.occurrenceIndex) || input.occurrenceIndex < 0, 'Invalid recurring occurrence.');
             transaction.update(source, { eventExceptions: FieldValue.arrayUnion(input.occurrenceIndex) });
         } else if (action === 'until') {
-            const until = asDate(input.until); fail(!Number.isFinite(+until), 'Invalid recurrence end.');
-            transaction.update(source, { until });
+            transaction.update(source, { until: event.until, eventExceptions: event.eventExceptions || [] });
         } else if (statusOnly) transaction.update(source, { workStatus: raw.workStatus });
         else {
             const { id: ignoredId, ...data } = cleanStoredEvent(event);
@@ -207,23 +255,23 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             if (action === 'approve') {
                 transaction.delete(source);
                 decisionNotices(transaction, db, operationId, event, true, timestamp);
-            } else if (action === 'create' && collectionName === 'shifts' && isStudentSession(event)) {
-                for (const email of staffEmails(event)) notice(transaction, db, operationId, email, event, 'assigned', 'A student session has been assigned to you.', timestamp);
+            } else if (collectionName === 'shifts' && isStudentSession(event)) {
+                for (const email of staffEmails(event).filter(email => action === 'create' || !staffEmails(saved || {}).includes(email))) notice(transaction, db, operationId, email, event, 'assigned', 'A student session has been assigned to you.', timestamp);
             }
-            // Any new approved student booking resolves competing pending requests.
-            if (collectionName === 'shifts' || action === 'approve') for (const pendingDoc of pendingSnapshot.docs) {
-                if (pendingDoc.id === id && action === 'approve') continue;
-                const pending = documentEvent(pendingDoc);
-                if (proposed.some(occurrence => isApproved(occurrence) && isStudentSession(occurrence) && staffEmails(pending).some(email => staffEmails(occurrence).includes(email)) && commitmentsConflict(occurrence, pending))) {
-                    transaction.update(pendingDoc.ref, { approvalStatus: 'denied', deniedAt: timestamp, denialReason: 'Another student session was approved for this time.' });
-                    decisionNotices(transaction, db, `${operationId}-${pendingDoc.id}`, pending, false, timestamp);
-                }
+        }
+        // Any new approved student booking resolves competing pending requests.
+        if (collectionName === 'shifts' || action === 'approve') for (const pendingDoc of pendingSnapshot.docs) {
+            if (pendingDoc.id === id && action === 'approve') continue;
+            const pending = documentEvent(pendingDoc);
+            if (proposed.some(occurrence => isApproved(occurrence) && isStudentSession(occurrence) && staffEmails(pending).some(email => staffEmails(occurrence).includes(email)) && commitmentsConflict(occurrence, pending))) {
+                transaction.update(pendingDoc.ref, { approvalStatus: 'denied', deniedAt: timestamp, denialReason: 'Another student session was approved for this time.' });
+                decisionNotices(transaction, db, `${operationId}-${pendingDoc.id}`, pending, false, timestamp);
             }
         }
         // Warn Michael only when a future booking actually loses previously available coverage.
         if (saved && ((isAvailability && action !== 'create') || (collectionName === 'shifts' && isGeneralWork(saved)))) {
             let afterShifts = shifts, afterAvailabilities = availabilities;
-            const replacement = ['delete', 'deny'].includes(action) ? [] : action === 'exception' ? expand({ ...saved, eventExceptions: [...(saved.eventExceptions || []), input.occurrenceIndex] }) : action === 'until' ? expand({ ...saved, until: asDate(input.until) }) : proposed;
+            const replacement = ['delete', 'deny'].includes(action) ? [] : action === 'exception' ? expand({ ...saved, eventExceptions: [...(saved.eventExceptions || []), input.occurrenceIndex] }, rangeEnd) : action === 'until' ? expand({ ...saved, until: event.until }, rangeEnd) : proposed;
             if (isAvailability) afterAvailabilities = [...availabilities.filter(item => item.id !== saved.id), ...replacement];
             else afterShifts = [...otherShifts, ...replacement];
             for (const booking of shifts.filter(item => isStudentSession(item) && isApproved(item) && item.start > timestamp)) {
@@ -237,7 +285,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             }
         }
         const skipped = event.eventExceptions || [];
-        const result = { id: target.id, eventData: serialise(event), skippedDates: expand({ ...event, eventExceptions: [] }).filter(item => skipped.includes(item.occurrenceIndex)).map(item => item.start.toISOString()) };
+        const result = { id: target.id, eventData: serialise(event), skippedDates: expand({ ...event, eventExceptions: [] }, rangeEnd).filter(item => skipped.includes(item.occurrenceIndex)).map(item => item.start.toISOString()) };
         transaction.set(operation, { actor, createdAt: timestamp, result });
         return result;
     });

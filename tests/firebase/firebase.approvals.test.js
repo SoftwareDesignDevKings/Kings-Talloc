@@ -152,3 +152,106 @@ test('completing an unchanged recurring booking does not require current subject
     const result = await call({ action: 'detach', id: 'series', occurrenceIndex: 1, data: { workStatus: 'completed' } }, tutor);
     expect((await db.collection('shifts').doc(result.id).get()).data().workStatus).toBe('completed');
 });
+
+test('adding named group students to Work rechecks conflicts', async () => {
+    await db.collection('shifts').doc('work').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved' }));
+    await db.collection('shifts').doc('busy').set(data({ createdByStudent: false, approvalStatus: 'approved' }));
+    await expect(call({ action: 'update', id: 'work', data: { additionalStudents: ['Another student'] } })).rejects.toThrow('Scheduling conflict');
+});
+test('adding recurrence or extending its end rechecks future conflicts', async () => {
+    const future = new Date(+start + 7 * 86400000), futureEnd = new Date(+end + 7 * 86400000);
+    await db.collection('shifts').doc('session').set(data({ createdByStudent: false, approvalStatus: 'approved' }));
+    await db.collection('shifts').doc('busy').set(data({ createdByStudent: false, approvalStatus: 'approved', start: future, end: futureEnd }));
+    await expect(call({ action: 'update', id: 'session', data: { recurring: 'weekly', occurenceNum: 3 } })).rejects.toThrow('Scheduling conflict');
+    await db.collection('shifts').doc('session').update({ recurring: 'weekly', occurenceNum: 3, until: start });
+    await expect(call({ action: 'until', id: 'session', until: future })).rejects.toThrow('Scheduling conflict');
+});
+test('student cannot bypass the one-tutor rule with an empty student list', async () => {
+    await db.collection('users').doc('other@kings.edu.au').set({ ...tutor, email: 'other@kings.edu.au' });
+    await db.collection('tutorAvailabilities').doc('available').set({ tutor: tutor.email, start, end });
+    await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: data({ students: [], staff: [tutor.email, 'other@kings.edu.au'] }) }, student)).rejects.toThrow('one tutor');
+});
+test('editing an old open-ended series preserves recurrence and checks upcoming dates', async () => {
+    const base = require('luxon').DateTime.fromJSDate(start, { zone: 'Australia/Sydney' }).minus({ weeks: 70 }).toJSDate();
+    await db.collection('shifts').doc('old').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved', recurring: 'weekly', start: base, end: new Date(+base + 3600000) }));
+    await call({ action: 'update', id: 'old', data: { title: 'Renamed Work' } });
+    expect((await db.collection('shifts').doc('old').get()).data().occurenceNum).toBeFalsy();
+    await db.collection('shifts').doc('busy').set(data({ createdByStudent: false, approvalStatus: 'approved' }));
+    await expect(call({ action: 'update', id: 'old', data: { additionalStudents: ['Named student'] } })).rejects.toThrow('Scheduling conflict');
+});
+test('old recurring occurrences can be completed beyond the first year', async () => {
+    const base = require('luxon').DateTime.fromJSDate(start, { zone: 'Australia/Sydney' }).minus({ weeks: 70 }).toJSDate();
+    await db.collection('shifts').doc('old').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved', recurring: 'weekly', start: base, end: new Date(+base + 3600000) }));
+    const result = await call({ action: 'detach', id: 'old', occurrenceIndex: 70, data: { workStatus: 'completed' } }, tutor);
+    expect((await db.collection('shifts').doc(result.id).get()).data().start.toMillis()).toBe(+start);
+});
+test('removing the last student preserves approval and makes the event general Work despite old class metadata', async () => {
+    await db.collection('shifts').doc('session').set(data({ approvalStatus: 'approved', classes: [{ value: 'legacy-class' }] }));
+    await call({ action: 'update', id: 'session', data: { students: [], additionalStudents: [] } });
+    await seed('new');
+    await call({ action: 'approve', id: 'new' });
+    expect((await db.collection('shifts').doc('session').get()).data().approvalStatus).toBe('approved');
+});
+test('removing an old recurring Work series warns about current supported bookings', async () => {
+    const base = require('luxon').DateTime.fromJSDate(start, { zone: 'Australia/Sydney' }).minus({ weeks: 70 }).toJSDate();
+    await db.collection('shifts').doc('old').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved', recurring: 'weekly', start: base, end: new Date(+base + 3600000) }));
+    await seed('a'); await call({ action: 'approve', id: 'a' });
+    await call({ action: 'delete', id: 'old' });
+    expect((await db.collection('bookingNotifications').where('kind', '==', 'coverage-lost').get()).size).toBe(1);
+});
+
+test('cached class participants are resolved while unknown legacy classes stay occupied', async () => {
+    await db.collection('canvasEnrollments').doc('enrollment').set({ courseId: 'known-class', email: student.email, userName: 'Student' });
+    const result = await call({ action: 'create', data: data({ students: [], classes: [{ value: 'known-class' }] }) });
+    expect((await db.collection('shifts').doc(result.id).get()).data().students[0].value).toBe(student.email);
+    await db.collection('shifts').doc('unknown').set(data({ students: [], classes: [{ value: 'unknown-class' }], start: end, end: new Date(+end + 3600000), createdByStudent: false, approvalStatus: 'approved' }));
+    await seed('a', { start: end, end: new Date(+end + 3600000) });
+    await expect(call({ action: 'approve', id: 'a' })).rejects.toThrow('Scheduling conflict');
+});
+test('extending an approved recurring booking denies competing pending requests atomically', async () => {
+    const future = new Date(+start + 7 * 86400000), futureEnd = new Date(+end + 7 * 86400000);
+    await db.collection('shifts').doc('series').set(data({ recurring: 'weekly', occurenceNum: 3, until: start, createdByStudent: false, approvalStatus: 'approved' }));
+    await seed('a', { start: future, end: futureEnd });
+    await call({ action: 'until', id: 'series', until: future });
+    expect((await db.collection('studentEventRequests').doc('a').get()).data().approvalStatus).toBe('denied');
+});
+
+test('coverage-loss checks include adjoining Work on both sides of an edited shift', async () => {
+    for (const [id, offset] of [['before', -1], ['middle', 0], ['after', 1]]) await db.collection('shifts').doc(id).set(data({ students: [], createdByStudent: false, approvalStatus: 'approved', start: new Date(+start + offset * 3600000), end: new Date(+end + offset * 3600000) }));
+    await seed('a', { start: new Date(+start - 1800000), end: new Date(+end + 1800000) });
+    await call({ action: 'approve', id: 'a' });
+    await call({ action: 'delete', id: 'middle' });
+    expect((await db.collection('bookingNotifications').where('kind', '==', 'coverage-lost').get()).size).toBe(1);
+});
+test('editing a legacy recurring series checks bookings more than a year ahead', async () => {
+    const future = require('luxon').DateTime.fromJSDate(start, { zone: 'Australia/Sydney' }).plus({ weeks: 110 });
+    await db.collection('shifts').doc('old').set(data({ students: [], createdByStudent: false, approvalStatus: 'approved', recurring: 'weekly' }));
+    await db.collection('shifts').doc('future').set(data({ createdByStudent: false, approvalStatus: 'approved', start: future.toJSDate(), end: future.plus({ hours: 1 }).toJSDate() }));
+    await expect(call({ action: 'update', id: 'old', data: { additionalStudents: ['Named student'] } })).rejects.toThrow('Scheduling conflict');
+});
+
+test('removing explicit students does not silently refill them from a cached class roster', async () => {
+    await db.collection('canvasEnrollments').doc('enrollment').set({ courseId: 'known-class', email: student.email });
+    await db.collection('shifts').doc('session').set(data({ approvalStatus: 'approved', classes: [{ value: 'known-class' }] }));
+    await call({ action: 'update', id: 'session', data: { students: [], additionalStudents: [], classes: [{ value: 'known-class', label: 'New label only' }] } });
+    await seed('a'); await call({ action: 'approve', id: 'a' });
+    expect((await db.collection('shifts').doc('session').get()).data().students).toEqual([]);
+});
+test('adding a different class to general Work restores occupied student-session semantics', async () => {
+    await db.collection('shifts').doc('work').set(data({ students: [], classes: [{ value: 'old-class' }], studentParticipantsResolved: true, createdByStudent: false, approvalStatus: 'approved' }));
+    await db.collection('shifts').doc('busy').set(data({ createdByStudent: false, approvalStatus: 'approved' }));
+    await expect(call({ action: 'update', id: 'work', data: { classes: [{ value: 'new-class' }] } })).rejects.toThrow('Scheduling conflict');
+});
+
+test('new and duplicated bookings reset completion and every meeting identifier', async () => {
+    const result = await call({ action: 'create', data: data({ students: [], workStatus: 'completed', teamsEventId: 'old-series', teamsMeetingUrl: 'old-url', teamsJoinUrl: 'old-join', onlineMeetingId: 'old-online' }) });
+    const saved = (await db.collection('shifts').doc(result.id).get()).data();
+    expect(saved.workStatus).toBe('notCompleted');
+    for (const key of ['teamsEventId', 'teamsMeetingUrl', 'teamsJoinUrl', 'onlineMeetingId']) expect(saved[key]).toBeNull();
+});
+
+test('changing class while clearing its old students cannot make an unresolved new class bookable', async () => {
+    await db.collection('shifts').doc('session').set(data({ classes: [{ value: 'old-class' }], createdByStudent: false, approvalStatus: 'approved' }));
+    await db.collection('shifts').doc('busy').set(data({ createdByStudent: false, approvalStatus: 'approved' }));
+    await expect(call({ action: 'update', id: 'session', data: { students: [], additionalStudents: [], classes: [{ value: 'unknown-class' }] } })).rejects.toThrow('Scheduling conflict');
+});

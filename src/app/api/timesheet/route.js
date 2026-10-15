@@ -61,7 +61,7 @@ export async function POST(req) {
                 const escape = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const paragraphs = warnings.map(warning => `<w:p><w:r><w:t xml:space="preserve">⚠ ${escape(warning)}</w:t></w:r></w:p>`).join('');
                 const xml = zip.file('word/document.xml').asText();
-                zip.file('word/document.xml', xml.includes('<w:sectPr') ? xml.replace('<w:sectPr', `${paragraphs}<w:sectPr`) : xml.replace('</w:body>', `${paragraphs}</w:body>`));
+                zip.file('word/document.xml', xml.replace(/(<w:sectPr\b[^>]*(?:\/>|>[\s\S]*?<\/w:sectPr>))?(\s*<\/w:body>)/, (_match, finalSection = '', bodyEnd) => `${paragraphs}${finalSection}${bodyEnd}`));
             }
             files.push({ name: `${safeName(tutorName)}_${timesheetType}_${weekEnd.toISODate()}.docx`, buffer: zip.generate({ type: 'nodebuffer' }) });
         }

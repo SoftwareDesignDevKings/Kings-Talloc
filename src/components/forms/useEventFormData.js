@@ -1,4 +1,4 @@
-import { isStudentSession } from '@/lib/scheduling/eventRules';
+import { isStudentSession, bookableIntervals, rangeCovered } from '@/lib/scheduling/eventRules';
 import { useMemo } from 'react';
 import { useAppData } from '@/contexts/AppDataContext';
 
@@ -8,10 +8,10 @@ import { useAppData } from '@/contexts/AppDataContext';
  * fetched/cached globally; this hook just reshapes them for the form selects.
  */
 export const useEventFormData = (newEvent) => {
-    const { tutors, classes, students, calendarAvailabilities } = useAppData();
+    const { tutors, classes, students, calendarAvailabilities, calendarShifts = [] } = useAppData();
 
-    // For each tutor, check already-loaded availabilities to determine availability status.
-    // When workType is 'tutoring' or 'coaching', only show staff whose roles match.
+    // Academic options use the same combined Work/availability coverage as bookings.
+    // Teachers may still arrange sessions outside that coverage.
     const staffOptions = useMemo(() => {
         const eventStart = new Date(newEvent.start);
         const eventEnd = new Date(newEvent.end);
@@ -22,7 +22,8 @@ export const useEventFormData = (newEvent) => {
             if (isStudentSession(newEvent) && !tutor.roles?.includes('tutor')) continue;
             if (workType === 'coaching' && !tutor.roles?.includes('coach')) continue;
 
-            const matchingAvailability = calendarAvailabilities.find(
+            const coverage = workType === 'coaching' ? calendarAvailabilities.filter(a => a.tutor === tutor.email) : bookableIntervals(tutor.email, calendarAvailabilities, calendarShifts);
+            const matchingAvailability = coverage.find(
                 (avail) =>
                     avail.tutor === tutor.email &&
                     new Date(avail.start) <= eventStart &&
@@ -33,13 +34,13 @@ export const useEventFormData = (newEvent) => {
                 value: tutor.email,
                 label: tutor.name,
                 roles: tutor.roles,
-                locationType: matchingAvailability
-                    ? matchingAvailability.locationType || 'onsite'
+                locationType: rangeCovered(eventStart, eventEnd, coverage)
+                    ? matchingAvailability?.locationType || coverage.find(a => a.start <= eventStart && a.end > eventStart)?.locationType || 'onsite'
                     : 'unavailable',
             });
         }
         return options;
-    }, [tutors, calendarAvailabilities, newEvent]);
+    }, [tutors, calendarAvailabilities, calendarShifts, newEvent]);
 
     const classOptions = useMemo(() =>
         classes.map((cls) => ({

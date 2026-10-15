@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, query, where, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, where, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
 import useAuthSession from '@/hooks/useAuthSession';
 
@@ -27,14 +27,20 @@ export default function BookingNotices() {
         try {
             // Acknowledge only notices actually loaded; a concurrent arrival stays visible.
             const latest = notices[0]?.createdAt;
-            if (latest) await setDoc(doc(db, 'bookingNotificationState', email), { acknowledgedAt: latest, updatedAt: serverTimestamp() });
+            if (latest) await runTransaction(db, async transaction => {
+                const ref = doc(db, 'bookingNotificationState', email);
+                const state = await transaction.get(ref);
+                if (!state.data()?.acknowledgedAt || state.data().acknowledgedAt.toMillis() < latest.toMillis()) {
+                    transaction.set(ref, { acknowledgedAt: latest, updatedAt: serverTimestamp() });
+                }
+            });
         } catch { setError('Unable to dismiss updates. Please retry.'); }
     };
     if (!unseen.length && !error) return null;
     return <div className="alert alert-info mb-3" aria-label="Booking updates">
         {error && <div role="status">{error}</div>}
-        {unseen.slice(0, 10).map(notice => <div key={notice.id} className="mb-1"><a href={`/calendar?date=${encodeURIComponent(notice.start.toDate().toISOString())}`}>{notice.title} — {notice.start.toDate().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</a>: {notice.message}</div>)}
-        {unseen.length > 10 && <div>{unseen.length - 10} more updates.</div>}
+        <div style={{ maxHeight: '16rem', overflowY: 'auto' }}>{unseen.map(notice => <div key={notice.id} className="mb-1"><a href={`/calendar?date=${encodeURIComponent(notice.start.toDate().toISOString())}`}>{notice.title} — {notice.start.toDate().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</a>: {notice.message}</div>)}
+        </div>
         {unseen.length > 0 && <button type="button" className="btn btn-sm btn-outline-secondary mt-2" disabled={!ready} onClick={dismiss}>Dismiss updates</button>}
     </div>;
 }
