@@ -12,6 +12,7 @@ import ReLoginModal from '@/components/modals/ReLoginModal.jsx';
 import useAlert from '@/hooks/useAlert';
 import { useAppData } from '@/contexts/AppDataContext';
 import { addWeeks, endOfWeek, isWithinInterval, startOfWeek } from 'date-fns';
+import { formatDisplayDate } from '@/utils/displayDate';
 import { fetchCacheClasses } from '@/firestore/firestoreFetch';
 
 const DashboardOverview = () => {
@@ -86,8 +87,8 @@ const DashboardOverview = () => {
                 }
             }
 
-            // 2. Upcoming Events (Limit 5)
-            if (isFuture && upcomingEvents.length < 5) {
+            // 2. Count every upcoming event; limit only the sorted preview below.
+            if (isFuture) {
                 upcomingEvents.push(event);
             }
 
@@ -169,9 +170,10 @@ const DashboardOverview = () => {
         const completedWorkHours = completed.tutors.reduce((sum, tutor) => sum + tutor.workMs / 3600000, 0);
         const completedCoachingHours = completed.tutors.reduce((sum, tutor) => sum + tutor.coachingMs / 3600000, 0);
         return {
-            todayEvents: todayEvents.sort((a, b) => a.start - b.start),
-            upcomingEvents: upcomingEvents.sort((a, b) => a.start - b.start),
+            todayEvents: todayEvents.sort((a, b) => new Date(a.start) - new Date(b.start)),
+            upcomingEvents: upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 5),
             upcomingEventsCount: upcomingEvents.length,
+            upcomingPeriod: `Through ${formatDisplayDate(nextWeekEnd)}`,
             unapprovedStudentRequests: pendingRequestsData.length,
             pendingRequestsData: pendingRequestsData,
             uncompletedTodayEvents,
@@ -289,6 +291,7 @@ const DashboardOverview = () => {
                 <div className="col-12">
                     <EventsList
                         events={dashboardData.upcomingEvents}
+                        totalCount={dashboardData.upcomingEventsCount}
                         title="Upcoming Events"
                         emptyMessage="No upcoming events scheduled"
                         userRole={userRole}

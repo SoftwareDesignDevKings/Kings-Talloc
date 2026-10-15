@@ -18,3 +18,13 @@ test.each(['teacher', 'admin', 'student'])('%s retains approval badges for reque
     expect(screen.getByText('Approved')).toBeInTheDocument();
     expect(screen.getByText('Pending')).toBeInTheDocument();
 });
+
+test('upcoming sessions show Sydney dates, both times and the student’s tutor without clickable rows', () => {
+    render(<EventsList events={[{ ...events[0], staff: [{ value: 'tutor@school.test', label: 'Viraj Patel' }] }]} title="Upcoming" userRole="student" totalCount={8} />);
+    expect(screen.getByText('06/04/2027')).toBeInTheDocument();
+    expect(screen.getByText('3:00 pm – 4:00 pm')).toBeInTheDocument();
+    expect(screen.getByText('Tutor: Viraj Patel')).toBeInTheDocument();
+    expect(screen.getByText('1 of 8')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});

@@ -12,6 +12,7 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
             iconBgColor="bg-primary"
             title="Upcoming Events"
             value={data.upcomingEventsCount}
+            subtitle={data.upcomingPeriod}
             delay={50}
             colClass={ADMIN_COL}
         />
