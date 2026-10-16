@@ -8,7 +8,7 @@ jest.mock('@/components/modals/BaseModal', () => function MockModal({ show, titl
 test('deleting a request warns about lost rejection visibility and requires explicit red confirmation', () => {
     const confirm = jest.fn(), cancel = jest.fn();
     render(<DeleteConfirmationModal show onConfirm={confirm} onHide={cancel} isStudentRequest />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Students will no longer be able to see that it was rejected');
+    expect(screen.getByRole('alert')).toHaveTextContent('any rejection notice');
     expect(confirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(cancel).toHaveBeenCalled(); expect(confirm).not.toHaveBeenCalled();

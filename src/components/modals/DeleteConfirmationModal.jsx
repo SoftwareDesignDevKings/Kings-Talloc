@@ -108,9 +108,9 @@ const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOrigi
                         </small>
                     </div>
                 </>
-            ) : (
-                <p className="mb-0">Are you sure you want to permanently delete this {isStudentRequest ? 'request' : 'event'}? This cannot be undone.</p>
-            )}
+            ) : !isStudentRequest ? (
+                <p className="mb-0">Are you sure you want to permanently delete this event? This cannot be undone.</p>
+            ) : null}
         </BaseModal>
     );
 };

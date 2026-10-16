@@ -246,7 +246,7 @@ test('Reject retains a visible decision; confirmed calendar Delete removes it an
         await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
         await page.getByText('Deletion test session', { exact: true }).click();
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
-        await expect(page.getByText(/Students will no longer be able to see that it was rejected/)).toBeVisible();
+        await expect(page.getByText(/any rejection notice/)).toBeVisible();
         await page.getByRole('button', { name: 'Cancel', exact: true }).click();
         await expect(page.getByRole('heading', { name: 'Delete Student Request', exact: true })).toBeHidden();
         expect((await db.collection('studentEventRequests').doc('decision-delete').get()).exists).toBe(true);
@@ -271,7 +271,7 @@ test('dashboard Delete warns, cancellation keeps the request, and confirmation r
     let message;
     page.once('dialog', dialog => { message = dialog.message(); return dialog.dismiss(); });
     await remove.click();
-    expect(message).toContain('Students will no longer be able to see that it was rejected');
+    expect(message).toContain('any rejection notice');
     expect((await db.collection('studentEventRequests').doc('pending-delete').get()).exists).toBe(true);
     page.once('dialog', dialog => dialog.accept());
     const removed = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');

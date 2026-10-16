@@ -80,7 +80,7 @@ test.each([['handleReject', 'deny'], ['handleDelete', 'delete']])('%s confirms t
     const { result } = renderHook(() => useApprovalHandlers());
     await act(async () => { expect(await result.current[handler]('request')).toBe(true); });
     expect(resolveStudentRequest).toHaveBeenCalledWith('request', action);
-    if (action === 'delete') expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Students will no longer be able to see that it was rejected'));
+    if (action === 'delete') expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('any rejection notice'));
 });
 
 });
