@@ -23,7 +23,7 @@ beforeAll(async () => {
     env = await initializeTestEnvironment({ projectId: 'demo-talloc-scheduling-tests', firestore: { host: '127.0.0.1', port: 8080, rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.rules'), 'utf8') } });
     app = initializeApp({ projectId: 'demo-talloc-scheduling-tests' }, 'scheduling-tests'); db = getFirestore(app);
 });
-beforeEach(async () => { await env.clearFirestore(); await db.collection('users').doc(tutor.email).set(tutor); await db.collection('studentTutorEligibility').doc(student.email).set({ eligibleTutorEmails: [tutor.email] }); });
+beforeEach(async () => { await env.clearFirestore(); await db.collection('users').doc(tutor.email).set(tutor); await db.collection('users').doc(student.email).set(student); await db.collection('studentTutorEligibility').doc(student.email).set({ eligibleTutorEmails: [tutor.email] }); });
 afterAll(async () => { await env?.cleanup(); if (db) await db.terminate(); if (app) await deleteApp(app); });
 
 test('concurrent approval converts once, auto-denies the loser and writes recipient notices atomically', async () => {

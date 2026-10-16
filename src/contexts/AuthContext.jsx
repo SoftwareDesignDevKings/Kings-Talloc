@@ -113,7 +113,7 @@ export const AuthContextProvider = ({ children }) => {
     }
 
     if (isLoading) return <LoadingPage />;
-    if (status === 'unauthenticated') return <Login />;
+    if (status === 'unauthenticated' || !session?.user) return <Login />;
 
     return (
         <AuthContext.Provider value={authCtxValues}>

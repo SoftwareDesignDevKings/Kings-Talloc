@@ -10,6 +10,7 @@
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
+const { seedRuleAccounts } = require('./seedRuleAccounts');
 
 const { assertFails, assertSucceeds } = global;
 const fs = require('fs');
@@ -37,6 +38,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     await testEnv.clearFirestore();
+    await seedRuleAccounts(testEnv);
 });
 
 describe('Firebase Security Rules - Tutor Availabilities Collection', () => {

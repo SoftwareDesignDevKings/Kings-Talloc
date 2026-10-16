@@ -280,3 +280,97 @@ test('dashboard Delete warns, cancellation keeps the request, and confirmation r
     expect((await db.collection('bookingNotifications').get()).empty).toBe(true);
     await expect(page.getByText('Pending deletion test', { exact: true })).toHaveCount(0);
 });
+
+const firebaseIdToken = async page => {
+    const session = await (await page.request.get('/api/auth/session')).json();
+    const response = await page.request.post('http://127.0.0.1:9199/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=demo-work-hours-api-key', {
+        data: { token: session.user.firebaseToken, returnSecureToken: true },
+    });
+    expect(response.status()).toBe(200);
+    return (await response.json()).idToken;
+};
+const readWithOldToken = (page, token, collection, id) => page.request.get(
+    `http://127.0.0.1:8180/v1/projects/demo-talloc-work-hours/databases/(default)/documents/${collection}/${encodeURIComponent(id)}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+);
+
+test('calendar credentials are private, legacy links fail, and a student cannot create admin profiles', async ({ page }) => {
+    const legacy = 'a'.repeat(64);
+    await db.collection('users').doc(student).update({ calendarFeedToken: legacy });
+    await signIn(page, 'Student');
+    const response = await page.request.get('/api/calendar'); expect(response.status()).toBe(200);
+    const { httpsUrl } = await response.json(); const link = new URL(httpsUrl);
+    const privateToken = link.searchParams.get('token');
+    expect(privateToken).toMatch(/^[a-f0-9]{64}$/); expect(privateToken).not.toBe(legacy);
+    expect((await db.collection('calendarFeedSecrets').doc(student).get()).data().token).toBe(privateToken);
+    expect((await db.collection('users').doc(student).get()).data().calendarFeedToken).toBeUndefined();
+    expect((await page.request.get(httpsUrl)).status()).toBe(200);
+    expect((await page.request.get(`/api/calendar/feed?uid=${student}&token=${legacy}`)).status()).toBe(401);
+    const oldToken = await firebaseIdToken(page);
+    expect((await readWithOldToken(page, oldToken, 'calendarFeedSecrets', student)).status()).toBe(403);
+    expect((await page.request.post('/api/users', { data: { mode: 'create', email: 'forged@kings.edu.au', name: 'Forged admin', defaultRole: 'admin' } })).status()).toBe(403);
+    expect((await db.collection('users').doc('forged@kings.edu.au').get()).exists).toBe(false);
+});
+
+test('demoting an admin invalidates the current cookie and already-issued Firebase token', async ({ page }) => {
+    await signIn(page, 'Teacher + Admin');
+    const email = 'computing@kings.edu.au';
+    const oldToken = await firebaseIdToken(page);
+    expect((await readWithOldToken(page, oldToken, 'users', email)).status()).toBe(200);
+    const response = await page.request.post('/api/users', { data: { mode: 'update', email, name: 'Michael Ienna', defaultRole: 'student', userRoles: [] } });
+    expect(response.status()).toBe(200); expect((await response.json()).requiresReauthentication).toBe(true);
+    expect((await readWithOldToken(page, oldToken, 'users', email)).status()).toBe(403);
+    expect((await page.request.post('/api/users', { data: { mode: 'update', email, name: 'Forged restore', defaultRole: 'admin' } })).status()).toBe(401);
+    const session = await (await page.request.get('/api/auth/session')).json();
+    expect(session.user).toBeNull();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Kings-Talloc', exact: true })).toBeVisible();
+});
+
+test('deleted accounts cannot return until admin recreation, and recreation does not revive old tokens', async ({ page, browser }) => {
+    const studentContext = await browser.newContext(); const studentPage = await studentContext.newPage();
+    try {
+        await signIn(studentPage, 'Student');
+        const oldToken = await firebaseIdToken(studentPage);
+        await signIn(page, 'Teacher + Admin');
+        expect((await page.request.delete('/api/users', { data: { email: student } })).status()).toBe(200);
+        expect((await db.collection('users').doc(student).get()).exists).toBe(false);
+        expect((await db.collection('revokedAccounts').doc(student).get()).exists).toBe(true);
+        expect((await readWithOldToken(studentPage, oldToken, 'users', student)).status()).toBe(403);
+        expect((await studentPage.request.post('/api/scheduling', { data: {} })).status()).toBe(401);
+        await studentPage.goto('/login');
+        await studentPage.getByRole('button', { name: 'Student', exact: true }).click();
+        await expect(studentPage).toHaveURL(/login/);
+        expect((await db.collection('users').doc(student).get()).exists).toBe(false);
+        expect((await page.request.post('/api/users', { data: { mode: 'create', email: student, name: 'John Doe', defaultRole: 'student', userRoles: [] } })).status()).toBe(200);
+        await signIn(studentPage, 'Student');
+        expect((await readWithOldToken(studentPage, oldToken, 'users', student)).status()).toBe(403);
+        const newToken = await firebaseIdToken(studentPage);
+        expect((await readWithOldToken(studentPage, newToken, 'users', student)).status()).toBe(200);
+    } finally { await studentContext.close(); }
+});
+
+
+test('admin account screen creates and edits accounts through the secured API', async ({ page }) => {
+    const email = 'new-tutor@kings.edu.au';
+    await signIn(page, 'Teacher + Admin');
+    await page.goto('/userRoles');
+    await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
+    await page.getByLabel('Email Address', { exact: true }).fill(email);
+    await page.getByLabel('Full Name', { exact: true }).fill('New Test Tutor');
+    await page.getByLabel('Default Access Role', { exact: true }).selectOption('tutor');
+    let saved = page.waitForResponse(response => response.url().endsWith('/api/users') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Create User', exact: true }).click();
+    expect((await saved).status()).toBe(200);
+    const row = page.getByRole('row').filter({ hasText: email });
+    await expect(row).toContainText('New Test Tutor');
+    const first = (await db.collection('users').doc(email).get()).data();
+    expect(first.defaultRole).toBe('tutor'); expect(first.authVersion).toBeTruthy();
+    await row.getByRole('button', { name: 'Edit user', exact: true }).click();
+    await page.getByLabel('Full Name', { exact: true }).fill('Renamed Test Tutor');
+    saved = page.waitForResponse(response => response.url().endsWith('/api/users') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    expect((await saved).status()).toBe(200);
+    await expect(row).toContainText('Renamed Test Tutor');
+    expect((await db.collection('users').doc(email).get()).data().authVersion).toBe(first.authVersion);
+});

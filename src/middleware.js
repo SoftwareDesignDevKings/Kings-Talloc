@@ -48,7 +48,7 @@ export async function middleware(req) {
 
     // retrieve the token from the request, no token redirect to login page
     const token = await getToken({ req, secret });
-    if (!token) {
+    if (!token || token.accountValid === false) {
         return NextResponse.redirect(new URL('/login', req.url));
     }
 

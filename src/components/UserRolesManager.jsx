@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Select from 'react-select';
 import { db } from '@/firestore/firestoreClient';
-import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
+import { AppLogout } from '@/lib/security/clientAuth';
 import styles from '@/styles/userRoles.module.css';
 import t from '@/styles/manageTable.module.css';
 import { getRequestNotificationPreference } from '@/utils/requestNotifications';
@@ -145,33 +146,18 @@ const UserRolesManager = () => {
         }
 
         try {
-            const userRef = doc(db, 'users', email);
-
-            // Check if user already exists (only when adding new user, not editing)
-            if (!isEditing) {
-                const userDoc = await getDoc(userRef);
-                if (userDoc.exists()) {
-                    addAlert('error', 'A user with this email already exists.');
-                    return;
-                }
-            }
-
             const coverage = userHasTutorAccess ? serialiseTutorCoverage(tutorCoverage) : [];
-            await setDoc(userRef, {
-                email,
-                name,
-                role, // Legacy single-role mirror for older readers still expecting `users.role`; canonical fields are `defaultRole` + `userRoles`. Remove after all readers migrate.
-                defaultRole: role,
-                userRoles,
-                requestNotificationsEnabled: userHasTeacherAccess && (requestNotificationsEnabled ?? getRequestNotificationPreference(email)),
-                tutorCoverage: coverage,
-                tutorCoverageKeys: coverage.map((item) => item.key),
-            }, { merge: true });
-
-            const rebuildResponse = await fetch('/api/canvas/tutor-eligibility/rebuild', { method: 'POST' });
-            if (!rebuildResponse.ok) {
-                addAlert('error', 'User saved, but student tutor eligibility could not be rebuilt.');
-            }
+            const response = await fetch('/api/users', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: isEditing ? 'update' : 'create', email, name,
+                    defaultRole: role, userRoles,
+                    requestNotificationsEnabled: userHasTeacherAccess && (requestNotificationsEnabled ?? getRequestNotificationPreference(email)),
+                    tutorCoverage: coverage }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Unable to save account.');
+            if (result.warning) addAlert('warning', result.warning);
+            if (result.requiresReauthentication) { await AppLogout(); return; }
 
             addAlert('success', `Role of ${role} assigned to ${email}`);
 
@@ -220,6 +206,9 @@ const UserRolesManager = () => {
                 const { message } = await res.json();
                 throw new Error(message);
             }
+            const result = await res.json();
+            if (result.warning) addAlert('warning', result.warning);
+            if (result.requiresReauthentication) { await AppLogout(); return; }
             const updatedUsers = users.filter((user) => user.email !== userEmail);
             setUsers(updatedUsers);
             setFilteredUsers(updatedUsers);

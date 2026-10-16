@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { getRequiredSession } from "@/lib/security/serverAuth";
 import { resolveMsAccessToken } from "@/lib/microsoft/tokenUtils";
 import {
     msCreateEvent,
@@ -31,6 +32,8 @@ import {
  */
 export async function POST(req) {
     try {
+        const { error } = await getRequiredSession();
+        if (error) return error;
         // Validate JWT token
         const token = await getToken({ req });
         if (!token) {

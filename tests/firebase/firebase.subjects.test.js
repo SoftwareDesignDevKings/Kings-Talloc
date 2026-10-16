@@ -10,6 +10,7 @@
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
+const { seedRuleAccounts } = require('./seedRuleAccounts');
 
 // assertFails and assertSucceeds are provided by firebaseTestSetup.js
 // to properly suppress console warnings only during expected failures
@@ -41,6 +42,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     await testEnv.clearFirestore();
+    await seedRuleAccounts(testEnv);
 });
 
 describe('Firebase Security Rules - Subjects Collection', () => {

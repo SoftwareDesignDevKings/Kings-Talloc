@@ -143,16 +143,12 @@ const SubjectList = () => {
                 });
             });
 
-            const newTutors = uniqueEmails.map((email) => {
-                if (existingUsersMap.has(email)) {
-                    const userData = existingUsersMap.get(email);
-                    return { email, name: userData.name || '' };
-                } else {
-                    const userRef = doc(db, 'users', email);
-                    batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor' }, { merge: true });
-                    return { email, name: '' };
-                }
-            });
+            const missing = uniqueEmails.filter(email => !existingUsersMap.has(email));
+            if (missing.length) {
+                addAlert('error', 'These tutors need an app account first. Ask an admin to create it before assigning subjects.');
+                return;
+            }
+            const newTutors = uniqueEmails.map(email => ({ email, name: existingUsersMap.get(email).name || '' }));
 
             const updatedTutors = [...(selectedSubject.tutors || []), ...newTutors];
             const subjectRef = doc(db, 'subjects', selectedSubject.id);

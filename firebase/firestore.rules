@@ -6,16 +6,27 @@ service cloud.firestore {
     // Auth helpers
     // ─────────────────────────────────────
 
+    function currentUserPath() {
+      return /databases/$(database)/documents/users/$(request.auth.token.get('profileId', request.auth.token.email));
+    }
+
     function getUserRole() {
-      return request.auth.token.defaultRole;
+      return get(currentUserPath()).data.get('defaultRole', get(currentUserPath()).data.get('role', 'student'));
     }
 
     function getUserRoles() {
-      return request.auth.token.userRoles;
+      return get(currentUserPath()).data.get('userRoles', []);
     }
 
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null
+        // App custom tokens use the verified school email as their Firebase UID.
+        && request.auth.uid == request.auth.token.email.lower()
+        && request.auth.token.get('profileId', request.auth.token.email).lower() == request.auth.token.email.lower()
+        && exists(currentUserPath())
+        && !get(currentUserPath()).data.get('disabled', false)
+        && request.auth.token.get('authVersion', '') == get(currentUserPath()).data.get('authVersion', '')
+        && !exists(/databases/$(database)/documents/revokedAccounts/$(request.auth.token.email.lower()));
     }
 
     // ─────────────────────────────────────
@@ -71,7 +82,7 @@ service cloud.firestore {
     function studentAcknowledgesIntroduction(documentEmail) {
       let changedFields = request.resource.data.diff(resource.data).affectedKeys();
       return isStudent()
-        && request.auth.token.email == documentEmail
+        && request.auth.token.get('profileId', request.auth.token.email) == documentEmail
         && changedFields.hasOnly(['hasSeenWelcome', 'hasSeenCalendarHelp'])
         && (!changedFields.hasAny(['hasSeenWelcome'])
           || request.resource.data.get('hasSeenWelcome', false) == true)
@@ -86,15 +97,22 @@ service cloud.firestore {
     // Users — admins manage updates/deletion; students can acknowledge their own introductions.
     match /users/{documentEmail} {
       allow read: if isAuthenticated();
-      allow create: if isAdminOrTeacher() || (isAuthenticated() && request.auth.token.email == documentEmail);
-      allow update: if isAdmin() || studentAcknowledgesIntroduction(documentEmail);
-      allow delete: if isAdmin();
+      // Profile creation, role changes and deletion use the authenticated admin API.
+      allow create, delete: if false;
+      allow update: if studentAcknowledgesIntroduction(documentEmail);
+    }
+
+    match /calendarFeedSecrets/{email} {
+      allow read, write: if false;
+    }
+    match /revokedAccounts/{email} {
+      allow read, write: if false;
     }
 
     // Shifts — admins/teachers read all; others only read shifts they're assigned to
     match /shifts/{shiftId} {
-      allow read: if isAdminOrTeacher()
-        || resource.data.emailsList.hasAny([request.auth.token.email]);
+      allow read: if isAuthenticated() && (isAdminOrTeacher()
+        || resource.data.emailsList.hasAny([request.auth.token.email]));
       // All mutations go through the authenticated scheduling service.
       allow write: if false;
     }
