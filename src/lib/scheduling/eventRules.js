@@ -6,6 +6,8 @@ export const asDate = value => value?.toDate ? value.toDate() : value?.toJSDate 
 export const emailOf = value => String(value?.value || value?.email || value || '').trim().toLowerCase();
 export const requestOwnerEmail = event => emailOf(event?.requesterEmail || event?.students?.[0] || event?.studentEmails?.[0]);
 export const staffEmails = event => [...new Set((event.staff || []).map(emailOf).filter(Boolean))];
+// Explicit participants are authoritative; old flattened fields may be stale.
+export const studentEmails = event => [...new Set((Array.isArray(event.students) ? event.students : event.studentEmails || []).map(emailOf).filter(Boolean))];
 export const workCategory = event => event.workType === 'coaching' ? 'coaching' : 'work';
 // Class-linked legacy bookings are occupied until their participants can be resolved.
 export const isStudentSession = event => workCategory(event) === 'work' &&
@@ -45,6 +47,12 @@ export const overlaps = (a, b) => asDate(a.start) < asDate(b.end) && asDate(a.en
 export const commitmentsConflict = (a, b) => overlaps(a, b) &&
     (workCategory(a) === 'coaching' || workCategory(b) === 'coaching' || (isStudentSession(a) && isStudentSession(b)));
 
+// A shared student is busy even when the sessions have different tutors.
+export const scheduledEventsConflict = (a, b) => overlaps(a, b) && (
+    (staffEmails(a).some(email => staffEmails(b).includes(email)) && commitmentsConflict(a, b)) ||
+    studentEmails(a).some(email => studentEmails(b).includes(email))
+);
+
 export const unionIntervals = intervals => {
     const result = [];
     for (const interval of intervals.map(i => ({ start: +asDate(i.start), end: +asDate(i.end) }))
@@ -59,7 +67,7 @@ export const unionIntervals = intervals => {
 export const rangeCovered = (start, end, intervals) => +asDate(end) > +asDate(start) &&
     unionIntervals(intervals).some(i => i.start <= +asDate(start) && i.end >= +asDate(end));
 
-export const bookableIntervals = (tutor, availabilities, shifts) => {
+export const bookableIntervals = (tutor, availabilities, shifts, { students = [] } = {}) => {
     const email = emailOf(tutor);
     const ownShifts = shifts.filter(s => staffEmails(s).includes(email) && isApproved(s));
     const sources = [
@@ -67,7 +75,8 @@ export const bookableIntervals = (tutor, availabilities, shifts) => {
         ...ownShifts.filter(isGeneralWork),
     ].map(source => ({ start: +asDate(source.start), end: +asDate(source.end), locationType: source.locationType || 'onsite' }))
         .filter(source => Number.isFinite(source.start) && Number.isFinite(source.end) && source.end > source.start);
-    const busy = unionIntervals(ownShifts.filter(s => !isGeneralWork(s)));
+    const group = new Set(students.map(emailOf));
+    const busy = unionIntervals([...ownShifts.filter(s => !isGeneralWork(s)), ...shifts.filter(s => isApproved(s) && studentEmails(s).some(email => group.has(email)))]);
     const boundaries = [...new Set([...sources, ...busy].flatMap(slot => [slot.start, slot.end]))].sort((a, b) => a - b);
     const free = [];
     for (let index = 0; index < boundaries.length - 1; index++) {

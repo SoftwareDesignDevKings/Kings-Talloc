@@ -196,6 +196,7 @@ export const fetchCacheTutors = () =>
 
         const usersMap = new Map();
         [...roleSnapshot.docs, ...defaultRoleSnapshot.docs, ...userRolesSnapshot.docs].forEach((doc) => {
+            if (doc.data().disabled === true) return;
             const { email, name, defaultRole, role, userRoles } = doc.data();
             if (!usersMap.has(email)) {
                 const roles = [defaultRole || role, ...(userRoles || [])].filter(Boolean);

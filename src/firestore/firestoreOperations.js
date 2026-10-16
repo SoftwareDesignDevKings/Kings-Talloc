@@ -124,8 +124,8 @@ export const removeEmailNotification = async (shiftId) => {
  * Updates only the workStatus field of a shift — used by tutors/coaches who lack
  * permission to touch any other field (Firestore rule: hasOnly(['workStatus'])).
  */
-export const updateWorkStatusInFirestore = async (shiftId, workStatus) => {
-    await schedulingMutation({ action: 'complete', id: shiftId, data: { workStatus } });
+export const updateWorkStatusInFirestore = async (shiftId, workStatus, expectedRevision) => {
+    await schedulingMutation({ action: 'complete', id: shiftId, expectedRevision, data: { workStatus } });
 };
 
 /**
@@ -135,8 +135,8 @@ export const updateWorkStatusInFirestore = async (shiftId, workStatus) => {
  * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts') => {
-    return schedulingMutation({ action: 'update', collectionName, id: eventId, data: stripUndefinedFields(eventData) });
+export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts', expectedRevision) => {
+    return schedulingMutation({ action: 'update', collectionName, id: eventId, expectedRevision, data: stripUndefinedFields(eventData) });
 };
 
 /**

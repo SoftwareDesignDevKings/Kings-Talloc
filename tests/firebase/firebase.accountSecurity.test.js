@@ -49,3 +49,20 @@ test('the signed profile ID must belong to the authenticated email', async () =>
     await global.assertFails(db.collection('users').get());
     await global.assertFails(db.collection('subjects').doc('injected').set({ name: 'Injected' }));
 });
+
+
+test.each(['student', 'tutor', 'coach'])('%s reads only their canonical/legacy records with a signed mixed-case profile ID', async role => {
+    const email = 'case@kings.edu.au', profileId = 'CaSe@Kings.edu.au';
+    await seed('users', profileId, { email: profileId, defaultRole: role, userRoles: [] });
+    for (const [id, owner] of [['current', email], ['legacy', profileId], ['private', 'other@kings.edu.au']]) {
+        await seed('shifts', id, { emailsList: [owner] });
+        await seed('studentEventRequests', id, { emailsList: [owner], approvalStatus: 'pending' });
+    }
+    const db = env.authenticatedContext(email, { email, profileId }).firestore();
+    await global.assertSucceeds(db.collection('shifts').where('emailsList', 'array-contains-any', [email, profileId]).get());
+    await global.assertFails(db.collection('shifts').doc('private').get());
+    await global.assertFails(db.collection('shifts').where('emailsList', 'array-contains-any', [email, 'other@kings.edu.au']).get());
+    if (role === 'student') await global.assertSucceeds(db.collection('studentEventRequests').where('emailsList', 'array-contains-any', [email, profileId]).get());
+    else await global.assertFails(db.collection('studentEventRequests').get());
+    await global.assertFails(db.collection('shifts').doc('current').update({ workStatus: 'completed' }));
+});

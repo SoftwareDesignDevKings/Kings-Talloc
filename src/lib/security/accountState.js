@@ -1,5 +1,6 @@
 import 'server-only';
 import { adminDb, adminDbAuth } from '@/firestore/firestoreAdmin';
+import { findUserProfile } from './userProfiles';
 
 export const accountVersion = data => data?.authVersion || '';
 export const validAccountEmail = email => typeof email === 'string' && email.length <= 254 && /^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(email);
@@ -10,12 +11,7 @@ export const accountRoles = data => ({
 });
 
 // Preserve legacy mixed-case document IDs while using normalised revocation keys.
-export async function findAccountProfile(email, reader = ref => ref.get()) {
-    if (!validAccountEmail(email)) return null;
-    let snapshot = await reader(adminDb.collection('users').doc(email));
-    if (!snapshot.exists && email !== email.toLowerCase()) snapshot = await reader(adminDb.collection('users').doc(email.toLowerCase()));
-    return snapshot.exists ? snapshot : null;
-}
+export const findAccountProfile = (email, reader) => findUserProfile(adminDb, email, reader);
 
 export async function getCurrentAccount(email, expectedVersion) {
     if (!validAccountEmail(email)) return null;

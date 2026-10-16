@@ -120,7 +120,7 @@ The existing start/end and recurring/start indexes cover the new shift queries. 
 Compared the successful GitHub Production deployment `7055561513` at `d6eeffa16c6b66fdcd53132a85f649dcc0090521` with PR application commit `d7b539000fd2901a29f71dab00d1cbd283d20f0c`. The custom domain was unavailable to inspection tools, so the successful deployment record pins the baseline. Both versions ran locally with isolated synthetic Firestore data, their own rules, dedicated Auth emulators and independent locked dependency installations. Only the baseline's development emulator port wiring was adapted.
 
 - 25 shared browser scenarios passed on both versions. The PR also passed its HTTP approval-outage/retry scenario, which is skipped for the baseline because the old approval path is a client Firestore transaction.
-- All eight development roles were exercised. Coach + Tutor still logs calendar permission errors with its mixed-case email on both versions; this is an existing issue requiring follow-up, not a passing data-access result for that account.
+- All eight development roles were exercised. The initial candidate and production both logged Coach + Tutor calendar permission errors with its mixed-case email. The follow-up below fixes this and retests the affected identities.
 - Nineteen hours fixtures were compared through the summary, actual CSV downloads and parsed Word files. Explicit PR expectations cover every fixture and completed dashboard totals. Unit suites passed: baseline 102 tests / 22 suites; PR 256 tests / 43 suites.
 - No confirmed new application regressions were found in these covered cases. The observed booking, approval, report, security and UI changes match the agreed requirements.
 
@@ -154,3 +154,34 @@ npm run test:regression-comparison -- d6eeffa16c6b66fdcd53132a85f649dcc0090521
 Optional Playwright arguments follow the commit, for example `--grep=hours-matrix`. The command archives both commits into temporary directories, installs each lockfile separately, starts its own Firestore/Auth emulators sequentially, runs the same browser cases and retains screenshots, semantic saved records, console/HTTP errors, CSV, Word and traces under `test-results/comparison-*`. It does not reuse or stop an existing app. Ports 3120/3121, 8380, 9399/9499 and the associated 9390/9490 hubs must be free. The harness verifies the Auth token's project and email before clearing or populating Firestore fixtures. Its clearing guard permits only `demo-talloc-compare-*` projects.
 
 The reusable runner itself was checked end to end on both versions with fresh services. Initial manual setup attempts exposed hard-coded emulator ports, the Auth emulator's default-project behavior, host network suspension and symlinked Next.js dependency resolution; those failures were isolated before the final results. They are recorded separately from product differences. Microsoft production sign-in and production data were not changed.
+
+
+## Email identity and wider stability follow-up (16/10/2026)
+
+Mixed-case legacy profile IDs are preserved. New profiles use lowercase IDs, and verified lower/upper-case sign-ins resolve the existing profile instead of creating another account. A bounded server lookup supports legacy IDs; ambiguous duplicates fail closed rather than borrowing either profile’s permissions. Calendar queries, rules, own hours, availability, personal feeds and notification preferences use the same identity. The additional rule alias is the server-signed profile ID, already required to match the authenticated email ignoring case. Foreign ownership queries and direct scheduling writes remain denied.
+
+The three local demo Auth records have their missing email fields restored. The two accidental lowercase duplicate profiles were backed up and consolidated into their original mixed-case profiles, preserving their intended Tutor + Admin and Coach + Tutor roles and introduction preferences. All three sign-ins were checked through the demo login, session, Firebase ID-token exchange and calendar with no permission errors. No production records/rules or the other chat’s app were changed.
+
+New stability probes reproduced and fixed:
+
+| Case | Expected and verified result |
+| --- | --- |
+| Same student, overlapping requests with different tutors, approved concurrently | One succeeds; the competing request is denied atomically. Student guard records also serialize manual edits/approvals. |
+| Student moves a request over their approved booking with a different tutor | Conflict; saved request is unchanged. Availability excludes the group’s existing commitments even with another ineligible tutor, without exposing appointment details. |
+| Disabled tutor or duplicate case variants in participants | No new assignment to a disabled account; historical corrections remain possible. Duplicate identities become one participant. |
+| Invalid completion status | Rejected without changing the saved shift or hours. |
+| Stale teacher editor after tutor completion/time correction | Version conflict; completed hours and the other edit remain intact. Reopening the event allows a fresh save. Legacy records start at version zero. |
+| Availability created then immediately edited | Live snapshots retain the server version; drafts cannot overwrite it. |
+| Approval response lost after commit | Retry uses the same operation ID; one booking and one decision notice. Normal Teams follow-up writes are checked separately. |
+| Approval crosses the 15-minute deadline during transaction reads | Entire transaction rolls back. A previously successful operation can still be retried after the deadline. |
+| Student editing after approval | Cannot resurrect a pending request. |
+| Every occurrence in a recurring series conflicts | No empty series is created, even when skipping conflicts. |
+| Group boundary and operation ownership | The requester counts toward the 30-student ceiling; operation IDs cannot reuse another actor’s result. |
+| Adjoining sessions with different tutors; general Work covering pending requests | Adjoining sessions remain possible; supporting Work does not deny requests. |
+| Availability refresh fails, then recovers | Last-known slots retained, booking disabled until recovery, session topics preserved. |
+| Nested/duplicate Work and different input orders | Paid time remains unchanged across all 24 input permutations; overlapping Work is not paid twice. Explicit participants override stale legacy flattened fields. |
+| Existing pending request has a custom title | Student topic/focus edits preserve the title. |
+
+Validation: **266 unit tests / 43 suites**, **223 Firestore rules and scheduling tests / nine suites**, and **32 PR browser scenarios** verified, including six new end-to-end stability workflows and the existing 19-example dashboard/CSV/Word hours matrix. Two sign-in smoke scenarios hit 20-second loading timeouts in the full run and passed on a focused rerun; navigation allowances now permit 60 seconds. The lost-response test was corrected to count approval requests only, excluding ordinary Teams metadata updates. The final availability create/edit/delete check passes after removing optimistic drafts that discarded revisions. Source/test/script ESLint (including JSX), whitespace checks and the independent Node 22 production build are checked with this follow-up.
+
+The comparison report retains the production deployment baseline and updates candidate evidence. The test boundary remains local development sign-in and emulated data; real Microsoft OAuth, Graph delivery, production indexes and distributed Redis behavior are not certified by these checks. Native focus signals remain simulated in the two-tab acknowledgement test.

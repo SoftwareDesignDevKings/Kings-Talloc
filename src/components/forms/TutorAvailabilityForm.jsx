@@ -12,7 +12,6 @@ import {
     createEventInFirestore,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
-import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 import { normaliseWorkType } from '@/utils/calendarAvailability';
 import useAlert from '@/hooks/useAlert';
 
@@ -69,36 +68,16 @@ const TutorAvailabilityForm = ({
 
         try {
             if (isEditing) {
-                await updateEventInFirestore(eventToEdit.id, availabilityData, 'tutorAvailabilities');
-                setCalendarAvailabilities(
-                    calendarAvailabilities.map((availability) =>
-                        availability.id === eventToEdit.id
-                            ? {
-                                ...availabilityData,
-                                id: eventToEdit.id,
-                                entityType: CalendarEntityType.AVAILABILITY
-                            }
-                            : availability,
-                    ),
-                );
+                await updateEventInFirestore(eventToEdit.id, availabilityData, 'tutorAvailabilities', eventToEdit.revision || 0);
             } else {
-                const docId = await createEventInFirestore(
-                    availabilityData,
-                    'tutorAvailabilities',
-                );
-                setCalendarAvailabilities([
-                    ...calendarAvailabilities,
-                    {
-                        ...availabilityData,
-                        id: docId,
-                        entityType: CalendarEntityType.AVAILABILITY
-                    },
-                ]);
+                await createEventInFirestore(availabilityData, 'tutorAvailabilities');
             }
+            // Use the live snapshot, which includes the server revision. Replacing
+            // it with an optimistic draft can make an immediate edit look stale.
             return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to submit availability:', error);
-            addAlert('error', 'Failed to submit availability');
+            addAlert('error', `Failed to submit availability: ${error.message}`);
             return false; // Error - don't close modal
         }
     };

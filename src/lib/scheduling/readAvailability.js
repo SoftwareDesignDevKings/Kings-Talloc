@@ -1,6 +1,6 @@
 import 'server-only';
 import { documentEvent } from '@/lib/scheduling/readSchedule';
-import { expandRecurringEvents, emailOf, staffEmails } from '@/lib/scheduling/eventRules';
+import { expandRecurringEvents, emailOf, staffEmails, studentEmails } from '@/lib/scheduling/eventRules';
 import { hasTutorAccess } from '@/lib/canvas/canvasCoverage';
 
 // Generous ceiling; never show an incomplete result as bookable time.
@@ -11,7 +11,7 @@ const readBounded = async query => {
     return result.docs;
 };
 
-export async function readAvailability(db, start, end, eligibleEmails) {
+export async function readAvailability(db, start, end, eligibleEmails, group = []) {
     // Role queries avoid reading every student profile, including legacy role-only tutors.
     const profiles = await Promise.all([
         readBounded(db.collection('users').where('defaultRole', '==', 'tutor').select('email', 'defaultRole', 'role', 'userRoles', 'disabled')),
@@ -31,7 +31,7 @@ export async function readAvailability(db, start, end, eligibleEmails) {
         readBounded(db.collection('tutorAvailabilities').where('start', '>=', new Date(+start - 86400000)).where('start', '<', end)),
     ]);
     const bases = [...new Map([...current, ...recurring].map(doc => [doc.id, documentEvent(doc)])).values()]
-        .filter(event => staffEmails(event).some(email => tutorSet.has(email)));
+        .filter(event => staffEmails(event).some(email => tutorSet.has(email)) || studentEmails(event).some(email => group.includes(email)));
     // Class-only legacy entries already count as occupied; no roster reads are needed.
     const longest = Math.max(0, ...bases.filter(event => event.recurring).map(event => +event.end - +event.start));
     if (longest > 86400000) throw new Error('Legacy recurring sessions longer than one day need review.');

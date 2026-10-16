@@ -62,6 +62,12 @@ describe('request notifications', () => {
             return unsubscribe;
         });
     });
+    test('notification preferences use the existing profile ID while acknowledgement uses a canonical recipient', () => {
+        mount({ email: 'Mienna@Kings.edu.au', profileId: 'Mienna@Kings.edu.au' });
+        expect(doc).toHaveBeenCalledWith(expect.anything(), 'users', 'Mienna@Kings.edu.au');
+        snapshot([request('one', timestamp(20))]);
+        expect(localStorage.getItem(storageKey)).not.toBeNull();
+    });
     afterEach(() => {
         cleanup();
         jest.restoreAllMocks();

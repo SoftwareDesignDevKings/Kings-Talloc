@@ -220,7 +220,7 @@ describe('StudentEventForm', () => {
         fireEvent.change(screen.getByLabelText('Topics to cover (optional)'), { target: { value: '  Quadratic equations\nQuestions 4–8  ' } });
         fireEvent.click(screen.getByRole('radio', { name: 'Assignment' }));
         fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-        await waitFor(() => expect(updateEventInFirestore).toHaveBeenCalledWith('request', expect.objectContaining({ preference: 'Assignments', sessionTopics: 'Quadratic equations\nQuestions 4–8', approvalStatus: 'pending' }), 'studentEventRequests'));
+        await waitFor(() => expect(updateEventInFirestore).toHaveBeenCalledWith('request', expect.objectContaining({ preference: 'Assignments', sessionTopics: 'Quadratic equations\nQuestions 4–8', approvalStatus: 'pending' }), 'studentEventRequests', 0));
     });
     test('legacy read-only requests show the fallback and cannot edit topics', () => {
         renderForm({ mode: 'view', newEvent: { preference: null } });

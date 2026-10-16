@@ -38,7 +38,7 @@ test('removal is allowed while editing; an empty save stays open, then replaceme
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => expect(mockSubmitResult).toHaveBeenLastCalledWith(true));
-    expect(updateEventInFirestore).toHaveBeenCalledWith('session', expect.objectContaining({ students: [{ value: 'replacement@kings.edu.au' }], approvalStatus: 'approved', createdByStudent: true }));
+    expect(updateEventInFirestore).toHaveBeenCalledWith('session', expect.objectContaining({ students: [{ value: 'replacement@kings.edu.au' }], approvalStatus: 'approved', createdByStudent: true }), 'shifts', 0);
 });
 test('the separate names box is removed from the teacher editor', () => {
     render(<Editor />);

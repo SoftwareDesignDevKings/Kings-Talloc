@@ -5,7 +5,7 @@ import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
 import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
-import { bookableIntervals, workCategory } from '@/lib/scheduling/eventRules';
+import { bookableIntervals, workCategory, emailOf } from '@/lib/scheduling/eventRules';
 import { calendarAvailabilitySplit, normaliseWorkType } from "@/utils/calendarAvailability"
 
 /**
@@ -154,15 +154,15 @@ export const CalendarUIContextProvider = ({ children }) => {
 
         // filter by tutor selection
         if (filterByTutor && filterByTutor.length > 0) {
-            const selectedTutorEmails = filterByTutor.map(t => t.value);
+            const selectedTutorEmails = filterByTutor.map(t => emailOf(t.value));
             filtered = filtered.filter(calEvent => {
                 // for shifts, check if any staff member matches
                 if (calEvent.entityType === CalendarEntityType.SHIFT) {
-                    return calEvent.staff?.some(s => selectedTutorEmails.includes(s.value || s));
+                    return calEvent.staff?.some(s => selectedTutorEmails.includes(emailOf(s)));
                 }
                 // for availabilities, check tutor field
                 if (calEvent.entityType === CalendarEntityType.AVAILABILITY) {
-                    return selectedTutorEmails.includes(calEvent.tutor);
+                    return selectedTutorEmails.includes(emailOf(calEvent.tutor));
                 }
                 return true;
             });
@@ -177,7 +177,7 @@ export const CalendarUIContextProvider = ({ children }) => {
 
         // for tutors/coaches: split own availabilities around shifts as RBC events (never other tutors')
         if ((userRole === 'tutor' || userRole === 'coach') && showTutorInitials && !hideOwnAvailabilities) {
-            let availabilities = calendarAvailabilities.filter(a => a.tutor === userEmail);
+            let availabilities = calendarAvailabilities.filter(a => emailOf(a.tutor) === emailOf(userEmail));
             if (filterAvailabilityByWorkType && filterAvailabilityByWorkType.length > 0) {
                 availabilities = availabilities.filter(a =>
                     filterAvailabilityByWorkType.some(f => matchesWorkTypeFilter(a.workType, f.value))
@@ -205,7 +205,7 @@ export const CalendarUIContextProvider = ({ children }) => {
         // tutors/coaches: hide own availabilities if CalendarUIContextProvider setting is enabled
         if (userRole === 'tutor' || userRole === 'coach') {
             if (hideOwnAvailabilities) {
-                filtered = filtered.filter((a) => a.tutor !== userEmail);
+                filtered = filtered.filter((a) => emailOf(a.tutor) !== emailOf(userEmail));
             } else {
                 // Show all availabilities including own
                 filtered = calendarAvailabilities;
@@ -220,8 +220,8 @@ export const CalendarUIContextProvider = ({ children }) => {
 
         // filter by selected tutors from CalendarUIContextProvider
         if (filterByTutor && filterByTutor.length > 0) {
-            const selectedTutorEmails = filterByTutor.map(t => t.value);
-            filtered = filtered.filter(a => selectedTutorEmails.includes(a.tutor));
+            const selectedTutorEmails = filterByTutor.map(t => emailOf(t.value));
+            filtered = filtered.filter(a => selectedTutorEmails.includes(emailOf(a.tutor)));
         }
 
         // filter by availability work type from CalendarUIContextProvider

@@ -24,8 +24,8 @@ export async function GET(request) {
         const eligibleEmails = student ? new Set((eligibility[0].data()?.eligibleTutorEmails || []).map(emailOf)
             .filter(email => eligibility.every(doc => (doc.data()?.eligibleTutorEmails || []).map(emailOf).includes(email)))) : null;
         if (eligibleEmails?.size === 0) return Response.json({ slots: [] }, { headers: { 'Cache-Control': 'no-store' } });
-        const { tutors, shifts, availability } = await readAvailability(adminDb, start, end, eligibleEmails);
-        const slots = tutors.flatMap(email => bookableIntervals(email, availability, shifts))
+        const { tutors, shifts, availability } = await readAvailability(adminDb, start, end, eligibleEmails, student ? group : []);
+        const slots = tutors.flatMap(email => bookableIntervals(email, availability, shifts, { students: student ? group : [] }))
             .filter(slot => slot.end > start && slot.start < end).map(slot => ({ id: slot.id, tutor: slot.tutor, start: new Date(Math.max(+slot.start, +start)), end: new Date(Math.min(+slot.end, +end)), locationType: slot.locationType }));
         return Response.json({ slots }, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {

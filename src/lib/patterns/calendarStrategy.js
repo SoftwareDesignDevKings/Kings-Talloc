@@ -85,12 +85,20 @@ export const adminCalendarStrategy = () => ({
 export const teacherCalendarStrategy = () => adminCalendarStrategy();
 
 // temp sol - coaches r the same as just tutors.
+// Firestore ownership is checked against Firebase's lowercase email. The signed
+// legacy profile ID is an additional spelling of the same identity, not a role.
+export const ownEventsFilter = email => {
+    const canonical = emailOf(email);
+    const aliases = [...new Set([canonical, email])];
+    return [{ fbField: 'emailsList', fbOperation: aliases.length > 1 ? 'array-contains-any' : 'array-contains', fbValue: aliases.length > 1 ? aliases : canonical }];
+};
+
 export const coachCalendarStrategy = (userEmail) => tutorCalendarStrategy(userEmail)
 
 export const tutorCalendarStrategy = (userEmail) => ({
     // Firestore query constraints - null means skip that collection entirely
     firestoreConstraints: {
-        shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
+        shifts:          () => ownEventsFilter(userEmail),
         studentRequests: () => null,  // tutors don't see student requests
         availabilities:  () => [],   // fetch all for overlay; own filtered in CalendarUIContextProvider
     },
@@ -148,8 +156,8 @@ export const tutorCalendarStrategy = (userEmail) => ({
 export const studentCalendarStrategy = (userEmail) => ({
     // Firestore query constraints - null means skip that collection entirely
     firestoreConstraints: {
-        shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
-        studentRequests: () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
+        shifts:          () => ownEventsFilter(userEmail),
+        studentRequests: () => ownEventsFilter(userEmail),
         availabilities:  () => [],  // fetch all (for overlay initials)
     },
 

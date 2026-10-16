@@ -22,8 +22,8 @@ const at = (hour, day=0) => monday.plus({days:day,hours:hour}).toJSDate();
 const shift = (extra={}) => ({title:'Comparison Work', start:future.toJSDate(), end:future.plus({hours:3}).toJSDate(), staff:[{value:tutor,label:'Viraj Patel'}], students:[], staffEmails:[tutor], studentEmails:[], emailsList:[tutor], classes:[], subject:null, location:'Library', description:'Synthetic regression comparison', workType:'work', recurring:null, createdByStudent:false, approvalStatus:'approved', workStatus:'notCompleted', confirmationRequired:false, tutorResponses:[], studentResponses:[], minStudents:0, ...extra});
 const request = (extra={}) => shift({title:'Comparison Request', students:[{value:student,label:'John Doe'}], studentEmails:[student], emailsList:[tutor,student], createdByStudent:true, isStudentRequest:true, approvalStatus:'pending', preference:'General', createdAt:new Date(), ...extra});
 const log = (info, data) => fs.writeFileSync(`${out}/${info.title.replace(/[^\w-]+/g,'-')}.json`, JSON.stringify(data,null,2));
-const signIn = async (page,label) => { const hydrated=page.waitForResponse(r=>r.url().endsWith('/api/auth/session')); await page.goto('/login'); await hydrated; await page.getByRole('button',{name:label,exact:true}).click(); await expect(page).toHaveURL(/dashboard/); await expect(page.getByRole('link',{name:'Calendar',exact:true})).toBeVisible(); await expect.poll(async()=> (await (await page.request.get('/api/auth/session')).json()).user?.firebaseToken?.length || 0).toBeGreaterThan(20); };
-const calendar = async page => {await page.goto('/calendar'); await expect(page.locator('.rbc-events-container').first()).toBeVisible(); await page.getByRole('button',{name:'Next',exact:true}).click();};
+const signIn = async (page,label) => { const hydrated=page.waitForResponse(r=>r.url().endsWith('/api/auth/session')); await page.goto('/login'); await hydrated; await page.getByRole('button',{name:label,exact:true}).click(); await expect(page).toHaveURL(/dashboard/); await expect(page.getByRole('link',{name:'Calendar',exact:true})).toBeVisible({ timeout: 60000 }); await expect.poll(async()=> (await (await page.request.get('/api/auth/session')).json()).user?.firebaseToken?.length || 0).toBeGreaterThan(20); };
+const calendar = async page => {await page.goto('/calendar', { waitUntil: 'domcontentloaded', timeout: 60000 }); await expect(page.locator('.rbc-events-container').first()).toBeVisible({ timeout: 60000 }); await page.getByRole('button',{name:'Next',exact:true}).click();};
 const modalTimes = async (page,start=future,end=future.plus({hours:1})) => {await page.getByLabel('Event start time').click(); await page.getByLabel('Event start time').fill(start.toFormat("yyyy-MM-dd'T'HH:mm")); await page.getByLabel('Event end time').fill(end.toFormat("yyyy-MM-dd'T'HH:mm"));};
 const dbState = async () => {const result={}; for(const name of ['shifts','studentEventRequests','tutorAvailabilities','bookingNotifications']) {const snap=await db.collection(name).get(); result[name]=snap.docs.map(d=>({id:d.id,...d.data()}));} return result;};
 const template = async email => {
@@ -82,7 +82,7 @@ test('hours-matrix-summary-csv-word-dashboard',async({page},info)=>{
  for(const [index,[start,end,kind,day=0]] of entries.entries()) await db.collection('shifts').doc(`${name}-${index}`).set(shift({title:name,start:at(start,day),end:at(end,day),staff:[{value:email,label:name}],staffEmails:[email],emailsList:kind==='session'?[email,student]:[email],students:kind==='session'?[{value:student}]:[],studentEmails:kind==='session'?[student]:[],createdByStudent:kind==='session',workType:kind==='coaching'?'coaching':'work',workStatus:kind==='incomplete'?'notCompleted':kind==='absent'?'notAttended':'completed',confirmationRequired:kind==='unconfirmed'}));
  }
  await signIn(page,'Teacher + Admin'); await expect(page.getByText('Completed Hours',{exact:true})).toBeVisible(); await expect(page.locator('.card').filter({has:page.getByText('Completed Hours',{exact:true})}).locator('h3')).not.toHaveText(isPR?'0h 0m':'0.0'); const dashboard=await page.locator('.card').allTextContents();
- await page.goto('/tutorHours'); await expect(page.getByRole('row').filter({hasText:'case-single-3h@'})).toBeVisible();
+ await page.goto('/tutorHours', { waitUntil: 'domcontentloaded', timeout: 60000 }); await expect(page.getByRole('row').filter({hasText:'case-single-3h@'})).toBeVisible();
  const rows={}; for(const name of Object.keys(cases)) {const row=page.getByRole('row').filter({hasText:`case-${name}@`}); rows[name]=await row.count()?await row.getByRole('cell').allTextContents():[];}
  const download=page.waitForEvent('download'); await page.getByRole('link',{name:'Export as CSV',exact:true}).click(); const csv=fs.readFileSync(await (await download).path(),'utf8'); fs.writeFileSync(`${out}/hours-matrix.csv`,csv);
  const word={}; for(const name of Object.keys(cases)) word[name]=await exportWord(page,`case-${name}@kings.edu.au`,name.includes('coaching')?'coach':'tutor');
@@ -204,4 +204,78 @@ test('failed-approval-keeps-request-and-can-retry',async({page},info)=>{
  await page.getByRole('button',{name:'Approve',exact:true}).click(); await expect(page.getByRole('alert').filter({hasText:/Simulated scheduling outage/})).toBeVisible();
  expect((await db.collection('studentEventRequests').doc('retry').get()).data().approvalStatus).toBe('pending'); expect((await db.collection('shifts').get()).size).toBe(0);
  await page.unroute('**/api/scheduling'); await page.getByRole('button',{name:'Approve',exact:true}).click(); await expect.poll(async()=> (await db.collection('shifts').get()).size).toBe(1); log(info,{recovered:true,state:await dbState()});
+});
+
+test('mixed-case tutor sees canonical and legacy assignments, their availability and own hours',async({page},info)=>{
+ test.skip(!isPR,'Regression fix in the PR.');
+ const legacy='coachTutor@kings.edu.au', canonical=legacy.toLowerCase();
+ for(const [id,day,email,type] of [['canonical',0,canonical,'work'],['legacy',1,legacy,'coaching']]) await db.collection('shifts').doc(id).set(shift({title:`Case ${id} assignment`,start:future.plus({days:day}).toJSDate(),end:future.plus({days:day,hours:3}).toJSDate(),staff:[{value:email,label:'Tom Hanley'}],staffEmails:[email],emailsList:[email],workType:type}));
+ await db.collection('shifts').doc('private').set(shift({title:'Private other tutor assignment'}));
+ await db.collection('tutorAvailabilities').doc('own').set({title:'Own mixed-case availability',tutor:canonical,start:future.plus({days:2}).set({hour:9}).toJSDate(),end:future.plus({days:2}).set({hour:12}).toJSDate(),workType:['work'],locationType:'remote'});
+ await signIn(page,'Coach + Tutor'); await expect(page.getByText('Case canonical assignment',{exact:true})).toBeVisible(); await expect(page.getByText('Case legacy assignment',{exact:true})).toBeVisible();
+ await calendar(page); await expect(page.getByRole('button',{name:/Own mixed-case availability/}).first()).toBeVisible();
+ await expect(page.getByRole('button',{name:/Private other tutor assignment/})).toHaveCount(0);
+ await page.getByRole('button',{name:/Case canonical assignment/}).first().click(); await page.getByRole('button',{name:'Settings & Status',exact:true}).click(); await page.locator('#workStatus').click(); await page.getByRole('option',{name:'Completed',exact:true}).click(); await page.getByRole('button',{name:'Save Status',exact:true}).click();
+ await expect.poll(async()=> (await db.collection('shifts').doc('canonical').get()).data().workStatus).toBe('completed');
+ await page.reload(); await page.getByRole('button',{name:'Next',exact:true}).click(); await expect(page.getByRole('button',{name:/Case canonical assignment/}).first()).toBeVisible();
+ await page.goto('/tutorHours', { waitUntil: 'domcontentloaded', timeout: 60000 });
+ // The assignment is next week; choose that reporting week through the date inputs.
+ const dates=page.locator('.react-datepicker__input-container input'); await dates.nth(0).fill(future.startOf('week').toFormat('dd/MM/yyyy')); await dates.nth(0).press('Enter'); await dates.nth(1).fill(future.endOf('week').toFormat('dd/MM/yyyy')); await dates.nth(1).press('Enter');
+ await expect(page.getByRole('row').filter({hasText:canonical})).toContainText('3h 0m');
+ expect(page._comparisonErrors.page).toEqual([]); expect(page._comparisonErrors.console.filter(message=>/Firestore|permission/i.test(message))).toEqual([]);
+ log(info,{state:await dbState(),profileRetained:(await db.collection('users').doc(legacy).get()).exists});
+});
+
+test('lowercase student sign-in finds the legacy profile and edits only their mixed-case request',async({page},info)=>{
+ test.skip(!isPR,'Regression fix in the PR.');
+ const legacy='StuDent@Kings.edu.au'; await db.collection('users').doc(student).delete(); await db.collection('users').doc(legacy).set({email:legacy,name:'John Doe',defaultRole:'student',userRoles:[],hasSeenWelcome:true,hasSeenCalendarHelp:true});
+ await db.collection('shifts').doc('support').set(shift());
+ await db.collection('studentEventRequests').doc('legacy-pending').set(request({title:'Own legacy request',students:[{value:legacy,label:'John Doe'}],studentEmails:[legacy],emailsList:[tutor,legacy]}));
+ await db.collection('studentEventRequests').doc('private').set(request({title:'Other student private request',students:[{value:'other@kings.edu.au'}],studentEmails:['other@kings.edu.au'],emailsList:[tutor,'other@kings.edu.au']}));
+ await signIn(page,'Student'); await calendar(page); await expect(page.getByRole('button',{name:/Own legacy request/}).first()).toBeVisible(); await expect(page.getByRole('button',{name:/Other student private request/})).toHaveCount(0);
+ await page.getByRole('button',{name:/Own legacy request/}).first().click(); await page.getByLabel('Topics to cover (optional)').fill('Case-safe edit'); await page.getByRole('button',{name:'Save Changes',exact:true}).click();
+ await expect.poll(async()=> (await db.collection('studentEventRequests').doc('legacy-pending').get()).data().sessionTopics).toBe('Case-safe edit');
+ await page.reload(); await page.getByRole('button',{name:'Next',exact:true}).click(); await expect(page.getByRole('button',{name:/Own legacy request/}).first()).toBeVisible();
+ expect((await db.collection('users').doc(student).get()).exists).toBe(false); expect((await db.collection('users').doc(legacy).get()).data()).toMatchObject({hasSeenWelcome:true,hasSeenCalendarHelp:true});
+ expect(page._comparisonErrors.console.filter(message=>/Firestore|permission/i.test(message))).toEqual([]); log(info,{state:await dbState(),legacyProfilePreserved:true});
+});
+
+test('lost approval response retries the same operation without duplicate decisions',async({page},info)=>{
+ test.skip(!isPR,'Server operation idempotency is PR-specific.'); await db.collection('studentEventRequests').doc('lost-response').set(request()); await signIn(page,'Teacher + Admin'); await page.getByRole('button',{name:/Pending Approvals/}).click();
+ let attempts=0; const operations=[]; await page.route('**/api/scheduling',async route=>{
+  if(route.request().method()!=='POST'||route.request().postDataJSON().action!=='approve')return route.continue();
+  operations.push(route.request().postDataJSON().operationId); attempts++;
+  if(attempts===1){const response=await route.fetch(); expect(response.status()).toBe(200); return route.abort('failed');}
+  return route.continue();
+ });
+ await page.getByRole('button',{name:'Approve',exact:true}).click(); await expect(page.getByRole('alert').filter({hasText:'Request approved successfully'})).toBeVisible();
+ expect(attempts).toBe(2); expect(new Set(operations).size).toBe(1); expect((await db.collection('shifts').get()).size).toBe(1); expect((await db.collection('bookingNotifications').get()).size).toBe(1); log(info,{attempts,sameOperation:true,state:await dbState()});
+});
+
+test('availability refresh failure blocks a cached booking and recovery preserves its form',async({page},info)=>{
+ test.skip(!isPR,'Server availability workflow is PR-specific.'); await db.collection('shifts').doc('support').set(shift());
+ await signIn(page,'Student'); await calendar(page); await page.locator('.rbc-events-container').nth(2).click(); await modalTimes(page,future.plus({minutes:30}),future.plus({minutes:60}));
+ await expect(page.getByText('Refreshing availability…',{exact:false})).toHaveCount(0); await page.locator('#tutor').click(); await page.getByRole('option',{name:/Viraj Patel/}).click(); await page.getByText('General help',{exact:true}).click(); await page.getByLabel('Topics to cover (optional)').fill('Preserve these topics');
+ await page.route('**/api/availability?**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Temporary availability outage'})}));
+ await page.evaluate(()=>window.dispatchEvent(new Event('talloc:schedule-changed'))); await expect(page.getByText('Unable to refresh availability. Please retry before booking.',{exact:false})).toBeVisible(); await page.getByRole('button',{name:'Add Event',exact:true}).click(); expect((await db.collection('studentEventRequests').get()).size).toBe(0);
+ await page.unroute('**/api/availability?**'); await page.getByRole('button',{name:'Retry',exact:true}).click(); await expect(page.getByText('Unable to refresh availability. Please retry before booking.',{exact:false})).toHaveCount(0);
+ await expect(page.getByLabel('Topics to cover (optional)')).toHaveValue('Preserve these topics'); await page.locator('#tutor').click(); await page.getByRole('option',{name:/Viraj Patel/}).click(); await page.getByRole('button',{name:'Add Event',exact:true}).click(); await expect.poll(async()=> (await db.collection('studentEventRequests').get()).size).toBe(1); log(info,{recovered:true,retainedTopics:(await db.collection('studentEventRequests').get()).docs[0].data().sessionTopics});
+});
+
+test('stale teacher editor cannot erase a tutor completion and succeeds after reopening',async({page,browser},info)=>{
+ test.skip(!isPR,'PR concurrency safeguard.'); await db.collection('shifts').doc('work').set(shift()); await signIn(page,'Teacher + Admin'); await calendar(page); await page.getByRole('button',{name:/Comparison Work/}).first().click();
+ const tutorContext=await browser.newContext(); const tutorPage=await tutorContext.newPage();
+ try {
+  await signIn(tutorPage,'Tutor'); await calendar(tutorPage); await tutorPage.getByRole('button',{name:/Comparison Work/}).first().click(); await tutorPage.getByRole('button',{name:'Settings & Status',exact:true}).click(); await tutorPage.locator('#workStatus').click(); await tutorPage.getByRole('option',{name:'Completed',exact:true}).click(); await tutorPage.getByRole('button',{name:'Save Status',exact:true}).click(); await expect.poll(async()=> (await db.collection('shifts').doc('work').get()).data().revision).toBe(1);
+  await page.getByRole('button',{name:'General Information',exact:true}).click(); await page.getByLabel('Event title').fill('Teacher correction'); await page.getByRole('button',{name:'Save Changes',exact:true}).click(); await expect(page.getByRole('alert').filter({hasText:'changed in another tab'})).toBeVisible();
+  expect((await db.collection('shifts').doc('work').get()).data()).toMatchObject({title:'Comparison Work',workStatus:'completed',revision:1});
+  const editor=page.getByRole('dialog').filter({has:page.getByRole('heading',{name:'Edit Event',exact:true})}); await editor.getByRole('button',{name:'Close',exact:true}).click(); await page.getByRole('button',{name:/Comparison Work/}).first().click(); await page.getByLabel('Event title').fill('Teacher correction'); await page.getByRole('button',{name:'Save Changes',exact:true}).click(); await expect.poll(async()=> (await db.collection('shifts').doc('work').get()).data().revision).toBe(2); expect((await db.collection('shifts').doc('work').get()).data().workStatus).toBe('completed');
+  log(info,{preventedLostCompletion:true,state:await dbState()});
+ } finally {await tutorContext.close();}
+});
+
+test('student availability excludes their session with a different ineligible tutor without leaking details',async({page},info)=>{
+ test.skip(!isPR,'Student conflict correction.'); const other='other-tutor@kings.edu.au'; await db.collection('users').doc(other).set({email:other,name:'Other Tutor',defaultRole:'tutor',userRoles:[]}); await db.collection('shifts').doc('support').set(shift()); await db.collection('shifts').doc('private-session').set(request({title:'Private appointment details',approvalStatus:'approved',start:future.plus({hours:1}).toJSDate(),end:future.plus({hours:2}).toJSDate(),staff:[{value:other}],staffEmails:[other],emailsList:[other,student]}));
+ await signIn(page,'Student'); const response=await page.request.get(`/api/availability?start=${encodeURIComponent(future.toISO())}&end=${encodeURIComponent(future.plus({hours:3}).toISO())}`); expect(response.status()).toBe(200); const result=await response.json();
+ expect(result.slots.map(slot=>[+new Date(slot.start),+new Date(slot.end)])).toEqual([[+future,+future.plus({hours:1})],[+future.plus({hours:2}),+future.plus({hours:3})]]); expect(JSON.stringify(result)).not.toContain('Private appointment details'); expect(JSON.stringify(result)).not.toContain(other); log(info,result);
 });

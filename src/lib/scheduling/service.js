@@ -1,8 +1,9 @@
 import 'server-only';
 import { DateTime } from 'luxon';
 import { FieldValue } from 'firebase-admin/firestore';
-import { asDate, emailOf, requestOwnerEmail, staffEmails, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, commitmentsConflict, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
+import { asDate, emailOf, requestOwnerEmail, staffEmails, studentEmails, scheduledEventsConflict, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
 import { documentEvent, readSchedule, resolveClassParticipants } from './readSchedule';
+import { findUserProfile } from '@/lib/security/userProfiles';
 import { isValidSessionFocus, SESSION_TOPICS_MAX_LENGTH } from './sessionFocus';
 
 export class SchedulingError extends Error {
@@ -16,7 +17,8 @@ const allowedFields = new Set(['title', 'description', 'start', 'end', 'staff', 
 const cleanData = data => Object.fromEntries(Object.entries(data || {}).filter(([key, value]) => allowedFields.has(key) && value !== undefined));
 const participant = value => { const email = emailOf(value); fail(!email.includes('@') || email.includes('/'), 'Invalid participant.'); return { value: email, label: String(value?.label || email).slice(0, 200) }; };
 const flatten = event => {
-    const staff = (event.staff || []).map(participant), students = (event.students || []).map(participant);
+    const unique = values => { const byEmail = new Map(); for (const value of values || []) { const item = participant(value); if (!byEmail.has(item.value)) byEmail.set(item.value, item); } return [...byEmail.values()]; };
+    const staff = unique(event.staff), students = unique(event.students);
     const staffList = staff.map(emailOf), studentList = students.map(emailOf);
     return { ...event, staff, students, staffEmails: staffList, studentEmails: studentList, emailsList: [...new Set([...staffList, ...studentList])] };
 };
@@ -45,7 +47,7 @@ const decisionNotices = (transaction, db, id, event, approved, now) => {
     for (const student of event.students || []) notice(transaction, db, id, emailOf(student), event, approved ? 'approved' : 'denied', approved ? 'Your tutoring request was approved.' : 'Your tutoring request was denied.', now);
 };
 
-/** All calendar mutations share transactional reads and one guard per affected tutor. */
+/** Calendar mutations share transactional reads and guards for affected tutors and students. */
 export const scheduleMutation = async (db, sessionUser, input, { now = () => new Date() } = {}) => {
     const actor = emailOf(sessionUser.email);
     fail(!actor, 'Unauthorised', 401);
@@ -68,8 +70,14 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         if (operationSnapshot.exists) return operationSnapshot.data().result;
         const snapshot = action === 'create' ? null : await transaction.get(source);
         fail(action !== 'create' && !snapshot?.exists, 'This event has already been handled or removed.', 409);
+        const revision = Number.isInteger(snapshot?.data()?.revision) ? snapshot.data().revision : 0;
+        if (input.expectedRevision !== undefined) {
+            fail(!Number.isInteger(input.expectedRevision) || input.expectedRevision < 0, 'Invalid event revision.');
+            fail(input.expectedRevision !== revision, 'This event changed in another tab. Close it and reopen it before saving.', 409);
+        }
         const saved = snapshot?.exists ? await resolveClassParticipants(db, documentEvent(snapshot), transaction) : null;
         const raw = cleanData(input.data);
+        if (action !== 'create' && raw.workStatus !== undefined) fail(!['completed', 'notCompleted', 'notAttended'].includes(raw.workStatus), 'Invalid completion status.');
         const classIds = classes => (classes || []).map(item => String(item.value || item.id || item)).sort();
         const classesChanged = raw.classes && JSON.stringify(classIds(raw.classes)) !== JSON.stringify(classIds(saved?.classes));
         let event = { ...(saved || {}), ...raw, id: target.id };
@@ -206,7 +214,8 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         }
         if (collectionName === 'shifts' && event.workStatus === 'completed') fail(!isApproved(event), 'A student session must be approved before it can be completed.', 409);
         const emails = [...new Set([...(saved ? staffEmails(saved) : []), ...staffEmails(event), ...(isAvailability ? [actor] : [])])].sort();
-        const guardRefs = emails.map(email => db.collection('tutorBookingGuards').doc(encodeURIComponent(email)));
+        const affectedStudents = [...new Set([...(saved ? studentEmails(saved) : []), ...studentEmails(event)])].sort();
+        const guardRefs = [...emails.map(email => encodeURIComponent(email)), ...affectedStudents.map(email => `student:${encodeURIComponent(email)}`)].map(id => db.collection('tutorBookingGuards').doc(id));
         const guards = await Promise.all(guardRefs.map(ref => transaction.get(ref)));
         // Include adjacent support for sessions spanning more than the edited Work record.
         const coverageChange = saved && (isAvailability || (collectionName === 'shifts' && isGeneralWork(saved)));
@@ -217,7 +226,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             readSchedule(db, rangeStart, rangeEnd, transaction, { includeFuture: Boolean(saved?.recurring || event.recurring) }),
             transaction.get(db.collection('tutorAvailabilities').where('end', '>', rangeStart)),
             transaction.get(db.collection('studentEventRequests').where('approvalStatus', '==', 'pending')),
-            Promise.all(emails.map(email => transaction.get(db.collection('users').doc(email)))),
+            Promise.all(emails.map(email => findUserProfile(db, email, ref => transaction.get(ref)))),
             deletes && originalCollection === 'studentEventRequests'
                 ? transaction.get(db.collection('bookingNotifications').where('eventId', '==', id)) : null,
         ]);
@@ -232,6 +241,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             const requiredRole = event.workType === 'coaching' ? 'coach' : isStudentSession(event) ? 'tutor' : null;
             for (const email of staffEmails(event)) {
                 const userDoc = staffSnapshots[emails.indexOf(email)];
+                fail(bookingChanged && userDoc?.data()?.disabled === true, 'Assigned staff account is disabled.', 409);
                 fail(bookingChanged && requiredRole && (!userDoc?.exists || !rolesFor(userDoc.data()).has(requiredRole)), `Assigned staff must have the ${requiredRole} role.`);
             }
 
@@ -242,7 +252,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             const previousOccurrences = saved ? expand(saved, rangeEnd) : [];
             const clashing = bookingChanged ? proposed.filter(occurrence =>
                 // Trimming a series does not reschedule its surviving occurrences.
-                !(action === 'until' && previousOccurrences.some(old => +old.start === +occurrence.start && +old.end === +occurrence.end)) && otherShifts.some(existing => isApproved(existing) && staffEmails(existing).some(email => staffEmails(event).includes(email)) && commitmentsConflict(occurrence, existing))) : [];
+                !(action === 'until' && previousOccurrences.some(old => +old.start === +occurrence.start && +old.end === +occurrence.end)) && otherShifts.some(existing => isApproved(existing) && scheduledEventsConflict(occurrence, existing))) : [];
             if (clashing.length) {
                 fail(!event.recurring || !allowSkipConflicts, 'Scheduling conflict. Review the conflicting dates.', 409, { conflictingDates: clashing.map(item => item.start.toISOString()), canSkip: Boolean(event.recurring) });
                 event.eventExceptions = [...new Set([...(event.eventExceptions || []), ...clashing.map(item => item.occurrenceIndex)])];
@@ -256,11 +266,13 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         }
         if (action === 'approve') fail(+now() > +saved.start + APPROVAL_GRACE_MS, 'The approval deadline has passed.', 409);
 
+        event.revision = action === 'create' || action === 'detach' || action === 'approve' ? 1 : revision + 1;
+
         // No reads below this line: all state changes and notifications commit together.
         guardRefs.forEach((ref, index) => transaction.set(ref, { revision: (guards[index].data()?.revision || 0) + 1 }));
         if (deletes || action === 'deny') {
             if (action === 'deny') {
-                transaction.update(source, { approvalStatus: 'denied', deniedAt: timestamp });
+                transaction.update(source, { approvalStatus: 'denied', deniedAt: timestamp, revision: revision + 1 });
                 decisionNotices(transaction, db, operationId, saved, false, timestamp);
             } else {
                 transaction.delete(source);
@@ -268,14 +280,14 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             }
         } else if (action === 'exception') {
             fail(!saved.recurring || !Number.isInteger(input.occurrenceIndex) || input.occurrenceIndex < 0, 'Invalid recurring occurrence.');
-            transaction.update(source, { eventExceptions: FieldValue.arrayUnion(input.occurrenceIndex) });
+            transaction.update(source, { eventExceptions: FieldValue.arrayUnion(input.occurrenceIndex), revision: revision + 1 });
         } else if (action === 'until') {
-            transaction.update(source, { until: event.until, eventExceptions: event.eventExceptions || [] });
-        } else if (statusOnly) transaction.update(source, { workStatus: raw.workStatus });
+            transaction.update(source, { until: event.until, eventExceptions: event.eventExceptions || [], revision: revision + 1 });
+        } else if (statusOnly) transaction.update(source, { workStatus: raw.workStatus, revision: revision + 1 });
         else {
             const { id: ignoredId, ...data } = cleanStoredEvent(event);
             transaction.set(target, data);
-            if (action === 'detach') transaction.update(source, { eventExceptions: FieldValue.arrayUnion(input.occurrenceIndex) });
+            if (action === 'detach') transaction.update(source, { eventExceptions: FieldValue.arrayUnion(input.occurrenceIndex), revision: revision + 1 });
             if (action === 'approve') {
                 transaction.delete(source);
                 decisionNotices(transaction, db, operationId, event, true, timestamp);
@@ -285,8 +297,8 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         if (collectionName === 'shifts' || action === 'approve') for (const pendingDoc of pendingSnapshot.docs) {
             if (pendingDoc.id === id && action === 'approve') continue;
             const pending = documentEvent(pendingDoc);
-            if (proposed.some(occurrence => isApproved(occurrence) && isStudentSession(occurrence) && staffEmails(pending).some(email => staffEmails(occurrence).includes(email)) && commitmentsConflict(occurrence, pending))) {
-                transaction.update(pendingDoc.ref, { approvalStatus: 'denied', deniedAt: timestamp, denialReason: 'Another student session was approved for this time.' });
+            if (proposed.some(occurrence => isApproved(occurrence) && isStudentSession(occurrence) && scheduledEventsConflict(occurrence, pending))) {
+                transaction.update(pendingDoc.ref, { approvalStatus: 'denied', deniedAt: timestamp, denialReason: 'Another student session was approved for this time.', revision: (Number.isInteger(pending.revision) ? pending.revision : 0) + 1 });
                 decisionNotices(transaction, db, `${operationId}-${pendingDoc.id}`, pending, false, timestamp);
             }
         }

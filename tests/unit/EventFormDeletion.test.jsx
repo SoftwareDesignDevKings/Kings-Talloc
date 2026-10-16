@@ -38,6 +38,6 @@ test.each([false, true])('removing completed hours has a red Save and requires c
     expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('btn-danger');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('hours counted for payment'));
-    if (confirmed) await waitFor(() => expect(updateWorkStatusInFirestore).toHaveBeenCalledWith('paid', 'notCompleted'));
+    if (confirmed) await waitFor(() => expect(updateWorkStatusInFirestore).toHaveBeenCalledWith('paid', 'notCompleted', 0));
     else expect(updateWorkStatusInFirestore).not.toHaveBeenCalled();
 });

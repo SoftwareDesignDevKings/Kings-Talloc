@@ -1,4 +1,4 @@
-import { CalendarEntityType, CalendarFlow, studentCalendarStrategy } from '@/lib/patterns/calendarStrategy';
+import { CalendarEntityType, CalendarFlow, studentCalendarStrategy, tutorCalendarStrategy } from '@/lib/patterns/calendarStrategy';
 
 describe('studentCalendarStrategy', () => {
     const strategy = studentCalendarStrategy('student@example.edu');
@@ -34,4 +34,11 @@ test('a group participant can view but cannot edit, drag, resize or duplicate th
     expect(strategy.actions.canModifyEvent(request)).toBe(false);
     expect(strategy.actions.canDuplicateEvent(request)).toBe(false);
     expect(strategy.actions.getEventFlow(request)).toBe(CalendarFlow.VIEW_STUDENT_REQUEST);
+});
+
+
+test.each([studentCalendarStrategy, tutorCalendarStrategy])('own calendar queries cover canonical and legacy spellings only', factory => {
+    const constraints = factory('StuDent@Example.edu').firestoreConstraints.shifts();
+    expect(constraints).toEqual([{ fbField: 'emailsList', fbOperation: 'array-contains-any', fbValue: ['student@example.edu', 'StuDent@Example.edu'] }]);
+    expect(factory('student@example.edu').firestoreConstraints.shifts()).toEqual([{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: 'student@example.edu' }]);
 });

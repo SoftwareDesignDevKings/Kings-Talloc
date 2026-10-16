@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/firestore/firestoreAdmin";
 import { getCurrentAccount, validAccountEmail } from "@/lib/security/accountState";
+import { emailOf } from '@/lib/scheduling/eventRules';
 import { timingSafeEqual } from "crypto";
 
 function formatICSDate(date) {
@@ -48,8 +49,8 @@ export async function GET(request) {
         const students = data.students || [];
 
         const isParticipant =
-            staff.some((s) => (s.value || s) === uid) ||
-            students.some((s) => (s.value || s) === uid);
+            staff.some((s) => emailOf(s) === uid.toLowerCase()) ||
+            students.some((s) => emailOf(s) === uid.toLowerCase());
 
         if (isParticipant) {
             events.push(event);

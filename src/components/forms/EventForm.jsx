@@ -197,7 +197,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
         if (isTutorPartialEdit) {
             try {
                 if (eventToEdit.isRecurringInstance) await detachRecurringInstance(eventToEdit, { workStatus: newEvent.workStatus || 'notCompleted' });
-                else await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted');
+                else await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted', eventToEdit.revision || 0);
                 return true;
             } catch (error) {
                 console.error('Failed to update work status:', error);
@@ -252,7 +252,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                 } else if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'denied') {
                     return await handleReject(eventToEdit.id);
                 } else if (eventToEdit.isStudentRequest) {
-                    await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
+                    await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests', eventToEdit.revision || 0);
                     await queueSavedEventEmail({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
@@ -283,7 +283,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                         }
                     }
                 } else {
-                    await updateEventInFirestore(eventToEdit.id, eventData);
+                    await updateEventInFirestore(eventToEdit.id, eventData, 'shifts', eventToEdit.revision || 0);
                     await queueSavedEventEmail({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
 
                     // Handle Teams meeting update/delete

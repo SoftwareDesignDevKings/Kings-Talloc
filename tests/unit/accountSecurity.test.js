@@ -18,14 +18,27 @@ const mockReference = (collection, id) => {
     return ref;
 };
 jest.mock('server-only', () => ({}), { virtual: true });
-jest.mock('firebase-admin/firestore', () => ({ FieldValue: { delete: () => mockDeletedField, serverTimestamp: () => new Date() } }));
+jest.mock('firebase-admin/firestore', () => ({ FieldPath: { documentId: () => '__name__' }, FieldValue: { delete: () => mockDeletedField, serverTimestamp: () => new Date() } }));
 jest.mock('next-auth/next', () => ({ getServerSession: async () => mockSession }));
 jest.mock('@/lib/canvas/tutorEligibility', () => ({ rebuildStudentTutorEligibility: mockRebuild }));
 jest.mock('@/firestore/firestoreAdmin', () => ({
     adminDb: {
-        collection: collection => ({ doc: id => mockReference(collection, id), get: async () => ({ forEach: callback => {
-            for (const [key, value] of mockDocuments) if (key.startsWith(`${collection}/`)) callback({ id: key.slice(collection.length + 1), data: () => value });
-        } }) }),
+        collection: collection => {
+            let first = '', last = '\uffff', count = Infinity;
+            const query = {
+                doc: id => mockReference(collection, id),
+                orderBy: () => query, startAt: value => { first = value; return query; },
+                endAt: value => { last = value; return query; }, limit: value => { count = value; return query; },
+                get: async () => {
+                    if (mockFailReads) throw new Error('Database unavailable');
+                    const ids = [...mockDocuments.keys()].filter(key => key.startsWith(`${collection}/`)).map(key => key.slice(collection.length + 1))
+                        .filter(id => id >= first && id <= last).sort().slice(0, count);
+                    const docs = await Promise.all(ids.map(id => mockReference(collection, id).get()));
+                    return { docs, size: docs.length, forEach: callback => docs.forEach(callback) };
+                },
+            };
+            return query;
+        },
         runTransaction: async callback => callback({
             get: ref => ref.get(), set: (ref, data, options) => mockWrite(ref, data, options?.merge),
             create: (ref, data) => mockWrite(ref, data), delete: ref => mockDocuments.delete(ref.path),
@@ -164,4 +177,37 @@ test('session responses never contain old calendar credentials', async () => {
     const token = await authOptions.callbacks.jwt({ token: { email: student, calendarFeedToken: 'legacy' } });
     const session = await authOptions.callbacks.session({ session: { user: { email: student, calendarFeedToken: 'legacy' } }, token });
     expect(session.user.calendarFeedToken).toBeUndefined(); expect(session.user.firebaseToken).toBe('fresh-test-token');
+});
+
+
+test('case variations in Microsoft email find the existing profile without creating a duplicate or losing roles', async () => {
+    mockDocuments.set(`users/${student}`, { ...profile(student, 'tutor'), userRoles: ['coach'] });
+    const user = { email: student.toUpperCase() };
+    expect(await authOptions.callbacks.signIn({ user })).toBe(true);
+    expect(user.email).toBe(student); expect(user.userRolesList).toEqual(['coach']);
+    expect([...mockDocuments.keys()].filter(key => key.startsWith('users/'))).toHaveLength(2);
+});
+test('a legacy mixed-case profile is resolved from a lower-case login and scheduling lookup without rekeying it', async () => {
+    const legacy = 'StuDent@School.Test';
+    mockDocuments.delete(`users/${student}`); mockDocuments.set(`users/${legacy}`, profile(legacy, 'tutor'));
+    const user = { email: student };
+    expect(await authOptions.callbacks.signIn({ user })).toBe(true);
+    expect(user.email).toBe(legacy); expect(user.profileId).toBe(legacy); expect(user.defaultRole).toBe('tutor');
+    const token = await authOptions.callbacks.jwt({ token: { email: student } });
+    expect(token.profileId).toBe(legacy);
+    expect(mockToken).toHaveBeenCalledWith(student, expect.objectContaining({ profileId: legacy }));
+    expect(mockDocuments.has(`users/${student}`)).toBe(false);
+});
+test('new mixed-case Microsoft sign-ins create a canonical profile ID and Firebase UID', async () => {
+    const user = { email: 'New.Person@School.Test' };
+    expect(await authOptions.callbacks.signIn({ user })).toBe(true);
+    expect(user.email).toBe('new.person@school.test'); expect(mockAuthUsers.has(user.email)).toBe(true);
+    expect(mockDocuments.has('users/New.Person@School.Test')).toBe(false);
+});
+test('ambiguous legacy spellings fail closed rather than choosing a privileged profile', async () => {
+    mockDocuments.delete(`users/${student}`);
+    for (const id of ['StuDent@School.Test', 'Student@School.Test']) mockDocuments.set(`users/${id}`, profile(id, 'admin'));
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await authOptions.callbacks.signIn({ user: { email: student } })).toBe(false);
+    expect(mockDocuments.has(`users/${student}`)).toBe(false); error.mockRestore();
 });

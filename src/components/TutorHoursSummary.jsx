@@ -10,6 +10,7 @@ import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 import useAuthSession from '@/hooks/useAuthSession';
+import { ownEventsFilter } from '@/lib/patterns/calendarStrategy';
 import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 import { DISPLAY_DATE_FORMAT, formatDisplayDate } from '@/utils/displayDate';
@@ -68,7 +69,7 @@ const TutorHoursSummary = () => {
             // Tutors/Coaches: only see their own shifts
             // Admins: see all shifts (no filter)
             if (!isAdmin) {
-                accessFilter = [where('emailsList', 'array-contains', userEmail)];
+                accessFilter = ownEventsFilter(userEmail).map(({ fbField, fbOperation, fbValue }) => where(fbField, fbOperation, fbValue));
             }
 
             // Query 1: Non-recurring shifts in the date range

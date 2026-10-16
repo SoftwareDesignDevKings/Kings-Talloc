@@ -85,3 +85,25 @@ test.each([1, 2, 5])('a selected group of %s students earns one tutor-hour', cou
     const students = Array.from({ length: count }, (_, index) => ({ value: `student${index}@school.test` }));
     expect(paid([event(15, 16, true, { students, additionalStudents: [] })])).toBe(1);
 });
+
+test('student commitments block a group across different tutors; stale flattened participants do not', () => {
+    const { scheduledEventsConflict, studentEmails } = require('@/lib/scheduling/eventRules');
+    const first = event(9, 10, true);
+    const other = event(9.5, 10.5, true, { staff: [{ value: 'other@school.test' }] });
+    expect(scheduledEventsConflict(first, other)).toBe(true);
+    const work = event(9, 12, false, { studentEmails: ['student@school.test'] });
+    expect(studentEmails(work)).toEqual([]);
+    expect(scheduledEventsConflict(first, work)).toBe(false);
+    const slots = bookableIntervals('tutor@school.test', [], [work, other], { students: ['STUDENT@school.test'] });
+    expect(rangeCovered(date(9), date(9.5), slots)).toBe(true);
+    expect(rangeCovered(date(9.5), date(10.5), slots)).toBe(false);
+    expect(rangeCovered(date(10.5), date(12), slots)).toBe(true);
+});
+
+test('nested overlap chains have the same pay in every input order and do not double count duplicate Work', () => {
+    const events = [event(9, 12), event(11, 15), event(10, 11, true), event(13, 14, true)];
+    const permutations = list => list.length < 2 ? [list] : list.flatMap((value, index) => permutations(list.filter((_, other) => other !== index)).map(rest => [value, ...rest]));
+    for (const order of permutations(events)) expect(paid(order)).toBe(5.5);
+    expect(paid([...events, events[0]])).toBe(5.5);
+    expect(paid([...events, event(9, 15, false, { workStatus: 'notCompleted' })])).toBe(5.5);
+});

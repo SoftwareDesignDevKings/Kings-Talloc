@@ -71,11 +71,17 @@ service cloud.firestore {
     // Ownership helpers
     // ─────────────────────────────────────
 
+    // The signed profile ID may retain legacy capitals. It is already required
+    // to match the authenticated email ignoring case by isAuthenticated().
+    function ownEmailSpellings() {
+      return [request.auth.token.email, request.auth.token.get('profileId', request.auth.token.email)];
+    }
+
     // Check student owns a request via flat emailsList array
     function studentOwnsRequest(studentEmail) {
       return studentEmail != null
         && 'emailsList' in resource.data
-        && resource.data.emailsList.hasAny([studentEmail]);
+        && resource.data.emailsList.hasAny(ownEmailSpellings());
     }
 
     // Students can acknowledge each introduction independently, without editing their profile.
@@ -112,7 +118,7 @@ service cloud.firestore {
     // Shifts — admins/teachers read all; others only read shifts they're assigned to
     match /shifts/{shiftId} {
       allow read: if isAuthenticated() && (isAdminOrTeacher()
-        || resource.data.emailsList.hasAny([request.auth.token.email]));
+        || resource.data.emailsList.hasAny(ownEmailSpellings()));
       // All mutations go through the authenticated scheduling service.
       allow write: if false;
     }

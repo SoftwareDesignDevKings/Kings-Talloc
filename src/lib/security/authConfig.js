@@ -60,12 +60,12 @@ async function authFbVerifyUserRecords({ user }) {
         if (!profile) {
             const devUser = process.env.NODE_ENV === 'development' ? DEV_USERS[user.email] : null;
             const newUser = {
-                email: user.email, name: user.name || user.email,
+                email: userUid, name: user.name || user.email,
                 role: devUser?.defaultRole || 'student', defaultRole: devUser?.defaultRole || 'student',
                 userRoles: devUser?.userRoles || [], authVersion: crypto.randomUUID(),
             };
             // A competing first login must not overwrite a profile or an admin's roles.
-            const ref = adminDb.collection('users').doc(user.email);
+            const ref = adminDb.collection('users').doc(userUid);
             await adminDb.runTransaction(async transaction => {
                 const [existing, blocked] = await Promise.all([transaction.get(ref), transaction.get(adminDb.collection('revokedAccounts').doc(userUid))]);
                 if (blocked.exists) throw new Error('Account access was revoked');

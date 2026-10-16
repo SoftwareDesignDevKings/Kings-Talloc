@@ -11,7 +11,7 @@ export const detachRecurringInstance = async (recurringInstance, updatedFields =
     const { collectionName } = calendarEventGetType(recurringInstance);
 
     const result = await schedulingMutation({ action: 'detach', collectionName,
-        id: recurringInstance.recurringEventId, occurrenceIndex: recurringInstance.occurrenceIndex, data: updatedFields });
+        id: recurringInstance.recurringEventId, expectedRevision: recurringInstance.revision || 0, occurrenceIndex: recurringInstance.occurrenceIndex, data: updatedFields });
     return result.id;
 };
 

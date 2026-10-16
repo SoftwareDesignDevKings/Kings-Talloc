@@ -171,7 +171,7 @@ const StudentEventForm = ({
         }
 
         const eventData = {
-            title: 'Tutoring',
+            title: isEditing ? eventToEdit.title || 'Tutoring' : 'Tutoring',
             workType: 'work',
             additionalStudents: [],
             requesterEmail: eventToEdit?.requesterEmail || emailOf(studentEmail),
@@ -200,7 +200,7 @@ const StudentEventForm = ({
 
         try {
             if (isEditing) {
-                await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
+                await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests', eventToEdit.revision || 0);
                 setCalendarStudentRequests(
                     calendarStudentRequests.map((req) =>
                         req.id === eventToEdit.id

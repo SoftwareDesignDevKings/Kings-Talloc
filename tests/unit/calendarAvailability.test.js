@@ -1,6 +1,7 @@
 import {
     isRangeCoveredByTutorAvailability,
     calendarAvailabilitySplit,
+    getTutorShiftConflicts,
 } from '@/utils/calendarAvailability';
 
 describe('isRangeCoveredByTutorAvailability', () => {
@@ -146,4 +147,14 @@ describe('calendarAvailabilitySplit', () => {
             expect(fragment.originalAvailabilityId).toBe('real-doc-id');
         }
     });
+});
+
+
+test('mixed email case cannot hide a tutor conflict or leave occupied availability visible', () => {
+    const start = new Date('2026-10-20T04:00:00Z'), end = new Date('2026-10-20T07:00:00Z');
+    const busy = { id: 'busy', start: new Date(+start + 3600000), end: new Date(+start + 7200000), staff: [{ value: 'TuTor@School.Test' }] };
+    const availability = { id: 'free', tutor: 'tutor@school.test', start, end };
+    expect(calendarAvailabilitySplit([availability], [busy])).toHaveLength(2);
+    expect(isRangeCoveredByTutorAvailability('TuTor@School.Test', start, end, [availability])).toBe(true);
+    expect(getTutorShiftConflicts([{ value: 'tutor@school.test' }], start, end, [busy])).toHaveLength(1);
 });

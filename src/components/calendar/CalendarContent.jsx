@@ -279,7 +279,7 @@ const CalendarContent = () => {
                 prev.map(e => e.id === calEvent.id ? { ...e, workStatus: newStatus } : e)
             );
             try {
-                await updateWorkStatusInFirestore(calEvent.id, newStatus);
+                await updateWorkStatusInFirestore(calEvent.id, newStatus, calEvent.revision || 0);
                 addAlert('success', newStatus === 'completed' ? 'Marked as completed' : 'Marked as not completed');
             } catch (error) {
                 setCalendarShifts(prev =>
