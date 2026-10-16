@@ -113,3 +113,44 @@ Release notes: deploy the app and accompanying rules through the existing coordi
 - Validation under Node 22: 256 unit tests (43 suites), all 203 Firestore rules/scheduling tests, all 15 dedicated browser flows, repository lint plus explicit JSX lint, whitespace checks and an isolated production build. After the final shared-query change, booking/approval, weekly exports, dashboard/CSV/Word parity and recurring availability were checked again. A parallel build/test run exceeded local browser startup deadlines; the four affected flows passed when run independently with a 120-second diagnostic timeout (38, 6, 3 and 2 seconds). Production records, rules, deployment settings and the other chat's running app were not changed. The review demo was restarted on Node 22 and its local rules refreshed without changing fixture records.
 
 The existing start/end and recurring/start indexes cover the new shift queries. No new Firestore composite index or additional deployment permission is required. Package runtime configuration selects Node 22 for the next Vercel deployment; the current production runtime is unchanged until release. Sources: [Node runtime configuration](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions), [Firebase Admin v14 compatibility changes](https://github.com/firebase/firebase-admin-node/releases/tag/v14.0.0), [sanitizer changelog](https://github.com/apostrophecms/apostrophe/blob/main/packages/sanitize-html/CHANGELOG.md).
+
+
+## Production/PR regression comparison (16/10/2026)
+
+Compared the successful GitHub Production deployment `7055561513` at `d6eeffa16c6b66fdcd53132a85f649dcc0090521` with PR application commit `d7b539000fd2901a29f71dab00d1cbd283d20f0c`. The custom domain was unavailable to inspection tools, so the successful deployment record pins the baseline. Both versions ran locally with isolated synthetic Firestore data, their own rules, dedicated Auth emulators and independent locked dependency installations. Only the baseline's development emulator port wiring was adapted.
+
+- 25 shared browser scenarios passed on both versions. The PR also passed its HTTP approval-outage/retry scenario, which is skipped for the baseline because the old approval path is a client Firestore transaction.
+- All eight development roles were exercised. Coach + Tutor still logs calendar permission errors with its mixed-case email on both versions; this is an existing issue requiring follow-up, not a passing data-access result for that account.
+- Nineteen hours fixtures were compared through the summary, actual CSV downloads and parsed Word files. Explicit PR expectations cover every fixture and completed dashboard totals. Unit suites passed: baseline 102 tests / 22 suites; PR 256 tests / 43 suites.
+- No confirmed new application regressions were found in these covered cases. The observed booking, approval, report, security and UI changes match the agreed requirements.
+
+| Case | Production | PR |
+| --- | --- | --- |
+| General Work provides student availability | No | Yes; student request remains pending |
+| Work joined to adjoining availability | Not combined | Continuous coverage is bookable |
+| Student booking over an approved session or Coaching | Tutor is offered | Tutor is unavailable |
+| Work 13:00–15:00 plus Work 14:00–16:00 | Summary 4h; Word 3.5h | Summary, CSV and Word 3h |
+| Work 09:00–11:00 plus Work 11:00–13:00 | Summary 4h; Word 3.5h | All 3.5h |
+| Work 09:00–12:00 plus student session 10:00–11:00 | Summary 4h; Word 3.5h | All 3h |
+| Adjacent 2h student sessions | Summary 4h; Word 3.5h | All 4h with complex-day warning |
+| Two separate Mondays, 3h each | One Word file combines 5.5h | Two weekly files, 3h each |
+| Short Work / Coaching export | Minimum-hours error blocks export | Actual hours export with warning |
+| Completed Work with unanswered legacy confirmation | Missing from summary, included in Word | Included consistently |
+| Other pending request after conflicting approval | Remains pending | Denied atomically, students notified |
+| Demoted admin's old session/token | API and Firestore reads still succeed | API 401; Firestore 403 |
+
+Preserved cases include ordinary availability bookings, tutor/coach completion, approved-student read-only access, break thresholds, separate dates and Work/Coaching categories, and the two-tab `(3)` → acknowledgement → five outstanding → four after approval workflow. Student decision notices, teacher reporting access, Coach dashboard cards, type simplification and deletion confirmations appear as planned.
+
+This comparison does not exercise real Microsoft OAuth, Graph delivery, Redis deployment behavior, production indexes or deployment configuration. The headless title test simulates focus/visibility signals while using real snapshots and localStorage events. Existing emulator/unit suites cover additional recurrence, concurrency, ownership, group eligibility and expiry cases; those are not all duplicated as comparative UI scenarios.
+
+### Repeating the comparison
+
+Use Node 22, Java and the installed Playwright browser. From the PR checkout:
+
+```sh
+npm run test:regression-comparison -- d6eeffa16c6b66fdcd53132a85f649dcc0090521
+```
+
+Optional Playwright arguments follow the commit, for example `--grep=hours-matrix`. The command archives both commits into temporary directories, installs each lockfile separately, starts its own Firestore/Auth emulators sequentially, runs the same browser cases and retains screenshots, semantic saved records, console/HTTP errors, CSV, Word and traces under `test-results/comparison-*`. It does not reuse or stop an existing app. Ports 3120/3121, 8380, 9399/9499 and the associated 9390/9490 hubs must be free. The harness verifies the Auth token's project and email before clearing or populating Firestore fixtures. Its clearing guard permits only `demo-talloc-compare-*` projects.
+
+The reusable runner itself was checked end to end on both versions with fresh services. Initial manual setup attempts exposed hard-coded emulator ports, the Auth emulator's default-project behavior, host network suspension and symlinked Next.js dependency resolution; those failures were isolated before the final results. They are recorded separately from product differences. Microsoft production sign-in and production data were not changed.
