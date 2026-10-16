@@ -20,7 +20,7 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '20.19.0'
+                  node-version: '22'
                   cache: 'npm'
 
             - name: Setup Java
@@ -31,6 +31,9 @@ jobs:
 
             - name: Install dependencies
               run: npm ci
+
+            - name: Audit production dependencies
+              run: npm audit --omit=dev --audit-level=high
 
             - name: Install Playwright browsers
               run: npx playwright install --with-deps chromium
@@ -100,7 +103,7 @@ jobs:
             - name: Set up Node.js
               uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
-                  node-version: '20.19.0'
+                  node-version: '22'
 
             # Client calendar writes are now server-validated. Never tighten rules
             # while the production app is still an older build or failed to deploy.

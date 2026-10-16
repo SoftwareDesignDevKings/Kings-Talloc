@@ -374,3 +374,19 @@ test('admin account screen creates and edits accounts through the secured API', 
     await expect(row).toContainText('Renamed Test Tutor');
     expect((await db.collection('users').doc(email).get()).data().authVersion).toBe(first.authVersion);
 });
+
+
+test('date-bounded availability preserves old recurring Work, group eligibility and occupied sessions', async ({ page }) => {
+    const base = slot.minus({ years: 3 }).startOf('week').plus({ days: slot.weekday - 1 }).set({ hour: 15 });
+    await db.collection('shifts').doc('old-weekly-work').set(data({ start: base.toJSDate(), end: base.plus({ hours: 3 }).toJSDate(), recurring: 'weekly' }));
+    await db.collection('shifts').doc('occupied').set(data({ start: slot.plus({ hours: 1 }).toJSDate(), end: slot.plus({ minutes: 90 }).toJSDate(), students: [{ value: student }], studentEmails: [student], createdByStudent: true }));
+    await db.collection('shifts').doc('future-work').set(data({ start: slot.plus({ years: 4 }).toJSDate(), end: slot.plus({ years: 4, hours: 3 }).toJSDate() }));
+    await signIn(page, 'Student');
+    const query = `start=${encodeURIComponent(slot.toISO())}&end=${encodeURIComponent(slot.plus({ hours: 3 }).toISO())}`;
+    const response = await page.request.get(`/api/availability?${query}`);
+    expect(response.status()).toBe(200);
+    const { slots } = await response.json();
+    expect(slots.map(s => [s.start, s.end])).toEqual([[slot.toJSDate().toISOString(), slot.plus({ hours: 1 }).toJSDate().toISOString()], [slot.plus({ minutes: 90 }).toJSDate().toISOString(), slot.plus({ hours: 3 }).toJSDate().toISOString()]]);
+    const group = await page.request.get(`/api/availability?${query}&students=${encodeURIComponent(JSON.stringify(['ineligible@kings.edu.au']))}`);
+    expect(group.status()).toBe(200); expect((await group.json()).slots).toEqual([]);
+});

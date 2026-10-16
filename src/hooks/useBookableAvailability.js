@@ -11,10 +11,14 @@ export default function useBookableAvailability(email, enabled, range) {
     useEffect(() => {
         if (!enabled || !email) return;
         let cancelled = false;
-        const controller = new AbortController();
+        let controller;
         setState(previous => ({ ...previous, ready: false }));
-        let generation = 0;
+        let generation = 0, inFlight = false, refreshQueued = false;
         const load = async () => {
+            if (cancelled || inFlight || document.visibilityState === 'hidden' || navigator.onLine === false) return;
+            inFlight = true;
+            controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
             const current = ++generation;
             try {
                 const response = await fetch(`/api/availability?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&students=${encodeURIComponent(students)}`, { cache: 'no-store', signal: controller.signal });
@@ -23,6 +27,10 @@ export default function useBookableAvailability(email, enabled, range) {
                 if (!cancelled && current === generation) setState({ slots: data.slots.map(slot => ({ ...slot, start: new Date(slot.start), end: new Date(slot.end) })), ready: true, error: null, requestKey });
             } catch (error) {
                 if (!cancelled && current === generation) setState(previous => ({ ...previous, ready: false, error: 'Unable to refresh availability. Please retry before booking.' }));
+            } finally {
+                clearTimeout(timeout);
+                inFlight = false;
+                if (refreshQueued) { refreshQueued = false; load(); }
             }
         };
         load();
@@ -33,8 +41,9 @@ export default function useBookableAvailability(email, enabled, range) {
         window.addEventListener('online', resume);
         const offline = () => setState(previous => ({ ...previous, ready: false, error: 'Waiting for a connection to refresh availability.' }));
         window.addEventListener('offline', offline);
-        window.addEventListener('talloc:schedule-changed', load);
-        return () => { cancelled = true; controller.abort(); clearInterval(timer); document.removeEventListener('visibilitychange', resume); window.removeEventListener('focus', resume); window.removeEventListener('online', resume); window.removeEventListener('offline', offline); window.removeEventListener('talloc:schedule-changed', load); };
+        const changed = () => { if (inFlight) refreshQueued = true; else load(); };
+        window.addEventListener('talloc:schedule-changed', changed);
+        return () => { cancelled = true; controller?.abort(); clearInterval(timer); document.removeEventListener('visibilitychange', resume); window.removeEventListener('focus', resume); window.removeEventListener('online', resume); window.removeEventListener('offline', offline); window.removeEventListener('talloc:schedule-changed', changed); };
     }, [email, enabled, start, end, students, requestKey, revision]);
     return { ...state, ready: state.ready && state.requestKey === requestKey, refresh };
 }

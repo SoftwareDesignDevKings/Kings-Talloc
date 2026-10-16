@@ -94,7 +94,9 @@ export const expandRecurringEvents = (events, { rangeStart = new Date(), rangeEn
         const count = Number(event.occurenceNum) || Math.max(Math.floor(maxOccurrences / weeks), Math.ceil(DateTime.fromJSDate(asDate(rangeEnd), { zone: SYDNEY_ZONE }).diff(DateTime.fromJSDate(event.start, { zone: SYDNEY_ZONE }), 'weeks').weeks / weeks));
         const start = DateTime.fromJSDate(event.start, { zone: SYDNEY_ZONE });
         const end = DateTime.fromJSDate(event.end, { zone: SYDNEY_ZONE });
-        for (let index = 0; index < count; index++) {
+        // Jump near the requested dates instead of walking every week since a legacy series began.
+        const firstIndex = Math.max(0, Math.floor(DateTime.fromJSDate(asDate(rangeStart), { zone: SYDNEY_ZONE }).diff(start, 'weeks').weeks / weeks) - 1);
+        for (let index = firstIndex; index < count; index++) {
             const occurrenceStart = start.plus({ weeks: index * weeks }).toJSDate();
             if (occurrenceStart >= asDate(rangeEnd) || (event.until && occurrenceStart > asDate(event.until))) break;
             if (occurrenceStart < asDate(rangeStart) || event.eventExceptions?.includes(index)) continue;

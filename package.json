@@ -19,20 +19,20 @@
         "test:e2e:work-hours": "firebase emulators:exec --only firestore,auth --project demo-talloc-work-hours --config firebase/firebase.work-hours.json \"playwright test --config=playwright.work-hours.config.js\""
     },
     "dependencies": {
-        "@google-cloud/storage": "^7.19.0",
+        "@google-cloud/storage": "^8.4.0",
         "@upstash/ratelimit": "^2.0.8",
         "bootstrap": "^5.3.8",
         "browser-image-compression": "^2.0.2",
         "date-fns": "^3.6.0",
         "docxtemplater": "^3.66.7",
         "firebase": "^11.0.0",
-        "firebase-admin": "^13.5.0",
+        "firebase-admin": "^14.5.0",
         "googleapis": "^164.0.0",
         "lodash": "^4.17.23",
         "lodash-es": "^4.17.23",
         "luxon": "^3.7.2",
-        "next": "^15.5.10",
-        "next-auth": "^4.24.11",
+        "next": "^15.5.28",
+        "next-auth": "^4.24.15",
         "pizzip": "^3.2.0",
         "playwright": "^1.59.1",
         "qs": "^6.15.0",
@@ -43,7 +43,8 @@
         "react-datepicker": "^7.3.0",
         "react-dom": "^18",
         "react-select": "^5.8.0",
-        "sanitize-html": "^2.17.3"
+        "sanitize-html": "^2.18.1",
+        "@upstash/redis": "^1.37.0"
     },
     "devDependencies": {
         "@firebase/rules-unit-testing": "^4.0.0",
@@ -55,13 +56,18 @@
         "dotenv": "^17.2.3",
         "eslint": "^9",
         "firebase-tools": "^15.16.0",
-        "eslint-config-next": "^15.1.7",
+        "eslint-config-next": "^15.5.28",
         "jest": "^30.2.0",
         "jest-environment-jsdom": "^30.2.0",
         "jose": "^6.1.3"
     },
     "overrides": {
         "glob": "^13.0.6",
-        "node-domexception": "^2.0.2"
+        "node-domexception": "^2.0.2",
+        "@grpc/grpc-js": "^1.14.5",
+        "postcss": "^8.5.27"
+    },
+    "engines": {
+        "node": "22.x"
     }
 }

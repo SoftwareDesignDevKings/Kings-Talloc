@@ -1,4 +1,6 @@
-import admin from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Connect to emulators in development mode (must be set BEFORE initializing)
 if (process.env.NODE_ENV === 'development') {
@@ -7,13 +9,13 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // initialise Firebase Admin SDK
-if (!admin.apps.length) {
+if (!getApps().length) {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
         if (process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test' && !isBuildTime) {
             throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY is required outside development.');
         }
-        admin.initializeApp({
+        initializeApp({
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-no-project',
         });
     } else {
@@ -21,8 +23,8 @@ if (!admin.apps.length) {
             Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf8'),
         );
 
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+        initializeApp({
+            credential: cert(serviceAccount),
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
         });
     }
@@ -34,9 +36,9 @@ if (!admin.apps.length) {
 /**
  * SERVER ONLY - Firebase AdminAuth instance
  */
-export const adminDbAuth = admin.auth();
+export const adminDbAuth = getAuth();
 
 /**
  * SERVER ONLY - Firebase Admin Firestore instance
  */
-export const adminDb = admin.firestore();
+export const adminDb = getFirestore();

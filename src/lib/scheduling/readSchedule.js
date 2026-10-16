@@ -33,10 +33,13 @@ export const resolveClassParticipants = async (db, event, transaction) => {
 // Use the transaction for every read when validating a write.
 export const readSchedule = async (db, start, end, transaction, { includeFuture = false } = {}) => {
     const read = query => transaction ? transaction.get(query) : query.get();
-    const [current, recurring] = await Promise.all([
-        read(db.collection('shifts').where('end', '>', start)),
-        read(db.collection('shifts').where('recurring', 'in', ['weekly', 'fortnightly'])),
-    ]);
+    let currentQuery = db.collection('shifts').where('end', '>', start);
+    let recurringQuery = db.collection('shifts').where('recurring', 'in', ['weekly', 'fortnightly']);
+    if (!includeFuture) {
+        currentQuery = currentQuery.where('start', '<', end).orderBy('start').orderBy('end');
+        recurringQuery = recurringQuery.where('start', '<', end);
+    }
+    const [current, recurring] = await Promise.all([read(currentQuery), read(recurringQuery)]);
     const bases = await Promise.all([...new Map([...current.docs, ...recurring.docs].map(doc => [doc.id, documentEvent(doc)])).values()].map(event => resolveClassParticipants(db, event, transaction)));
     // An edit to a legacy open-ended series must check every already stored future
     // commitment, even if it is more than a year away.

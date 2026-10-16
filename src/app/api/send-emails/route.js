@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/security/authConfig';
 import { getMicrosoftAccessToken } from '@/lib/microsoft/tokenUtils';
 import { msSendEmail } from '@/app/api/microsoft/msGraphFunctions';
 import { formatDisplayDateTime } from '@/utils/displayDate';
-import { sanitiseHtml } from '@/lib/security/securityWrappers';
+import { sanitiseHtml } from '@/lib/security/sanitiseHtml';
 
 const EMAIL_SEND_MAX_ATTEMPTS = 3;
 const EMAIL_RETRY_BASE_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 500;

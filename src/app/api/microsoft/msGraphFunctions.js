@@ -7,7 +7,7 @@
  * Only import from other API routes (server-side).
  */
 
-import { sanitiseHtml } from '@/lib/security/securityWrappers';
+import { sanitiseHtml } from '@/lib/security/sanitiseHtml';
 
 const GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const TIMEZONE = 'Australia/Sydney';
