@@ -25,7 +25,7 @@ test.each([true, false])('calendar approval uses the shared transaction path and
     const request = { id: 'request', isStudentRequest: true };
     const edits = {
         title: 'Edited request', start: new Date('2027-02-01T04:00:00Z'), end: new Date('2027-02-01T05:00:00Z'),
-        createdByStudent: true, approvalStatus: 'approved', workType: 'tutoring', staff: [{ value: 'tutor@kings.edu.au' }],
+        createdByStudent: true, approvalStatus: 'approved', students: [{ value: 'student@kings.edu.au' }], workType: 'tutoring', staff: [{ value: 'tutor@kings.edu.au' }],
     };
     render(<EventForm mode="edit" eventToEdit={request} newEvent={edits} setNewEvent={jest.fn()} setShowModal={jest.fn()} userRole="teacher" userEmail="teacher@kings.edu.au" />);
     fireEvent.click(screen.getByText('Save'));

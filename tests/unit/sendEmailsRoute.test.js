@@ -21,7 +21,7 @@ jest.mock('@/app/api/microsoft/msGraphFunctions', () => ({
     msSendEmail: jest.fn(),
 }));
 
-jest.mock('@/lib/security/securityWrappers', () => ({
+jest.mock('@/lib/security/sanitiseHtml', () => ({
     sanitiseHtml: (value) => String(value || ''),
 }));
 

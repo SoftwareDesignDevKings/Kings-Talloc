@@ -36,7 +36,7 @@ export default async function RootLayout({ children }) {
     }
 
     return (
-        <html lang="en" className={`${figtree.variable} ${chivo.variable}`} suppressHydrationWarning>
+        <html lang="en-AU" className={`${figtree.variable} ${chivo.variable}`} suppressHydrationWarning>
             <head>
                 {/* DNS prefetch for external origins */}
                 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />

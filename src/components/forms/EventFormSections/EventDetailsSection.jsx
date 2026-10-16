@@ -50,9 +50,8 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
             recurring: prev.recurring === 'fortnightly' ? null : 'fortnightly',
         }));
     }, [setNewEvent]);
-    // Collapse by default for student requests (teacher viewing)
-    const isStudentRequest = newEvent.createdByStudent;
-    const isExpanded = !isStudentRequest;
+    // Pending requests open their focus; approved bookings open their time and details.
+    const isExpanded = !(newEvent.createdByStudent && newEvent.approvalStatus === 'pending');
 
     return (
         <div className="accordion-item">
@@ -173,13 +172,13 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                             <div className="d-flex align-items-center gap-3">
                                 <button
                                     type="button"
-                                    className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? styles.teamsButton : styles.teamsButtonOutline} ${newEvent.createTeamsMeeting ? 'btn-primary' : 'btn-outline-primary'}`}
+                                    className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? '' : styles.teamsButtonOutline} ${newEvent.createTeamsMeeting ? 'btn-outline-danger' : 'btn-outline-primary'}`}
                                     onClick={handleTeamsMeetingToggle}
                                     aria-pressed={newEvent.createTeamsMeeting}
                                     aria-label={`${newEvent.createTeamsMeeting ? 'Remove' : 'Add'} online Teams meeting`}
                                 >
                                     <SiMicrosoftTeams size={24} aria-hidden="true" />
-                                    <span>{newEvent.createTeamsMeeting ? 'Teams Meeting Enabled' : 'Add Teams Meeting'}</span>
+                                    <span>{newEvent.createTeamsMeeting ? 'Remove Teams Meeting' : 'Add Teams Meeting'}</span>
                                 </button>
                             </div>
                         )}

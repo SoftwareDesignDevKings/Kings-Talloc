@@ -1,5 +1,7 @@
 'use client';
 
+import { calculateHours } from '@/lib/scheduling/hours';
+import BookingNotices from '@/components/dashboard/BookingNotices';
 import React, { useState, useEffect, useMemo } from 'react';
 import useAuthSession from '@/hooks/useAuthSession';
 import DashboardStatsCards from '@/components/dashboard/DashboardStatsCards.jsx';
@@ -10,6 +12,7 @@ import ReLoginModal from '@/components/modals/ReLoginModal.jsx';
 import useAlert from '@/hooks/useAlert';
 import { useAppData } from '@/contexts/AppDataContext';
 import { addWeeks, endOfWeek, isWithinInterval, startOfWeek } from 'date-fns';
+import { formatDisplayDate } from '@/utils/displayDate';
 import { fetchCacheClasses } from '@/firestore/firestoreFetch';
 
 const DashboardOverview = () => {
@@ -60,16 +63,6 @@ const DashboardOverview = () => {
         let completedShifts = 0;
         let uncompletedTodayEvents = 0;
         let uncompletedShifts = 0;
-        let tutoringHours = 0;
-        let coachingHours = 0;
-        let workHours = 0;
-        let completedTutoringHours = 0;
-        let completedCoachingHours = 0;
-        let completedWorkHours = 0;
-        let nextWeekTutoringHours = 0;
-        let nextWeekCoachingHours = 0;
-        let nextWeekWorkHours = 0;
-        let needsConfirmation = 0;
         const uniqueStudentEmails = new Set();
         const uniqueTutorEmailsToday = new Set();
         const classCounts = new Map();
@@ -85,9 +78,6 @@ const DashboardOverview = () => {
             const end = new Date(event.end);
             const isToday = start >= startOfToday && start <= endOfToday;
             const isFuture = start > now;
-            let hours = (end - start) / 3600000;
-            if (hours > 6) hours -= 1;
-            else if (hours > 3) hours -= 0.5;
 
             // 1. Today's Events
             if (isToday) {
@@ -97,8 +87,8 @@ const DashboardOverview = () => {
                 }
             }
 
-            // 2. Upcoming Events (Limit 5)
-            if (isFuture && upcomingEvents.length < 5) {
+            // 2. Count every upcoming event; limit only the sorted preview below.
+            if (isFuture) {
                 upcomingEvents.push(event);
             }
 
@@ -109,56 +99,12 @@ const DashboardOverview = () => {
                 uncompletedShifts++;
             }
 
-            // 4. Current-week hours (all shifts, regardless of completion status)
-            if (isWithinInterval(start, { start: currentWeekStart, end: currentWeekEnd })) {
-                if (event.workType === 'coaching') {
-                    coachingHours += hours;
-                } else if (event.workType === 'work') {
-                    workHours += hours;
-                } else {
-                    tutoringHours += hours;
-                }
-            }
-
-            // 4a. Allocated hours for next week
-            if (isWithinInterval(start, { start: nextWeekStart, end: nextWeekEnd })) {
-                if (event.workType === 'coaching') {
-                    nextWeekCoachingHours += hours;
-                } else if (event.workType === 'work') {
-                    nextWeekWorkHours += hours;
-                } else {
-                    nextWeekTutoringHours += hours;
-                }
-            }
-
-            // 4b. Current-week completed hours
-            if (
-                event.workStatus === 'completed' &&
-                isWithinInterval(start, { start: currentWeekStart, end: currentWeekEnd })
-            ) {
-                if (event.workType === 'coaching') {
-                    completedCoachingHours += hours;
-                } else if (event.workType === 'work') {
-                    completedWorkHours += hours;
-                } else {
-                    completedTutoringHours += hours;
-                }
-            }
-
             // 5. Unique Students (for Tutor View)
             event.students?.forEach(s => uniqueStudentEmails.add(s.value));
 
             // 5. Tutors scheduled today
             if (isToday) {
                 event.staff?.forEach(s => uniqueTutorEmailsToday.add(s.value || s));
-            }
-
-            // 6. Needs Confirmation (for Tutor View)
-            if (userRole === 'tutor' && event.confirmationRequired) {
-                 const hasResponse = event.tutorResponses?.some(
-                    (resp) => resp.email === session?.user?.email && resp.response
-                );
-                if (!hasResponse) needsConfirmation++;
             }
 
             // 7. Class Counts (for Teacher View)
@@ -216,36 +162,36 @@ const DashboardOverview = () => {
             req.students?.some(s => teacherStudentEmails.has(s.value || s.email))
         );
 
+        const allocation = (start, end) => {
+            const result = calculateHours(calendarShifts.filter(event => isWithinInterval(new Date(event.start), { start, end })), { completedOnly: false });
+            return { tutoring: 0, work: result.tutors.reduce((sum, tutor) => sum + tutor.workMs / 3600000, 0), coaching: result.tutors.reduce((sum, tutor) => sum + tutor.coachingMs / 3600000, 0) };
+        };
+        const completed = calculateHours(calendarShifts.filter(event => isWithinInterval(new Date(event.start), { start: currentWeekStart, end: currentWeekEnd })));
+        const completedWorkHours = completed.tutors.reduce((sum, tutor) => sum + tutor.workMs / 3600000, 0);
+        const completedCoachingHours = completed.tutors.reduce((sum, tutor) => sum + tutor.coachingMs / 3600000, 0);
         return {
-            todayEvents: todayEvents.sort((a, b) => a.start - b.start),
-            upcomingEvents: upcomingEvents.sort((a, b) => a.start - b.start),
+            todayEvents: todayEvents.sort((a, b) => new Date(a.start) - new Date(b.start)),
+            upcomingEvents: upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 5),
             upcomingEventsCount: upcomingEvents.length,
+            upcomingPeriod: `Through ${formatDisplayDate(nextWeekEnd)}`,
             unapprovedStudentRequests: pendingRequestsData.length,
             pendingRequestsData: pendingRequestsData,
             uncompletedTodayEvents,
             weeklyUtilization,
             topSubjects,
-            weeklyHours: {
-                tutoring: Math.round(tutoringHours * 10) / 10,
-                coaching: Math.round(coachingHours * 10) / 10,
-                work: Math.round(workHours * 10) / 10,
-            },
-            nextWeekHours: {
-                tutoring: Math.round(nextWeekTutoringHours * 10) / 10,
-                coaching: Math.round(nextWeekCoachingHours * 10) / 10,
-                work: Math.round(nextWeekWorkHours * 10) / 10,
-            },
+            weeklyHours: allocation(currentWeekStart, currentWeekEnd),
+            nextWeekHours: allocation(nextWeekStart, nextWeekEnd),
             completedHours: {
-                tutoring: Math.round(completedTutoringHours * 10) / 10,
-                coaching: Math.round(completedCoachingHours * 10) / 10,
-                work: Math.round(completedWorkHours * 10) / 10,
+                tutoring: 0,
+                coaching: completedCoachingHours,
+                work: completedWorkHours,
             },
             completedShifts,
             uncompletedShifts,
-            needsConfirmation,
             uniqueStudents: uniqueStudentEmails.size,
             pendingRequests: pendingRequestsData.length,
-            approvedRequests: 0,
+            // Approval moves the request into shifts, so count its approved session.
+            approvedRequests: calendarShifts.filter(event => event.createdByStudent && event.approvalStatus === 'approved').length,
             tutorsScheduledToday: uniqueTutorEmailsToday.size,
             teacherStats: {
                 studentSessions: teacherStudentSessions,
@@ -255,7 +201,7 @@ const DashboardOverview = () => {
             },
         };
 
-    }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, userRole, teacherClasses]);
+    }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, teacherClasses]);
 
 
     const handleSendEmailNotifications = async () => {
@@ -291,6 +237,7 @@ const DashboardOverview = () => {
     return (
         <div className="container-fluid p-0">
 
+            <BookingNotices />
             {/* Stats Cards */}
             {/* We don't need onUpdate anymore because the AppDataProvider updates automatically via listeners */}
             <DashboardStatsCards userRole={userRole} data={dashboardData} />
@@ -344,6 +291,7 @@ const DashboardOverview = () => {
                 <div className="col-12">
                     <EventsList
                         events={dashboardData.upcomingEvents}
+                        totalCount={dashboardData.upcomingEventsCount}
                         title="Upcoming Events"
                         emptyMessage="No upcoming events scheduled"
                         userRole={userRole}

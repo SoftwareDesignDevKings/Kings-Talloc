@@ -11,6 +11,7 @@
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
+const { seedRuleAccounts } = require('./seedRuleAccounts');
 const { deleteField } = require('firebase/firestore');
 
 const { assertFails, assertSucceeds } = global;
@@ -39,6 +40,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     await testEnv.clearFirestore();
+    await seedRuleAccounts(testEnv);
 });
 
 describe('Firebase Security Rules - Users Collection', () => {
@@ -69,7 +71,7 @@ describe('Firebase Security Rules - Users Collection', () => {
     });
 
     describe('Users - Create Access', () => {
-        test('user CAN create their own user document', async () => {
+        test('user CANNOT create their own user document', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
                 defaultRole: 'student',
@@ -77,7 +79,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('users').doc(studentEmail).set({
                     email: studentEmail,
                     name: 'Test Student',
@@ -87,7 +89,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             );
         });
 
-        test('teacher CAN create user documents', async () => {
+        test('teacher CANNOT create user documents directly', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
                 defaultRole: 'teacher',
@@ -95,7 +97,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('users').doc(studentEmail).set({
                     email: studentEmail,
                     name: 'New Student',
@@ -105,7 +107,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             );
         });
 
-        test('admin CAN create user documents', async () => {
+        test('admin CANNOT bypass the account API to create user documents', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -113,7 +115,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('users').doc(studentEmail).set({
                     email: studentEmail,
                     name: 'New Student',
@@ -173,7 +175,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
         });
 
-        test('admin CAN update any user', async () => {
+        test('admin CANNOT directly update any user', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -181,12 +183,12 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('users').doc(studentEmail).update({ name: 'Updated Name' }),
             );
         });
 
-        test('admin CAN update user roles', async () => {
+        test('admin CANNOT directly update user roles', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -194,7 +196,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('users').doc(studentEmail).update({ defaultRole: 'tutor' }),
             );
         });
@@ -307,6 +309,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
 
             test('student role in userRoles CAN acknowledge introductions', async () => {
+                await testEnv.withSecurityRulesDisabled(context => context.firestore().collection('users').doc(studentEmail).update({ defaultRole: 'tutor', userRoles: ['student'] }));
                 const context = testEnv.authenticatedContext(studentEmail, {
                     email: studentEmail,
                     defaultRole: 'tutor',
@@ -388,7 +391,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
         });
 
-        test('admin CAN delete users', async () => {
+        test('admin CANNOT bypass account revocation by directly deleting users', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -396,7 +399,7 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('users').doc(studentEmail).delete());
+            await assertFails(db.collection('users').doc(studentEmail).delete());
         });
 
         test('teacher CANNOT delete users', async () => {

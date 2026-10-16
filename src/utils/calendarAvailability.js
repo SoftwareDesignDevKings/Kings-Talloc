@@ -1,3 +1,4 @@
+import { emailOf } from '@/lib/scheduling/eventRules';
 import { addWeeks } from 'date-fns';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 
@@ -18,7 +19,7 @@ export const normaliseWorkType = (workType) => {
 export const getEnrolledSubjectIds = (classes, userEmail) =>
     new Set(
         classes
-            .filter(cls => cls.students?.some(s => s.email === userEmail))
+            .filter(cls => cls.students?.some(s => emailOf(s) === emailOf(userEmail)))
             .map(cls => cls.subject)
             .filter(Boolean)
     );
@@ -55,7 +56,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
         if (!event.staff || !Array.isArray(event.staff)) continue;
 
         for (const staff of event.staff) {
-            const tutorEmail = staff.value || staff;
+            const tutorEmail = emailOf(staff);
             if (!eventsByTutor.has(tutorEmail)) {
                 eventsByTutor.set(tutorEmail, []);
             }
@@ -71,7 +72,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     for (const availability of availabilities) {
         const currentStart = new Date(availability.start);
         const currentEnd = new Date(availability.end);
-        const tutorEvents = eventsByTutor.get(availability.tutor) || [];
+        const tutorEvents = eventsByTutor.get(emailOf(availability.tutor)) || [];
 
         let slotStart = currentStart;
         let wasSplit = false;
@@ -145,7 +146,7 @@ export const getTutorShiftConflicts = (staffList, start, end, existingShifts, ex
             ) {
                 continue;
             }
-            if (!shift.staff?.some((s) => (s.value || s) === tutorEmail)) continue;
+            if (!shift.staff?.some((s) => emailOf(s) === emailOf(tutorEmail))) continue;
 
             const shiftStart = new Date(shift.start).getTime();
             const shiftEnd = new Date(shift.end).getTime();
@@ -233,7 +234,7 @@ export const isRangeCoveredByTutorAvailability = (
     if (rangeEnd <= rangeStart) return false;
 
     const tutorSlots = availabilities
-        .filter((a) => a.tutor === tutorEmail)
+        .filter((a) => emailOf(a.tutor) === emailOf(tutorEmail))
         .map((a) => ({
             start: new Date(a.start).getTime(),
             end: new Date(a.end).getTime(),

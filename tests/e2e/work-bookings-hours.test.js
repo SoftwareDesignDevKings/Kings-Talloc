@@ -1,0 +1,392 @@
+import { test, expect } from '@playwright/test';
+import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { initializeApp, deleteApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { DateTime } from 'luxon';
+import { readFileSync } from 'fs';
+import PizZip from 'pizzip';
+
+let env, app, db;
+const tutor = 'tutor@kings.edu.au', student = 'student@kings.edu.au';
+const slot = DateTime.now().setZone('Australia/Sydney').plus({ days: 1 }).set({ hour: 15, minute: 0, second: 0, millisecond: 0 });
+const data = (extra = {}) => ({ title: 'General Work', start: slot.toJSDate(), end: slot.plus({ hours: 3 }).toJSDate(), staff: [{ value: tutor, label: 'Viraj Patel' }], students: [], staffEmails: [tutor], studentEmails: [], emailsList: [tutor], workType: 'work', recurring: null, createdByStudent: false, approvalStatus: 'approved', workStatus: 'notCompleted', ...extra });
+// Minimal weekly DOCX template used only in this isolated emulator project.
+const seedTimesheetTemplate = async () => {
+    const zip = new PizZip(); zip.file('[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'); zip.folder('_rels').file('.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    zip.folder('word').file('document.xml', '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>MONDAY {mondayDate} {mondayCommenced} {mondayFinished} {mondayBreak} {mondayTotal} TUESDAY {tuesdayDate} {tuesdayCommenced} {tuesdayFinished} {tuesdayBreak} {tuesdayTotal} WEDNESDAY {wednesdayDate} {wednesdayCommenced} {wednesdayFinished} {wednesdayBreak} {wednesdayTotal} THURSDAY {thursdayDate} {thursdayCommenced} {thursdayFinished} {thursdayBreak} {thursdayTotal} FRIDAY {fridayDate} {fridayCommenced} {fridayFinished} {fridayBreak} {fridayTotal} SATURDAY {saturdayDate} {saturdayCommenced} {saturdayFinished} {saturdayBreak} {saturdayTotal} SUNDAY {sundayDate} {sundayCommenced} {sundayFinished} {sundayBreak} {sundayTotal} TOTAL {totalHours}</w:t></w:r></w:p><w:sectPr/></w:body></w:document>');
+    await db.collection('timesheets').doc(tutor).set({ fileData: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${zip.generate({ type: 'base64' })}` });
+};
+const signIn = async (page, label) => { const hydrated = page.waitForResponse(response => response.url().endsWith('/api/auth/session')); await page.goto('/login', { waitUntil: 'domcontentloaded' }); await hydrated; await page.getByRole('button', { name: label, exact: true }).click(); await expect(page).toHaveURL(/dashboard/); await expect(page.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible(); };
+
+test.beforeAll(async () => {
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8180';
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9199';
+    env = await initializeTestEnvironment({ projectId: 'demo-talloc-work-hours', firestore: { host: '127.0.0.1', port: 8180, rules: readFileSync('firebase/firestore.rules', 'utf8') } });
+    app = initializeApp({ projectId: 'demo-talloc-work-hours' }, 'work-hours-browser'); db = getFirestore(app);
+    for (const email of ['tutor@kings.edu.au', 'student@kings.edu.au', 'teacher@kings.edu.au', 'computing@kings.edu.au', 'mienna@kings.edu.au']) {
+        await getAuth(app).updateUser(email, { email }).catch(() => getAuth(app).createUser({ uid: email, email }));
+    }
+});
+test.beforeEach(async () => {
+    // This is a dedicated local test project; never clear the other chat's emulator data.
+    await env.clearFirestore();
+    await db.collection('users').doc('mienna@kings.edu.au').set({ email: 'mienna@kings.edu.au', name: 'Michael Ienna', defaultRole: 'teacher', userRoles: ['admin'], requestNotificationsEnabled: true });
+    await db.collection('users').doc(tutor).set({ email: tutor, name: 'Viraj Patel', defaultRole: 'tutor', userRoles: [] });
+    await db.collection('users').doc(student).set({ email: student, name: 'John Doe', defaultRole: 'student', userRoles: [], hasSeenWelcome: true, hasSeenCalendarHelp: true });
+    await db.collection('studentTutorEligibility').doc(student).set({ eligibleTutorEmails: [tutor], eligibleTutors: [{ email: tutor, subjectCodes: ['MATH'] }] });
+});
+test.afterAll(async () => { await env?.cleanup(); if (db) await db.terminate(); if (app) await deleteApp(app); });
+
+test('student books during Work, names a group, and teacher approves through the dashboard', async ({ page, browser }) => {
+    await db.collection('shifts').doc('work').set(data());
+    await db.collection('canvasUsers').doc('peer').set({ email: 'peer@kings.edu.au', name: 'Casey Example' });
+    await db.collection('studentTutorEligibility').doc('peer@kings.edu.au').set({ eligibleTutorEmails: [tutor] });
+    await signIn(page, 'Student');
+    await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+    await page.locator('.rbc-events-container').nth(2).click();
+    await expect(page.getByLabel('Event start time')).toBeVisible();
+    // Click waits for the modal opening animation before typing into its fields.
+    await page.getByLabel('Event start time').click();
+    await page.getByLabel('Event start time').fill(slot.plus({ minutes: 30 }).toFormat("yyyy-MM-dd'T'HH:mm"));
+    await page.getByLabel('Event end time').fill(slot.plus({ hours: 1 }).toFormat("yyyy-MM-dd'T'HH:mm"));
+    await page.getByLabel('Students in this booking').fill('Casey');
+    await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
+    await page.locator('#tutor').click(); await page.getByRole('option', { name: /Viraj Patel/ }).click();
+    await page.getByRole('button', { name: 'Add Event', exact: true }).click();
+    await expect(page.locator('#session-focus-error')).toContainText('Select a session focus');
+    expect((await db.collection('studentEventRequests').get()).empty).toBe(true);
+    await page.getByText('Exam preparation', { exact: true }).click();
+    await page.getByLabel('Topics to cover (optional)').fill('Quadratic equations, questions 4–8.');
+    const save = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Add Event', exact: true }).click(); expect((await save).status()).toBe(200);
+    const pending = await db.collection('studentEventRequests').get(); expect(pending.size).toBe(1); expect(pending.docs[0].data().approvalStatus).toBe('pending');
+    expect(pending.docs[0].data().studentEmails).toEqual([student, 'peer@kings.edu.au']);
+    expect(pending.docs[0].data().requesterEmail).toBe(student);
+    expect(pending.docs[0].data().additionalStudents).toEqual([]);
+    expect(pending.docs[0].data().preference).toBe('Exam Help');
+    expect(pending.docs[0].data().sessionTopics).toBe('Quadratic equations, questions 4–8.');
+    const teacherContext = await browser.newContext(); const teacher = await teacherContext.newPage();
+    try {
+        await signIn(teacher, 'Teacher');
+        await teacher.getByRole('button', { name: /Pending Approvals/ }).click();
+        await expect(teacher.getByText(/John Doe, Casey Example/)).toBeVisible();
+        await expect(teacher.getByText('Session focus: Exam preparation', { exact: true })).toBeVisible();
+        await teacher.getByText('Topics to cover', { exact: true }).click();
+        await expect(teacher.getByText('Quadratic equations, questions 4–8.', { exact: true })).toBeVisible();
+        const approved = teacher.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+        await teacher.getByRole('button', { name: 'Approve', exact: true }).click(); expect((await approved).status()).toBe(200);
+        await expect.poll(async () => (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).exists).toBe(true);
+        const session = (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).data();
+        expect(session.preference).toBe('Exam Help'); expect(session.sessionTopics).toBe('Quadratic equations, questions 4–8.');
+        await page.goto('/dashboard'); await expect(page.getByText('Your tutoring request was approved.')).toBeVisible();
+        const approvedCard = page.locator('.card').filter({ has: page.getByRole('heading', { name: 'Approved Requests', exact: true }) });
+        await expect(approvedCard.getByRole('heading', { level: 3 })).toHaveText('1');
+    } finally { await teacherContext.close(); }
+});
+
+test('tutor availability has no type selector and saves through the server', async ({ page }) => {
+    await signIn(page, 'Tutor'); await page.goto('/calendar'); await page.locator('.rbc-events-container').nth(2).click();
+    await expect(page.getByRole('button', { name: 'Add Availability', exact: true })).toBeVisible();
+    await expect(page.getByText('Assignment Type', { exact: true })).toHaveCount(0);
+    const saved = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Add Availability', exact: true }).click(); expect((await saved).status()).toBe(200);
+});
+
+test('teacher creates Work with no acceptance controls and can mark it completed', async ({ page }) => {
+    await db.collection('shifts').doc('work').set(data());
+    await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+    await page.getByRole('button', { name: /General Work/ }).first().click();
+    await page.getByRole('button', { name: 'Settings & Status', exact: true }).click();
+    await page.locator('#workType').click(); await expect(page.getByRole('option', { name: 'Tutoring', exact: true })).toHaveCount(0); await page.getByRole('option', { name: 'Work', exact: true }).click();
+    await expect(page.getByText('Required for confirmation', { exact: true })).toHaveCount(0);
+    await page.locator('#workStatus').click(); await page.getByRole('option', { name: 'Completed', exact: true }).click();
+    const saved = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click(); expect((await saved).status()).toBe(200);
+    expect((await db.collection('shifts').doc('work').get()).data().workStatus).toBe('completed');
+    await expect(page.getByRole('link', { name: 'Tutor Hours', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Tutor Hours', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Tutor Hours Summary' })).toBeVisible();
+});
+
+test('actual Mondays export separately and short shifts warn without blocking download', async ({ page }) => {
+    const monday = slot.startOf('week');
+    for (const [id, date] of [['one', monday], ['two', monday.plus({ weeks: 1 })]]) await db.collection('shifts').doc(id).set(data({ start: date.set({ hour: 9 }).toJSDate(), end: date.set({ hour: 12 }).toJSDate(), workStatus: 'completed' }));
+    await signIn(page, 'Teacher + Admin');
+    await seedTimesheetTemplate();
+    const response = await page.request.post('/api/timesheet', { data: { tutorEmail: tutor, tutorName: 'Viraj Patel', startDateUTC: monday.toISO(), endDateUTC: monday.plus({ weeks: 1, days: 6 }).toISO(), timesheetType: 'tutor' } });
+    expect(response.status()).toBe(200); expect(response.headers()['content-type']).toContain('zip');
+    const archive = new PizZip(await response.body()); const files = Object.keys(archive.files).filter(file => file.endsWith('.docx')); expect(files).toHaveLength(2);
+    for (const file of files) expect(new PizZip(archive.file(file).asNodeBuffer()).file('word/document.xml').asText()).toContain('TOTAL 3');
+    await db.collection('shifts').doc('one').update({ end: monday.set({ hour: 9, minute: 30 }).toJSDate() });
+    const short = await page.request.post('/api/timesheet', { data: { tutorEmail: tutor, tutorName: 'Viraj Patel', startDateUTC: monday.toISO(), endDateUTC: monday.plus({ days: 6 }).toISO(), timesheetType: 'tutor' } });
+    expect(short.status()).toBe(200); expect(new PizZip(await short.body()).file('word/document.xml').asText()).toContain('Work is under 3 hours');
+    await page.goto('/tutorHours'); await expect(page.getByText(/Work is under 3 hours/).first()).toBeVisible();
+});
+
+
+test('two tabs acknowledge only new requests and returning preserves outstanding approvals', async ({ page, context }) => {
+    for (let index = 0; index < 2; index++) await db.collection('studentEventRequests').doc(`old-${index}`).set(data({ title: `Existing ${index}`, start: slot.plus({ days: index }).toJSDate(), end: slot.plus({ days: index, hours: 1 }).toJSDate(), students: [{ value: student }], createdByStudent: true, approvalStatus: 'pending', createdAt: new Date(Date.now() - 86400000), emailsList: [tutor, student], studentEmails: [student] }));
+    await signIn(page, 'Michael (Notifications)');
+    await expect(page.locator('#pending-approvals h3')).toHaveText('2');
+    const second = await context.newPage(); await second.goto('/dashboard'); await expect(second.locator('#pending-approvals h3')).toHaveText('2');
+    // Chromium automation keeps each target focused on some hosts. Control only the
+    // focus signal; snapshots and cross-tab localStorage events remain real.
+    const setActive = async (tab, active) => tab.evaluate(active => {
+        Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => active });
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => active ? 'visible' : 'hidden' });
+        window.dispatchEvent(new Event(active ? 'focus' : 'blur'));
+        document.dispatchEvent(new Event('visibilitychange'));
+    }, active);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('kings-talloc:request-ack:mienna@kings.edu.au'))).not.toBeNull();
+    await setActive(page, false); await setActive(second, false);
+    for (let index = 2; index < 5; index++) await db.collection('studentEventRequests').doc(`new-${index}`).set(data({ title: `New ${index}`, start: slot.plus({ days: index }).toJSDate(), end: slot.plus({ days: index, hours: 1 }).toJSDate(), students: [{ value: student }], createdByStudent: true, approvalStatus: 'pending', createdAt: new Date(), emailsList: [tutor, student], studentEmails: [student] }));
+    await expect(page).toHaveTitle('(3) Kings-Talloc'); await expect(second).toHaveTitle('(3) Kings-Talloc');
+    await setActive(second, true); await expect(second).toHaveTitle('Kings-Talloc'); await expect(page).toHaveTitle('Kings-Talloc');
+    await expect(second.locator('#pending-approvals h3')).toHaveText('5');
+    await second.locator('#pending-approvals [role="button"]').click();
+    const approved = second.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await second.getByRole('button', { name: 'Approve', exact: true }).first().click(); expect((await approved).status()).toBe(200);
+    await expect(second.locator('#pending-approvals h3')).toHaveText('4');
+    await second.reload(); await expect(second).toHaveTitle('Kings-Talloc'); await expect(second.locator('#pending-approvals h3')).toHaveText('4');
+});
+
+test('teacher can remove a student temporarily, receives an empty-save error, then saves a replacement', async ({ page }) => {
+    const replacement = 'replacement@kings.edu.au';
+    await db.collection('canvasUsers').doc('replacement').set({ email: replacement, name: 'Casey Example' });
+    await db.collection('studentTutorEligibility').doc(replacement).set({ eligibleTutorEmails: [tutor] });
+    await db.collection('shifts').doc('session').set(data({ title: 'Student session', students: [{ value: student, label: 'John Doe' }], studentEmails: [student], emailsList: [tutor, student], createdByStudent: true }));
+    await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+    await page.getByRole('button', { name: /Student session/ }).first().click();
+    await page.getByRole('button', { name: 'Participants', exact: true }).click();
+    await page.locator('#participants .select__multi-value__remove').last().click();
+    const emptyMessage = page.getByRole('alert').filter({ hasText: 'Add at least one student' });
+    await expect(emptyMessage).toHaveCount(0);
+    let writes = 0;
+    page.on('request', request => { if (request.url().endsWith('/api/scheduling') && request.method() === 'POST') writes++; });
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await expect(emptyMessage).toBeVisible(); await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
+    expect(writes).toBe(0); expect((await db.collection('shifts').doc('session').get()).data().studentEmails).toEqual([student]);
+    await page.locator('#students').fill('Casey'); await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
+    await expect(emptyMessage).toHaveCount(0);
+    const save = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click(); expect((await save).status()).toBe(200);
+    await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toHaveCount(0);
+    const saved = (await db.collection('shifts').doc('session').get()).data();
+    expect(saved.studentEmails).toEqual([replacement]); expect(saved.approvalStatus).toBe('approved'); expect(saved.createdByStudent).toBe(true);
+});
+test('saved general Work remains Work when a teacher tries to add a student booking to it', async ({ page }) => {
+    await db.collection('shifts').doc('work').set(data());
+    await db.collection('canvasUsers').doc('peer').set({ email: student, name: 'John Doe' });
+    await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+    await page.getByRole('button', { name: /General Work/ }).first().click();
+    await page.getByRole('button', { name: 'Participants', exact: true }).click();
+    await page.locator('#students').fill('John');
+    await page.getByRole('option', { name: 'John Doe', exact: true }).click();
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'Create a separate student session' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
+    expect((await db.collection('shifts').doc('work').get()).data().students).toEqual([]);
+});
+test('complex completed hours agree across dashboard, summary, CSV and Word; short Coaching still exports', async ({ page }) => {
+    const monday = DateTime.now().setZone('Australia/Sydney').startOf('week');
+    const at = hour => monday.plus({ hours: hour }).toJSDate();
+    const fixtures = [
+        ['work', { start: at(9), end: at(11) }],
+        ['session', { start: at(11), end: at(13), students: [{ value: student }], additionalStudents: ['Alex', 'Casey'] }],
+        ['separate-session', { start: at(15), end: at(16), students: [{ value: student }] }],
+        ['uncompleted-cover', { start: at(9), end: at(17), workStatus: 'notCompleted' }],
+        ['no-show', { start: at(13), end: at(14), students: [{ value: student }], workStatus: 'notAttended' }],
+        ['coach', { start: at(17), end: at(18.5), workType: 'coaching' }],
+    ];
+    for (const [id, extra] of fixtures) await db.collection('shifts').doc(id).set(data({ workStatus: 'completed', ...extra }));
+    await signIn(page, 'Teacher + Admin');
+    const completed = page.locator('.card').filter({ has: page.getByText('Completed Hours', { exact: true }) });
+    await expect(completed.locator('h3')).toHaveText('6h 0m');
+    await expect(completed).toContainText('Work: 4h 30m | Coaching: 1h 30m');
+    const allocated = page.locator('.card').filter({ has: page.getByText('Total Allocated Hours', { exact: true }) });
+    await expect(allocated.locator('h3')).toHaveText('8h 30m');
+    await page.getByRole('link', { name: 'Tutor Hours', exact: true }).click();
+    const row = page.getByRole('row').filter({ hasText: tutor });
+    await expect(row.getByRole('cell', { name: '4h 30m', exact: true })).toBeVisible();
+    await expect(row.getByRole('cell', { name: '1h 30m', exact: true })).toBeVisible();
+    await expect(row.getByRole('cell', { name: '6h 0m', exact: true })).toBeVisible();
+    await expect(row).toContainText('Complex day:'); await expect(row).toContainText('Coaching is under 2 hours');
+    await expect(row.getByRole('button', { name: 'Generate Coach Timesheet', exact: true })).toBeEnabled();
+    const downloadPromise = page.waitForEvent('download'); await page.getByRole('link', { name: 'Export as CSV', exact: true }).click();
+    const csv = readFileSync(await (await downloadPromise).path(), 'utf8');
+    expect(csv).toContain('"4.5","1.5","6"'); expect(csv).toContain('Complex day:'); expect(csv).toContain('Coaching is under 2 hours');
+    await seedTimesheetTemplate();
+    for (const [type, total, warning] of [['tutor', '4.5', 'Complex day:'], ['coach', '1.5', 'Coaching is under 2 hours']]) {
+        const response = await page.request.post('/api/timesheet', { data: { tutorEmail: tutor, tutorName: 'Viraj Patel', startDateUTC: monday.toISO(), endDateUTC: monday.plus({ days: 6 }).toISO(), timesheetType: type } });
+        expect(response.status()).toBe(200);
+        const xml = new PizZip(await response.body()).file('word/document.xml').asText();
+        expect(xml).toContain(`TOTAL ${total}`); expect(xml).toContain(warning);
+    }
+});
+
+test('Reject retains a visible decision; confirmed calendar Delete removes it and its notice', async ({ page, browser }) => {
+    const request = data({ title: 'Deletion test session', createdByStudent: true, approvalStatus: 'pending', preference: 'General', students: [{ value: student, label: 'John Doe' }], emailsList: [tutor, student] });
+    await db.collection('studentEventRequests').doc('decision-delete').set(request);
+    await signIn(page, 'Teacher');
+    await page.getByRole('button', { name: /Pending Approvals/ }).click();
+    const reject = page.getByRole('button', { name: 'Reject', exact: true });
+    await expect(reject).toHaveClass(/btn-outline-danger/);
+    page.once('dialog', dialog => dialog.dismiss());
+    await reject.click();
+    expect((await db.collection('studentEventRequests').doc('decision-delete').get()).data().approvalStatus).toBe('pending');
+    page.once('dialog', dialog => dialog.accept());
+    const rejected = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await reject.click(); expect((await rejected).status()).toBe(200);
+    expect((await db.collection('studentEventRequests').doc('decision-delete').get()).data().approvalStatus).toBe('denied');
+    const studentContext = await browser.newContext(); const studentPage = await studentContext.newPage();
+    try {
+        await signIn(studentPage, 'Student');
+        await expect(studentPage.getByText('Your tutoring request was denied.')).toBeVisible();
+        await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+        await page.getByText('Deletion test session', { exact: true }).click();
+        await page.getByRole('button', { name: 'Delete', exact: true }).click();
+        await expect(page.getByText(/any rejection notice/)).toBeVisible();
+        await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Delete Student Request', exact: true })).toBeHidden();
+        expect((await db.collection('studentEventRequests').doc('decision-delete').get()).exists).toBe(true);
+        const editor = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Edit Event', exact: true }) });
+        await editor.getByRole('button', { name: 'Delete', exact: true }).click();
+        const removed = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+        const confirmation = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Delete Student Request', exact: true }) });
+        await confirmation.getByRole('button', { name: 'Delete', exact: true }).click();
+        expect((await removed).status()).toBe(200);
+        expect((await db.collection('studentEventRequests').doc('decision-delete').get()).exists).toBe(false);
+        expect((await db.collection('bookingNotifications').where('eventId', '==', 'decision-delete').get()).empty).toBe(true);
+        await expect(studentPage.getByText('Your tutoring request was denied.')).toHaveCount(0);
+    } finally { await studentContext.close(); }
+});
+
+test('dashboard Delete warns, cancellation keeps the request, and confirmation removes without rejection', async ({ page }) => {
+    await db.collection('studentEventRequests').doc('pending-delete').set(data({ title: 'Pending deletion test', createdByStudent: true, approvalStatus: 'pending', preference: 'General', students: [{ value: student }], emailsList: [tutor, student] }));
+    await signIn(page, 'Teacher');
+    await page.getByRole('button', { name: /Pending Approvals/ }).click();
+    const remove = page.getByRole('button', { name: 'Delete', exact: true });
+    await expect(remove).toHaveClass(/btn-danger/);
+    let message;
+    page.once('dialog', dialog => { message = dialog.message(); return dialog.dismiss(); });
+    await remove.click();
+    expect(message).toContain('any rejection notice');
+    expect((await db.collection('studentEventRequests').doc('pending-delete').get()).exists).toBe(true);
+    page.once('dialog', dialog => dialog.accept());
+    const removed = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
+    await remove.click(); expect((await removed).status()).toBe(200);
+    expect((await db.collection('studentEventRequests').doc('pending-delete').get()).exists).toBe(false);
+    expect((await db.collection('bookingNotifications').get()).empty).toBe(true);
+    await expect(page.getByText('Pending deletion test', { exact: true })).toHaveCount(0);
+});
+
+const firebaseIdToken = async page => {
+    const session = await (await page.request.get('/api/auth/session')).json();
+    const response = await page.request.post('http://127.0.0.1:9199/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=demo-work-hours-api-key', {
+        data: { token: session.user.firebaseToken, returnSecureToken: true },
+    });
+    expect(response.status()).toBe(200);
+    return (await response.json()).idToken;
+};
+const readWithOldToken = (page, token, collection, id) => page.request.get(
+    `http://127.0.0.1:8180/v1/projects/demo-talloc-work-hours/databases/(default)/documents/${collection}/${encodeURIComponent(id)}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+);
+
+test('calendar credentials are private, legacy links fail, and a student cannot create admin profiles', async ({ page }) => {
+    const legacy = 'a'.repeat(64);
+    await db.collection('users').doc(student).update({ calendarFeedToken: legacy });
+    await signIn(page, 'Student');
+    const response = await page.request.get('/api/calendar'); expect(response.status()).toBe(200);
+    const { httpsUrl } = await response.json(); const link = new URL(httpsUrl);
+    const privateToken = link.searchParams.get('token');
+    expect(privateToken).toMatch(/^[a-f0-9]{64}$/); expect(privateToken).not.toBe(legacy);
+    expect((await db.collection('calendarFeedSecrets').doc(student).get()).data().token).toBe(privateToken);
+    expect((await db.collection('users').doc(student).get()).data().calendarFeedToken).toBeUndefined();
+    expect((await page.request.get(httpsUrl)).status()).toBe(200);
+    expect((await page.request.get(`/api/calendar/feed?uid=${student}&token=${legacy}`)).status()).toBe(401);
+    const oldToken = await firebaseIdToken(page);
+    expect((await readWithOldToken(page, oldToken, 'calendarFeedSecrets', student)).status()).toBe(403);
+    expect((await page.request.post('/api/users', { data: { mode: 'create', email: 'forged@kings.edu.au', name: 'Forged admin', defaultRole: 'admin' } })).status()).toBe(403);
+    expect((await db.collection('users').doc('forged@kings.edu.au').get()).exists).toBe(false);
+});
+
+test('demoting an admin invalidates the current cookie and already-issued Firebase token', async ({ page }) => {
+    await signIn(page, 'Teacher + Admin');
+    const email = 'computing@kings.edu.au';
+    const oldToken = await firebaseIdToken(page);
+    expect((await readWithOldToken(page, oldToken, 'users', email)).status()).toBe(200);
+    const response = await page.request.post('/api/users', { data: { mode: 'update', email, name: 'Michael Ienna', defaultRole: 'student', userRoles: [] } });
+    expect(response.status()).toBe(200); expect((await response.json()).requiresReauthentication).toBe(true);
+    expect((await readWithOldToken(page, oldToken, 'users', email)).status()).toBe(403);
+    expect((await page.request.post('/api/users', { data: { mode: 'update', email, name: 'Forged restore', defaultRole: 'admin' } })).status()).toBe(401);
+    const session = await (await page.request.get('/api/auth/session')).json();
+    expect(session.user).toBeNull();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Kings-Talloc', exact: true })).toBeVisible();
+});
+
+test('deleted accounts cannot return until admin recreation, and recreation does not revive old tokens', async ({ page, browser }) => {
+    const studentContext = await browser.newContext(); const studentPage = await studentContext.newPage();
+    try {
+        await signIn(studentPage, 'Student');
+        const oldToken = await firebaseIdToken(studentPage);
+        await signIn(page, 'Teacher + Admin');
+        expect((await page.request.delete('/api/users', { data: { email: student } })).status()).toBe(200);
+        expect((await db.collection('users').doc(student).get()).exists).toBe(false);
+        expect((await db.collection('revokedAccounts').doc(student).get()).exists).toBe(true);
+        expect((await readWithOldToken(studentPage, oldToken, 'users', student)).status()).toBe(403);
+        expect((await studentPage.request.post('/api/scheduling', { data: {} })).status()).toBe(401);
+        await studentPage.goto('/login');
+        await studentPage.getByRole('button', { name: 'Student', exact: true }).click();
+        await expect(studentPage).toHaveURL(/login/);
+        expect((await db.collection('users').doc(student).get()).exists).toBe(false);
+        expect((await page.request.post('/api/users', { data: { mode: 'create', email: student, name: 'John Doe', defaultRole: 'student', userRoles: [] } })).status()).toBe(200);
+        await signIn(studentPage, 'Student');
+        expect((await readWithOldToken(studentPage, oldToken, 'users', student)).status()).toBe(403);
+        const newToken = await firebaseIdToken(studentPage);
+        expect((await readWithOldToken(studentPage, newToken, 'users', student)).status()).toBe(200);
+    } finally { await studentContext.close(); }
+});
+
+
+test('admin account screen creates and edits accounts through the secured API', async ({ page }) => {
+    const email = 'new-tutor@kings.edu.au';
+    await signIn(page, 'Teacher + Admin');
+    await page.goto('/userRoles');
+    await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
+    await page.getByLabel('Email Address', { exact: true }).fill(email);
+    await page.getByLabel('Full Name', { exact: true }).fill('New Test Tutor');
+    await page.getByLabel('Default Access Role', { exact: true }).selectOption('tutor');
+    let saved = page.waitForResponse(response => response.url().endsWith('/api/users') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Create User', exact: true }).click();
+    expect((await saved).status()).toBe(200);
+    const row = page.getByRole('row').filter({ hasText: email });
+    await expect(row).toContainText('New Test Tutor');
+    const first = (await db.collection('users').doc(email).get()).data();
+    expect(first.defaultRole).toBe('tutor'); expect(first.authVersion).toBeTruthy();
+    await row.getByRole('button', { name: 'Edit user', exact: true }).click();
+    await page.getByLabel('Full Name', { exact: true }).fill('Renamed Test Tutor');
+    saved = page.waitForResponse(response => response.url().endsWith('/api/users') && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    expect((await saved).status()).toBe(200);
+    await expect(row).toContainText('Renamed Test Tutor');
+    expect((await db.collection('users').doc(email).get()).data().authVersion).toBe(first.authVersion);
+});
+
+
+test('date-bounded availability preserves old recurring Work, group eligibility and occupied sessions', async ({ page }) => {
+    const base = slot.minus({ years: 3 }).startOf('week').plus({ days: slot.weekday - 1 }).set({ hour: 15 });
+    await db.collection('shifts').doc('old-weekly-work').set(data({ start: base.toJSDate(), end: base.plus({ hours: 3 }).toJSDate(), recurring: 'weekly' }));
+    await db.collection('shifts').doc('occupied').set(data({ start: slot.plus({ hours: 1 }).toJSDate(), end: slot.plus({ minutes: 90 }).toJSDate(), students: [{ value: student }], studentEmails: [student], createdByStudent: true }));
+    await db.collection('shifts').doc('future-work').set(data({ start: slot.plus({ years: 4 }).toJSDate(), end: slot.plus({ years: 4, hours: 3 }).toJSDate() }));
+    await signIn(page, 'Student');
+    const query = `start=${encodeURIComponent(slot.toISO())}&end=${encodeURIComponent(slot.plus({ hours: 3 }).toISO())}`;
+    const response = await page.request.get(`/api/availability?${query}`);
+    expect(response.status()).toBe(200);
+    const { slots } = await response.json();
+    expect(slots.map(s => [s.start, s.end])).toEqual([[slot.toJSDate().toISOString(), slot.plus({ hours: 1 }).toJSDate().toISOString()], [slot.plus({ minutes: 90 }).toJSDate().toISOString(), slot.plus({ hours: 3 }).toJSDate().toISOString()]]);
+    const group = await page.request.get(`/api/availability?${query}&students=${encodeURIComponent(JSON.stringify(['ineligible@kings.edu.au']))}`);
+    expect(group.status()).toBe(200); expect((await group.json()).slots).toEqual([]);
+});

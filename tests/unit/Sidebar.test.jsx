@@ -64,7 +64,7 @@ describe('Sidebar', () => {
         expect(screen.queryByText('Canvas Admin')).not.toBeInTheDocument();
         expect(screen.getByText('Canvas Classes')).toBeInTheDocument();
         expect(screen.queryByText('Manage Subjects')).not.toBeInTheDocument();
-        expect(screen.queryByText('Tutor Hours')).not.toBeInTheDocument(); // Only for admin, tutor, coach
+        expect(screen.getByText('Tutor Hours')).toBeInTheDocument(); // Teachers can review and export hours
     });
 
     it('renders navigation links with correct hrefs', () => {

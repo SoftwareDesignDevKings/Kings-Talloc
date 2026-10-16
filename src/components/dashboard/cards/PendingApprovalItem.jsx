@@ -1,4 +1,5 @@
-import { format } from 'date-fns';
+import { formatDisplayDateTime, formatDisplayTime } from '@/utils/displayDate';
+import { sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
 
 const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly, disabled = false }) => (
     <div className="list-group-item">
@@ -29,9 +30,15 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly,
 
             <div className="small text-muted">
                 <div>
-                    {format(request.start, 'MMM d, yyyy h:mm a')}{' '}
-                    - {format(request.end, 'h:mm a')}
+                    {formatDisplayDateTime(request.start)}{' '}
+                    - {formatDisplayTime(request.end)}
                 </div>
+                <div><strong>Session focus:</strong> {sessionFocusLabel(request.preference)}</div>
+                {request.sessionTopics?.trim() && <details className="mt-1">
+                    <summary>Topics to cover</summary>
+                    <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{request.sessionTopics}</div>
+                </details>}
+                {request.additionalStudents?.length > 0 && <div>Other students: {request.additionalStudents.join(', ')}</div>}
                 {request.classes?.length > 0 && (
                     <div>
                         Class:{' '}
@@ -60,7 +67,7 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly,
                         Approve
                     </button>
                     <button
-                        className="btn btn-sm btn-secondary"
+                        className="btn btn-sm btn-outline-danger"
                         disabled={disabled}
                         onClick={(e) => { e.stopPropagation(); onReject(request.id); }}
                     >

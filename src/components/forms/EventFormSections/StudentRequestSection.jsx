@@ -1,6 +1,8 @@
 import React from 'react';
 import Select from 'react-select';
 import { MdNoteAlt, MdMenuBook, MdFlag, MdSchool } from '@/components/icons';
+import { sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
+import { isStudentSession } from '@/lib/scheduling/eventRules';
 
 const StudentRequestSection = ({
     newEvent,
@@ -8,10 +10,10 @@ const StudentRequestSection = ({
     approvalOptions,
     readOnly,
 }) => {
-    if (!newEvent.createdByStudent) return null;
+    if (!newEvent.createdByStudent && !isStudentSession(newEvent)) return null;
 
-    // Auto-expand for student requests (when opened by teacher)
-    const isExpanded = true;
+    // Focus is useful when reviewing a pending request; approved sessions open general details.
+    const isExpanded = newEvent.approvalStatus === 'pending';
     const classLabel = newEvent.classes?.[0]?.label || newEvent.classes?.[0]?.name;
 
     return (
@@ -28,9 +30,9 @@ const StudentRequestSection = ({
                     <div className="d-flex align-items-center justify-content-between w-100 me-3">
                         <div className="d-flex align-items-center">
                             <MdNoteAlt className="me-2 text-primary" size={20} aria-hidden="true" />
-                            <span className="fw-bold">Student Request Details</span>
+                            <span className="fw-bold">Session focus</span>
                         </div>
-                        <span className="badge rounded-pill bg-info fw-normal text-xs">STUDENT SUBMITTED</span>
+                        {newEvent.createdByStudent && <span className="badge rounded-pill bg-info fw-normal text-xs">STUDENT SUBMITTED</span>}
                     </div>
                 </button>
             </h2>
@@ -64,17 +66,19 @@ const StudentRequestSection = ({
                                 </div>
                             )}
 
-                            {newEvent.preference && (
-                                <div className="col-6">
-                                    <label className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
-                                        <MdFlag /> Preference
-                                    </label>
-                                    <div className="fw-bold text-dark">
-                                        {newEvent.preference}
-                                    </div>
+                            <div className="col-6">
+                                <div className="small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
+                                    <MdFlag /> Focus
                                 </div>
-                            )}
+                                <div className="fw-bold text-dark">
+                                    {sessionFocusLabel(newEvent.preference)}
+                                </div>
+                            </div>
                         </div>
+                        {newEvent.sessionTopics?.trim() && <div className="mt-3">
+                            <div className="small fw-bold text-muted text-uppercase mb-1">Topics to cover</div>
+                            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{newEvent.sessionTopics}</div>
+                        </div>}
                     </div>
 
                     {!readOnly && (

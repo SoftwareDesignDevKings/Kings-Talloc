@@ -1,4 +1,5 @@
 'use client';
+import useBookableAvailability from '@/hooks/useBookableAvailability';
 
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { startOfWeek, endOfWeek } from 'date-fns';
@@ -77,6 +78,8 @@ export const AppDataContextProvider = ({ children }) => {
         start: startOfWeek(new Date(), { weekStartsOn: 1 }),
         end: endOfWeek(new Date(), { weekStartsOn: 1 }),
     });
+
+    const bookableAvailability = useBookableAvailability(userEmail, userRole === 'student', appDateRange);
 
     // Debounce the date range so rapid week navigation doesn't fire multiple subscriptions
     const [debouncedDateRange, setDebouncedDateRange] = useState(appDateRange);
@@ -179,6 +182,7 @@ export const AppDataContextProvider = ({ children }) => {
         tutors,
         students,
         studentTutorEligibility,
+        bookableAvailability,
 
         // date range
         calendarDateRange: appDateRange,
@@ -192,6 +196,7 @@ export const AppDataContextProvider = ({ children }) => {
         tutors,
         students,
         studentTutorEligibility,
+        bookableAvailability,
         appDateRange,
     ]);
 

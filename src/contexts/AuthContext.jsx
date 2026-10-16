@@ -113,11 +113,11 @@ export const AuthContextProvider = ({ children }) => {
     }
 
     if (isLoading) return <LoadingPage />;
-    if (status === 'unauthenticated') return <Login />;
+    if (status === 'unauthenticated' || !session?.user) return <Login />;
 
     return (
         <AuthContext.Provider value={authCtxValues}>
-            <RequestNotificationsProvider email={session?.user?.email} availableRoles={availableRoles}>
+            <RequestNotificationsProvider email={session?.user?.email} profileId={session?.user?.profileId || session?.user?.email} availableRoles={availableRoles}>
                 <AppLayout session={session} userRole={userRole}>
                     {children}
                 </AppLayout>

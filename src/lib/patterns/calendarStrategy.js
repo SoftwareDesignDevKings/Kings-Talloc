@@ -1,3 +1,4 @@
+import { emailOf, requestOwnerEmail } from '@/lib/scheduling/eventRules';
 // import { CalendarEntityType } from "@/hooks/useCalendarStrategy";
 
 export const CalendarFlow = Object.freeze({
@@ -53,7 +54,7 @@ export const adminCalendarStrategy = () => ({
         canFilterByTutor: true,
         canFilterBySubject: false,
         canFilterByWorkType: true,
-        canFilterByAvailabilityType: true,
+        canFilterByAvailabilityType: false,
     },
 
     // teacher can see all tutor availabilities, but UI view is initials not CustomEvent.
@@ -81,64 +82,23 @@ export const adminCalendarStrategy = () => ({
     },
 });
 
-export const teacherCalendarStrategy = () => ({
-    // Fetch all data — teacher has full visibility but limited write access
-    firestoreConstraints: {
-        shifts:          () => [],   // fetch all (read-only view)
-        studentRequests: () => [],   // fetch all (can manage)
-        availabilities:  () => [],   // fetch all
-    },
-
-    permissions: {
-        canEdit:   (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canDrag:   (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canResize: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-    },
-
-    visibility: {
-        includeInCalendar: (event) =>
-            event.entityType === CalendarEntityType.SHIFT ||
-            event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        showAvailabilitySlots: true,
-    },
-
-    calendarFilters: {
-        canFilterByTutor: true,
-        canFilterBySubject: false,
-        canFilterByWorkType: true,
-        canFilterByAvailabilityType: true,
-    },
-
-    calendarScope: {
-        canToggleDeniedStudentRequests: true,
-        canToggleTutorAvailabilities: true,
-        canToggleCoachingShifts: true,
-        canToggleTutoringShifts: true,
-    },
-
-    actions: {
-        canCreateEvent:    (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canModifyEvent:    (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canDuplicateEvent: (event) => event.entityType === CalendarEntityType.STUDENT_REQUEST,
-        canCompleteEvent: () => false,
-
-        getCreateFlow: () => CalendarFlow.CREATE_STUDENT_REQUEST,
-        getEventFlow: (event) => {
-            if (event.entityType === CalendarEntityType.SHIFT) {
-                return CalendarFlow.VIEW_SHIFT;
-            }
-            return CalendarFlow.EDIT_STUDENT_REQUEST;
-        },
-    },
-});
+export const teacherCalendarStrategy = () => adminCalendarStrategy();
 
 // temp sol - coaches r the same as just tutors.
+// Firestore ownership is checked against Firebase's lowercase email. The signed
+// legacy profile ID is an additional spelling of the same identity, not a role.
+export const ownEventsFilter = email => {
+    const canonical = emailOf(email);
+    const aliases = [...new Set([canonical, email])];
+    return [{ fbField: 'emailsList', fbOperation: aliases.length > 1 ? 'array-contains-any' : 'array-contains', fbValue: aliases.length > 1 ? aliases : canonical }];
+};
+
 export const coachCalendarStrategy = (userEmail) => tutorCalendarStrategy(userEmail)
 
 export const tutorCalendarStrategy = (userEmail) => ({
     // Firestore query constraints - null means skip that collection entirely
     firestoreConstraints: {
-        shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
+        shifts:          () => ownEventsFilter(userEmail),
         studentRequests: () => null,  // tutors don't see student requests
         availabilities:  () => [],   // fetch all for overlay; own filtered in CalendarUIContextProvider
     },
@@ -161,7 +121,7 @@ export const tutorCalendarStrategy = (userEmail) => ({
         canFilterByTutor: true,
         canFilterBySubject: false,
         canFilterByWorkType: true,
-        canFilterByAvailabilityType: true,
+        canFilterByAvailabilityType: false,
     },
 
     // panel scopes - studenRequests, tutor shifts / availabilities
@@ -196,23 +156,23 @@ export const tutorCalendarStrategy = (userEmail) => ({
 export const studentCalendarStrategy = (userEmail) => ({
     // Firestore query constraints - null means skip that collection entirely
     firestoreConstraints: {
-        shifts:          () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
-        studentRequests: () => [{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: userEmail }],
+        shifts:          () => ownEventsFilter(userEmail),
+        studentRequests: () => ownEventsFilter(userEmail),
         availabilities:  () => [],  // fetch all (for overlay initials)
     },
 
     permissions: {
         canEdit: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
         // Students can only move/resize their own request while it's still pending.
         // Once approved or denied it's locked.
         canDrag: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
         canResize: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
     },
 
     visibility: {
@@ -245,11 +205,11 @@ export const studentCalendarStrategy = (userEmail) => ({
             event.entityType === CalendarEntityType.STUDENT_REQUEST,
         canModifyEvent: (event) =>
             event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.approvalStatus === 'pending',
+            event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail),
         
         canDuplicateEvent: (event) => {
             if (event.entityType === CalendarEntityType.STUDENT_REQUEST) {
-                return event.approvalStatus === 'pending'
+                return event.approvalStatus === 'pending' && requestOwnerEmail(event) === emailOf(userEmail)
             } else {
                 return false
             }
@@ -260,7 +220,7 @@ export const studentCalendarStrategy = (userEmail) => ({
         getEventFlow: (calEvent) => {
             if (calEvent.entityType === CalendarEntityType.SHIFT) {
                 return CalendarFlow.VIEW_SHIFT
-            } else if (calEvent.approvalStatus !== 'pending') {
+            } else if (calEvent.approvalStatus !== 'pending' || requestOwnerEmail(calEvent) !== emailOf(userEmail)) {
                 return CalendarFlow.VIEW_STUDENT_REQUEST
             } else {
                 return CalendarFlow.EDIT_STUDENT_REQUEST

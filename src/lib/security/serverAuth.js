@@ -2,13 +2,21 @@ import 'server-only';
 
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/security/authConfig';
+import { getCurrentAccount } from './accountState';
 
 export const getRequiredSession = async () => {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
         return { error: Response.json({ message: 'Unauthorised' }, { status: 401 }) };
     }
-    return { session };
+    try {
+        const account = await getCurrentAccount(session.user.email, session.user.authVersion || '');
+        if (!account) return { error: Response.json({ message: 'Account access was revoked. Please sign in again.' }, { status: 401 }) };
+        return { session: { ...session, user: { ...session.user, email: account.email, role: account.defaultRole,
+            defaultRole: account.defaultRole, userRoles: account.userRoles, profileId: account.profileId, authVersion: account.authVersion } } };
+    } catch {
+        return { error: Response.json({ message: 'Unable to verify account access. Please retry.' }, { status: 503 }) };
+    }
 };
 
 export const getRequiredAdminOrTeacherSession = async () => {

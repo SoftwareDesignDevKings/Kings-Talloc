@@ -1,3 +1,4 @@
+import { workCategory } from '@/lib/scheduling/eventRules';
 import React, { useCallback } from 'react';
 import Select from 'react-select';
 import { MdSettings } from '@/components/icons';
@@ -5,7 +6,6 @@ import { MdSettings } from '@/components/icons';
 const SettingsSection = ({
     newEvent,
     setNewEvent,
-    handleMinStudentsChange,
     onWorkTypeChange,
     workTypeOptions,
     workStatusOptions,
@@ -46,53 +46,6 @@ const SettingsSection = ({
                 <div className="accordion-body p-4">
                     <div className="row g-4">
                         <div className="col-md-6">
-                            <label
-                                htmlFor="minStudents"
-                                className="form-label small fw-bold text-muted text-uppercase"
-                            >
-                                Min Students
-                            </label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                name="minStudents"
-                                id="minStudents"
-                                value={newEvent.minStudents || 0}
-                                onChange={handleMinStudentsChange}
-                                disabled={readOnly}
-                                aria-label="Minimum number of students required"
-                                min="0"
-                            />
-                            <small className="text-muted mt-1 d-block text-xs">
-                                Required for confirmation
-                            </small>
-                        </div>
-
-                        {newEvent.minStudents > 0 && (
-                            <div className="col-md-6">
-                                <label className="form-label small fw-bold text-muted text-uppercase mb-2">
-                                    Responses
-                                </label>
-                                {newEvent.studentResponses && newEvent.studentResponses.length > 0 ? (
-                                    <div className="d-flex flex-wrap gap-1">
-                                        {newEvent.studentResponses.map((response, index) => (
-                                            <span
-                                                key={index}
-                                                className={`badge rounded-pill bg-${response.response ? 'success' : 'danger'} fw-normal text-xs`}
-                                            >
-                                                {response.email.split('@')[0]}
-                                            </span>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-muted small fst-italic py-1">
-                                        No data yet
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <div className="col-md-6">
                             <label htmlFor="workType" className="form-label small fw-bold text-muted text-uppercase">
                                 Work Type
                             </label>
@@ -102,7 +55,7 @@ const SettingsSection = ({
                                 onChange={handleWorkTypeChange}
                                 classNamePrefix="select"
                                 value={workTypeOptions.find(
-                                    (option) => option.value === (newEvent.workType || 'work'),
+                                    (option) => option.value === workCategory(newEvent),
                                 )}
                                 isDisabled={readOnly}
                                 aria-label="Event work type"

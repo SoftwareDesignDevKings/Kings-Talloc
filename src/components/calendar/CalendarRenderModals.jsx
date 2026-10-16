@@ -47,12 +47,14 @@ const CalendarRenderModals = ({ calendarAction, calendarTarget, updateCalendarTa
         return createDraft({
             ...calendarTarget,
             userEmail: userEmail,
+            userRole,
             ...(prefilledStaff?.length ? { prefilledStaff } : {}),
         });
     }, [
         modalActionStrategy,
         calendarTarget,
         userEmail,
+        userRole,
         calendarAction,
         filters.filterByTutor,
         tutors,

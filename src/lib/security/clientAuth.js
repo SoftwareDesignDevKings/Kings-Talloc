@@ -89,6 +89,10 @@ export const stopTokenRefresh = () => {
 // sync NextAuth session with Firebase - returns state updates for AuthProvider
 export const syncNextFbAuth = async (session, status) => {
     try {
+        if (status === 'authenticated' && !session?.user) {
+            await fbAuthLogoutSync();
+            return { isLoading: false, userRole: 'student', userRoles: [] };
+        }
         if (status === 'authenticated' && session?.user) {
             const userRole = session.user.defaultRole || session.user.role;
             const userRoles = session.user.userRoles || [];

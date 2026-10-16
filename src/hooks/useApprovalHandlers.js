@@ -1,3 +1,4 @@
+import { REQUEST_DELETE_WARNING } from '@/utils/destructiveActions';
 import { useRef, useState } from 'react';
 import { queueEmailNotification } from '@/firestore/firestoreOperations';
 import { approveStudentRequest, resolveStudentRequest } from '@/firestore/studentRequestApprovals';
@@ -16,7 +17,7 @@ export const useApprovalHandlers = (onUpdate) => {
         processing.current.add(requestId);
         setProcessingIds(new Set(processing.current));
         try {
-            await action();
+            if (await action() === false) return false;
             return true;
         } catch (error) {
             addAlert('error', `${failureMessage}: ${error.message}`);
@@ -52,12 +53,16 @@ export const useApprovalHandlers = (onUpdate) => {
     }, 'Failed to approve request');
 
     const handleReject = requestId => perform(requestId, async () => {
+        if (!window.confirm('Reject this request? The request will remain visible as rejected and the students will receive an in-app notification.')) return false;
         await resolveStudentRequest(requestId, 'deny');
+        addAlert('success', 'Request rejected. Students have been notified.');
         onUpdate?.();
     }, 'Failed to reject request');
 
     const handleDelete = requestId => perform(requestId, async () => {
+        if (!window.confirm(`Delete this student request?\n\n${REQUEST_DELETE_WARNING}`)) return false;
         await resolveStudentRequest(requestId, 'delete');
+        addAlert('success', 'Request deleted.');
         onUpdate?.();
     }, 'Failed to delete request');
 

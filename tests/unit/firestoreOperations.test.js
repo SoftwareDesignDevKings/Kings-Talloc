@@ -1,4 +1,5 @@
-import { addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { schedulingMutation } from '@/firestore/schedulingClient';
+jest.mock('@/firestore/schedulingClient', () => ({ schedulingMutation: jest.fn() }));
 import {
     createEventInFirestore,
     stripUndefinedFields,
@@ -35,7 +36,7 @@ describe('stripUndefinedFields', () => {
 describe('createEventInFirestore', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        addDoc.mockResolvedValue({ id: 'created-doc-id' });
+        schedulingMutation.mockResolvedValue({ id: 'created-doc-id' });
     });
 
     test('strips undefined duplicate metadata before creating availability docs', async () => {
@@ -56,21 +57,19 @@ describe('createEventInFirestore', () => {
 
         expect(docId).toBe('created-doc-id');
 
-        const payload = addDoc.mock.calls[0][1];
+        const payload = schedulingMutation.mock.calls[0][0].data;
         expect(payload).not.toHaveProperty('originalAvailabilityId');
         expect(payload.metadata).toEqual({ keep: 'yes' });
-        expect(payload.staffEmails).toEqual([]);
-        expect(payload.studentEmails).toEqual([]);
-        expect(payload.emailsList).toEqual([]);
+        expect(schedulingMutation.mock.calls[0][0]).toMatchObject({ action: 'create', collectionName: 'tutorAvailabilities' });
     });
 
-    test('new and duplicated student requests get a fresh server timestamp', async () => {
+    test('new and duplicated requests go through authoritative creation', async () => {
         await createEventInFirestore({ createdAt: { seconds: 1, nanoseconds: 0 } }, 'studentEventRequests');
-        expect(addDoc.mock.calls[0][1].createdAt).toEqual(serverTimestamp());
+        expect(schedulingMutation).toHaveBeenCalledWith(expect.objectContaining({ action: 'create', collectionName: 'studentEventRequests' }));
     });
 
     test('editing a student request preserves its creation timestamp', async () => {
         await updateEventInFirestore('request', { title: 'Edited', createdAt: { seconds: 1, nanoseconds: 0 } }, 'studentEventRequests');
-        expect(updateDoc.mock.calls[0][1]).toEqual({ title: 'Edited' });
+        expect(schedulingMutation).toHaveBeenCalledWith(expect.objectContaining({ action: 'update', id: 'request', collectionName: 'studentEventRequests' }));
     });
 });

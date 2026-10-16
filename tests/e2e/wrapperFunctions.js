@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { TEST_USERS } from '../../src/lib/security/testUsers';
 
 dotenv.config({ path: '.env.local' });
 
@@ -21,6 +22,8 @@ export async function clearFirestoreEmulator() {
     if (!res.ok) {
         throw new Error(`Failed to clear Firestore emulator: ${res.status}`);
     }
+    // Keep role/eligibility fixtures present after clearing scheduling test data.
+    await Promise.all(Object.entries(TEST_USERS).map(([email, user]) => seedUserInEmulator(email, { ...user, email, hasSeenWelcome: true, hasSeenCalendarHelp: true })));
 }
 
 const toFirestoreValue = (value) => {
@@ -63,7 +66,8 @@ async function seedDocumentInEmulator(collectionName, id, document) {
         `http://${host}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${id}`,
         {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            // Emulator-only fixture writes bypass the production client rules.
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
             body: JSON.stringify({
                 fields: Object.fromEntries(
                     Object.entries(document).map(([key, value]) => [key, toFirestoreValue(value)])
@@ -76,3 +80,5 @@ async function seedDocumentInEmulator(collectionName, id, document) {
         throw new Error(`Failed to seed ${collectionName}/${id}: ${res.status}`);
     }
 }
+
+export async function seedStudentEligibilityInEmulator(email, tutors) { return seedDocumentInEmulator('studentTutorEligibility', email, { eligibleTutorEmails: tutors }); }

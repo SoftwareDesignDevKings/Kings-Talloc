@@ -40,7 +40,6 @@ const CalendarFilterPanel = () => {
 
     // prepare work type options for availabilities
     const availabilityWorkTypeOptions = [
-        { value: 'tutoring', label: 'Tutoring' },
         { value: 'coaching', label: 'Coaching' },
         { value: 'work', label: 'Work' },
     ];
@@ -124,21 +123,6 @@ const CalendarFilterPanel = () => {
                             <div className={`${styles.filterSectionLabel} mb-1`}>
                                 {userRole === 'student' ? 'Sessions' : 'Shifts'}
                             </div>
-
-                            {calendarScope.canToggleTutoringShifts && (
-                                <label className={styles.toggleRow}>
-                                    <span className={styles.toggleLabel}>Tutoring</span>
-                                    <span className={styles.toggle}>
-                                        <input
-                                            type="checkbox"
-                                            checked={visibility.showTutoringEvents}
-                                            onChange={(e) => actions.setShowTutoringEvents(e.target.checked)}
-                                            aria-label="Show tutoring shifts"
-                                        />
-                                        <span className={styles.toggleTrack} />
-                                    </span>
-                                </label>
-                            )}
 
                             {calendarScope.canToggleCoachingShifts && (
                                 <label className={styles.toggleRow}>

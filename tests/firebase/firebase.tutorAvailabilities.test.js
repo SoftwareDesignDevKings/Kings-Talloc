@@ -10,6 +10,7 @@
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
+const { seedRuleAccounts } = require('./seedRuleAccounts');
 
 const { assertFails, assertSucceeds } = global;
 const fs = require('fs');
@@ -37,6 +38,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     await testEnv.clearFirestore();
+    await seedRuleAccounts(testEnv);
 });
 
 describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
@@ -67,7 +69,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
     });
 
     describe('Tutor Availabilities - Create Access', () => {
-        test('tutor CAN create their own availability', async () => {
+        test('tutor must use the scheduling API to create their own availability', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
                 defaultRole: 'tutor',
@@ -75,7 +77,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('tutorAvailabilities').add({
                     tutor: tutorEmail,
                     start: new Date('2025-10-15T09:00:00'),
@@ -85,7 +87,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             );
         });
 
-        test('coach CAN create their own availability', async () => {
+        test('coach must use the scheduling API to create their own availability', async () => {
             const context = testEnv.authenticatedContext(coachEmail, {
                 email: coachEmail,
                 defaultRole: 'coach',
@@ -93,7 +95,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('tutorAvailabilities').add({
                     tutor: coachEmail,
                     start: new Date('2025-10-15T09:00:00'),
@@ -184,7 +186,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
         });
 
-        test('tutor CAN update their own availability', async () => {
+        test('tutor must use the scheduling API to update their own availability', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
                 defaultRole: 'tutor',
@@ -192,7 +194,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('tutorAvailabilities').doc(tutorAvailabilityId).update({
                     start: new Date('2025-10-15T10:00:00'),
                     end: new Date('2025-10-15T11:00:00'),
@@ -200,7 +202,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             );
         });
 
-        test('coach CAN update their own availability', async () => {
+        test('coach must use the scheduling API to update their own availability', async () => {
             const context = testEnv.authenticatedContext(coachEmail, {
                 email: coachEmail,
                 defaultRole: 'coach',
@@ -208,7 +210,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('tutorAvailabilities').doc(coachAvailabilityId).update({
                     start: new Date('2025-10-15T12:00:00'),
                     end: new Date('2025-10-15T13:00:00'),
@@ -288,7 +290,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
         });
 
-        test('tutor CAN delete their own availability', async () => {
+        test('tutor must use the scheduling API to delete their own availability', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
                 defaultRole: 'tutor',
@@ -296,12 +298,12 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('tutorAvailabilities').doc(tutorAvailabilityId).delete(),
             );
         });
 
-        test('coach CAN delete their own availability', async () => {
+        test('coach must use the scheduling API to delete their own availability', async () => {
             const context = testEnv.authenticatedContext(coachEmail, {
                 email: coachEmail,
                 defaultRole: 'coach',
@@ -309,7 +311,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('tutorAvailabilities').doc(coachAvailabilityId).delete(),
             );
         });

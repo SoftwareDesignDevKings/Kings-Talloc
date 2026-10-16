@@ -1,4 +1,3 @@
-import sanitizeHtmlLibrary from 'sanitize-html';
 import { rateLimitConfig, contentSecurityPolicyConfig} from './secConfig';
 import { NextResponse } from 'next/server';
 
@@ -47,17 +46,6 @@ export const implementRateLimiterWrapper = async (req, pathname) => {
     return NextResponse.rewrite(new URL('/429', req.url));
 };
 
-/**
- * Wrapper for sanitizeHtmlLibrary to implement input sanitisation
- * @param {String} html - string html
- * @returns {String} Sanitized HTML string.
- */
-export const sanitiseHtml = (html) =>
-    sanitizeHtmlLibrary(html, {
-        allowedTags: sanitizeHtmlLibrary.defaults.allowedTags,
-        allowedAttributes: sanitizeHtmlLibrary.defaults.allowedAttributes,
-});
-
 // HELPER FUNCTIONS
 /**
  * Helper to extract the best possible identifier for rate limiting.
@@ -84,7 +72,9 @@ const getClientIp = (req) => {
 }
 
 const isRateLimitExemptPath = (pathname) =>
-    pathname === '/api/auth' || pathname.startsWith('/api/auth/');
+    pathname === '/api/auth' || pathname.startsWith('/api/auth/')
+    // Availability applies its own generous per-account limit in the route.
+    || pathname === '/api/availability';
 
 /**
  * Build CSP string with nonce

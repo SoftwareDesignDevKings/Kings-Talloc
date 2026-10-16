@@ -2,8 +2,9 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addDays } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addDays, endOfWeek } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
+import { DISPLAY_DATE_FORMAT } from '@/utils/displayDate';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
@@ -16,7 +17,8 @@ import { updateEventInFirestore, createEventInFirestore, updateWorkStatusInFires
 import { calendarEventCreateTeamsMeeting, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
-import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
+import { CalendarEntityType, CalendarFlow } from '@lib/patterns/calendarStrategy';
+import { isValidSessionFocus } from '@/lib/scheduling/sessionFocus';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent, { getEventParticipantInitials } from './CustomEvent.jsx';
@@ -24,7 +26,6 @@ import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
-import { isRangeCoveredByTutorAvailability, getTutorShiftConflicts } from '@/utils/calendarAvailability';
 
 const { memo } = React;
 
@@ -48,6 +49,15 @@ const localizer = dateFnsLocalizer({
     getDay,
     locales,
 });
+
+const calendarFormats = {
+    dayHeaderFormat: `${DISPLAY_DATE_FORMAT} (EEEE)`,
+    dayRangeHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
+        `${calendarLocalizer.format(start, DISPLAY_DATE_FORMAT, culture)} – ${calendarLocalizer.format(end, DISPLAY_DATE_FORMAT, culture)}`,
+    agendaDateFormat: DISPLAY_DATE_FORMAT,
+    agendaHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
+        `${calendarLocalizer.format(start, DISPLAY_DATE_FORMAT, culture)} – ${calendarLocalizer.format(end, DISPLAY_DATE_FORMAT, culture)}`,
+};
 
 const DnDCalendar = withDragAndDrop(Calendar);
 
@@ -80,8 +90,17 @@ const CalendarContent = () => {
     } = useAppData();
 
     // track the calendar's displayed date to keep it in sync with the data provider
-    const [calendarDate, setCalendarDate] = useState(() => calendarDateRange.start);
+    const [calendarDate, setCalendarDate] = useState(() => {
+        const requested = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null;
+        const date = requested ? new Date(requested) : calendarDateRange.start;
+        return Number.isNaN(+date) ? calendarDateRange.start : date;
+    });
     const [calendarView, setCalendarView] = useState(Views.WEEK);
+    useEffect(() => {
+        const requested = new URLSearchParams(window.location.search).get('date');
+        if (requested && Number.isFinite(+new Date(requested))) setCalendarDateRange({ start: startOfWeek(new Date(requested), { weekStartsOn: 1 }), end: endOfWeek(new Date(requested), { weekStartsOn: 1 }) });
+    }, [setCalendarDateRange]);
+
 
     useEffect(() => {
         if (device === 'mobile') {                                                                           
@@ -255,11 +274,12 @@ const CalendarContent = () => {
                 return;
             }
             const newStatus = calEvent.workStatus === 'completed' ? 'notCompleted' : 'completed';
+            if (newStatus === 'notCompleted' && !window.confirm('Mark this session as not completed? Its hours will no longer count towards payment.')) return;
             setCalendarShifts(prev =>
                 prev.map(e => e.id === calEvent.id ? { ...e, workStatus: newStatus } : e)
             );
             try {
-                await updateWorkStatusInFirestore(calEvent.id, newStatus);
+                await updateWorkStatusInFirestore(calEvent.id, newStatus, calEvent.revision || 0);
                 addAlert('success', newStatus === 'completed' ? 'Marked as completed' : 'Marked as not completed');
             } catch (error) {
                 setCalendarShifts(prev =>
@@ -319,8 +339,6 @@ const CalendarContent = () => {
             // A student must not be able to bypass the availability check by
             // creating a request in a free slot and duplicating it onto a day
             // where the assigned tutor is no longer available.
-            if (blockIfTutorUnavailable(event, newStart, newEnd, 'duplicate')) return;
-            if (blockIfTutorConflict(event, newStart, newEnd)) return;
 
             // copy event data but remove properties that shouldn't be duplicated and create duplication event dictionary
             const {
@@ -338,6 +356,10 @@ const CalendarContent = () => {
             } = event;
             const duplicatedEvent = {
                 ...eventData,
+                workStatus: 'notCompleted',
+                ...(entityType === CalendarEntityType.STUDENT_REQUEST && { approvalStatus: 'pending', createdByStudent: true }),
+                teamsEventId: null, teamsJoinUrl: null, teamsMeetingUrl: null, onlineMeetingId: null,
+
                 start: newStart,
                 end: newEnd,
                 recurring: null,  // Explicitly set to null (not missing) so it matches the non-recurring query
@@ -345,6 +367,13 @@ const CalendarContent = () => {
                 isRecurringInstance: false,
                 recurringEventId: null,
             };
+
+            // Older requests have no focus: let the student choose one before duplicating.
+            if (userRole === 'student' && entityType === CalendarEntityType.STUDENT_REQUEST && !isValidSessionFocus(duplicatedEvent.preference)) {
+                setCalendarTarget({ ...duplicatedEvent, entityType, isStudentRequest: true });
+                setCalendarAction(CalendarFlow.CREATE_STUDENT_REQUEST);
+                return;
+            }
 
             // determine collection name based on entity type
             let collectionName;
@@ -377,7 +406,7 @@ const CalendarContent = () => {
             stateSetter([...stateArray, newEvent]);
 
             // Create Teams meeting only if the original event had createTeamsMeeting enabled
-            if (duplicatedEvent.createTeamsMeeting && entityType !== CalendarEntityType.AVAILABILITY &&
+            if (duplicatedEvent.createTeamsMeeting && entityType === CalendarEntityType.SHIFT &&
                 (duplicatedEvent.staff?.length > 0 || duplicatedEvent.students?.length > 0)) {
                 calendarEventCreateTeamsMeeting(docId, duplicatedEvent, { addAlert }).catch((error) => {
                     console.error('Teams meeting creation failed:', error);
@@ -422,6 +451,8 @@ const CalendarContent = () => {
 
             // Remove the recurring instance from state (Firestore listener will add the new standalone event)
             setStateFn(prev => prev.filter(e => e.id !== event.id));
+            // Update only this meeting occurrence after the scheduling write succeeds.
+            await calendarEventUpdateTeamsMeeting(event, start, end, false, false, { addAlert });
 
             addAlert('success', `Event detached and ${actionLabel}d successfully`);
 
@@ -467,66 +498,13 @@ const CalendarContent = () => {
         }
     };
 
-    // For a pending student request, the new slot must still sit inside the
-    // assigned tutor's remaining availability. Returns true if blocked.
-    // Only students are gated — teachers/admins can move requests anywhere.
-    const blockIfTutorUnavailable = (event, start, end, action = 'move') => {
-        if (userRole !== 'student') return false;
-        const isPendingStudentRequest =
-            event.entityType === CalendarEntityType.STUDENT_REQUEST &&
-            event.createdByStudent === true &&
-            event.approvalStatus === 'pending';
-        if (!isPendingStudentRequest) return false;
-
-        const tutorEmail = event.staff?.[0]?.value || event.staff?.[0];
-        if (!tutorEmail) return false;
-
-        const covered = isRangeCoveredByTutorAvailability(
-            tutorEmail,
-            start,
-            end,
-            overlayAvailabilities,
-        );
-        if (!covered) {
-            const message =
-                action === 'duplicate'
-                    ? 'Cannot duplicate this request — the tutor is not available at the same time on the next day.'
-                    : 'Tutor is not available during the selected time.';
-            addAlert('warning', message);
-            return true;
-        }
-        return false;
-    };
-
-    // A shift must not be dragged/resized/duplicated onto another of the
-    // assigned tutor's events. Returns true if blocked (caller early-returns,
-    // so the calendar simply snaps the event back — no Firestore write occurs).
-    const blockIfTutorConflict = (event, start, end) => {
-        if (event.entityType !== CalendarEntityType.SHIFT) return false;
-        if (!event.staff?.length) return false;
-
-        const conflicts = getTutorShiftConflicts(
-            event.staff,
-            start,
-            end,
-            calendarShifts,
-            event.recurringEventId || event.id,
-        );
-        if (conflicts.length > 0) {
-            addAlert('warning', 'Tutor already has an event at this time.');
-            return true;
-        }
-        return false;
-    };
-
+    // The scheduling service checks actual destination dates before saving; the
+    // existing optimistic update rolls back if coverage or conflicts changed.
     // handle RBC event drop
     const handleEventDrop = async ({ event, start, end }) => {
         if (!strategy.permissions.canDrag(event)) {
             return;
         }
-
-        if (blockIfTutorUnavailable(event, start, end)) return;
-        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -541,9 +519,6 @@ const CalendarContent = () => {
         if (!strategy.permissions.canResize(event)) {
             return;
         }
-
-        if (blockIfTutorUnavailable(event, start, end)) return;
-        if (blockIfTutorConflict(event, start, end)) return;
 
         // Check if this is a recurring instance - if so, detach it
         if (event.isRecurringInstance) {
@@ -599,6 +574,7 @@ const CalendarContent = () => {
                     <DnDCalendar
                         culture="en-AU"
                         localizer={localizer}
+                        formats={calendarFormats}
                         events={rbcEvents}
                         backgroundEvents={rbcBackgroundEvents}
                         startAccessor="start"
