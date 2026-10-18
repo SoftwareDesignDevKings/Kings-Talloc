@@ -239,6 +239,14 @@ The shared paid-hours calculation and event-rule modules are unchanged from the 
 regression-fix head. Earlier production-sample reconciliation remains applicable.
 The deployed preview still points to production Firebase. The older `talloc-889d3`
 project contains existing 2024 test data and is not a configured staging environment.
-Real Microsoft OAuth plus deployed booking/completion/export writes remain pending a
-separate staging environment. Production data, rules, credentials and deployment
+No new staging SSO URL will be introduced: the maintainer cannot register another
+Microsoft redirect URL. Real Microsoft OAuth and deployed write checks remain pending
+a controlled smoke test on the existing approved domain during rollout; emulator
+authentication does not certify that path. Production data, rules, credentials and deployment
 settings were not changed by these fixes.
+
+After the shared modal fix, three additional payroll/export browser checks passed
+against the published runtime source: all 27 staff/day buckets still total **85h 15m**,
+CSV and weekly Word totals agree, all 20 saved templates render, and Sunday/Monday,
+daylight-saving and partial-week boundaries pass. The local replay harness was updated
+to wait for asynchronous dashboard cards before reading them.

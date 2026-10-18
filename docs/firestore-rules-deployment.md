@@ -65,6 +65,12 @@ rules remove direct calendar writes; they must follow the app release.
 
 ### First scheduling rollout
 
+A separate staging SSO URL is not a prerequisite when the maintainer cannot register
+another Microsoft redirect. Keep write/hour verification in isolated emulators and
+perform the real OAuth/deployed smoke test below on the existing approved domain.
+Record that this deployed path was unverified before promotion; local credentials
+providers do not exercise Microsoft OAuth.
+
 The current production build was observed returning 404 for `/version.json`. An old
 VersionGuard records its first successful response without reloading. Consequently,
 waiting five minutes after the first version-enabled deployment does **not** refresh
