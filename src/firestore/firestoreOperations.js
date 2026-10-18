@@ -145,8 +145,11 @@ export const updateEventInFirestore = async (eventId, eventData, collectionName 
  * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<string>} The ID of the created document
  */
+export const createScheduledEventInFirestore = async (eventData, collectionName = 'shifts') =>
+    schedulingMutation({ action: 'create', collectionName, data: stripUndefinedFields(eventData) });
+
 export const createEventInFirestore = async (eventData, collectionName = 'shifts') => {
-    const result = await schedulingMutation({ action: 'create', collectionName, data: stripUndefinedFields(eventData) });
+    const result = await createScheduledEventInFirestore(eventData, collectionName);
     return result.id;
 };
 

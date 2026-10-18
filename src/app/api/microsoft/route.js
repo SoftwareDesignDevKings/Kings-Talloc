@@ -121,7 +121,8 @@ async function handleMicrosoftAction(req, accessToken) {
             result = await msGetOccurrenceId(
                 accessToken,
                 body.seriesMasterId,
-                new Date(body.occurrenceDate)
+                new Date(body.occurrenceDate),
+                { allowMissing: body.allowMissing === true }
             );
 
         } else if (action === "update-occurrence") {

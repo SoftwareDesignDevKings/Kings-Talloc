@@ -257,7 +257,7 @@ const UserRolesManager = () => {
             // Use email as document ID for easy lookup
             const timestamp = new Date().toISOString();
             const timesheetData = {
-                tutorEmail: userEmail,
+                tutorEmail: userEmail.toLowerCase(),
                 tutorName: userName,
                 fileData: base64Data,
                 fileName: file.name,
@@ -268,7 +268,7 @@ const UserRolesManager = () => {
             };
 
             // Use setDoc with email as document ID instead of addDoc
-            await setDoc(doc(db, 'timesheets', userEmail), timesheetData);
+            await setDoc(doc(db, 'timesheets', userEmail.toLowerCase()), timesheetData);
 
             addAlert('success', `Timesheet uploaded successfully for ${userName} (${fileSizeKB}KB)`);
         } catch (error) {

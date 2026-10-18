@@ -13,7 +13,7 @@ This plan includes removal of obsolete confirmation logic and the export bug tha
 - Remove the type selector from the tutor availability editor. Tutor-entered availability is a simple time range, retaining existing location information.
 - Keep coaching availability separate internally and unavailable for academic bookings. Preserve old coaching-only availability and the coach workflow; removing the tutor selector must not turn coaching availability into tutoring availability.
 - Keep existing academic tutor and subject eligibility. A student session classified as Work still requires an eligible tutor; renaming the event type must not bypass the existing tutor-role restriction.
-- Use the existing multi-student selector for group bookings. Students search classmates by name or school email (minimum two characters, maximum twenty results) and remain included as the requester. Return only names/emails, not Canvas roster or enrollment documents. One tutor is assigned; group size does not multiply paid hours. Check tutor eligibility for every selected student. Group members can view their booking and receive decisions; only its requester can edit a pending request.
+- Use the existing multi-student selector for group bookings. Students search classmates by name or school email (minimum two characters, maximum twenty results) and remain included as the requester. Return only names/emails, not Canvas roster or enrollment documents. Students select one tutor; teachers/admins may assign multiple tutors to a student session. Every assigned tutor must be eligible for every selected student. Group size does not multiply paid hours. Check tutor eligibility for every selected student. Group members can view their booking and receive decisions; only its requester can edit a pending request.
 - Update calendar labels, filters, legends and instructions to match the simplified model. Preserve existing layouts where possible.
 
 Primary areas: `EventForm`, `StudentEventForm`, `TutorAvailabilityForm`, event form sections, `useModalActionStrategy`, `calendarUI`, calendar filters, and a shared event-classification helper.
@@ -36,7 +36,7 @@ Teachers and admins may arrange a student session outside listed availability or
 | Approved student session and another student session | Reject overlap |
 | Coaching and another commitment | Preserve existing blocking behaviour |
 
-Do not introduce student-level clash blocking across different tutors. Group sessions remain one booking with one tutor. Multiple tutors in a student session and overnight scheduling are outside scope.
+Reject overlapping approved sessions for the same student, including sessions with different tutors. Group sessions remain one booking. Student submissions have one tutor; teacher/admin assignments may have multiple tutors. Overnight scheduling remains outside scope.
 
 Primary areas: `calendarAvailability`, `CalendarUIContext`, `CalendarContent`, `StudentEventForm`, `useEventFormData`, Firestore reads, and an authenticated availability endpoint.
 

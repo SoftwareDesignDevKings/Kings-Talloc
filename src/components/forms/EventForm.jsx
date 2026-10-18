@@ -24,7 +24,7 @@ import {
 import {
     updateEventInFirestore,
     updateWorkStatusInFirestore,
-    createEventInFirestore,
+    createScheduledEventInFirestore,
     queueEmailNotification,
 } from '@/firestore/firestoreOperations';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
@@ -283,22 +283,25 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                         }
                     }
                 } else {
-                    await updateEventInFirestore(eventToEdit.id, eventData, 'shifts', eventToEdit.revision || 0);
-                    await queueSavedEventEmail({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
+                    const result = await updateEventInFirestore(eventToEdit.id, eventData, 'shifts', eventToEdit.revision || 0);
+                    const savedEvent = result?.eventData || eventData;
+                    await queueSavedEventEmail({ ...savedEvent, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
 
                     // Handle Teams meeting update/delete
-                    await calendarEventHandleTeamsMeetingUpdate(eventToEdit, eventData, {
+                    await calendarEventHandleTeamsMeetingUpdate(eventToEdit, savedEvent, {
                         addAlert,
                     });
                 }
             } else {
                 // Create single event (recurring or not)
-                const docId = await createEventInFirestore(eventData);
-                await queueSavedEventEmail({ ...eventData, id: docId }, 'allocated', userEmail);
+                const result = await createScheduledEventInFirestore(eventData);
+                const docId = result.id;
+                const savedEvent = result.eventData || eventData;
+                await queueSavedEventEmail({ ...savedEvent, id: docId }, 'allocated', userEmail);
 
                 // Handle Teams meeting creation for new events
-                if (eventData.approvalStatus === 'approved' || eventData.createTeamsMeeting) {
-                    await calendarEventCreateTeamsMeeting(docId, eventData, {
+                if (savedEvent.approvalStatus === 'approved' || savedEvent.createTeamsMeeting) {
+                    await calendarEventCreateTeamsMeeting(docId, savedEvent, {
                         addAlert,
                     });
                 }

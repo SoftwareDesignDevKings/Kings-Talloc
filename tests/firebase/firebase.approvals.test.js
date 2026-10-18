@@ -434,3 +434,95 @@ test('an old client Delete without explicit permanent intent cannot erase or rej
     expect((await db.collection('studentEventRequests').doc('a').get()).data().approvalStatus).toBe('pending');
     expect((await db.collection('bookingNotifications').get()).empty).toBe(true);
 });
+
+// Teachers may assign several tutors; students still submit exactly one.
+const secondTutor = { ...tutor, email: 'second-tutor@kings.edu.au' };
+const withSecondTutor = async () => {
+    await db.collection('users').doc(secondTutor.email).set(secondTutor);
+    await db.collection('studentTutorEligibility').doc(student.email).set({ eligibleTutorEmails: [tutor.email, secondTutor.email] });
+    return [{ value: tutor.email }, { value: secondTutor.email }];
+};
+test('teacher multi-tutor sessions count completed time for each assigned tutor without changing break rules', async () => {
+    const staff = await withSecondTutor();
+    const result = await call({ action: 'create', data: data({ staff, createdByStudent: false, end: new Date(+start + 3 * 3600000) }) });
+    await call({ action: 'complete', id: result.id, data: { workStatus: 'completed' } }, secondTutor);
+    const saved = (await db.collection('shifts').doc(result.id).get()).data();
+    expect(saved.staffEmails).toEqual([tutor.email, secondTutor.email]);
+    const { calculateHours } = require('@/lib/scheduling/hours');
+    const totals = calculateHours([{ ...saved, start: saved.start.toDate(), end: saved.end.toDate() }]);
+    expect(totals.paidMs / 3600000).toBe(6);
+    expect(totals.tutors.map(item => item.workMs / 3600000)).toEqual([3, 3]);
+});
+test('teacher saves and tutor completion preserve legacy multi-tutor student assignments', async () => {
+    const staff = await withSecondTutor();
+    await db.collection('shifts').doc('legacy-multi').set(data({ staff, createdByStudent: false, approvalStatus: 'pending' }));
+    await call({ action: 'update', id: 'legacy-multi', data: { workStatus: 'completed' } });
+    await call({ action: 'complete', id: 'legacy-multi', data: { workStatus: 'notCompleted' } }, tutor);
+    await call({ action: 'complete', id: 'legacy-multi', data: { workStatus: 'completed' } }, secondTutor);
+    const saved = (await db.collection('shifts').doc('legacy-multi').get()).data();
+    expect(saved.staff).toHaveLength(2); expect(saved.workStatus).toBe('completed');
+});
+test('an assigned tutor can detach and complete a multi-tutor student occurrence', async () => {
+    const staff = await withSecondTutor();
+    await db.collection('shifts').doc('multi-series').set(data({ staff, createdByStudent: false, approvalStatus: 'approved', recurring: 'weekly', occurenceNum: 3 }));
+    const result = await call({ action: 'detach', id: 'multi-series', occurrenceIndex: 1, data: { workStatus: 'completed' } }, secondTutor);
+    expect((await db.collection('shifts').doc(result.id).get()).data().staff).toHaveLength(2);
+    expect((await db.collection('shifts').doc('multi-series').get()).data().eventExceptions).toEqual([1]);
+});
+test('student create and edit reject multiple tutors even when every tutor is eligible', async () => {
+    const staff = await withSecondTutor();
+    await db.collection('tutorAvailabilities').doc('free').set({ tutor: tutor.email, start, end });
+    await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: data({ staff }) }, student)).rejects.toThrow('one tutor');
+    const request = await call({ action: 'create', collectionName: 'studentEventRequests', data: data() }, student);
+    await expect(call({ action: 'update', collectionName: 'studentEventRequests', id: request.id, data: { staff } }, student)).rejects.toThrow('one tutor');
+    expect((await db.collection('studentEventRequests').doc(request.id).get()).data().staff).toHaveLength(1);
+});
+test('teacher multi-tutor creation and approval check every tutor for every student', async () => {
+    const staff = await withSecondTutor();
+    await db.collection('studentTutorEligibility').doc(student.email).set({ eligibleTutorEmails: [tutor.email] });
+    await expect(call({ action: 'create', data: data({ staff }) })).rejects.toThrow('not eligible');
+    await seed('multi-approval');
+    await expect(call({ action: 'approve', id: 'multi-approval', data: { staff } })).rejects.toThrow('not eligible');
+    expect((await db.collection('studentEventRequests').doc('multi-approval').get()).exists).toBe(true);
+    await db.collection('studentTutorEligibility').doc(student.email).set({ eligibleTutorEmails: [tutor.email, secondTutor.email] });
+    const approved = await call({ action: 'approve', id: 'multi-approval', data: { staff } });
+    expect((await db.collection('shifts').doc(approved.id).get()).data().staff).toHaveLength(2);
+});
+test('a conflict for the second teacher-assigned tutor blocks the booking atomically', async () => {
+    const staff = await withSecondTutor();
+    await db.collection('shifts').doc('second-busy').set(data({ staff: [staff[1]], createdByStudent: false, approvalStatus: 'approved' }));
+    await expect(call({ action: 'create', data: data({ staff }) })).rejects.toThrow('Scheduling conflict');
+    expect((await db.collection('shifts').get()).size).toBe(1);
+});
+test('coverage loss for a second assigned tutor produces one management notice', async () => {
+    const staff = await withSecondTutor();
+    for (const member of staff) await db.collection('shifts').doc(member.value).set(data({ staff: [member], students: [], createdByStudent: false, approvalStatus: 'approved' }));
+    await call({ action: 'create', data: data({ staff, createdByStudent: false }) });
+    await call({ action: 'delete', id: secondTutor.email });
+    const notices = await db.collection('bookingNotifications').where('kind', '==', 'coverage-lost').get();
+    expect(notices.size).toBe(1); expect(notices.docs[0].data().recipientEmail).toBe(teacher.email);
+});
+test('mixed-case timesheet templates resolve without rewriting their legacy IDs', async () => {
+    const { findTimesheetTemplate } = require('@/lib/scheduling/timesheetTemplates');
+    const id = 'LegacyTutor@School.Test';
+    await db.collection('timesheets').doc(id).set({ fileData: 'legacy-template' });
+    const found = await findTimesheetTemplate(db, id.toLowerCase());
+    expect(found.id).toBe(id); expect(found.data().fileData).toBe('legacy-template');
+    expect((await db.collection('timesheets').get()).size).toBe(1);
+    expect(await findTimesheetTemplate(db, 'missing@school.test')).toBeNull();
+});
+test('ambiguous legacy template matches fail instead of choosing another uploaded file', async () => {
+    const { findTimesheetTemplate } = require('@/lib/scheduling/timesheetTemplates');
+    for (const id of ['LegacyTutor@School.Test', 'LEGACYTUTOR@SCHOOL.TEST']) await db.collection('timesheets').doc(id).set({ fileData: id });
+    await expect(findTimesheetTemplate(db, 'legacytutor@school.test')).rejects.toThrow('Multiple timesheet templates');
+});
+
+test('a new canonical template upload takes precedence over an older mixed-case upload', async () => {
+    const { findTimesheetTemplate } = require('@/lib/scheduling/timesheetTemplates');
+    await db.collection('timesheets').doc('LegacyTutor@School.Test').set({ fileData: 'old-template' });
+    await db.collection('timesheets').doc('legacytutor@school.test').set({ fileData: 'new-template' });
+    for (const email of ['legacytutor@school.test', 'LegacyTutor@School.Test']) {
+        const found = await findTimesheetTemplate(db, email);
+        expect(found.id).toBe('legacytutor@school.test'); expect(found.data().fileData).toBe('new-template');
+    }
+});

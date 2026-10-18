@@ -107,3 +107,13 @@ test('nested overlap chains have the same pay in every input order and do not do
     expect(paid([...events, events[0]])).toBe(5.5);
     expect(paid([...events, event(9, 15, false, { workStatus: 'notCompleted' })])).toBe(5.5);
 });
+
+test('a teacher-assigned multi-tutor student session applies existing overlap and break rules independently per tutor', () => {
+    const staff = [{ value: 'first@school.test' }, { value: 'second@school.test' }];
+    const session = event(9, 13, true, { staff, students: [{ value: 'one@school.test' }, { value: 'two@school.test' }, { value: 'three@school.test' }] });
+    expect(paid([session])).toBe(7); // 3.5 paid hours per tutor, regardless of group size.
+    const coveringWork = event(9, 13, false, { staff: [staff[0]] });
+    expect(paid([session, coveringWork])).toBe(7); // The first tutor is not paid twice.
+    const longerWork = event(9, 15, false, { staff: [staff[1]] });
+    expect(paid([session, coveringWork, longerWork])).toBe(9); // 3.5 + 5.5 under the unchanged thresholds.
+});

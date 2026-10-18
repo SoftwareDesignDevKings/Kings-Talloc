@@ -1,8 +1,8 @@
-import { calendarEventHandleDelete, calendarEventUpdateTeamsMeeting } from '@/utils/calendarEvent';
-import { deleteEventFromFirestore, removeEmailNotification } from '@/firestore/firestoreOperations';
-import { getTeamsMeetingOccurrenceId, updateTeamsMeetingOccurrence, updateTeamsMeeting } from '@/utils/msTeams';
-jest.mock('@/firestore/firestoreOperations', () => ({ deleteEventFromFirestore: jest.fn(), removeEmailNotification: jest.fn() }));
-jest.mock('@/utils/msTeams', () => ({ getTeamsMeetingOccurrenceId: jest.fn(), updateTeamsMeetingOccurrence: jest.fn(), updateTeamsMeeting: jest.fn() }));
+import { calendarEventHandleDelete, calendarEventUpdateTeamsMeeting, calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
+import { deleteEventFromFirestore, removeEmailNotification, updateEventInFirestore } from '@/firestore/firestoreOperations';
+import { getTeamsMeetingOccurrenceId, updateTeamsMeetingOccurrence, updateTeamsMeeting, createTeamsMeeting, removeSkippedTeamsOccurrences } from '@/utils/msTeams';
+jest.mock('@/firestore/firestoreOperations', () => ({ deleteEventFromFirestore: jest.fn(), removeEmailNotification: jest.fn(), updateEventInFirestore: jest.fn() }));
+jest.mock('@/utils/msTeams', () => ({ getTeamsMeetingOccurrenceId: jest.fn(), updateTeamsMeetingOccurrence: jest.fn(), updateTeamsMeeting: jest.fn(), createTeamsMeeting: jest.fn(), removeSkippedTeamsOccurrences: jest.fn() }));
 beforeEach(() => jest.clearAllMocks());
 test('deleting all from an expanded occurrence deletes the actual series', async () => {
     const setAllEvents = jest.fn(), addAlert = jest.fn();
@@ -18,4 +18,24 @@ test('moving a recurring instance updates its Teams occurrence rather than the s
     expect(getTeamsMeetingOccurrenceId).toHaveBeenCalledWith('meeting-series', oldStart);
     expect(updateTeamsMeetingOccurrence).toHaveBeenCalledWith('meeting-occurrence', 'Session', '', start.toISOString(), end.toISOString(), []);
     expect(updateTeamsMeeting).not.toHaveBeenCalled();
+});
+
+test('Teams creation retains skipped dates and stores its series ID before occurrence cleanup', async () => {
+    createTeamsMeeting.mockResolvedValue({ teamsEventId: 'teams-series', joinUrl: 'meeting-url' });
+    updateEventInFirestore.mockResolvedValue(); removeSkippedTeamsOccurrences.mockResolvedValue();
+    const event = { title: 'Saved series', start: new Date('2026-10-12T22:00:00Z'), end: new Date('2026-10-13T00:00:00Z'), recurring: 'weekly', occurenceNum: 4, eventExceptions: [0, 2], staff: [], students: [], createTeamsMeeting: true };
+    await calendarEventCreateTeamsMeeting('saved-id', event, { addAlert: jest.fn() });
+    const recurrence = createTeamsMeeting.mock.calls[0][5];
+    expect(recurrence).toMatchObject({ recurring: 'weekly', occurenceNum: 4, eventExceptions: [0, 2] });
+    expect(updateEventInFirestore).toHaveBeenCalledWith('saved-id', { teamsEventId: 'teams-series', teamsJoinUrl: 'meeting-url' });
+    expect(removeSkippedTeamsOccurrences).toHaveBeenCalledWith('teams-series', event.start.toISOString(), recurrence);
+    expect(updateEventInFirestore.mock.invocationCallOrder[0]).toBeLessThan(removeSkippedTeamsOccurrences.mock.invocationCallOrder[0]);
+});
+test('failed Teams cleanup preserves the saved series ID and reports a follow-up failure', async () => {
+    createTeamsMeeting.mockResolvedValue({ teamsEventId: 'teams-series', joinUrl: 'meeting-url' });
+    updateEventInFirestore.mockResolvedValue(); removeSkippedTeamsOccurrences.mockRejectedValue(new Error('Cleanup failed'));
+    const addAlert = jest.fn();
+    await calendarEventCreateTeamsMeeting('saved-id', { title: 'Series', start: new Date(), end: new Date(), createTeamsMeeting: true }, { addAlert });
+    expect(updateEventInFirestore).toHaveBeenCalled(); expect(createTeamsMeeting).toHaveBeenCalledTimes(1);
+    expect(addAlert).toHaveBeenCalledWith('error', expect.stringContaining('Cleanup failed'));
 });

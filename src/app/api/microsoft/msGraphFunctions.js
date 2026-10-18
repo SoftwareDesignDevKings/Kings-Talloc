@@ -7,11 +7,11 @@
  * Only import from other API routes (server-side).
  */
 
+import { DateTime } from 'luxon';
 import { sanitiseHtml } from '@/lib/security/sanitiseHtml';
 
 const GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const TIMEZONE = 'Australia/Sydney';
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 
 /**
@@ -112,22 +112,29 @@ const buildEventBody = (subject, description, startTime, endTime, attendeesEmail
 
     // Add recurrence if specified
     if (recurrenceOptions && recurrenceOptions.recurring) {
-        const startDate = new Date(startTime);
-        let endDate = recurrenceOptions.until ? new Date(recurrenceOptions.until) : new Date(startDate);
-        if (!recurrenceOptions.until) {
-            endDate.setMonth(endDate.getMonth() + 3); // 3 months default
+        const startDate = DateTime.fromISO(startTime, { zone: TIMEZONE });
+        const interval = recurrenceOptions.recurring === 'weekly' ? 1 : 2;
+        const count = Number(recurrenceOptions.occurenceNum);
+        let endDate = recurrenceOptions.until ? DateTime.fromJSDate(new Date(recurrenceOptions.until), { zone: TIMEZONE }) : startDate.plus({ months: 3 });
+        if (Number.isInteger(count) && count > 0) {
+            const last = startDate.plus({ weeks: (count - 1) * interval });
+            endDate = recurrenceOptions.until && endDate < last ? endDate : last;
         }
+        // Graph recurrence dates and weekdays must match the Sydney event wall time.
+        eventBody.start.dateTime = startDate.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+        eventBody.end.dateTime = DateTime.fromISO(endTime, { zone: TIMEZONE }).toFormat("yyyy-MM-dd'T'HH:mm:ss");
 
         eventBody.recurrence = {
             pattern: {
                 type: 'weekly',
-                interval: recurrenceOptions.recurring === 'weekly' ? 1 : 2,
-                daysOfWeek: [DAYS_OF_WEEK[startDate.getUTCDay()]],
+                interval,
+                daysOfWeek: [startDate.weekdayLong],
             },
             range: {
                 type: 'endDate',
-                startDate: startDate.toISOString().split('T')[0],
-                endDate: endDate.toISOString().split('T')[0],
+                startDate: startDate.toISODate(),
+                endDate: endDate.toISODate(),
+                recurrenceTimeZone: TIMEZONE,
             },
         };
     }
@@ -309,12 +316,12 @@ export const msGetEvent = async (accessToken, eventId) => {
  * @param {Date} occurrenceDate - The date of the occurrence
  * @returns {Promise<string>} Occurrence ID
  */
-export const msGetOccurrenceId = async (accessToken, seriesMasterId, occurrenceDate) => {
+export const msGetOccurrenceId = async (accessToken, seriesMasterId, occurrenceDate, { allowMissing = false } = {}) => {
     try {
-        const startDateTime = new Date(occurrenceDate);
-        startDateTime.setHours(0, 0, 0, 0);
-        const endDateTime = new Date(occurrenceDate);
-        endDateTime.setHours(23, 59, 59, 999);
+        if (isDevMode(accessToken)) return `dev-occurrence-${seriesMasterId}-${occurrenceDate.toISOString()}`;
+        const day = DateTime.fromJSDate(occurrenceDate, { zone: TIMEZONE });
+        const startDateTime = day.startOf('day').toJSDate();
+        const endDateTime = day.endOf('day').toJSDate();
 
         const url = `${GRAPH_BASE_URL}/me/events/${seriesMasterId}/instances?startDateTime=${startDateTime.toISOString()}&endDateTime=${endDateTime.toISOString()}`;
         const response = await fetch(url, {
@@ -334,6 +341,7 @@ export const msGetOccurrenceId = async (accessToken, seriesMasterId, occurrenceD
             return data.value[0].id;
         }
 
+        if (allowMissing) return null;
         throw new Error('Occurrence not found');
     } catch (error) {
         console.error('[msGraph] Error getting occurrence ID:', error);
@@ -398,6 +406,7 @@ export const msUpdateOccurrence = async (accessToken, occurrenceId, { subject, d
  */
 export const msDeleteOccurrence = async (accessToken, occurrenceId) => {
     try {
+        if (isDevMode(accessToken)) return true;
         const response = await fetch(`${GRAPH_BASE_URL}/me/events/${occurrenceId}`, {
             method: 'DELETE',
             headers: buildHeaders(accessToken, false),

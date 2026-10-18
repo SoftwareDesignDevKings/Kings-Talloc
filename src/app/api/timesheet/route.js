@@ -5,6 +5,7 @@ import { getRequiredAdminOrTeacherSession } from '@/lib/security/serverAuth';
 import { DateTime } from 'luxon';
 import { formatDisplayDate } from '@/utils/displayDate';
 import { readSchedule } from '@/lib/scheduling/readSchedule';
+import { findTimesheetTemplate } from '@/lib/scheduling/timesheetTemplates';
 import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
 import { SYDNEY_ZONE } from '@/lib/scheduling/eventRules';
 
@@ -27,8 +28,8 @@ export async function POST(req) {
         if (!start.isValid || !end.isValid || end < start || !['tutor', 'coach'].includes(timesheetType) || !tutorEmail || end.diff(start, 'days').days > 366) {
             return Response.json({ error: 'Choose a valid tutor, type and date range of up to one year.' }, { status: 400 });
         }
-        const template = await adminDb.collection('timesheets').doc(tutorEmail).get();
-        const fileData = template.data()?.fileData;
+        const template = await findTimesheetTemplate(adminDb, tutorEmail);
+        const fileData = template?.data()?.fileData;
         if (!fileData) return Response.json({ error: 'Template missing in /users.' }, { status: 404 });
         const events = await readSchedule(adminDb, start.toJSDate(), end.plus({ milliseconds: 1 }).toJSDate());
         const category = timesheetType === 'coach' ? 'coaching' : 'work';

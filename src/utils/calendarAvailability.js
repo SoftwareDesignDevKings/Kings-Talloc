@@ -1,4 +1,4 @@
-import { emailOf } from '@/lib/scheduling/eventRules';
+import { emailOf, staffEmails, bookableIntervals } from '@/lib/scheduling/eventRules';
 import { addWeeks } from 'date-fns';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 
@@ -120,6 +120,17 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     }
 
     return splitSlots;
+};
+
+// Management views retain Coaching coverage as well as academic bookable time.
+// Coaching availability remains separate and cannot supply student bookings.
+export const managementAvailability = (availabilities, shifts) => {
+    const emails = [...new Set([...availabilities.map(a => emailOf(a.tutor)), ...shifts.flatMap(staffEmails)])];
+    const academic = emails.flatMap(email => bookableIntervals(email, availabilities, shifts)
+        .map(slot => ({ ...slot, workType: ['work'] })));
+    const coaching = calendarAvailabilitySplit(availabilities.filter(a => normaliseWorkType(a.workType).includes('coaching')), shifts)
+        .map(slot => ({ ...slot, workType: ['coaching'] }));
+    return [...academic, ...coaching];
 };
 
 /**

@@ -194,7 +194,9 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                     const participantError = getParticipantEditError(saved || (originalCollection === 'studentEventRequests' ? { isStudentRequest: true } : null), event);
                     fail(Boolean(participantError), participantError);
                 }
-                if (isStudentSession(event)) fail(event.staff.length !== 1, 'Student sessions have one tutor.');
+                // Students choose one tutor; managers may organise sessions with several.
+                // Completion of an existing assignment never changes its staff.
+                if (isStudentSession(event) && !manager && originalCollection === 'studentEventRequests') fail(event.staff.length !== 1, 'Student requests have one tutor.');
             }
             if (originalCollection === 'studentEventRequests' && !['approve', 'deny'].includes(action)) {
                 fail(saved && saved.approvalStatus !== 'pending', 'This request has already been handled.', 409);
@@ -247,7 +249,10 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
 
             if (isStudentSession(event) && bookingChanged) {
                 const eligibilityDocs = await Promise.all((event.students || []).map(student => transaction.get(db.collection('studentTutorEligibility').doc(emailOf(student)))));
-                for (const eligibility of eligibilityDocs) fail(!eligibility.data()?.eligibleTutorEmails?.map(emailOf).includes(staffEmails(event)[0]), 'The tutor is not eligible for this student’s subjects.');
+                for (const eligibility of eligibilityDocs) {
+                    const eligible = new Set((eligibility.data()?.eligibleTutorEmails || []).map(emailOf));
+                    fail(staffEmails(event).some(email => !eligible.has(email)), 'The tutor is not eligible for this student’s subjects.');
+                }
             }
             const previousOccurrences = saved ? expand(saved, rangeEnd) : [];
             const clashing = bookingChanged ? proposed.filter(occurrence =>
@@ -309,13 +314,16 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             if (isAvailability) afterAvailabilities = [...availabilities.filter(item => item.id !== saved.id), ...replacement];
             else afterShifts = [...otherShifts, ...replacement];
             for (const booking of shifts.filter(item => isStudentSession(item) && isApproved(item) && item.start > timestamp)) {
-                const email = staffEmails(booking)[0];
-                if (!emails.includes(email)) continue;
+                const bookingTutors = staffEmails(booking).filter(email => emails.includes(email));
+                if (!bookingTutors.length) continue;
                 // Remove the booking itself from busy intervals when testing its support.
                 const withoutBooking = list => list.filter(item => item.id !== booking.id);
-                const before = bookableIntervals(email, availabilities, withoutBooking(shifts));
-                const after = bookableIntervals(email, afterAvailabilities, withoutBooking(afterShifts));
-                if (rangeCovered(booking.start, booking.end, before) && !rangeCovered(booking.start, booking.end, after)) notice(transaction, db, `${operationId}-${booking.id}`, 'mienna@kings.edu.au', booking, 'coverage-lost', 'This student session lost its supporting Work or availability. Please check with the tutor.', timestamp);
+                const lostCoverage = bookingTutors.some(email => {
+                    const before = bookableIntervals(email, availabilities, withoutBooking(shifts));
+                    const after = bookableIntervals(email, afterAvailabilities, withoutBooking(afterShifts));
+                    return rangeCovered(booking.start, booking.end, before) && !rangeCovered(booking.start, booking.end, after);
+                });
+                if (lostCoverage) notice(transaction, db, `${operationId}-${booking.id}`, 'mienna@kings.edu.au', booking, 'coverage-lost', 'This student session lost its supporting Work or availability. Please check with the tutor.', timestamp);
             }
         }
         const skipped = event.eventExceptions || [];

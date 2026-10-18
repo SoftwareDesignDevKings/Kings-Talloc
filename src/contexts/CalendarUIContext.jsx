@@ -5,8 +5,8 @@ import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
 import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
-import { bookableIntervals, workCategory, emailOf } from '@/lib/scheduling/eventRules';
-import { calendarAvailabilitySplit, normaliseWorkType } from "@/utils/calendarAvailability"
+import { workCategory, emailOf } from '@/lib/scheduling/eventRules';
+import { calendarAvailabilitySplit, managementAvailability, normaliseWorkType } from "@/utils/calendarAvailability"
 
 /**
  * Returns true if an availability's workType matches the selected filter.
@@ -214,8 +214,7 @@ export const CalendarUIContextProvider = ({ children }) => {
 
         if (userRole === 'student') filtered = bookableAvailability?.slots || [];
         else if (userRole === 'admin' || userRole === 'teacher') {
-            const emails = [...new Set([...calendarAvailabilities.map(a => a.tutor), ...calendarShifts.flatMap(event => (event.staff || []).map(s => s.value || s.email || s))])];
-            filtered = emails.flatMap(email => bookableIntervals(email, calendarAvailabilities, calendarShifts));
+            filtered = managementAvailability(calendarAvailabilities, calendarShifts);
         }
 
         // filter by selected tutors from CalendarUIContextProvider

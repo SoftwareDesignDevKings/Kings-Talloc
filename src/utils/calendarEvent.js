@@ -6,6 +6,7 @@
 import {
     updateEventInFirestore,
     createEventInFirestore,
+    createScheduledEventInFirestore,
     deleteEventFromFirestore,
     addEventException,
     setRecurringUntilDate,
@@ -20,6 +21,7 @@ import {
     updateTeamsMeetingOccurrence,
     deleteTeamsMeetingOccurrence,
     updateTeamsMeetingRecurrenceEndDate,
+    removeSkippedTeamsOccurrences,
 } from '@/utils/msTeams';
 
 /**
@@ -180,6 +182,13 @@ export const calendarEventUpdateTeamsMeeting = async (
     }
 };
 
+const teamsRecurrenceOptions = event => event.recurring ? {
+    recurring: event.recurring,
+    until: event.until,
+    occurenceNum: event.occurenceNum,
+    eventExceptions: event.eventExceptions || [],
+} : null;
+
 /**
  * Create Teams meeting for a new event
  */
@@ -194,12 +203,7 @@ export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { addA
     );
 
     // Build recurrence options if event is recurring
-    const recurrenceOptions = eventData.recurring
-        ? {
-              recurring: eventData.recurring,
-              until: eventData.until,
-          }
-        : null;
+    const recurrenceOptions = teamsRecurrenceOptions(eventData);
 
     try {
         const result = await createTeamsMeeting(
@@ -215,6 +219,8 @@ export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { addA
             teamsEventId: result.teamsEventId,
             teamsJoinUrl: result.joinUrl,
         });
+        // Save the series ID before cleanup so a failed follow-up can retry an update.
+        await removeSkippedTeamsOccurrences(result.teamsEventId, new Date(eventData.start).toISOString(), recurrenceOptions);
 
         addAlert(
             'success',
@@ -224,7 +230,7 @@ export const calendarEventCreateTeamsMeeting = async (eventId, eventData, { addA
         );
     } catch (error) {
         console.error('Failed to create Teams meeting:', error);
-        addAlert('error', `Failed to create Teams meeting: ${error.message}`);
+        addAlert('error', `Event saved, but Teams setup could not finish: ${error.message}`);
     }
 };
 
@@ -261,12 +267,7 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
             // Update existing Teams meeting
             try {
                 // Build recurrence options if event is recurring
-                const recurrenceOptions = eventData.recurring
-                    ? {
-                          recurring: eventData.recurring,
-                          until: eventData.until,
-                      }
-                    : null;
+                const recurrenceOptions = teamsRecurrenceOptions(eventData);
 
                 await updateTeamsMeeting(
                     eventToEdit.teamsEventId,
@@ -285,21 +286,10 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
         } else {
             // Create new Teams meeting
             try {
-                const result = await createTeamsMeeting(
-                    eventData.title,
-                    eventData.description || '',
-                    new Date(eventData.start).toISOString(),
-                    new Date(eventData.end).toISOString(),
-                    attendeesEmailArr,
-                );
-                await updateEventInFirestore(eventToEdit.id, {
-                    teamsEventId: result.teamsEventId,
-                    teamsJoinUrl: result.joinUrl,
-                });
-                addAlert('success', 'Teams meeting created successfully');
+                await calendarEventCreateTeamsMeeting(eventToEdit.id, { ...eventData, createTeamsMeeting: true }, { addAlert });
             } catch (error) {
                 console.error('Failed to create Teams meeting:', error);
-                addAlert('error', `Failed to create Teams meeting: ${error.message}`);
+                addAlert('error', `Event saved, but Teams setup could not finish: ${error.message}`);
             }
         }
     }
@@ -418,7 +408,9 @@ export const calendarEventHandleDrop = async (
                     start: new Date(start),
                     end: updatedEnd,
                 };
-                const newDocId = await createEventInFirestore(newEvent, collectionName);
+                const committed = await createScheduledEventInFirestore(newEvent, collectionName);
+                const newDocId = committed.id;
+                const savedEvent = committed.eventData || newEvent;
 
                 // Update Teams: end the old series and create a new one
                 if (teamsEventId && !isAvailability && !isStudentRequest) {
@@ -432,10 +424,7 @@ export const calendarEventHandleDrop = async (
                         await updateTeamsMeetingRecurrenceEndDate(teamsEventId, untilDate);
 
                         // Create a new Teams meeting series for the new recurring event
-                        const recurrenceOptions = {
-                            recurring: event.recurring,
-                            until: event.until,
-                        };
+                        const recurrenceOptions = teamsRecurrenceOptions(savedEvent);
 
                         const result = await createTeamsMeeting(
                             event.title,
@@ -451,6 +440,7 @@ export const calendarEventHandleDrop = async (
                             teamsEventId: result.teamsEventId,
                             teamsJoinUrl: result.joinUrl,
                         });
+                        await removeSkippedTeamsOccurrences(result.teamsEventId, new Date(savedEvent.start).toISOString(), recurrenceOptions);
                         addAlert('success', 'Future events moved and new Teams series created');
                     } catch (error) {
                         console.error('Failed to update Teams meeting for future events:', error);
@@ -604,7 +594,9 @@ export const calendarEventHandleResize = async (
                     start: new Date(start),
                     end: new Date(end),
                 };
-                const newDocId = await createEventInFirestore(newEvent, collectionName);
+                const committed = await createScheduledEventInFirestore(newEvent, collectionName);
+                const newDocId = committed.id;
+                const savedEvent = committed.eventData || newEvent;
 
                 // Update Teams: end the old series and create a new one
                 if (teamsEventId && !isAvailability && !isStudentRequest) {
@@ -618,10 +610,7 @@ export const calendarEventHandleResize = async (
                         await updateTeamsMeetingRecurrenceEndDate(teamsEventId, untilDate);
 
                         // Create a new Teams meeting series for the new recurring event
-                        const recurrenceOptions = {
-                            recurring: event.recurring,
-                            until: event.until,
-                        };
+                        const recurrenceOptions = teamsRecurrenceOptions(savedEvent);
 
                         const result = await createTeamsMeeting(
                             event.title,
@@ -637,6 +626,7 @@ export const calendarEventHandleResize = async (
                             teamsEventId: result.teamsEventId,
                             teamsJoinUrl: result.joinUrl,
                         });
+                        await removeSkippedTeamsOccurrences(result.teamsEventId, new Date(savedEvent.start).toISOString(), recurrenceOptions);
                         addAlert('success', 'Future events resized and new Teams series created');
                     } catch (error) {
                         console.error('Failed to update Teams meeting for future events:', error);

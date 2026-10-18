@@ -4,6 +4,8 @@
  * This removes session token management from client-side code
  */
 
+import { DateTime } from 'luxon';
+
 const MS_API_ENDPOINT = '/api/microsoft';
 
 /**
@@ -117,6 +119,7 @@ export const updateTeamsMeeting = async (
             recurrenceOptions,
         });
 
+        await removeSkippedTeamsOccurrences(eventId, startTime, recurrenceOptions, { allowMissing: true });
         return result;
     } catch (error) {
         console.error('[msTeams] Error updating Teams meeting:', error);
@@ -166,11 +169,12 @@ export const updateTeamsMeetingRecurrenceEndDate = async (seriesMasterId, newEnd
  * @param {Date} occurrenceDate - The date of the occurrence
  * @returns {Promise<string>} Occurrence ID
  */
-export const getTeamsMeetingOccurrenceId = async (seriesMasterId, occurrenceDate) => {
+export const getTeamsMeetingOccurrenceId = async (seriesMasterId, occurrenceDate, { allowMissing = false } = {}) => {
     try {
         const occurrenceId = await fetchMSProxy('get-occurrence-id', {
             seriesMasterId,
             occurrenceDate: occurrenceDate.toISOString(),
+            ...(allowMissing && { allowMissing: true }),
         });
 
         return occurrenceId;
@@ -227,5 +231,21 @@ export const deleteTeamsMeetingOccurrence = async (occurrenceId) => {
     } catch (error) {
         console.error('[msTeams] Error deleting Teams meeting occurrence:', error);
         throw error;
+    }
+};
+
+/** Remove saved skipped occurrences; updates may tolerate already removed dates. */
+export const removeSkippedTeamsOccurrences = async (seriesMasterId, startTime, recurrenceOptions, { allowMissing = false } = {}) => {
+    if (!recurrenceOptions?.recurring) return;
+    const start = DateTime.fromISO(startTime, { zone: 'Australia/Sydney' });
+    const until = recurrenceOptions.until ? new Date(recurrenceOptions.until) : null;
+    const count = Number(recurrenceOptions.occurenceNum);
+    const weeks = recurrenceOptions.recurring === 'weekly' ? 1 : 2;
+    for (const index of new Set(recurrenceOptions.eventExceptions || [])) {
+        if (!Number.isInteger(index) || index < 0 || (count && index >= count)) continue;
+        const date = start.plus({ weeks: index * weeks }).toJSDate();
+        if (until && date > until) continue;
+        const occurrenceId = await getTeamsMeetingOccurrenceId(seriesMasterId, date, { allowMissing });
+        if (occurrenceId) await deleteTeamsMeetingOccurrence(occurrenceId);
     }
 };

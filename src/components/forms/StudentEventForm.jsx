@@ -180,8 +180,8 @@ const StudentEventForm = ({
             students: selectedStudents.map(({ value, label }) => ({ value, label })),
             studentEmails: selectedStudents.map(emailOf),
             // firebase sec rules require students maped to their value
-            staff: newEvent.staff || [],
-            staffEmails: (newEvent.staff || []).map(s => s.value || s),
+            staff: [selectedTutor],
+            staffEmails: [selectedTutor.value],
             classes: [],
             subject: null,
             preference: newEvent.preference,

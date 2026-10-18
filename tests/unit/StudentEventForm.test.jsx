@@ -238,4 +238,10 @@ describe('StudentEventForm', () => {
         expect(screen.getByText('Clear group')).toBeDisabled();
     });
 
+    test('student submissions retain only the single tutor selected in the form', async () => {
+        renderForm({ newEvent: { staff: [{ value: 'tutor@example.edu', label: 'Tutor One' }, { value: 'other@example.edu', label: 'Other Tutor' }] } });
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+        await waitFor(() => expect(createEventInFirestore).toHaveBeenCalledWith(expect.objectContaining({ staff: [{ value: 'tutor@example.edu', label: 'Tutor One' }], staffEmails: ['tutor@example.edu'] }), 'studentEventRequests'));
+    });
+
 });
