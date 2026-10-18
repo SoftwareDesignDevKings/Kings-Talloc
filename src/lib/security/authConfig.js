@@ -1,6 +1,8 @@
 import AzureAD from 'next-auth/providers/azure-ad';
 import Credentials from 'next-auth/providers/credentials';
-import crypto from "crypto";
+import crypto from 'crypto';
+import { FieldValue } from 'firebase-admin/firestore';
+import { findAccountProfile, getCurrentAccount, accountVersion, accountRoles, validAccountEmail } from './accountState';
 import { adminDb, adminDbAuth } from '@/firestore/firestoreAdmin';
 import { TEST_USERS as DEV_USERS } from '@/lib/security/testUsers';
 
@@ -50,50 +52,47 @@ export const authOptions = {
  */
 async function authFbVerifyUserRecords({ user }) {
     try {
+        if (!validAccountEmail(user.email)) return false;
         const userUid = user.email.toLowerCase();
-        const userRef = adminDb.collection('users').doc(user.email);
-
-        // STEP 1: check FB user entry - create entry if it doesnt exist
-        const userDoc = await userRef.get();
-
-        if (!userDoc.exists) {
-            const calendarFeedToken = crypto.randomBytes(32).toString("hex");
+        const revoked = await adminDb.collection('revokedAccounts').doc(userUid).get();
+        if (revoked.exists) return false;
+        let profile = await findAccountProfile(user.email);
+        if (!profile) {
+            const devUser = process.env.NODE_ENV === 'development' ? DEV_USERS[user.email] : null;
             const newUser = {
-                email: user.email,
-                name: user.name,
-                role: 'student',
-                defaultRole: 'student',
-                userRoles: [],
-                calendarFeedToken,
+                email: userUid, name: user.name || user.email,
+                role: devUser?.defaultRole || 'student', defaultRole: devUser?.defaultRole || 'student',
+                userRoles: devUser?.userRoles || [], authVersion: crypto.randomUUID(),
             };
-            await userRef.set(newUser);
-            Object.assign(user, newUser);
-        } else {
-            const userData = userDoc.data();
-            user.defaultRole = userData.defaultRole || userData.role;
-            user.userRolesList = userData.userRoles || [];
-            user.calendarFeedToken = userData.calendarFeedToken || crypto.randomBytes(32).toString("hex");
-
-            if (!userData.calendarFeedToken) {
-                await userRef.update({ calendarFeedToken: user.calendarFeedToken });
-            }
+            // A competing first login must not overwrite a profile or an admin's roles.
+            const ref = adminDb.collection('users').doc(userUid);
+            await adminDb.runTransaction(async transaction => {
+                const [existing, blocked] = await Promise.all([transaction.get(ref), transaction.get(adminDb.collection('revokedAccounts').doc(userUid))]);
+                if (blocked.exists) throw new Error('Account access was revoked');
+                if (!existing.exists) transaction.create(ref, newUser);
+            });
+            profile = await findAccountProfile(user.email);
         }
-
-        // STEP 2: create firebaseAuth user registration if required
+        const data = profile.data();
+        if (data.disabled === true) return false;
+        // Legacy public keys are never copied or reused by the new feed endpoint.
+        if ('calendarFeedToken' in data) await profile.ref.update({ calendarFeedToken: FieldValue.delete() });
+        const roles = accountRoles(data);
+        user.email = profile.id;
+        user.defaultRole = roles.defaultRole;
+        user.userRolesList = roles.userRoles;
+        user.authVersion = accountVersion(data);
+        user.profileId = profile.id;
         try {
-            await adminDbAuth.getUser(userUid);
+            const authUser = await adminDbAuth.getUser(userUid);
+            if (authUser.disabled) return false;
         } catch (error) {
-            if (error.code === 'auth/user-not-found') {
-                await adminDbAuth.createUser({
-                    uid: userUid,
-                    email: user.email,
-                    displayName: user.name,
-                });
-            }
+            if (error.code !== 'auth/user-not-found') throw error;
+            await adminDbAuth.createUser({ uid: userUid, email: user.email, displayName: user.name || user.email });
         }
         return true;
     } catch (error) {
-        console.error('CRITICAL: authFbVerify failed:', error);
+        console.error('Account verification failed:', error);
         return false;
     }
 }
@@ -104,20 +103,7 @@ async function authFbVerifyUserRecords({ user }) {
  * ==========================================
  */
 async function handleSignIn({ user }) {
-    // dev bypass for configured test users (development only)
-    if (process.env.NODE_ENV === 'development' && DEV_USERS[user.email]) {
-        const devUser = DEV_USERS[user.email];
-
-        user.role = devUser.role;
-        user.defaultRole = devUser.defaultRole;
-        user.userRolesList = devUser.userRoles;
-        user.calendarFeedToken = 'dev-bypass-token';
-        console.log(`Dev bypass activated for ${user.email} (${devUser.defaultRole})`);
-        return true;
-    }
-
-    // verify Fb entry - both firestore userDoc and firebaseAuth user registration
-    return await authFbVerifyUserRecords({ user })
+    return authFbVerifyUserRecords({ user });
 }
 
 async function handleJwt({ token, user, account, profile }) {
@@ -127,7 +113,8 @@ async function handleJwt({ token, user, account, profile }) {
 
         token.email = user.email;
         token.name = user.name;
-        token.calendarFeedToken = user.calendarFeedToken;
+        token.authVersion = user.authVersion || '';
+        token.profileId = user.profileId || user.email;
 
         if (profile) {
             token.profile = profile;
@@ -144,15 +131,29 @@ async function handleJwt({ token, user, account, profile }) {
         token.msAccessTokenExpiry = account.expires_at * 1000;
     }
 
-    // regenerate custom token (after 1hr expiry). runs on sign-in and every explicit updateSession() from AuthContext
-    const firebaseUid = token.email.toLowerCase();
+    delete token.calendarFeedToken;
+    let revoked = false;
     try {
-        token.firebaseToken = await adminDbAuth.createCustomToken(firebaseUid, {
-            defaultRole: token.defaultRole,
-            userRoles: token.userRoles || [],
+        const account = await getCurrentAccount(token.email, token.authVersion || '');
+        if (!account) { revoked = true; throw new Error('Account access was revoked'); }
+        token.defaultRole = account.defaultRole;
+        token.userRoles = account.userRoles;
+        token.profileId = account.profileId;
+        token.authVersion = account.authVersion;
+        token.accountValid = true;
+        token.firebaseToken = await adminDbAuth.createCustomToken(token.email.toLowerCase(), {
+            defaultRole: account.defaultRole, userRoles: account.userRoles,
+            profileId: account.profileId, authVersion: account.authVersion,
         });
-    } catch (error) {
-        console.error('Failed to create Firebase custom token:', error);
+    } catch {
+        token.accountValid = false;
+        delete token.firebaseToken;
+        delete token.defaultRole;
+        token.userRoles = [];
+        if (revoked) {
+            delete token.msAccessToken;
+            delete token.msRefreshToken;
+        }
     }
 
     return token;
@@ -160,12 +161,15 @@ async function handleJwt({ token, user, account, profile }) {
 
 async function handleSession({ session, token }) {
     if (!session?.user) return session;
+    if (token.accountValid !== true) return { ...session, user: null, error: 'AccessRevoked' };
 
     session.user.role = token.defaultRole;
     session.user.defaultRole = token.defaultRole;
     session.user.userRoles = token.userRoles;
     session.user.firebaseToken = token.firebaseToken;
-    session.user.calendarFeedToken = token.calendarFeedToken;
+    delete session.user.calendarFeedToken;
+    session.user.authVersion = token.authVersion || '';
+    session.user.profileId = token.profileId;
 
     if (token.profile) session.user.profile = token.profile;
     if (token.picture) session.user.image = token.picture;
@@ -198,21 +202,4 @@ function generateDevProviders() {
             }
         });
     });
-}
-
-// create dev bypass users into Firestore on startup for emulators
-if (process.env.NODE_ENV === 'development') {
-    for (const emailKey in DEV_USERS) {
-        const user = DEV_USERS[emailKey];
-        if (user && user.name) {
-            adminDb.collection('users').doc(emailKey).set({
-                email: emailKey,
-                name: user.name,
-                role: user.role,
-                defaultRole: user.defaultRole,
-                userRoles: user.userRoles,
-                calendarFeedToken: 'dev-bypass-token',
-            }, { merge: true }).catch(console.error);
-        }
-    }
 }

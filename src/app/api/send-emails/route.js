@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/security/authConfig';
 import { getMicrosoftAccessToken } from '@/lib/microsoft/tokenUtils';
 import { msSendEmail } from '@/app/api/microsoft/msGraphFunctions';
-import { DateTime } from 'luxon';
-import { sanitiseHtml } from '@/lib/security/securityWrappers';
+import { formatDisplayDateTime } from '@/utils/displayDate';
+import { sanitiseHtml } from '@/lib/security/sanitiseHtml';
 
 const EMAIL_SEND_MAX_ATTEMPTS = 3;
 const EMAIL_RETRY_BASE_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 500;
@@ -257,11 +257,7 @@ export async function POST(req) {
 /* ── HTML helpers ──────────────────────────────────────────────────────── */
 
 function formatDate(value) {
-    const date = value?.toDate ? value.toDate() : new Date(value);
-
-    return DateTime.fromJSDate(date, { zone: 'utc' })
-        .setZone('Australia/Sydney')
-        .toLocaleString(DateTime.DATETIME_MED);
+    return formatDisplayDateTime(value);
 }
 
 function buildEventRow(notification, index, total) {
@@ -326,7 +322,7 @@ function buildEmailHTML(notifications) {
     const dashboardUrl = process.env.NEXTAUTH_URL || '#';
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en-AU">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f3f4f6;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:48px 20px;">

@@ -1,6 +1,7 @@
 import {
     isRangeCoveredByTutorAvailability,
     calendarAvailabilitySplit,
+    getTutorShiftConflicts,
 } from '@/utils/calendarAvailability';
 
 describe('isRangeCoveredByTutorAvailability', () => {
@@ -145,5 +146,41 @@ describe('calendarAvailabilitySplit', () => {
             expect(fragment.id).not.toBe('real-doc-id');
             expect(fragment.originalAvailabilityId).toBe('real-doc-id');
         }
+    });
+});
+
+
+test('mixed email case cannot hide a tutor conflict or leave occupied availability visible', () => {
+    const start = new Date('2026-10-20T04:00:00Z'), end = new Date('2026-10-20T07:00:00Z');
+    const busy = { id: 'busy', start: new Date(+start + 3600000), end: new Date(+start + 7200000), staff: [{ value: 'TuTor@School.Test' }] };
+    const availability = { id: 'free', tutor: 'tutor@school.test', start, end };
+    expect(calendarAvailabilitySplit([availability], [busy])).toHaveLength(2);
+    expect(isRangeCoveredByTutorAvailability('TuTor@School.Test', start, end, [availability])).toBe(true);
+    expect(getTutorShiftConflicts([{ value: 'tutor@school.test' }], start, end, [busy])).toHaveLength(1);
+});
+
+
+describe('management availability preserves academic and Coaching coverage', () => {
+    const { managementAvailability } = require('@/utils/calendarAvailability');
+    const { bookableIntervals } = require('@/lib/scheduling/eventRules');
+    const start = new Date('2026-10-12T22:00:00Z'), end = new Date(+start + 4 * 3600000);
+    const coach = { id: 'coach-only', tutor: 'coach@school.test', start, end, workType: ['coaching'], locationType: 'remote' };
+    test('Coaching-only coverage remains visible to management but unavailable for student bookings', () => {
+        expect(managementAvailability([coach], [])).toEqual([coach]);
+        expect(bookableIntervals(coach.tutor, [coach], [])).toEqual([]);
+    });
+    test('Coaching coverage splits around commitments while retaining its real document and location', () => {
+        const busy = { start: new Date(+start + 3600000), end: new Date(+start + 2 * 3600000), staff: [coach.tutor], students: [], workType: 'work' };
+        const coaching = managementAvailability([coach], [busy]).filter(slot => slot.workType.includes('coaching'));
+        expect(coaching).toHaveLength(2);
+        expect(coaching.map(slot => [slot.start, slot.end])).toEqual([[start, busy.start], [busy.end, end]]);
+        expect(coaching.every(slot => slot.originalAvailabilityId === coach.id && slot.locationType === 'remote')).toBe(true);
+    });
+    test('academic Work stays bookable and management type filters retain the right categories', () => {
+        const academic = { ...coach, id: 'academic', tutor: 'tutor@school.test', workType: ['work'] };
+        const work = { start, end, staff: [academic.tutor], students: [], workType: 'work' };
+        const slots = managementAvailability([academic, coach], [work]);
+        expect([...new Set(slots.filter(slot => slot.workType.includes('work')).map(slot => slot.tutor))]).toEqual([academic.tutor]);
+        expect(slots.filter(slot => slot.workType.includes('coaching')).map(slot => slot.tutor)).toEqual([coach.tutor]);
     });
 });

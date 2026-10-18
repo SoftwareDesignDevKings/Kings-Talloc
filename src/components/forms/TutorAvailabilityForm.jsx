@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { isAfter, format, isValid } from 'date-fns';
 import Select from 'react-select';
 import BaseModal from '../modals/BaseModal.jsx';
-import { MdAccessTime, MdLocationOn, MdWork } from '@/components/icons';
+import { MdAccessTime, MdLocationOn } from '@/components/icons';
 import { useAppData } from '@/contexts/AppDataContext';
 import styles from '@/styles/availabilityForm.module.css';
 import {
@@ -12,7 +12,6 @@ import {
     createEventInFirestore,
     deleteEventFromFirestore,
 } from '@/firestore/firestoreOperations';
-import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 import { normaliseWorkType } from '@/utils/calendarAvailability';
 import useAlert from '@/hooks/useAlert';
 
@@ -45,13 +44,6 @@ const TutorAvailabilityForm = ({
         { value: 'remote', label: 'Remote' },
     ];
 
-    const allRoles = [userRole, ...userRoles].filter(Boolean);
-    const workTypeOptions = [
-        ...(allRoles.includes('tutor') ? [{ value: 'tutoring', label: 'Tutoring' }] : []),
-        ...(allRoles.includes('coach') ? [{ value: 'coaching', label: 'Coaching' }] : []),
-        { value: 'work', label: 'Work' },
-    ];
-
     const validateDates = () => {
         const start = new Date(newAvailability.start);
         const end = new Date(newAvailability.end);
@@ -70,47 +62,29 @@ const TutorAvailabilityForm = ({
             start: new Date(newAvailability.start),
             end: new Date(newAvailability.end),
             tutor: newAvailability.tutor,
-            workType: Array.isArray(newAvailability.workType) ? newAvailability.workType : [newAvailability.workType || 'work'],
+            workType: isEditing ? normaliseWorkType(eventToEdit.workType) : [userRole === 'coach' ? 'coaching' : 'work'],
             locationType: newAvailability.locationType,
         };
 
         try {
             if (isEditing) {
-                await updateEventInFirestore(eventToEdit.id, availabilityData, 'tutorAvailabilities');
-                setCalendarAvailabilities(
-                    calendarAvailabilities.map((availability) =>
-                        availability.id === eventToEdit.id
-                            ? {
-                                ...availabilityData,
-                                id: eventToEdit.id,
-                                entityType: CalendarEntityType.AVAILABILITY
-                            }
-                            : availability,
-                    ),
-                );
+                await updateEventInFirestore(eventToEdit.id, availabilityData, 'tutorAvailabilities', eventToEdit.revision || 0);
             } else {
-                const docId = await createEventInFirestore(
-                    availabilityData,
-                    'tutorAvailabilities',
-                );
-                setCalendarAvailabilities([
-                    ...calendarAvailabilities,
-                    {
-                        ...availabilityData,
-                        id: docId,
-                        entityType: CalendarEntityType.AVAILABILITY
-                    },
-                ]);
+                await createEventInFirestore(availabilityData, 'tutorAvailabilities');
             }
+            // Use the live snapshot, which includes the server revision. Replacing
+            // it with an optimistic draft can make an immediate edit look stale.
             return true; // Success - allow modal to close
         } catch (error) {
             console.error('Failed to submit availability:', error);
-            addAlert('error', 'Failed to submit availability');
+            addAlert('error', `Failed to submit availability: ${error.message}`);
             return false; // Error - don't close modal
         }
     };
 
     const handleDelete = async () => {
+        if (isSubmitting || !window.confirm('Delete this availability? Students will no longer be able to book this time unless a Work shift or other availability covers it. Existing approved sessions will remain. This cannot be undone.')) return false;
+        setIsSubmitting(true);
         const availabilityDocId = eventToEdit.originalAvailabilityId || eventToEdit.id;
         try {
             await deleteEventFromFirestore(availabilityDocId, 'tutorAvailabilities');
@@ -124,6 +98,8 @@ const TutorAvailabilityForm = ({
             console.error('Failed to delete availability:', error);
             addAlert('error', 'Failed to delete availability');
             return false; // Error - don't close modal
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -143,11 +119,6 @@ const TutorAvailabilityForm = ({
 
     const handleLocationChange = (selectedOption) => {
         setNewAvailability({ ...newAvailability, locationType: selectedOption.value });
-    };
-
-    const handleWorkTypeChange = (selectedOptions) => {
-        const values = selectedOptions ? selectedOptions.map(o => o.value) : [];
-        setNewAvailability({ ...newAvailability, workType: values });
     };
 
     return (
@@ -230,33 +201,6 @@ const TutorAvailabilityForm = ({
                 {/* Work Type & Location Section */}
                 <div className={styles.section}>
                     <div className={styles.typeGrid}>
-                        <div>
-                            <div className={styles.sectionTitle}>
-                                <MdWork size={16} className="text-primary" aria-hidden="true" />
-                                <span className="fw-bold">Assignment Type</span>
-                            </div>
-                            <Select
-                                isMulti
-                                name="workType"
-                                options={workTypeOptions}
-                                value={workTypeOptions.filter((option) =>
-                                    normaliseWorkType(newAvailability.workType).includes(option.value)
-                                )}
-                                onChange={handleWorkTypeChange}
-                                classNamePrefix="select"
-                                placeholder="Select types..."
-                                isDisabled={isView}
-                                aria-label="Work type"
-                                inputId="workType"
-                                styles={{
-                                    control: (base) => ({
-                                        ...base,
-                                        padding: '4px',
-                                        borderRadius: '0.5rem',
-                                    }),
-                                }}
-                            />
-                        </div>
                         <div>
                             <div className={styles.sectionTitle}>
                                 <MdLocationOn size={16} className="text-primary" aria-hidden="true" />

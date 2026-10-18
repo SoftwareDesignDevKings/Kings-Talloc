@@ -21,15 +21,6 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     const isStudentRequest = event.isStudentRequest === true;
     const isStudentEvent = event.createdByStudent === true;
 
-    // Check if the current student has responded
-    const studentResponse = event.studentResponses?.find(
-        (response) => response.email === userEmail,
-    );
-    const isDeclined = studentResponse && !studentResponse.response;
-    const isAccepted = studentResponse && studentResponse.response;
-    const needsStudentConfirmation =
-        userRole === 'student' && !studentResponse && event.minStudents > 0;
-
     const applyPalette = ({ bg, border, text }) => {
         backgroundColor = bg;
         borderColor = border;
@@ -76,15 +67,6 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     if (isAvailability) {
         applyPalette(CALENDAR_COLOURS.availabilityBlock);
         borderStyle = CALENDAR_COLOURS.availabilityBlock.borderStyle;
-    }
-
-    // --- Student responses ---
-    if (isDeclined) {
-        applyPalette(CALENDAR_COLOURS.declined);
-    } else if (isAccepted) {
-        applyPalette(CALENDAR_COLOURS.confirmed);
-    } else if (needsStudentConfirmation) {
-        applyPalette(CALENDAR_COLOURS.denied);
     }
 
     // Solid events use a prominent left accent + soft outer border.

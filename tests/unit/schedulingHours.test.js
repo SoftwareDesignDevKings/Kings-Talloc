@@ -1,0 +1,119 @@
+import { calculateHours, breakDeductionMs } from '@/lib/scheduling/hours';
+import { bookableIntervals, rangeCovered, commitmentsConflict, canApproveAt, expandRecurringEvents } from '@/lib/scheduling/eventRules';
+const HOUR = 3600000;
+const date = (hour, day = '2026-10-12') => new Date(`${day}T${String(Math.floor(hour)).padStart(2, '0')}:${String((hour % 1) * 60).padStart(2, '0')}:00+11:00`);
+const event = (start, end, student = false, extra = {}) => ({ id: Math.random().toString(), start: date(start), end: date(end), staff: [{ value: 'tutor@school.test' }], students: student ? [{ value: 'student@school.test' }] : [], workType: 'work', workStatus: 'completed', ...extra });
+const paid = events => calculateHours(events).paidMs / HOUR;
+test.each([
+    [[event(13, 15), event(14, 16)], 3],
+    [[event(15, 17), event(15.5, 16, true)], 2],
+    [[event(15, 17), event(16.5, 17.5, true)], 2.5],
+    [[event(9, 11), event(11, 13)], 3.5],
+    [[event(9, 11, true), event(11, 13, true)], 4],
+    [[event(9, 11), event(11, 13, true)], 3.5],
+    [[event(9, 12), event(12.5, 15.5)], 6],
+    [[event(8, 12), event(13, 17)], 7],
+    [[event(9, 13, true)], 3.5],
+    [[event(9, 15)], 5.5],
+    [[event(9, 15.25)], 5.25],
+    [[event(15, 17, false, { workStatus: 'notCompleted' }), event(15.5, 16, true)], 0.5],
+    [[event(9, 11, true), event(11, 13, true), event(13, 14), event(9, 14)], 4.5],
+])('paid interval fixtures %#', (events, expected) => expect(paid(events)).toBe(expected));
+test('break boundaries are exact', () => { expect(breakDeductionMs(3 * HOUR)).toBe(0); expect(breakDeductionMs(3 * HOUR + 1)).toBe(HOUR / 2); expect(breakDeductionMs(6 * HOUR + 1)).toBe(HOUR); });
+test('legacy confirmation ignored, denied requests excluded', () => expect(paid([event(9, 12, false, { confirmationRequired: true }), event(13, 16, true, { createdByStudent: true, approvalStatus: 'denied' })])).toBe(3));
+test('dates, staff and coaching remain separate', () => {
+    const events = [event(9, 12), event(9, 12, false, { start: date(9, '2026-10-19'), end: date(12, '2026-10-19') }), event(9, 11, false, { workType: 'coaching' }), event(9, 11, false, { staff: ['other@school.test'] })];
+    expect(paid(events)).toBe(10); expect(calculateHours(events).days).toHaveLength(4);
+});
+test('short and complex warnings do not prevent a result', () => { expect(calculateHours([event(9, 9.5, true)]).days[0].warnings[0].code).toBe('short-shift'); expect(calculateHours([event(9, 11, true), event(14, 16, true)]).days[0].warnings.map(w => w.code)).toEqual(['complex-day']); });
+test('Work supplies coverage; only approved bookings and coaching consume it', () => {
+    const availability = [{ tutor: 'tutor@school.test', start: date(9), end: date(10) }];
+    const free = bookableIntervals('tutor@school.test', availability, [event(10, 14), event(11, 12, true), event(13, 14, true, { createdByStudent: true, approvalStatus: 'pending' })]);
+    expect(rangeCovered(date(9), date(11), free)).toBe(true); expect(rangeCovered(date(10), date(13), free)).toBe(false); expect(rangeCovered(date(12), date(14), free)).toBe(true);
+});
+test('Work overlaps permitted, student clashes and coaching blocked', () => { expect(commitmentsConflict(event(9, 12), event(10, 11, true))).toBe(false); expect(commitmentsConflict(event(9, 12, true), event(10, 11, true))).toBe(true); expect(commitmentsConflict(event(9, 12, false, { workType: 'coaching' }), event(10, 11))).toBe(true); });
+test('approval includes exact 15 minute boundary', () => { const request = event(9, 10, true, { approvalStatus: 'pending' }); expect(canApproveAt(request, +request.start + 900000)).toBe(true); expect(canApproveAt(request, +request.start + 900001)).toBe(false); });
+test('recurrence preserves Sydney wall time across DST', () => { const start = new Date('2026-09-28T09:00:00+10:00'); const end = new Date('2026-09-28T10:00:00+10:00'); const events = expandRecurringEvents([{ ...event(9, 10), start, end, recurring: 'weekly', occurenceNum: 3 }], { rangeStart: start, rangeEnd: new Date('2026-10-20') }); expect(events[1].start.toISOString()).toBe('2026-10-04T22:00:00.000Z'); });
+
+test('free intervals preserve remote and onsite locations while allowing continuous coverage', () => {
+    const free = bookableIntervals('tutor@school.test', [
+        { tutor: 'tutor@school.test', start: date(9), end: date(10), locationType: 'remote' },
+        { tutor: 'tutor@school.test', start: date(10), end: date(11), locationType: 'onsite' },
+    ], []);
+    expect(free.map(slot => slot.locationType)).toEqual(['remote', 'onsite']);
+    expect(rangeCovered(date(9), date(11), free)).toBe(true);
+});
+
+test.each(['notAttended', 'notCompleted'])('a standalone student session with status %s earns no hours', workStatus => {
+    expect(paid([event(15, 16, true, { createdByStudent: true, approvalStatus: 'approved', workStatus })])).toBe(0);
+});
+test.each(['completed', 'notCompleted', 'notAttended'].flatMap(workStatus =>
+    ['completed', 'notCompleted', 'notAttended'].map(sessionStatus => [workStatus, sessionStatus])))('Work=%s and nested student session=%s count only completed time', (workStatus, sessionStatus) => {
+    const events = [event(15, 18, false, { workStatus }), event(15.5, 16, true, { workStatus: sessionStatus, createdByStudent: true, approvalStatus: 'approved' })];
+    expect(paid(events)).toBe(workStatus === 'completed' ? 3 : sessionStatus === 'completed' ? 0.5 : 0);
+});
+test.each([[[]], [['Alex']], [['Alex', 'Casey', 'Sam']]])('group names %j do not multiply tutor pay', additionalStudents => {
+    expect(paid([event(15, 16, true, { additionalStudents })])).toBe(1);
+});
+test('a names-only teacher group session earns one tutor-hour', () => {
+    expect(paid([event(15, 16, false, { additionalStudents: ['Alex', 'Casey'] })])).toBe(1);
+});
+test('student session followed by general Work joins for its break in the reverse order too', () => {
+    expect(paid([event(9, 11, true), event(11, 13)])).toBe(3.5);
+});
+test('two tutors working two hours each cost four staff-hours', () => {
+    const totals = calculateHours([event(15, 17), event(15, 17, false, { staff: ['other@school.test'] })]);
+    expect(totals.tutors.map(tutor => tutor.workMs / HOUR)).toEqual([2, 2]); expect(totals.paidMs).toBe(4 * HOUR);
+});
+test.each([[1.5, true], [2, false]])('Coaching duration %s hours warns below its minimum without adding pay', (duration, warning) => {
+    const day = calculateHours([event(15, 15 + duration, false, { workType: 'coaching' })]).days[0];
+    expect(day.paidMs).toBe(duration * HOUR); expect(day.warnings.some(item => item.code === 'short-shift')).toBe(warning);
+});
+test('a millisecond above the break threshold is retained in paid duration without rounding', () => {
+    const shift = event(9, 12); shift.end = new Date(+shift.end + 1);
+    expect(calculateHours([shift]).paidMs).toBe(2.5 * HOUR + 1);
+});
+test('separate student sessions remain provisional until a completed covering Work shift joins them', () => {
+    const sessions = [event(9, 11, true), event(11, 13, true)];
+    expect(paid(sessions)).toBe(4); expect(calculateHours(sessions).days[0].warnings.map(item => item.code)).toEqual(['complex-day']);
+    expect(paid([...sessions, event(9, 13, false, { workStatus: 'notCompleted' })])).toBe(4);
+    const covered = calculateHours([...sessions, event(9, 13)]).days[0];
+    expect(covered.paidMs).toBe(3.5 * HOUR); expect(covered.warnings).toEqual([]);
+});
+
+test.each([1, 2, 5])('a selected group of %s students earns one tutor-hour', count => {
+    const students = Array.from({ length: count }, (_, index) => ({ value: `student${index}@school.test` }));
+    expect(paid([event(15, 16, true, { students, additionalStudents: [] })])).toBe(1);
+});
+
+test('student commitments block a group across different tutors; stale flattened participants do not', () => {
+    const { scheduledEventsConflict, studentEmails } = require('@/lib/scheduling/eventRules');
+    const first = event(9, 10, true);
+    const other = event(9.5, 10.5, true, { staff: [{ value: 'other@school.test' }] });
+    expect(scheduledEventsConflict(first, other)).toBe(true);
+    const work = event(9, 12, false, { studentEmails: ['student@school.test'] });
+    expect(studentEmails(work)).toEqual([]);
+    expect(scheduledEventsConflict(first, work)).toBe(false);
+    const slots = bookableIntervals('tutor@school.test', [], [work, other], { students: ['STUDENT@school.test'] });
+    expect(rangeCovered(date(9), date(9.5), slots)).toBe(true);
+    expect(rangeCovered(date(9.5), date(10.5), slots)).toBe(false);
+    expect(rangeCovered(date(10.5), date(12), slots)).toBe(true);
+});
+
+test('nested overlap chains have the same pay in every input order and do not double count duplicate Work', () => {
+    const events = [event(9, 12), event(11, 15), event(10, 11, true), event(13, 14, true)];
+    const permutations = list => list.length < 2 ? [list] : list.flatMap((value, index) => permutations(list.filter((_, other) => other !== index)).map(rest => [value, ...rest]));
+    for (const order of permutations(events)) expect(paid(order)).toBe(5.5);
+    expect(paid([...events, events[0]])).toBe(5.5);
+    expect(paid([...events, event(9, 15, false, { workStatus: 'notCompleted' })])).toBe(5.5);
+});
+
+test('a teacher-assigned multi-tutor student session applies existing overlap and break rules independently per tutor', () => {
+    const staff = [{ value: 'first@school.test' }, { value: 'second@school.test' }];
+    const session = event(9, 13, true, { staff, students: [{ value: 'one@school.test' }, { value: 'two@school.test' }, { value: 'three@school.test' }] });
+    expect(paid([session])).toBe(7); // 3.5 paid hours per tutor, regardless of group size.
+    const coveringWork = event(9, 13, false, { staff: [staff[0]] });
+    expect(paid([session, coveringWork])).toBe(7); // The first tutor is not paid twice.
+    const longerWork = event(9, 15, false, { staff: [staff[1]] });
+    expect(paid([session, coveringWork, longerWork])).toBe(9); // 3.5 + 5.5 under the unchanged thresholds.
+});

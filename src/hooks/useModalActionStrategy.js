@@ -23,12 +23,9 @@ const MODAL_ACTION_STRATEGY = {
             classes: [],
             students: [],
 
-            tutorResponses: [],
-            studentResponses: [],
-            minStudents: 0,
 
             createdByStudent: false,
-            approvalStatus: 'pending',
+            approvalStatus: 'approved',
             workStatus: 'notCompleted',
             workType: 'work',
             locationType: '',
@@ -38,7 +35,6 @@ const MODAL_ACTION_STRATEGY = {
             recurring: null,
             until: null, // optional but safe
             createTeamsMeeting: false,
-            confirmationRequired: false,
 
             createdBy: userEmail,
         }),
@@ -63,14 +59,14 @@ const MODAL_ACTION_STRATEGY = {
         mode: 'create',
         dataProp: 'newAvailability',
 
-        createDraft: ({ start, end, userEmail }) => ({
+        createDraft: ({ start, end, userEmail, userRole }) => ({
             entityType: CalendarEntityType.AVAILABILITY,
             start,
             end,
 
             title: 'Availability', // optional polish
             tutor: userEmail,
-            workType: 'work',
+            workType: userRole === 'coach' ? 'coaching' : 'work',
             locationType: 'onsite',
         }),
     },
@@ -100,12 +96,11 @@ const MODAL_ACTION_STRATEGY = {
             end,
 
             students: [{ value: userEmail, label: userEmail }],
+            requesterEmail: userEmail,
             staff: [],
             subject: null,
             preference: null,
 
-            minStudents: 0,
-            studentResponses: [],
 
             createdByStudent: true,
             approvalStatus: 'pending',

@@ -1,5 +1,7 @@
+import { formatDuration } from '@/lib/scheduling/hours';
 import { FiCalendar, FiUsers, FiAlertCircle, FiActivity } from '@/components/icons';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { startOfWeek, endOfWeek } from 'date-fns';
+import { formatDisplayDate } from '@/utils/displayDate';
 import BaseStatsCard from './cards/BaseStatsCard';
 
 const DashboardTutorStats = ({ data }) => (
@@ -9,14 +11,15 @@ const DashboardTutorStats = ({ data }) => (
             iconBgColor="bg-primary"
             title="Upcoming Sessions"
             value={data.upcomingEventsCount}
+            subtitle={data.upcomingPeriod}
             delay={50}
         />
         <BaseStatsCard
             icon={FiActivity}
             iconBgColor="bg-success"
-            title="Total Hours"
-            value={(data.weeklyHours.tutoring + data.weeklyHours.coaching + data.weeklyHours.work).toFixed(1)}
-            subtitle={`T: ${data.weeklyHours.tutoring} | C: ${data.weeklyHours.coaching} | W: ${data.weeklyHours.work}`}
+            title="Scheduled Hours"
+            value={formatDuration((data.weeklyHours.work + data.weeklyHours.coaching) * 3600000)}
+            subtitle={`This week · Work: ${formatDuration(data.weeklyHours.work * 3600000)} | Coaching: ${formatDuration(data.weeklyHours.coaching * 3600000)}`}
             delay={150}
         />
         <BaseStatsCard
@@ -24,7 +27,7 @@ const DashboardTutorStats = ({ data }) => (
             iconBgColor="bg-warning"
             title="Uncompleted Shifts"
             value={data.uncompletedShifts}
-            subtitle={`${format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')} - ${format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yy')}`}
+            subtitle={`${formatDisplayDate(startOfWeek(new Date(), { weekStartsOn: 1 }))} - ${formatDisplayDate(endOfWeek(new Date(), { weekStartsOn: 1 }))}`}
             delay={250}
         />
         <BaseStatsCard
@@ -34,16 +37,6 @@ const DashboardTutorStats = ({ data }) => (
             value={data.uniqueStudents}
             delay={350}
         />
-        {data.needsConfirmation > 0 && (
-            <div className="col-12">
-                <div className="alert alert-warning mb-0 d-flex align-items-center">
-                    <FiAlertCircle className="me-2" size={20} />
-                    <span>
-                        You have {data.needsConfirmation} event(s) requiring your confirmation
-                    </span>
-                </div>
-            </div>
-        )}
     </>
 );
 

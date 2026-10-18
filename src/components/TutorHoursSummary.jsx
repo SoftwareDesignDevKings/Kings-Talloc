@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import DatePicker from 'react-datepicker';
+import enAU from 'date-fns/locale/en-AU';
 import 'react-datepicker/dist/react-datepicker.css';
 import { CSVLink } from 'react-csv';
 import { FaInfoCircle } from '@/components/icons';
 import useAlert from '@/hooks/useAlert';
 import useAuthSession from '@/hooks/useAuthSession';
+import { ownEventsFilter } from '@/lib/patterns/calendarStrategy';
+import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
+import { DISPLAY_DATE_FORMAT, formatDisplayDate } from '@/utils/displayDate';
 
 const getMonday = (d) => {
     d = new Date(d);
@@ -18,24 +22,6 @@ const getMonday = (d) => {
     const monday = new Date(d.setDate(diff));
     monday.setHours(0, 0, 0, 0);
     return monday;
-};
-
-const isShiftValid = (shift) => {
-    if (shift.createdByStudent && shift.approvalStatus !== 'approved') {
-        return false;
-    }
-    if (shift.workStatus !== 'completed') {
-        return false;
-    }
-    return true;
-};
-
-const isTutorConfirmed = (event, tutorEmail) => {
-    return event.confirmationRequired
-        ? event.tutorResponses.some(
-              (response) => response.email === tutorEmail && response.response,
-          )
-        : true;
 };
 
 const buildUserNameMap = (userDocs) => {
@@ -52,16 +38,6 @@ const buildUserNameMap = (userDocs) => {
     return namesByEmail;
 };
 
-const getStaffEmail = (staff) => {
-    if (!staff) return '';
-    return typeof staff === 'string' ? staff : staff.value || '';
-};
-
-const getStaffFallbackName = (staff, staffEmail) => {
-    if (!staff || typeof staff === 'string') return staffEmail;
-    return staff.label || staffEmail;
-};
-
 /**
  * Component to display and manage tutor hours summary
  */
@@ -69,7 +45,7 @@ const TutorHoursSummary = () => {
     const { addAlert } = useAlert();
     const { userRole, userRoles, session } = useAuthSession();
     const userEmail = session?.user?.email;
-    const isAdmin = userRole === 'admin';
+    const isAdmin = userRole === 'admin' || userRoles?.includes('admin') || userRole === 'teacher' || userRoles?.includes('teacher');
     
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
@@ -80,140 +56,111 @@ const TutorHoursSummary = () => {
         return sunday;
     });
     const [tutorHours, setTutorHours] = useState([]);
+    const [loadState, setLoadState] = useState('loading');
+    const loadGeneration = useRef(0);
 
     const fetchTutorHours = useCallback(async () => {
-        let accessFilter = [];
+        const generation = ++loadGeneration.current;
+        if (!userEmail) return;
+        setLoadState('loading');
+        try {
+            let accessFilter = [];
 
-        // Tutors/Coaches: only see their own shifts
-        // Admins: see all shifts (no filter)
-        if (!isAdmin) {
-            accessFilter = [where('emailsList', 'array-contains', userEmail)];
-        }
+            // Tutors/Coaches: only see their own shifts
+            // Admins: see all shifts (no filter)
+            if (!isAdmin) {
+                accessFilter = ownEventsFilter(userEmail).map(({ fbField, fbOperation, fbValue }) => where(fbField, fbOperation, fbValue));
+            }
 
-        // Query 1: Non-recurring shifts in the date range
-        const nonRecurringQuery = query(
-            collection(db, 'shifts'),
-            where('start', '>=', startDate),
-            where('start', '<=', endDate),
-            where('recurring', '==', null),
-            ...accessFilter
-        );
+            // Query 1: Non-recurring shifts in the date range
+            const nonRecurringQuery = query(
+                collection(db, 'shifts'),
+                // Use the deployed emailsList/start index; overnight shifts are outside scope.
+                where('start', '>=', startDate),
+                where('start', '<=', endDate),
+                ...accessFilter
+            );
 
-        // Query 2: ALL recurring shifts (no date filter)
-        const recurringQuery = query(
-            collection(db, 'shifts'),
-            where('recurring', 'in', ['weekly', 'fortnightly']),
-            ...accessFilter
-        );
+            // Query 2: ALL recurring shifts (no date filter)
+            const recurringQuery = query(
+                collection(db, 'shifts'),
+                where('recurring', 'in', ['weekly', 'fortnightly']),
+                ...accessFilter
+            );
 
-        const [nonRecurringSnapshot, recurringSnapshot, usersSnapshot] = await Promise.all([
-            getDocs(nonRecurringQuery),
-            getDocs(recurringQuery),
-            getDocs(collection(db, 'users')),
-        ]);
-        const userNamesByEmail = buildUserNameMap(usersSnapshot.docs);
+            const [nonRecurringSnapshot, recurringSnapshot, usersSnapshot] = await Promise.all([
+                getDocs(nonRecurringQuery),
+                getDocs(recurringQuery),
+                getDocs(collection(db, 'users')),
+            ]);
+            const userNamesByEmail = buildUserNameMap(usersSnapshot.docs);
 
-        // Process non-recurring shifts
-        let shifts = nonRecurringSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-            };
-        });
+            // Process non-recurring shifts
+            let shifts = nonRecurringSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    start: data.start.toDate(),
+                    end: data.end.toDate(),
+                };
+            });
 
-        // Process recurring events - expand and filter to date range
-        let recurringShifts = recurringSnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                ...data,
-                start: data.start.toDate(),
-                end: data.end.toDate(),
-                ...(data.until && { until: data.until.toDate() }),
-            };
-        });
+            shifts = shifts.filter(shift => !shift.recurring && shift.start >= startDate && shift.start <= endDate);
 
-        // Expand recurring events, then filter for this time sheet date range
-        recurringShifts = recurringCalendarExpand(recurringShifts, {
-            rangeStart: startDate,
-            rangeEnd: endDate,
-            maxOccurrences: 52,
-            // TODO: double check maxOccurance to what Ienna defines in the new version. 
+            // Process recurring events - expand and filter to date range
+            let recurringShifts = recurringSnapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    start: data.start.toDate(),
+                    end: data.end.toDate(),
+                    ...(data.until && { until: data.until.toDate() }),
+                };
+            });
 
-        }).filter(shift => shift.start >= startDate && shift.start <= endDate);
+            // Expand recurring events, then filter for this time sheet date range
+            recurringShifts = recurringCalendarExpand(recurringShifts, {
+                rangeStart: startDate,
+                rangeEnd: endDate,
+                maxOccurrences: 52,
+
+            }).filter(shift => shift.start >= startDate && shift.start <= endDate);
     
 
-        // Combine non-recurring and expanded recurring events
-        shifts = [...shifts, ...recurringShifts];
+            // Combine non-recurring and expanded recurring events
+            shifts = [...shifts, ...recurringShifts];
 
-        const tutorHoursMap = {};
-        for (const shift of shifts) {
-            if (!isShiftValid(shift)) {
-                continue;
-            }
+            let tutorHoursArray = calculateHours(shifts).tutors.map(tutor => ({
+                ...tutor,
+                name: userNamesByEmail.get(tutor.email) || tutor.name,
+                tutoringHours: tutor.workMs / 3600000,
+                coachingHours: tutor.coachingMs / 3600000,
+            }));
+            if (!isAdmin) tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail?.toLowerCase());
 
-            for (const staff of shift.staff || []) {
-                const staffEmail = getStaffEmail(staff);
-                if (!staffEmail) {
-                    continue;
-                }
-
-                // TODO: check if this is even required - as curr system doent care if we tutor has confirmed it
-                if (!isTutorConfirmed(shift, staffEmail)) {
-                    continue;
-                }
-
-                const currentUserName = userNamesByEmail.get(staffEmail.toLowerCase());
-
-                if (!tutorHoursMap[staffEmail]) {
-                    tutorHoursMap[staffEmail] = {
-                        name: currentUserName || getStaffFallbackName(staff, staffEmail),
-                        tutoringHours: 0,
-                        coachingHours: 0,
-                    };
-                }
-
-                // Calculate event duration in hours, deducting breaks (>3-6hrs: -30min, >6hrs: -1hr)
-                let shiftDuration = (shift.end - shift.start) / 3600000; // milliseconds to hours
-                if (shiftDuration > 6) shiftDuration -= 1;
-                else if (shiftDuration > 3) shiftDuration -= 0.5;
-
-                // Add to appropriate category based on workType
-                if (shift.workType === 'coaching') {
-                    tutorHoursMap[staffEmail].coachingHours += shiftDuration;
-                } else {
-                    tutorHoursMap[staffEmail].tutoringHours += shiftDuration;
-                }
-            }
+            if (generation === loadGeneration.current) { setTutorHours(tutorHoursArray); setLoadState('ready'); }
+        } catch (error) {
+            console.error('Hours summary could not refresh', error);
+            if (generation === loadGeneration.current) setLoadState('error');
         }
-
-        // map hours to array & filter by user role
-        let tutorHoursArray = Object.entries(tutorHoursMap).map(([email, data]) => ({
-            email,
-            ...data,
-        }));
-
-        // Tutors only see their own summary, admins see everyone
-        if (!isAdmin) {
-            tutorHoursArray = tutorHoursArray.filter(
-                (tutor) => tutor.email.toLowerCase() === userEmail?.toLowerCase(),
-            );
-        }
-
-        setTutorHours(tutorHoursArray);
-    }, [startDate, endDate, userRole, userRoles, userEmail, isAdmin]);
+    }, [startDate, endDate, userEmail, isAdmin]);
 
     useEffect(() => {
+        const tracker = loadGeneration;
         fetchTutorHours();
+        return () => { tracker.current++; };
     }, [startDate, endDate, fetchTutorHours]);
 
     const csvData = tutorHours.map((tutor) => ({
         Email: tutor.email,
         Name: tutor.name,
-        'Tutor / Work Hours': tutor.tutoringHours.toFixed(2),
-        'Coaching Hours': tutor.coachingHours.toFixed(2),
-        'Total Hours': (tutor.tutoringHours + tutor.coachingHours).toFixed(2),
+        'Work Hours': decimalHours(tutor.workMs),
+        'Coaching Hours': decimalHours(tutor.coachingMs),
+        'Total Hours': decimalHours(tutor.workMs + tutor.coachingMs),
+        Details: tutor.days.map(day => `${formatDisplayDate(day.date)} ${day.category}: ${day.start.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}–${day.end.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })}; paid ${formatDuration(day.paidMs)}; deduction ${formatDuration(day.deductionMs)}`).join(' | '),
+        Warnings: tutor.warnings.map(warning => `${formatDisplayDate(warning.date)}: ${warning.message}`).join(' '),
     }));
 
     const handleGenerateTimesheet = async (tutorEmail, tutorName, roleType) => {
@@ -243,7 +190,7 @@ const TutorHoursSummary = () => {
             const blob = await response.blob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${tutorName}_${roleType}_timesheet_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.docx`;
+            link.download = `${tutorName}_${roleType}_timesheet_${formatDisplayDate(startDate)}_to_${formatDisplayDate(endDate)}.${response.headers.get('Content-Type')?.includes('zip') ? 'zip' : 'docx'}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -268,6 +215,8 @@ const TutorHoursSummary = () => {
                     </label>
                     <DatePicker
                         selected={startDate}
+                        dateFormat={DISPLAY_DATE_FORMAT}
+                        locale={enAU}
                         onChange={(date) => setStartDate(getMonday(date))}
                         className="form-control form-control-sm"
                     />
@@ -278,14 +227,18 @@ const TutorHoursSummary = () => {
                     </label>
                     <DatePicker
                         selected={endDate}
+                        dateFormat={DISPLAY_DATE_FORMAT}
+                        locale={enAU}
                         onChange={(date) => setEndDate(new Date(date.setHours(23, 59, 59, 999)))}
                         className="form-control form-control-sm"
                     />
                 </div>
                 <CSVLink
                     data={csvData}
-                    filename={`tutor_hours_${startDate.toLocaleDateString('en-AU')}_to_${endDate.toLocaleDateString('en-AU')}.csv`}
-                    className="btn btn-outline-primary btn-sm"
+                    filename={`tutor_hours_${formatDisplayDate(startDate)}_to_${formatDisplayDate(endDate)}.csv`}
+                    className={`btn btn-outline-primary btn-sm${loadState !== 'ready' ? ' disabled' : ''}`}
+                    aria-disabled={loadState !== 'ready'}
+                    onClick={() => loadState === 'ready'}
                 >
                     Export as CSV
                 </CSVLink>
@@ -303,6 +256,8 @@ const TutorHoursSummary = () => {
                 </div>
             </div>
 
+            {loadState === 'loading' && <p role="status">Refreshing hours…</p>}
+            {loadState === 'error' && <p role="alert">Hours could not refresh. Any displayed hours are the last loaded result. <button className="btn btn-link btn-sm" onClick={fetchTutorHours}>Retry</button></p>}
             <div className="grow overflow-auto">
                 <div className="table-responsive">
                     <table className="table table-sm table-hover bg-white">
@@ -310,7 +265,7 @@ const TutorHoursSummary = () => {
                         <tr>
                             <th className="small fw-medium text-secondary">Email</th>
                             <th className="small fw-medium text-secondary">Name</th>
-                            <th className="small fw-medium text-secondary">Tutor / Work</th>
+                            <th className="small fw-medium text-secondary">Work</th>
                             <th className="small fw-medium text-secondary">Coaching</th>
                             <th className="small fw-medium text-secondary">Total</th>
                             {isAdmin && (
@@ -322,11 +277,11 @@ const TutorHoursSummary = () => {
                         {tutorHours.map((tutor, index) => (
                             <tr key={index}>
                                 <td className="small text-break align-middle">{tutor.email}</td>
-                                <td className="small align-middle">{tutor.name}</td>
-                                <td className="small align-middle">{tutor.tutoringHours.toFixed(2)}</td>
-                                <td className="small align-middle">{tutor.coachingHours.toFixed(2)}</td>
+                                <td className="small align-middle">{tutor.name}{tutor.warnings.map((warning, i) => <div key={i} className="text-warning-emphasis small" role="status">⚠ {formatDisplayDate(warning.date)}: {warning.message}</div>)}</td>
+                                <td className="small align-middle">{formatDuration(tutor.workMs)}</td>
+                                <td className="small align-middle">{formatDuration(tutor.coachingMs)}</td>
                                 <td className="small fw-semibold align-middle">
-                                    {(tutor.tutoringHours + tutor.coachingHours).toFixed(2)}
+                                    {formatDuration(tutor.workMs + tutor.coachingMs)}
                                 </td>
                                 {isAdmin && (
                                     <td className="small align-middle">
@@ -339,6 +294,7 @@ const TutorHoursSummary = () => {
                                                         'tutor',
                                                     )
                                                 }
+                                                disabled={loadState !== 'ready'}
                                                 className="btn btn-sm btn-outline-success"
                                             >
                                                 Generate Tutor Timesheet
@@ -352,6 +308,7 @@ const TutorHoursSummary = () => {
                                                             'coach',
                                                         )
                                                     }
+                                                    disabled={loadState !== 'ready'}
                                                     className="btn btn-sm btn-outline-secondary"
                                                 >
                                                     Generate Coach Timesheet

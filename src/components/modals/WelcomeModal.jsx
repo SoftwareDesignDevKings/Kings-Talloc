@@ -128,7 +128,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                             { ...CALENDAR_COLOURS.confirmed, label: <><strong>Blue:</strong> Confirmed tutoring sessions</> },
                             { ...CALENDAR_COLOURS.coaching, label: <><strong>Purple:</strong> Coaching sessions</> },
                             { ...CALENDAR_COLOURS.pending, label: <><strong>Orange:</strong> Pending booking requests (awaiting approval)</> },
-                            { ...CALENDAR_COLOURS.denied, label: <><strong>Red:</strong> Requires your confirmation or denied requests</> },
+                            { ...CALENDAR_COLOURS.denied, label: <><strong>Red:</strong> Denied requests</> },
                             { ...CALENDAR_COLOURS.completed, label: <><strong>Green event:</strong> Completed tutoring session</> },
                             { ...CALENDAR_COLOURS.notAttended, label: <><strong>Pink:</strong> Student did not attend</> },
                         ].map(({ bg, border, borderStyle = 'solid', label }, i) => (

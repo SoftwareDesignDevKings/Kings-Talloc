@@ -20,7 +20,7 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '20.19.0'
+                  node-version: '22'
                   cache: 'npm'
 
             - name: Setup Java
@@ -31,6 +31,9 @@ jobs:
 
             - name: Install dependencies
               run: npm ci
+
+            - name: Audit production dependencies
+              run: npm audit --omit=dev --audit-level=high
 
             - name: Install Playwright browsers
               run: npx playwright install --with-deps chromium
@@ -56,12 +59,15 @@ jobs:
                 NEXTAUTH_SECRET: Dummy-Secret
                 NEXTAUTH_URL: http://localhost:3000
 
+            - name: Verify Work bookings and weekly timesheets
+              run: xvfb-run --auto-servernum npm run test:e2e:work-hours
+
     deploy-firestore-rules:
         name: Deploy production Firestore rules
         needs: test-lint-firebase
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         runs-on: ubuntu-latest
-        timeout-minutes: 5
+        timeout-minutes: 20
         environment: firebase-production
         permissions:
             contents: read
@@ -97,7 +103,22 @@ jobs:
             - name: Set up Node.js
               uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
-                  node-version: '20.19.0'
+                  node-version: '22'
+
+            # Client calendar writes are now server-validated. Never tighten rules
+            # while the production app is still an older build or failed to deploy.
+            - name: Wait for the tested app in production
+              run: node scripts/waitForSchedulingRelease.cjs
+              env:
+                  EXPECTED_COMMIT: ${{ github.sha }}
+                  SCHEDULING_CLIENT_MIGRATION_ACK: ${{ vars.SCHEDULING_CLIENT_MIGRATION_ACK }}
+
+            - name: Recheck that main has not advanced
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  latest_commit="$(git ls-remote origin refs/heads/main | cut -f1)"
+                  test "$latest_commit" = "$GITHUB_SHA" || { echo "Main advanced while waiting for production. Refusing superseded rules."; exit 1; }
 
             - name: Obtain short-lived Google credentials
               id: auth

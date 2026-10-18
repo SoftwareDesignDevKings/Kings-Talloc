@@ -5,6 +5,7 @@
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
+const { seedRuleAccounts } = require('./seedRuleAccounts');
 const { assertFails, assertSucceeds } = global;
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +32,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     await testEnv.clearFirestore();
+    await seedRuleAccounts(testEnv);
 });
 
 describe('Firebase Security Rules - Canvas cache collections', () => {

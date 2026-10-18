@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
+import { REQUEST_DELETE_WARNING } from '@/utils/destructiveActions';
 
 /**
- * DeleteConfirmationModal - Confirms deletion of recurring events
+ * Confirms single-event, recurring-event and student-request deletion.
  */
-const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOriginal }) => {
+const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOriginal, isStudentRequest = false, loading = false }) => {
     // Default to 'all' if deleting original event, 'this' for instances
     const [deleteOption, setDeleteOption] = useState(isOriginal ? 'all' : 'this'); // 'this' | 'thisAndFuture' | 'all'
 
@@ -24,11 +25,11 @@ const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOrigi
         if (isRecurring && !isOriginal) {
             return 'Delete Recurring Event';
         }
-        return 'Delete Event';
+        return isStudentRequest ? 'Delete Student Request' : 'Delete Event';
     };
 
     const handleConfirm = () => {
-        onConfirm(deleteOption);
+        if (!loading) onConfirm(isRecurring ? deleteOption : 'this');
     };
 
     return (
@@ -37,17 +38,19 @@ const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOrigi
             onHide={onHide}
             title={getTitle()}
             size="md"
+            loading={loading}
             customFooter={
                 <>
-                    <button type="button" className="btn btn-outline-secondary" onClick={onHide}>
+                    <button type="button" className="btn btn-outline-secondary" onClick={onHide} disabled={loading}>
                         Cancel
                     </button>
-                    <button type="button" className="btn btn-outline-danger" onClick={handleConfirm}>
-                        Delete
+                    <button type="button" className="btn btn-danger" onClick={handleConfirm} disabled={loading}>
+                        {loading ? 'Deleting…' : 'Delete'}
                     </button>
                 </>
             }
         >
+            {isStudentRequest && <p className="text-danger" role="alert">{REQUEST_DELETE_WARNING}</p>}
             {isRecurring && isOriginal ? (
                 <>
                     <p className="mb-3">
@@ -105,9 +108,9 @@ const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOrigi
                         </small>
                     </div>
                 </>
-            ) : (
-                <p className="mb-0">Are you sure you want to delete this event?</p>
-            )}
+            ) : !isStudentRequest ? (
+                <p className="mb-0">Are you sure you want to permanently delete this event? This cannot be undone.</p>
+            ) : null}
         </BaseModal>
     );
 };

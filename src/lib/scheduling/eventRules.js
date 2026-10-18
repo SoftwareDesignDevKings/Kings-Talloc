@@ -1,0 +1,117 @@
+import { DateTime } from 'luxon';
+
+export const SYDNEY_ZONE = 'Australia/Sydney';
+export const APPROVAL_GRACE_MS = 15 * 60 * 1000;
+export const asDate = value => value?.toDate ? value.toDate() : value?.toJSDate ? value.toJSDate() : new Date(value);
+export const emailOf = value => String(value?.value || value?.email || value || '').trim().toLowerCase();
+export const requestOwnerEmail = event => emailOf(event?.requesterEmail || event?.students?.[0] || event?.studentEmails?.[0]);
+export const staffEmails = event => [...new Set((event.staff || []).map(emailOf).filter(Boolean))];
+// Explicit participants are authoritative; old flattened fields may be stale.
+export const studentEmails = event => [...new Set((Array.isArray(event.students) ? event.students : event.studentEmails || []).map(emailOf).filter(Boolean))];
+export const workCategory = event => event.workType === 'coaching' ? 'coaching' : 'work';
+// Class-linked legacy bookings are occupied until their participants can be resolved.
+export const isStudentSession = event => workCategory(event) === 'work' &&
+    Boolean(event.students?.length || event.additionalStudents?.length || (event.classes?.length && !event.studentParticipantsResolved));
+export const isGeneralWork = event => workCategory(event) === 'work' && !isStudentSession(event);
+export const hasStudentParticipants = event => Boolean(event.students?.length ||
+    (Array.isArray(event.additionalStudents) ? event.additionalStudents : String(event.additionalStudents || '').split(/[,\n]/)).some(name => String(name).trim()));
+
+// Validate only when saving: removing someone temporarily while choosing their
+// replacement must not lock the participant editor or change the saved purpose.
+export const getParticipantEditError = (previous, next) => {
+    if (!previous) return null;
+    if (isStudentSession(previous) || previous.isStudentRequest) {
+        if (workCategory(next) !== 'work') return 'A student session must remain Work. Cancel it and create a separate event to change its purpose.';
+        if (hasStudentParticipants(next)) return null;
+        const classIds = event => (event.classes || []).map(item => String(item.value || item.id || item)).sort();
+        // Keep unresolved legacy class bookings occupied without blocking a
+        // status-only update. They are never silently converted into Work.
+        const unresolvedLegacy = !hasStudentParticipants(previous) && previous.classes?.length &&
+            !previous.studentParticipantsResolved && !next.studentParticipantsResolved &&
+            JSON.stringify(classIds(previous)) === JSON.stringify(classIds(next));
+        if (unresolvedLegacy) return null;
+        return 'Add at least one student before saving this student session. To cancel it, use Delete.';
+    }
+    if (isGeneralWork(previous) && workCategory(next) === 'work' && (hasStudentParticipants(next) || (next.classes?.length && !next.studentParticipantsResolved))) return 'This is a general Work shift. Create a separate student session to book students during it.';
+    return null;
+};
+
+export const isApproved = event => !event.createdByStudent || event.approvalStatus === 'approved';
+export const canApproveAt = (event, now = Date.now()) => event.approvalStatus === 'pending' &&
+    now <= asDate(event.start).getTime() + APPROVAL_GRACE_MS;
+export const isAcademicAvailability = event => {
+    const types = Array.isArray(event.workType) ? event.workType : [event.workType];
+    return !types.includes('coaching') || types.some(type => ['work', 'tutoring', 'tutoringOrWork'].includes(type));
+};
+export const overlaps = (a, b) => asDate(a.start) < asDate(b.end) && asDate(a.end) > asDate(b.start);
+export const commitmentsConflict = (a, b) => overlaps(a, b) &&
+    (workCategory(a) === 'coaching' || workCategory(b) === 'coaching' || (isStudentSession(a) && isStudentSession(b)));
+
+// A shared student is busy even when the sessions have different tutors.
+export const scheduledEventsConflict = (a, b) => overlaps(a, b) && (
+    (staffEmails(a).some(email => staffEmails(b).includes(email)) && commitmentsConflict(a, b)) ||
+    studentEmails(a).some(email => studentEmails(b).includes(email))
+);
+
+export const unionIntervals = intervals => {
+    const result = [];
+    for (const interval of intervals.map(i => ({ start: +asDate(i.start), end: +asDate(i.end) }))
+        .filter(i => Number.isFinite(i.start) && Number.isFinite(i.end) && i.end > i.start)
+        .sort((a, b) => a.start - b.start || a.end - b.end)) {
+        const last = result[result.length - 1];
+        if (last && interval.start <= last.end) last.end = Math.max(last.end, interval.end);
+        else result.push({ ...interval });
+    }
+    return result;
+};
+export const rangeCovered = (start, end, intervals) => +asDate(end) > +asDate(start) &&
+    unionIntervals(intervals).some(i => i.start <= +asDate(start) && i.end >= +asDate(end));
+
+export const bookableIntervals = (tutor, availabilities, shifts, { students = [] } = {}) => {
+    const email = emailOf(tutor);
+    const ownShifts = shifts.filter(s => staffEmails(s).includes(email) && isApproved(s));
+    const sources = [
+        ...availabilities.filter(a => emailOf(a.tutor) === email && isAcademicAvailability(a)),
+        ...ownShifts.filter(isGeneralWork),
+    ].map(source => ({ start: +asDate(source.start), end: +asDate(source.end), locationType: source.locationType || 'onsite' }))
+        .filter(source => Number.isFinite(source.start) && Number.isFinite(source.end) && source.end > source.start);
+    const group = new Set(students.map(emailOf));
+    const busy = unionIntervals([...ownShifts.filter(s => !isGeneralWork(s)), ...shifts.filter(s => isApproved(s) && studentEmails(s).some(email => group.has(email)))]);
+    const boundaries = [...new Set([...sources, ...busy].flatMap(slot => [slot.start, slot.end]))].sort((a, b) => a - b);
+    const free = [];
+    for (let index = 0; index < boundaries.length - 1; index++) {
+        const start = boundaries[index], end = boundaries[index + 1];
+        if (busy.some(block => block.start < end && block.end > start)) continue;
+        const locations = [...new Set(sources.filter(source => source.start <= start && source.end >= end).map(source => source.locationType))].sort();
+        for (const locationType of locations) {
+            const last = free.findLast(slot => slot.locationType === locationType);
+            if (last?.end === start) last.end = end;
+            else free.push({ start, end, locationType });
+        }
+    }
+    return free.map((slot, index) => ({ ...slot, start: new Date(slot.start), end: new Date(slot.end),
+        tutor: email, id: `free:${email}:${index}:${slot.start}` }));
+};
+
+// Pure and server-safe. Preserve Sydney wall time across daylight-saving changes.
+export const expandRecurringEvents = (events, { rangeStart = new Date(), rangeEnd = new Date(Date.now() + 366 * 86400000), maxOccurrences = 52 } = {}) => {
+    const result = [];
+    for (const raw of events) {
+        const event = { ...raw, start: asDate(raw.start), end: asDate(raw.end) };
+        if (!event.recurring) { result.push(event); continue; }
+        const weeks = event.recurring === 'weekly' ? 1 : 2;
+        const count = Number(event.occurenceNum) || Math.max(Math.floor(maxOccurrences / weeks), Math.ceil(DateTime.fromJSDate(asDate(rangeEnd), { zone: SYDNEY_ZONE }).diff(DateTime.fromJSDate(event.start, { zone: SYDNEY_ZONE }), 'weeks').weeks / weeks));
+        const start = DateTime.fromJSDate(event.start, { zone: SYDNEY_ZONE });
+        const end = DateTime.fromJSDate(event.end, { zone: SYDNEY_ZONE });
+        // Jump near the requested dates instead of walking every week since a legacy series began.
+        const firstIndex = Math.max(0, Math.floor(DateTime.fromJSDate(asDate(rangeStart), { zone: SYDNEY_ZONE }).diff(start, 'weeks').weeks / weeks) - 1);
+        for (let index = firstIndex; index < count; index++) {
+            const occurrenceStart = start.plus({ weeks: index * weeks }).toJSDate();
+            if (occurrenceStart >= asDate(rangeEnd) || (event.until && occurrenceStart > asDate(event.until))) break;
+            if (occurrenceStart < asDate(rangeStart) || event.eventExceptions?.includes(index)) continue;
+            result.push({ ...event, start: occurrenceStart, end: end.plus({ weeks: index * weeks }).toJSDate(),
+                recurringEventId: event.id, id: `${event.id}_occurrence_${index}`, isRecurringInstance: true, occurrenceIndex: index });
+        }
+    }
+    return result;
+};

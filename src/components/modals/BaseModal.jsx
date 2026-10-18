@@ -14,6 +14,7 @@ const BaseModal = ({
     // Form props
     onSubmit,
     submitText = 'Submit',
+    submitVariant = 'outline-primary',
     cancelText = 'Cancel',
 
     // Button props
@@ -33,13 +34,16 @@ const BaseModal = ({
     const modalRef = useRef(null);
     const bsModalRef = useRef(null);
     const isClosing = useRef(false);
+    const desiredShowRef = useRef(show);
+    const hidingForProp = useRef(false);
     const onHideRef = useRef(onHide);
     const suppressOnHiddenRef = useRef(suppressOnHidden);
 
     useEffect(() => {
+        desiredShowRef.current = show;
         onHideRef.current = onHide;
         suppressOnHiddenRef.current = suppressOnHidden;
-    }, [onHide, suppressOnHidden]);
+    }, [onHide, suppressOnHidden, show]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -79,29 +83,55 @@ const BaseModal = ({
 
     // Initialize Bootstrap Modal once and keep event handlers pointed at current props.
     useEffect(() => {
-        if (!modalRef.current || typeof window === 'undefined' || !window.bootstrap) return;
+        if (!modalRef.current || typeof window === 'undefined') return;
 
         const modalElement = modalRef.current;
         const handleHidden = () => {
             isClosing.current = false;
+            // Bootstrap ignores show() during its hide animation. A quick Cancel
+            // in a confirmation must restore the editor once that animation ends.
+            const reopen = hidingForProp.current && desiredShowRef.current;
+            hidingForProp.current = false;
+            if (reopen) {
+                bsModalRef.current?.show();
+                return;
+            }
             if (!suppressOnHiddenRef.current) {
                 onHideRef.current?.();
             }
         };
         const handleShown = () => {
             isClosing.current = false;
+            // Likewise, retry a hide requested while the modal was opening.
+            if (!desiredShowRef.current) {
+                hidingForProp.current = true;
+                bsModalRef.current?.hide();
+            } else {
+                hidingForProp.current = false;
+            }
         };
 
-        bsModalRef.current = new window.bootstrap.Modal(modalElement, {
-            backdrop: true,
-            keyboard: true,
-            focus: true
-        });
+        const initialise = () => {
+            if (bsModalRef.current || !window.bootstrap) return;
+            bsModalRef.current = new window.bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+            document.removeEventListener('load', initialise, true);
+            // The async Bootstrap script may finish after the opening effect ran.
+            if (desiredShowRef.current && !isClosing.current) bsModalRef.current.show();
+        };
 
         modalElement.addEventListener('hidden.bs.modal', handleHidden);
         modalElement.addEventListener('shown.bs.modal', handleShown);
+        // Resource load events do not bubble. Capture the CDN script's load after
+        // it installs window.bootstrap, then stop listening once initialized.
+        document.addEventListener('load', initialise, true);
+        initialise();
 
         return () => {
+            document.removeEventListener('load', initialise, true);
             modalElement.removeEventListener('hidden.bs.modal', handleHidden);
             modalElement.removeEventListener('shown.bs.modal', handleShown);
             if (bsModalRef.current) {
@@ -116,6 +146,7 @@ const BaseModal = ({
         if (bsModalRef.current && show && !isClosing.current) {
             bsModalRef.current.show();
         } else if (bsModalRef.current && !show) {
+            if (modalRef.current?.classList.contains('show')) hidingForProp.current = true;
             bsModalRef.current.hide();
         }
     }, [show]);
@@ -142,6 +173,7 @@ const BaseModal = ({
                             className="btn-close"
                             data-bs-dismiss="modal"
                             aria-label="Close"
+                            disabled={disabled || loading}
                         ></button>
                     </div>
 
@@ -169,7 +201,7 @@ const BaseModal = ({
                                             )}
                                             <button
                                                 type="submit"
-                                                className="btn btn-outline-primary"
+                                                className={`btn btn-${submitVariant}`}
                                                 disabled={disabled || loading}
                                             >
                                                 {getSubmitButtonText()}

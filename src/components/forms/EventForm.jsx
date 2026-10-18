@@ -1,4 +1,5 @@
 'use client';
+import { isStudentSession, workCategory, getParticipantEditError } from '@/lib/scheduling/eventRules';
 
 import React, { useState, useCallback } from 'react';
 import { isAfter } from 'date-fns';
@@ -23,22 +24,23 @@ import {
 import {
     updateEventInFirestore,
     updateWorkStatusInFirestore,
-    createEventInFirestore,
+    createScheduledEventInFirestore,
     queueEmailNotification,
 } from '@/firestore/firestoreOperations';
-import { getTutorShiftConflicts, getRecurringSeriesConflicts } from '@/utils/calendarAvailability';
-import { format } from 'date-fns';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
 import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
 
-const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, userEmail, userRole }) => {
+const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, setShowModal, userEmail, userRole }) => {
     const {
         calendarShifts,
         setCalendarShifts,
         setCalendarAvailabilities,
         setCalendarStudentRequests,
     } = useAppData();
+    // Calendar modal props contain the live draft. Keep the originally opened
+    // event stable for purpose validation, recurring edits and meeting updates.
+    const [eventToEdit] = useState(initialEvent);
     // Derive mode flags
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
@@ -52,8 +54,13 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [participantError, setParticipantError] = useState(null);
+    const isRejectingRequest = eventToEdit?.isStudentRequest && newEvent.approvalStatus === 'denied';
+    const removesPaidTime = isEditing && newEvent.workStatus !== eventToEdit?.workStatus
+        && (eventToEdit?.workStatus === 'completed' || newEvent.workStatus === 'notAttended');
+    const removesMeeting = isEditing && eventToEdit?.teamsEventId && eventToEdit.createTeamsMeeting && !newEvent.createTeamsMeeting;
     const { addAlert } = useAlert();
-    const { handleApprove } = useApprovalHandlers();
+    const { handleApprove, handleReject } = useApprovalHandlers();
 
     // fetch form data using custom hook
     const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
@@ -71,21 +78,20 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     }, [setNewEvent]);
 
     const handleWorkTypeChange = useCallback((workType) => {
+        setParticipantError(null);
         setNewEvent((prev) => ({ ...prev, workType }));
     }, [setNewEvent]);
 
     const handleClassSelectChange = useCallback((selectedOptions) => {
+        setParticipantError(null);
         setSelectedClasses(selectedOptions);
         setNewEvent((prev) => ({ ...prev, classes: selectedOptions }));
     }, [setNewEvent]);
 
     const handleStudentSelectChange = useCallback((selectedOptions) => {
+        setParticipantError(null);
         setSelectedStudents(selectedOptions);
         setNewEvent((prev) => ({ ...prev, students: selectedOptions }));
-    }, [setNewEvent]);
-
-    const handleMinStudentsChange = useCallback((e) => {
-        setNewEvent((prev) => ({ ...prev, minStudents: parseInt(e.target.value, 10) }));
     }, [setNewEvent]);
 
     const handleApprovalChange = useCallback((selectedOption) => {
@@ -105,9 +111,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const validateStaffRoles = () => {
         const workType = newEvent.workType;
-        if (workType !== 'tutoring' && workType !== 'coaching') return true;
-
-        const requiredRole = workType === 'tutoring' ? 'tutor' : 'coach';
+        const requiredRole = workCategory(newEvent) === 'coaching' ? 'coach' : isStudentSession(newEvent) ? 'tutor' : null;
+        if (!requiredRole) return true;
         const invalidStaff = (newEvent.staff || []).filter((staffMember) => {
             if (!staffMember.roles) return false;
             return !staffMember.roles.includes(requiredRole);
@@ -123,6 +128,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const validateForm = () => {
 
+        const isDenial = eventToEdit?.isStudentRequest && newEvent.approvalStatus === 'denied';
+        const editError = isEditing && !isDenial ? getParticipantEditError(eventToEdit, newEvent) : null;
+        setParticipantError(editError);
+        if (editError) return false;
+
         // Validate dates first
         if (!validateDates()) {
             return false;
@@ -136,31 +146,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         }
 
         if (!validateStaffRoles()) {
-            return false;
-        }
-
-        const conflicts = newEvent.recurring
-            ? getRecurringSeriesConflicts(
-                newEvent.staff,
-                newEvent.start,
-                newEvent.end,
-                newEvent.recurring,
-                Number(newEvent.occurenceNum) || newEvent.occurenceNum,
-                calendarShifts,
-                eventToEdit?.id,
-            )
-            : getTutorShiftConflicts(
-                newEvent.staff,
-                newEvent.start,
-                newEvent.end,
-                calendarShifts,
-                eventToEdit?.id,
-            );
-        if (conflicts.length > 0) {
-            const details = conflicts
-                .map((c) => `${c.tutorName} (conflicts with "${c.conflictTitle}" ${format(new Date(c.conflictStart), 'HH:mm')}–${format(new Date(c.conflictEnd), 'HH:mm')})`)
-                .join(', ');
-            addAlert('error', `Scheduling conflict: ${details}`);
             return false;
         }
 
@@ -192,10 +177,17 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         return true;
     };
 
+    const queueSavedEventEmail = async (...args) => {
+        try { await queueEmailNotification(...args); }
+        catch (error) { addAlert('warning', `Event saved, but the allocation email could not be queued: ${error.message}`); }
+    };
+
     const onSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return false;
 
+        if (removesPaidTime && !window.confirm('Change this session’s completion status? This can reduce the hours counted for payment.')) return false;
+        if (removesMeeting && !window.confirm('Remove this session’s Teams meeting? The existing meeting and its joining link will be deleted.')) return false;
         setIsSubmitting(true);
         try {
         // Tutors/coaches may only update workStatus — send only that field to satisfy
@@ -204,7 +196,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
         // must not gate the tutor/coach single-field write path.
         if (isTutorPartialEdit) {
             try {
-                await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted');
+                if (eventToEdit.isRecurringInstance) await detachRecurringInstance(eventToEdit, { workStatus: newEvent.workStatus || 'notCompleted' });
+                else await updateWorkStatusInFirestore(eventToEdit.id, newEvent.workStatus || 'notCompleted', eventToEdit.revision || 0);
                 return true;
             } catch (error) {
                 console.error('Failed to update work status:', error);
@@ -224,20 +217,18 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             start: new Date(newEvent.start),
             end: new Date(newEvent.end),
             description: newEvent.description || '',
-            confirmationRequired: newEvent.confirmationRequired || false,
             staff: newEvent.staff || [],
             classes: newEvent.classes || [],
             students: newEvent.students || [],
-            tutorResponses: newEvent.tutorResponses || [],
-            studentResponses: newEvent.studentResponses || [],
-            minStudents: newEvent.minStudents || 0,
+            additionalStudents: [],
             createdByStudent: newEvent.createdByStudent || false,
             approvalStatus: newEvent.approvalStatus || 'pending',
             workStatus: newEvent.workStatus || 'notCompleted',
-            workType: newEvent.workType || 'work',
+            workType: workCategory(newEvent),
             locationType: newEvent.locationType || '',
             subject: newEvent.subject || null,
             preference: newEvent.preference || null,
+            sessionTopics: newEvent.sessionTopics || '',
             recurring: newEvent.recurring || null,
             createTeamsMeeting: isApprovingStudentRequest || newEvent.createTeamsMeeting || false,
             occurenceNum: newEvent.occurenceNum || null,
@@ -258,21 +249,23 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
             if (isEditing) {
                 if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'approved') {
                     return await handleApprove(eventToEdit, eventData);
+                } else if (eventToEdit.isStudentRequest && eventData.approvalStatus === 'denied') {
+                    return await handleReject(eventToEdit.id);
                 } else if (eventToEdit.isStudentRequest) {
-                    await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests');
-                    await queueEmailNotification({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
+                    await updateEventInFirestore(eventToEdit.id, eventData, 'studentEventRequests', eventToEdit.revision || 0);
+                    await queueSavedEventEmail({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
                 } else if (eventToEdit.isRecurringInstance) {
                     // Detach from series and create a new standalone event
                     const newDocId = await detachRecurringInstance(eventToEdit, eventData);
-                    await queueEmailNotification({ ...eventData, id: newDocId }, 'allocated', userEmail);
+                    await queueSavedEventEmail({ ...eventData, id: newDocId }, 'allocated', userEmail);
 
-                    if (eventData.teamsEventId) {
+                    if (eventToEdit.teamsEventId) {
                         try {
                             const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
                                 (p) => p.value || p,
                             );
                             const occurrenceId = await getTeamsMeetingOccurrenceId(
-                                eventData.teamsEventId,
+                                eventToEdit.teamsEventId,
                                 eventToEdit.start,
                             );
                             await updateTeamsMeetingOccurrence(
@@ -290,22 +283,25 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         }
                     }
                 } else {
-                    await updateEventInFirestore(eventToEdit.id, eventData);
-                    await queueEmailNotification({ ...eventData, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
+                    const result = await updateEventInFirestore(eventToEdit.id, eventData, 'shifts', eventToEdit.revision || 0);
+                    const savedEvent = result?.eventData || eventData;
+                    await queueSavedEventEmail({ ...savedEvent, id: eventToEdit.id }, 'moved', userEmail, eventToEdit);
 
                     // Handle Teams meeting update/delete
-                    await calendarEventHandleTeamsMeetingUpdate(eventToEdit, eventData, {
+                    await calendarEventHandleTeamsMeetingUpdate(eventToEdit, savedEvent, {
                         addAlert,
                     });
                 }
             } else {
                 // Create single event (recurring or not)
-                const docId = await createEventInFirestore(eventData);
-                await queueEmailNotification({ ...eventData, id: docId }, 'allocated', userEmail);
+                const result = await createScheduledEventInFirestore(eventData);
+                const docId = result.id;
+                const savedEvent = result.eventData || eventData;
+                await queueSavedEventEmail({ ...savedEvent, id: docId }, 'allocated', userEmail);
 
                 // Handle Teams meeting creation for new events
-                if (eventData.approvalStatus === 'approved' || eventData.createTeamsMeeting) {
-                    await calendarEventCreateTeamsMeeting(docId, eventData, {
+                if (savedEvent.approvalStatus === 'approved' || savedEvent.createTeamsMeeting) {
+                    await calendarEventCreateTeamsMeeting(docId, savedEvent, {
                         addAlert,
                     });
                 }
@@ -327,32 +323,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
 
     const handleDeleteClick = async () => {
         if (isSubmitting) return false;
-        // Check if this is a recurring event
-        const isRecurring = eventToEdit.recurring || eventToEdit.isRecurringInstance;
-
-        if (isRecurring) {
-            // Show confirmation modal for recurring events
-            setShowDeleteConfirm(true);
-            return false; // Don't close main modal yet - wait for confirmation
-        } else {
-            // Delete non-recurring event directly
-            setIsSubmitting(true);
-            try {
-                await calendarEventHandleDelete(eventToEdit, 'this', {
-                    setAllEvents: setCalendarShifts,
-                    setAvailabilities: setCalendarAvailabilities,
-                    setStudentRequests: setCalendarStudentRequests,
-                    addAlert,
-                });
-                return true; // Success - allow modal to close
-            } catch (error) {
-                console.error('Failed to delete event:', error);
-                addAlert('error', 'Failed to delete event');
-                return false; // Error - don't close modal
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
+        setShowDeleteConfirm(true);
+        return false; // Keep the editor until deletion is explicitly confirmed.
     };
 
     const handleConfirmDelete = async (deleteOption) => {
@@ -389,7 +361,6 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
     ];
 
     const workTypeOptions = [
-        { value: 'tutoring', label: 'Tutoring' },
         { value: 'coaching', label: 'Coaching' },
         { value: 'work', label: 'Work' },
     ];
@@ -434,7 +405,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 size="lg"
                 suppressOnHidden={showDeleteConfirm}
                 onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
-                submitText={isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
+                submitText={isRejectingRequest ? 'Reject Request' : isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
+                submitVariant={isRejectingRequest || removesPaidTime || removesMeeting ? 'danger' : 'outline-primary'}
                 loading={isSubmitting}
                 deleteButton={
                     isEdit
@@ -448,6 +420,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 showFooter={!isView || isTutorPartialEdit}
                 noValidate
             >
+                {participantError && <div className="alert alert-danger" role="alert">{participantError}</div>}
                 <div className="accordion" id="eventFormAccordion">
                     <EventDetailsSection
                         newEvent={newEvent}
@@ -470,12 +443,14 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         handleStudentSelectChange={handleStudentSelectChange}
                         studentOptions={studentOptions}
                         readOnly={isView}
-                    />
-
+                    >
+                        {newEvent.classes?.length > 0 && !newEvent.students?.length && !newEvent.additionalStudents?.length && !newEvent.studentParticipantsResolved && (
+                            <p className="text-warning-emphasis mt-4" role="status">This legacy class booking has unresolved students. It remains occupied; check its participants before changing it.</p>
+                        )}
+                    </ParticipantsSection>
                     <SettingsSection
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}
-                        handleMinStudentsChange={handleMinStudentsChange}
                         onWorkTypeChange={handleWorkTypeChange}
                         workTypeOptions={workTypeOptions}
                         workStatusOptions={workStatusOptions}
@@ -487,7 +462,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                         newEvent={newEvent}
                         handleApprovalChange={handleApprovalChange}
                         approvalOptions={approvalOptions}
-                        readOnly={isView}
+                        readOnly={isView || !eventToEdit?.isStudentRequest}
                     />
                 </div>
             </BaseModal>
@@ -496,6 +471,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit, setShowModal, use
                 show={showDeleteConfirm}
                 onHide={() => setShowDeleteConfirm(false)}
                 onConfirm={handleConfirmDelete}
+                loading={isSubmitting}
+                isStudentRequest={Boolean(eventToEdit?.isStudentRequest)}
                 isRecurring={eventToEdit?.recurring || eventToEdit?.isRecurringInstance}
                 isOriginal={eventToEdit?.recurring && !eventToEdit?.isRecurringInstance}
             />

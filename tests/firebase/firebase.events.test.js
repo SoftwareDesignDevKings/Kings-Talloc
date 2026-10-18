@@ -11,6 +11,7 @@
  */
 
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing');
+const { seedRuleAccounts } = require('./seedRuleAccounts');
 
 const { assertFails, assertSucceeds } = global;
 const fs = require('fs');
@@ -38,6 +39,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     await testEnv.clearFirestore();
+    await seedRuleAccounts(testEnv);
 });
 
 describe('Firebase Security Rules - Events Collection', () => {
@@ -187,7 +189,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             workType: 'tutoring',
         };
 
-        test('teacher CAN create shifts', async () => {
+        test('teacher must use the scheduling API to create shifts', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
                 defaultRole: 'teacher',
@@ -195,10 +197,10 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('shifts').add(eventData));
+            await assertFails(db.collection('shifts').add(eventData));
         });
 
-        test('admin CAN create shifts', async () => {
+        test('admin must use the scheduling API to create shifts', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -206,7 +208,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('shifts').add(eventData));
+            await assertFails(db.collection('shifts').add(eventData));
         });
 
         test('tutor CANNOT create shifts', async () => {
@@ -264,7 +266,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
         });
 
-        test('teacher CAN update any field', async () => {
+        test('teacher must use the scheduling API to update any field', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
                 defaultRole: 'teacher',
@@ -272,7 +274,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('shifts').doc(eventId).update({
                     title: 'Updated Title',
                     description: 'Updated description',
@@ -281,7 +283,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             );
         });
 
-        test('admin CAN update any field', async () => {
+        test('admin must use the scheduling API to update any field', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -289,7 +291,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('shifts').doc(eventId).update({
                     title: 'Updated Title',
                     workStatus: 'completed',
@@ -297,7 +299,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             );
         });
 
-        test('tutor CAN update only workStatus', async () => {
+        test('tutor must use the scheduling API to update only workStatus', async () => {
             const context = testEnv.authenticatedContext(tutorEmail, {
                 email: tutorEmail,
                 defaultRole: 'tutor',
@@ -305,12 +307,12 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('shifts').doc(eventId).update({ workStatus: 'completed' }),
             );
         });
 
-        test('coach CAN update only workStatus', async () => {
+        test('coach must use the scheduling API to update only workStatus', async () => {
             const context = testEnv.authenticatedContext(coachEmail, {
                 email: coachEmail,
                 defaultRole: 'coach',
@@ -318,7 +320,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(
+            await assertFails(
                 db.collection('shifts').doc(eventId).update({ workStatus: 'completed' }),
             );
         });
@@ -396,7 +398,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
         });
 
-        test('teacher CAN delete shifts', async () => {
+        test('teacher must use the scheduling API to delete shifts', async () => {
             const context = testEnv.authenticatedContext(teacherEmail, {
                 email: teacherEmail,
                 defaultRole: 'teacher',
@@ -404,10 +406,10 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('shifts').doc(eventId).delete());
+            await assertFails(db.collection('shifts').doc(eventId).delete());
         });
 
-        test('admin CAN delete shifts', async () => {
+        test('admin must use the scheduling API to delete shifts', async () => {
             const context = testEnv.authenticatedContext(adminEmail, {
                 email: adminEmail,
                 defaultRole: 'admin',
@@ -415,7 +417,7 @@ describe('Firebase Security Rules - Events Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('shifts').doc(eventId).delete());
+            await assertFails(db.collection('shifts').doc(eventId).delete());
         });
 
         test('tutor CANNOT delete shifts', async () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FiCalendar } from '@/components/icons';
-import { format } from 'date-fns';
+import { formatDisplayDate, formatDisplayTime } from '@/utils/displayDate';
 
 const WORK_TYPE_BADGE = {
     coaching: {
@@ -27,9 +27,11 @@ const WORK_TYPE_BADGE = {
 };
 
 const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
-    const staffNames = event.staff?.map((s) => s.label || s.value) || [];
-    const isPending = event.createdByStudent && event.approvalStatus === 'pending';
-    const isApproved = event.createdByStudent && event.approvalStatus === 'approved';
+    const staffNames = event.staff?.map((s) => s.label || s.value || s) || [];
+    const showStaff = ['teacher', 'admin', 'student'].includes(userRole) && staffNames.length > 0;
+    const showApprovalStatus = ['teacher', 'admin', 'student'].includes(userRole);
+    const isPending = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'pending';
+    const isApproved = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'approved';
     const workTypeBadge = WORK_TYPE_BADGE[event.workType];
 
     return (
@@ -42,24 +44,24 @@ const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
             {/* Time column */}
             <div
                 className="shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
-                style={{ width: '80px' }}
+                style={{ width: isToday ? '80px' : '140px' }}
             >
                 <span
                     className="text-muted tabular-nums text-nowrap"
                     style={{ fontSize: '0.72rem' }}
                 >
                     {isToday
-                        ? format(new Date(event.start), 'h:mm a')
-                        : format(new Date(event.start), 'd MMM')}
+                        ? formatDisplayTime(event.start)
+                        : formatDisplayDate(event.start)}
                 </span>
-                {isToday && (
-                    <span
-                        className="text-muted tabular-nums text-nowrap"
-                        style={{ fontSize: '0.72rem', opacity: 0.6 }}
-                    >
-                        {format(new Date(event.end), 'h:mm a')}
-                    </span>
-                )}
+                <span
+                    className="text-muted tabular-nums text-nowrap"
+                    style={{ fontSize: '0.72rem', opacity: 0.6 }}
+                >
+                    {isToday
+                        ? formatDisplayTime(event.end)
+                        : `${formatDisplayTime(event.start)} – ${formatDisplayTime(event.end)}`}
+                </span>
             </div>
 
             {/* Content */}
@@ -96,14 +98,12 @@ const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
                 )}
 
                 <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                    {(userRole === 'teacher' || userRole === 'admin') && staffNames.length > 0 && (
-                        <span className="text-muted text-xs">{staffNames.join(', ')}</span>
+                    {showStaff && (
+                        <span className="text-muted text-xs">{userRole === 'student' ? 'Tutor: ' : ''}{staffNames.join(', ')}</span>
                     )}
                     {event.students?.length > 0 && (
                         <span className="text-muted text-xs">
-                            {(userRole === 'teacher' || userRole === 'admin') &&
-                                staffNames.length > 0 &&
-                                '·'}{' '}
+                            {showStaff && '·'}{' '}
                             {event.students.length} student{event.students.length !== 1 ? 's' : ''}
                         </span>
                     )}
@@ -113,14 +113,14 @@ const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
     );
 };
 
-const EventsList = ({ events, title, emptyMessage, userRole, isToday = false }) => {
+const EventsList = ({ events, title, emptyMessage, userRole, isToday = false, totalCount = events.length }) => {
     return (
         <div className="card shadow-sm h-100" style={{ border: '1px solid var(--tks-border)' }}>
             <div className="card-header bg-white border-bottom d-flex align-items-center gap-2 py-3">
                 <FiCalendar className="text-muted" size={16} />
                 <h6 className="mb-0 fw-semibold text-dark">{title}</h6>
                 {events.length > 0 && (
-                    <span className="ms-auto badge-muted">{events.length}</span>
+                    <span className="ms-auto badge-muted">{totalCount > events.length ? `${events.length} of ${totalCount}` : events.length}</span>
                 )}
             </div>
             <div className="card-body p-0">

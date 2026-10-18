@@ -110,7 +110,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                                         { ...CALENDAR_COLOURS.confirmed, title: 'Blue', desc: 'Confirmed tutoring sessions, including approved student requests.' },
                                         { ...CALENDAR_COLOURS.coaching, title: 'Purple', desc: 'Coaching sessions.' },
                                         { ...CALENDAR_COLOURS.pending, title: 'Orange', desc: 'Waiting for teacher approval on your booking request.' },
-                                        { ...CALENDAR_COLOURS.denied, title: 'Red', desc: 'Denied requests or sessions that need your confirmation.' },
+                                        { ...CALENDAR_COLOURS.denied, title: 'Red', desc: 'Denied requests.' },
                                         { ...CALENDAR_COLOURS.completed, title: 'Green event', desc: 'A session that has been marked completed.' },
                                         { ...CALENDAR_COLOURS.notAttended, title: 'Pink', desc: 'A session marked as student did not attend.' },
                                     ].map(({ bg, border, borderStyle = 'solid', title, desc }) => (

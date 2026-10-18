@@ -1,10 +1,10 @@
 import UserRolesManager from "@/components/UserRolesManager"
-import { getServerSession } from "next-auth";
+import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 import { redirect } from 'next/navigation';
 
 const UserRolesPage = async () => {
-    const session = await getServerSession();
-    if (!session) {
+    const { error } = await getRequiredAdminSession();
+    if (error) {
         redirect('/dashboard');
     }
 

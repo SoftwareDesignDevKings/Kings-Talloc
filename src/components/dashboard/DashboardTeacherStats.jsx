@@ -7,7 +7,6 @@ const DashboardTeacherStats = ({ data }) => (
         <PendingApprovalsCard
             count={data.teacherStats.pendingRequests.length}
             pendingRequests={data.teacherStats.pendingRequests}
-            readOnly
             delay={50}
         />
         <BaseStatsCard

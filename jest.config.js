@@ -1,3 +1,6 @@
+// Run school-calendar tests consistently on developer machines and UTC CI hosts.
+process.env.TZ = 'Australia/Sydney';
+
 const nextJest = require('next/jest');
 
 const createJestConfig = nextJest({

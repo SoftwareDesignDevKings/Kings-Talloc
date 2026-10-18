@@ -36,7 +36,7 @@ const Sidebar = ({ user, userRole }) => {
 
     const isAdmin = userRole === 'admin';
     const isAdminOrTeacher = userRole === 'admin' || userRole === 'teacher';
-    const isTutorHoursRole = ['admin', 'tutor', 'coach'].includes(userRole);
+    const isTutorHoursRole = ['admin', 'teacher', 'tutor', 'coach'].includes(userRole);
 
     const hasAdminAccess = userRoles?.includes('admin') || session?.user?.defaultRole === 'admin';
     const isCurrentlyAdmin = userRole === 'admin';

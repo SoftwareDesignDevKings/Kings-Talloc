@@ -40,8 +40,8 @@ describe('implementRateLimiterWrapper', () => {
         process.env.KV_REST_API_TOKEN = originalKvToken;
     });
 
-    it.each(['/api/auth', '/api/auth/session', '/api/auth/_log'])(
-        'exempts NextAuth endpoint %s from rate limiting',
+    it.each(['/api/auth', '/api/auth/session', '/api/auth/_log', '/api/availability'])(
+        'exempts independently handled endpoint %s from the shared IP limit',
         async (pathname) => {
             await expect(implementRateLimiterWrapper({}, pathname)).resolves.toBeNull();
             expect(mockLimit).not.toHaveBeenCalled();

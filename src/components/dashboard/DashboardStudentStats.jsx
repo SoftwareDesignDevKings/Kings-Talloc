@@ -1,3 +1,4 @@
+import { formatDuration } from '@/lib/scheduling/hours';
 import { FiCalendar, FiClock, FiCheckCircle, FiActivity } from '@/components/icons';
 import BaseStatsCard from './cards/BaseStatsCard';
 
@@ -8,14 +9,15 @@ const DashboardStudentStats = ({ data }) => (
             iconBgColor="bg-primary"
             title="Upcoming Sessions"
             value={data.upcomingEventsCount}
+            subtitle={data.upcomingPeriod}
             delay={50}
         />
         <BaseStatsCard
             icon={FiActivity}
             iconBgColor="bg-success"
-            title="Total Hours"
-            value={(data.weeklyHours.tutoring + data.weeklyHours.coaching + data.weeklyHours.work).toFixed(1)}
-            subtitle={`T: ${data.weeklyHours.tutoring} | C: ${data.weeklyHours.coaching} | W: ${data.weeklyHours.work}`}
+            title="Scheduled Hours"
+            value={formatDuration((data.weeklyHours.work + data.weeklyHours.coaching) * 3600000)}
+            subtitle={`This week · Work: ${formatDuration(data.weeklyHours.work * 3600000)} | Coaching: ${formatDuration(data.weeklyHours.coaching * 3600000)}`}
             delay={150}
         />
         <BaseStatsCard

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clearFirestoreEmulator, seedStudentRequestInEmulator, seedUserInEmulator } from './wrapperFunctions';
+import { clearFirestoreEmulator, seedStudentRequestInEmulator, seedUserInEmulator, seedStudentEligibilityInEmulator, confirmAction } from './wrapperFunctions';
 
 // Real tab/window focus is part of this suite; headless Chromium can keep background tabs active.
 test.use({ storageState: 'tests/e2e/.auth/notificationAdmin.json', channel: 'chromium', headless: false });
@@ -16,7 +16,7 @@ const request = (title, daysAhead, overrides = {}) => {
 };
 
 test.describe('Request notifications @teacherAdmin', () => {
-    test.beforeEach(async () => { await clearFirestoreEmulator(); });
+    test.beforeEach(async () => { await clearFirestoreEmulator(); await seedUserInEmulator('tutor@kings.edu.au', { email: 'tutor@kings.edu.au', name: 'Tutor', defaultRole: 'tutor', userRoles: [] }); await seedStudentEligibilityInEmulator('student@kings.edu.au', ['tutor@kings.edu.au']); });
 
     test('the complete queue uses the existing card and no pages show extra header text', async ({ page }) => {
         await seedStudentRequestInEmulator('later', request('A session in four weeks', 28));
@@ -40,7 +40,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await expect(page).toHaveURL(/\/dashboard/);
         await page.getByRole('button', { name: 'Pending Approvals 2', exact: true }).click();
         await expect(dropdown).toBeVisible();
-        await dropdown.locator('.list-group-item').first().getByRole('button', { name: 'Reject', exact: true }).click();
+        await confirmAction(page, /Reject this request\?/, () => dropdown.locator('.list-group-item').first().getByRole('button', { name: 'Reject', exact: true }).click());
         await expect(page.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
         const meetingResponse = page.waitForResponse(response => response.url().includes('/api/microsoft') && response.request().method() === 'POST');
         await dropdown.getByRole('button', { name: 'Approve', exact: true }).click();
@@ -126,7 +126,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         }
     });
 
-    test('Michael’s teacher view keeps a read-only dropdown and switching back preserves the queue', async ({ page }) => {
+    test('Michael’s teacher view can approve and switching back preserves the queue', async ({ page }) => {
         await seedStudentRequestInEmulator('baseline', request('Baseline', 28));
         await page.goto('/dashboard');
         await expect(page.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
@@ -138,7 +138,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await page.getByRole('button', { name: 'Pending Approvals 1', exact: true }).click();
         const dropdown = page.locator('#pending-approvals .list-group');
         await expect(dropdown.getByText('Baseline', { exact: true })).toBeVisible();
-        await expect(dropdown.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(0);
+        await expect(dropdown.getByRole('button', { name: 'Approve', exact: true })).toBeVisible();
         await seedStudentRequestInEmulator('new', request('New in teacher view', 3));
         await expect(page.getByRole('button', { name: 'Pending Approvals 2', exact: true })).toBeVisible();
         await expect(page).toHaveTitle('Kings-Talloc');

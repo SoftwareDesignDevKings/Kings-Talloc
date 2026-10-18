@@ -92,6 +92,7 @@ const SubjectList = () => {
 
     const handleDeleteSubject = async (subjectToDelete) => {
         if (subjectToDelete) {
+            if (!window.confirm(`Delete the subject "${subjectToDelete.name}" and its tutor assignments? This cannot be undone.`)) return;
             try {
                 await deleteDoc(doc(db, 'subjects', subjectToDelete.id));
                 setSubjects(subjects.filter((subject) => subject.id !== subjectToDelete.id));
@@ -142,16 +143,12 @@ const SubjectList = () => {
                 });
             });
 
-            const newTutors = uniqueEmails.map((email) => {
-                if (existingUsersMap.has(email)) {
-                    const userData = existingUsersMap.get(email);
-                    return { email, name: userData.name || '' };
-                } else {
-                    const userRef = doc(db, 'users', email);
-                    batch.set(userRef, { email, role: 'tutor', defaultRole: 'tutor' }, { merge: true });
-                    return { email, name: '' };
-                }
-            });
+            const missing = uniqueEmails.filter(email => !existingUsersMap.has(email));
+            if (missing.length) {
+                addAlert('error', 'These tutors need an app account first. Ask an admin to create it before assigning subjects.');
+                return;
+            }
+            const newTutors = uniqueEmails.map(email => ({ email, name: existingUsersMap.get(email).name || '' }));
 
             const updatedTutors = [...(selectedSubject.tutors || []), ...newTutors];
             const subjectRef = doc(db, 'subjects', selectedSubject.id);
@@ -174,6 +171,7 @@ const SubjectList = () => {
     };
 
     const handleRemoveTutor = async (tutor, subject) => {
+        if (!window.confirm(`Remove ${tutor.name || tutor.email} from "${subject.name}"? They will no longer be assigned to this subject.`)) return;
         const updatedTutors = subject.tutors.filter((t) => t.email !== tutor.email);
         const subjectRef = doc(db, 'subjects', subject.id);
         try {

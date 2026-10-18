@@ -58,7 +58,7 @@ const CustomTimeslot = ({
         if (slotTutorFilter.length > 0) {
             for (const availability of slotAvailabilities) {
                 for (const tutor of slotTutorFilter) {
-                    if (tutor.value === availability.tutor) {
+                    if (normaliseEmail(tutor.value) === normaliseEmail(availability.tutor)) {
                         filtered.push(availability);
                         break;
                     }

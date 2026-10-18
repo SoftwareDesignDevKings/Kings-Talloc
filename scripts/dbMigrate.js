@@ -18,7 +18,8 @@
 
 require("dotenv").config();
 
-const admin = require("firebase-admin");
+const { initializeApp, getApps, cert } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
 
 function getServiceAccountFromEnv() {
     const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -60,13 +61,13 @@ async function migrateShiftsEmailsList() {
 
     const serviceAccount = getServiceAccountFromEnv();
 
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+    if (!getApps().length) {
+        initializeApp({
+            credential: cert(serviceAccount),
         });
     }
 
-    const db = admin.firestore();
+    const db = getFirestore();
     const snap = await db.collection("shifts").get();
 
     if (snap.empty) {
@@ -122,13 +123,13 @@ async function migrateStudentRequestsEmailsList() {
 
     const serviceAccount = getServiceAccountFromEnv();
 
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+    if (!getApps().length) {
+        initializeApp({
+            credential: cert(serviceAccount),
         });
     }
 
-    const db = admin.firestore();
+    const db = getFirestore();
     const snap = await db.collection("studentEventRequests").get();
 
     if (snap.empty) {

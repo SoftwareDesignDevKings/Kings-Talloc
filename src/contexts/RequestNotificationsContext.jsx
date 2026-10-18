@@ -24,15 +24,15 @@ const readAcknowledgement = (key) => {
 };
 
 // Mounted outside AppLayout so the listener survives page changes.
-export const RequestNotificationsProvider = ({ email, availableRoles = [], children }) => {
+export const RequestNotificationsProvider = ({ email, profileId = email, availableRoles = [], children }) => {
     const recipient = email?.trim().toLowerCase();
     const notificationEligible = availableRoles.includes('teacher');
     return (notificationEligible || availableRoles.includes('admin')) && recipient
-        ? <RequestSubscriptions key={recipient} email={recipient} notificationEligible={notificationEligible}>{children}</RequestSubscriptions>
+        ? <RequestSubscriptions key={recipient} email={recipient} profileId={profileId} notificationEligible={notificationEligible}>{children}</RequestSubscriptions>
         : children;
 };
 
-const RequestSubscriptions = ({ email, notificationEligible, children }) => {
+const RequestSubscriptions = ({ email, profileId, notificationEligible, children }) => {
     const pathname = usePathname();
     const storageKey = REQUEST_ACK_STORAGE_PREFIX + email;
     const [requests, setRequests] = useState([]);
@@ -115,7 +115,7 @@ const RequestSubscriptions = ({ email, notificationEligible, children }) => {
         preference.current = null;
         setPreferenceReady(false);
         setPreferenceError(null);
-        return onSnapshot(doc(db, 'users', email), { includeMetadataChanges: true }, (snapshot) => {
+        return onSnapshot(doc(db, 'users', profileId), { includeMetadataChanges: true }, (snapshot) => {
             const fresh = !snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites && navigator.onLine;
             // A missing/cached preference is unknown, not an opt-out: it must not consume unseen requests.
             if (!fresh) {
@@ -137,7 +137,7 @@ const RequestSubscriptions = ({ email, notificationEligible, children }) => {
             setPreferenceReady(false);
             setPreferenceError('Unable to refresh notification settings. Please retry.');
         });
-    }, [email, notificationEligible, acknowledge, subscriptionVersion]);
+    }, [email, profileId, notificationEligible, acknowledge, subscriptionVersion]);
 
     useEffect(() => {
         serverReady.current = false;
@@ -170,11 +170,11 @@ const RequestSubscriptions = ({ email, notificationEligible, children }) => {
     }, [acknowledge, subscriptionVersion]);
 
     const pendingRequests = useMemo(() => futurePendingRequests(requests, now), [requests, now]);
-    const newCount = countNewRequests(pendingRequests, acknowledgedAt);
+    const newCount = countNewRequests(pendingRequests.filter(request => request.start.getTime() > now), acknowledgedAt);
 
     useEffect(() => {
-        const nextStart = pendingRequests[0]?.start.getTime();
-        if (!nextStart) return;
+        const nextStart = Math.min(...pendingRequests.flatMap(request => [request.start.getTime(), request.start.getTime() + 900001]).filter(time => time > Date.now()));
+        if (!Number.isFinite(nextStart)) return;
         const timer = setTimeout(() => setNow(Date.now()), Math.min(Math.max(1, nextStart - Date.now()), 2147483647));
         return () => clearTimeout(timer);
     }, [pendingRequests]);

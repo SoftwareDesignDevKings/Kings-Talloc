@@ -67,3 +67,6 @@ CLAUDE.md
 
 TODO.md
 public/version.json
+
+# Local emulator verification logs
+/firebase-debug.log

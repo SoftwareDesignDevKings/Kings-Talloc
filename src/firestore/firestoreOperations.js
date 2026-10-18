@@ -1,4 +1,5 @@
-import { doc, updateDoc, addDoc, deleteDoc, getDoc, collection, setDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { schedulingMutation } from './schedulingClient';
+import { doc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
 
 const isPlainObject = (value) => {
@@ -123,9 +124,8 @@ export const removeEmailNotification = async (shiftId) => {
  * Updates only the workStatus field of a shift — used by tutors/coaches who lack
  * permission to touch any other field (Firestore rule: hasOnly(['workStatus'])).
  */
-export const updateWorkStatusInFirestore = async (shiftId, workStatus) => {
-    const shiftDoc = doc(db, 'shifts', shiftId);
-    await updateDoc(shiftDoc, { workStatus });
+export const updateWorkStatusInFirestore = async (shiftId, workStatus, expectedRevision) => {
+    await schedulingMutation({ action: 'complete', id: shiftId, expectedRevision, data: { workStatus } });
 };
 
 /**
@@ -135,21 +135,8 @@ export const updateWorkStatusInFirestore = async (shiftId, workStatus) => {
  * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<void>}
  */
-export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts') => {
-    const eventDoc = doc(db, collectionName, eventId);
-    const firestoreData = { ...eventData };
-    if (collectionName === 'studentEventRequests') delete firestoreData.createdAt;
-
-    // Rebuild emailsList if staff or students are being updated
-    if (firestoreData.staff !== undefined || firestoreData.students !== undefined) {
-        const staffEmails = (firestoreData.staff || []).map(s => typeof s === 'object' ? s.value : s);
-        const studentEmails = (firestoreData.students || []).map(s => typeof s === 'object' ? s.value : s);
-        firestoreData.staffEmails = staffEmails;
-        firestoreData.studentEmails = studentEmails;
-        firestoreData.emailsList = [...new Set([...staffEmails, ...studentEmails])];
-    }
-
-    await updateDoc(eventDoc, stripUndefinedFields(firestoreData));
+export const updateEventInFirestore = async (eventId, eventData, collectionName = 'shifts', expectedRevision) => {
+    return schedulingMutation({ action: 'update', collectionName, id: eventId, expectedRevision, data: stripUndefinedFields(eventData) });
 };
 
 /**
@@ -158,19 +145,12 @@ export const updateEventInFirestore = async (eventId, eventData, collectionName 
  * @param {string} [collectionName='shifts'] - The Firestore collection name
  * @returns {Promise<string>} The ID of the created document
  */
-export const createEventInFirestore = async (eventData, collectionName = 'shifts') => {
-    const staffEmails = (eventData.staff || []).map(s => typeof s === 'object' ? s.value : s);
-    const studentEmails = (eventData.students || []).map(s => typeof s === 'object' ? s.value : s);
-    const emailsList = [...new Set([...staffEmails, ...studentEmails])];
+export const createScheduledEventInFirestore = async (eventData, collectionName = 'shifts') =>
+    schedulingMutation({ action: 'create', collectionName, data: stripUndefinedFields(eventData) });
 
-    const docRef = await addDoc(collection(db, collectionName), stripUndefinedFields({
-        ...eventData,
-        ...(collectionName === 'studentEventRequests' && { createdAt: serverTimestamp() }),
-        staffEmails,
-        studentEmails,
-        emailsList,
-    }));
-    return docRef.id;
+export const createEventInFirestore = async (eventData, collectionName = 'shifts') => {
+    const result = await createScheduledEventInFirestore(eventData, collectionName);
+    return result.id;
 };
 
 /**
@@ -180,7 +160,7 @@ export const createEventInFirestore = async (eventData, collectionName = 'shifts
  * @returns {Promise<void>}
  */
 export const deleteEventFromFirestore = async (eventId, collectionName = 'shifts') => {
-    await deleteDoc(doc(db, collectionName, eventId));
+    return schedulingMutation({ action: 'delete', collectionName, id: eventId, ...(collectionName === 'studentEventRequests' && { confirmPermanentDelete: true }) });
 };
 
 /**
@@ -191,12 +171,7 @@ export const deleteEventFromFirestore = async (eventId, collectionName = 'shifts
  * @returns {Promise<void>}
  */
 export const addEventException = async (recurringEventId, occurrenceIndex, collectionName = 'shifts') => {
-    const eventDocRef = doc(db, collectionName, recurringEventId);
-
-    // firestore arrayUnion handles race-condition and duplicates automatically
-    await updateDoc(eventDocRef, {
-        eventExceptions: arrayUnion(occurrenceIndex)
-    });
+    return schedulingMutation({ action: 'exception', collectionName, id: recurringEventId, occurrenceIndex });
 };
 
 /**
@@ -207,8 +182,5 @@ export const addEventException = async (recurringEventId, occurrenceIndex, colle
  * @returns {Promise<void>}
  */
 export const setRecurringUntilDate = async (recurringEventId, untilDate, collectionName = 'shifts') => {
-    const eventDocRef = doc(db, collectionName, recurringEventId);
-    await updateDoc(eventDocRef, {
-        until: untilDate,
-    });
+    return schedulingMutation({ action: 'until', collectionName, id: recurringEventId, until: untilDate });
 };

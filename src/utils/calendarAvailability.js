@@ -1,3 +1,4 @@
+import { emailOf, staffEmails, bookableIntervals } from '@/lib/scheduling/eventRules';
 import { addWeeks } from 'date-fns';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 
@@ -18,7 +19,7 @@ export const normaliseWorkType = (workType) => {
 export const getEnrolledSubjectIds = (classes, userEmail) =>
     new Set(
         classes
-            .filter(cls => cls.students?.some(s => s.email === userEmail))
+            .filter(cls => cls.students?.some(s => emailOf(s) === emailOf(userEmail)))
             .map(cls => cls.subject)
             .filter(Boolean)
     );
@@ -55,7 +56,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
         if (!event.staff || !Array.isArray(event.staff)) continue;
 
         for (const staff of event.staff) {
-            const tutorEmail = staff.value || staff;
+            const tutorEmail = emailOf(staff);
             if (!eventsByTutor.has(tutorEmail)) {
                 eventsByTutor.set(tutorEmail, []);
             }
@@ -71,7 +72,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     for (const availability of availabilities) {
         const currentStart = new Date(availability.start);
         const currentEnd = new Date(availability.end);
-        const tutorEvents = eventsByTutor.get(availability.tutor) || [];
+        const tutorEvents = eventsByTutor.get(emailOf(availability.tutor)) || [];
 
         let slotStart = currentStart;
         let wasSplit = false;
@@ -121,6 +122,17 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     return splitSlots;
 };
 
+// Management views retain Coaching coverage as well as academic bookable time.
+// Coaching availability remains separate and cannot supply student bookings.
+export const managementAvailability = (availabilities, shifts) => {
+    const emails = [...new Set([...availabilities.map(a => emailOf(a.tutor)), ...shifts.flatMap(staffEmails)])];
+    const academic = emails.flatMap(email => bookableIntervals(email, availabilities, shifts)
+        .map(slot => ({ ...slot, workType: ['work'] })));
+    const coaching = calendarAvailabilitySplit(availabilities.filter(a => normaliseWorkType(a.workType).includes('coaching')), shifts)
+        .map(slot => ({ ...slot, workType: ['coaching'] }));
+    return [...academic, ...coaching];
+};
+
 /**
  * Returns conflicts where a proposed event overlaps an existing shift for any of the given staff.
  * `excludeEventId` should be the id of the event being edited so it doesn't conflict with itself.
@@ -145,7 +157,7 @@ export const getTutorShiftConflicts = (staffList, start, end, existingShifts, ex
             ) {
                 continue;
             }
-            if (!shift.staff?.some((s) => (s.value || s) === tutorEmail)) continue;
+            if (!shift.staff?.some((s) => emailOf(s) === emailOf(tutorEmail))) continue;
 
             const shiftStart = new Date(shift.start).getTime();
             const shiftEnd = new Date(shift.end).getTime();
@@ -233,7 +245,7 @@ export const isRangeCoveredByTutorAvailability = (
     if (rangeEnd <= rangeStart) return false;
 
     const tutorSlots = availabilities
-        .filter((a) => a.tutor === tutorEmail)
+        .filter((a) => emailOf(a.tutor) === emailOf(tutorEmail))
         .map((a) => ({
             start: new Date(a.start).getTime(),
             end: new Date(a.end).getTime(),
