@@ -38,9 +38,9 @@ rules change as a security change.
    Forks, PRs, other branches, and other workflows cannot use it.
 4. Add the two values printed by the script as **environment variables**, not secrets:
    `FIREBASE_RULES_IDENTITY_PROVIDER` and `FIREBASE_RULES_SERVICE_ACCOUNT`.
-5. Allow several minutes for IAM propagation. Merge the reviewed workflow PR, then inspect
-   its `main` CI run. The deployment job must succeed and report that the active rules
-   match the commit. Use **Actions → CI Pipeline → Run workflow → main** to retry without
+5. Allow several minutes for IAM propagation. Complete the first scheduling rollout
+   below before expecting rules publication. Inspect the latest `main` CI run: the
+   deployment job must succeed and report that the active rules match the commit. Use **Actions → CI Pipeline → Run workflow → main** to retry without
    manufacturing a source change. A manual run also runs all tests first.
 
 Do not paste tokens or service-account keys into GitHub, chat, or the repository. No
@@ -49,18 +49,53 @@ longer consumed by CI; an administrator can revoke it after checking for any oth
 
 ## Keeping app releases compatible
 
-Vercel's Git deployment and GitHub Actions run independently. This workflow alone does
-not hold back the web app while rules are deploying. If Vercel Deployment Checks are
-available, require **Deploy production Firestore rules** in the project's production
-deployment checks; confirm a failed check actually prevents domain promotion.
-Reading back the release verifies the published configuration, not instantaneous
-propagation to every client. Stage permission additions ahead of dependent app changes
-when uninterrupted access during propagation is required, even with a deployment gate.
+Vercel's Git deployment and GitHub Actions run independently. The scheduling rules
+job waits for `/version.json` on the production domain to identify the exact tested
+commit and scheduling API version, then waits five minutes and checks again. It also
+requires the `firebase-production` environment variable
+`SCHEDULING_CLIENT_MIGRATION_ACK=server-writes-v1`. Leave that variable unset until
+the first-rollout procedure below is complete; an unset or incorrect value stops
+rules publication before credentials are obtained.
 
-Until that gate is configured, merge backward-compatible permission additions first,
-wait for their deployment job to succeed and for rules propagation, then merge the app
-code that uses them. Remove old permissions only after existing clients stop needing
-them. Do not ship dependent code in the same ungated release and assume ordering.
+Do **not** make production domain promotion depend on **Deploy production Firestore
+rules**: that job waits for the app to be live, so such a check would deadlock this
+release sequence. App CI can be required before promotion. Retain compatible rules
+while the new server-writing app is promoted and existing clients migrate. The final
+rules remove direct calendar writes; they must follow the app release.
+
+### First scheduling rollout
+
+The current production build was observed returning 404 for `/version.json`. An old
+VersionGuard records its first successful response without reloading. Consequently,
+waiting five minutes after the first version-enabled deployment does **not** refresh
+those tabs. A new guard shipped in PR143 cannot alter JavaScript already running.
+
+1. Before the scheduling release, publish a small, separately reviewed metadata
+   bootstrap on the existing production app: configure Vercel's build command as
+   `npm run build` so the existing generator publishes a non-empty `build` in
+   `/version.json`. Keep existing app behavior and rules during this stage.
+2. Verify the metadata on the production domain. Keep this bootstrap live for at
+   least one full five-minute polling interval while active users have their tabs
+   open. Record the bootstrap build and time in the release record.
+3. Release the scheduling app with the old compatible rules still active. Verify
+   Microsoft sign-in, the deployed app's commit/API metadata, and a controlled
+   booking/completion/hours smoke test with designated test accounts. Wait another
+   full polling interval and verify an old active tab reloads onto the new app.
+4. Arrange for returning users to refresh/reopen dormant or offline legacy tabs
+   before using the calendar. Polling cannot prove that all old tabs have run. If
+   legacy users cannot be accounted for, keep the compatible rules and leave the
+   acknowledgement unset; use a coordinated maintenance window to complete migration.
+5. After the release owner has confirmed the migration, set the environment variable
+   above and rerun the latest successful `main` CI workflow. The existing exact-commit,
+   five-minute, and superseded-commit checks still run before final rules publication.
+   Retain the acknowledgement for subsequent server-writing releases. Clear it if
+   rolling the app back to a client-writing release so a future migration is reviewed.
+6. Verify the active rules and a freshly signed-in calendar session. A rules API
+   readback confirms publication, not instantaneous propagation to every client.
+
+This is a release prerequisite, not a claim that a timer certifies all browser tabs.
+No production bootstrap, app promotion, rules publication or acknowledgement is
+performed by preparing this PR.
 
 ## Emergency console changes and rollback
 
@@ -70,8 +105,9 @@ next successful `main` deployment overwrites it. A manual pipeline run can repai
 without another commit. This is deployment on merges, not continuous polling for console
 edits.
 
-To roll back, revert the relevant rules commit through a PR and let CI deploy the reverted
-file. Review compatibility with the current app before removing permissions. The workflow
+To return to a client-writing app, first restore and verify its compatible rules through
+a reviewed rules PR while the current server-writing app is live. Then roll back the app
+and clear `SCHEDULING_CLIENT_MIGRATION_ACK`. Review data compatibility before either step. The workflow
 never deletes historical rulesets or automatically rolls back app releases.
 
 References: [Firebase Rules deployment](https://firebase.google.com/docs/rules/manage-deploy),

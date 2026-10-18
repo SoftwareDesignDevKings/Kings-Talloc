@@ -111,6 +111,7 @@ jobs:
               run: node scripts/waitForSchedulingRelease.cjs
               env:
                   EXPECTED_COMMIT: ${{ github.sha }}
+                  SCHEDULING_CLIENT_MIGRATION_ACK: ${{ vars.SCHEDULING_CLIENT_MIGRATION_ACK }}
 
             - name: Recheck that main has not advanced
               shell: bash

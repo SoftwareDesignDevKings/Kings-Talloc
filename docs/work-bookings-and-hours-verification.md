@@ -40,7 +40,7 @@ These are regression fixtures, not a recalculation of production records.
 
 Complex mixed sequences, separate short sessions and unresolved class-only legacy entries remain flagged for teacher review. A teacher can record one covering general Work shift where appropriate, keeping student bookings and counting shared time once. Exports remain available for manual correction; the warning case's displayed figure is provisional.
 
-The GitHub rules job now waits for production version metadata matching the exact tested commit and scheduling API version, gives the existing version guard five minutes to refresh open tabs, and rechecks both production and the main branch before obtaining deployment credentials. If the app deployment fails or main advances, rules publication fails closed. Refresh an old tab before retrying a write rejected during the transition. Review and coordinate this release with the separate UI branch; isolation prevents working-directory interference, but shared components may need merge reconciliation.
+The GitHub rules job now waits for production version metadata matching the exact tested commit and scheduling API version, requires the release owner’s one-time legacy-client migration acknowledgement, allows five minutes for active bootstrapped tabs to refresh, and rechecks both production and the main branch before obtaining deployment credentials. If the app deployment fails or main advances, rules publication fails closed. Refresh an old tab before retrying a write rejected during the transition. Review and coordinate this release with the separate UI branch; isolation prevents working-directory interference, but shared components may need merge reconciliation.
 
 The dedicated browser suite runs with `npm run test:e2e:work-hours`. It uses port 3100 and separate Firestore/Auth emulators on 8180/9199 with project `demo-talloc-work-hours`; it never clears the other development app's data. CI runs this suite after the existing browser regressions.
 
@@ -196,3 +196,49 @@ The comparison report retains the production deployment baseline and updates can
 - The shared paid-hours module and break thresholds are unchanged. A new fixture confirms that a four-hour student session with two tutors and three students pays 3.5 hours per tutor, seven staff-hours total; overlapping completed Work is still counted only once for each tutor.
 
 Validation: **283 unit tests in 45 suites**, **233 Firestore rules/scheduling tests in nine suites**, **six additional browser checks**, source/test lint including JSX, whitespace checks, and the repository's full Node 22 production build pass. The integration suite used disposable emulator port 8582 through local test copies with only the standard port remapped; the other running emulator was left untouched. Browser checks used separate demo Firestore/Auth projects and an anonymized production sample: 32 saved shift records plus 42 availability records for 5–18 October. Every staff member's CSV/hour totals remain unchanged at **85.25 hours** overall. Browser checks also verify legacy multi-tutor completion, a legacy mixed-case template download and creation/completion of a new teacher-assigned multi-tutor session. Production data and rules were not changed. Existing Redis Edge-runtime build warnings remain.
+
+
+## Deployed runtime and release-readiness fixes (19 October 2026)
+
+- The PR preview's `/login` failed with `ERR_REQUIRE_ESM`: Vercel disables native
+  `require(esm)`, which the patched Firebase Auth/JWKS and HTML sanitizer dependencies
+  require. Repository runtime configuration now enables Node's supported feature.
+  A fresh-process test loads both real dependencies, checks sanitizer rejection of
+  unsafe HTML, and verifies valid and invalid RSA signatures using a local JWKS fixture.
+  The deployed preview login now renders successfully; no dependency security fixes
+  were reverted.
+- Vercel's dashboard build override used `next build`, bypassing the version generator.
+  The repository now selects `npm run build`. The deployed preview's `/version.json`
+  reports its exact Git commit and `schedulingApiVersion: 1`.
+- The legacy browser suite now seeds stable profiles before saving login state,
+  isolates scheduling data between tests, and explicitly confirms deletion/rejection.
+  Test fixture writes refuse non-demo projects and non-local emulator hosts.
+- Browser testing also reproduced a pre-existing modal initialization race when the
+  async Bootstrap script loads after a calendar form opens. The modal now initializes
+  on script readiness and honors the current open/closed state. A deterministic browser
+  test withholds the actual Bootstrap bundle until after the form opens; the form then
+  becomes usable. Unit tests cover delayed loading, closing and cleanup as well as the
+  existing confirmation-animation cases.
+- The first version-enabled deployment cannot refresh old tabs that previously received
+  404: their first successful poll only sets a baseline. Rules deployment now requires
+  `SCHEDULING_CLIENT_MIGRATION_ACK=server-writes-v1` in the production GitHub environment,
+  in addition to the existing exact-commit and polling-interval checks. The
+  [release procedure](firestore-rules-deployment.md) explains the separate metadata
+  bootstrap, active-tab verification, dormant-tab migration, and app/rules rollback
+  order. It also removes advice that would deadlock app promotion against a rules job
+  waiting for that same app to be live. The acknowledgement remains unset by this work.
+
+Local validation: **290 unit tests in 46 suites**, including **17 release/rules-publishing
+checks**, and **15 non-Teams Playwright checks including authentication setup**, with
+repository source/test lint and whitespace checks. The browser run used disposable
+`demo-talloc-preproduction` Firestore/Auth emulators on ports 8584/9594 and app port 3151.
+The dedicated Teams scenario was excluded; approval flows retain existing development
+mocks and no live Microsoft meetings or messages were exercised.
+
+The shared paid-hours calculation and event-rule modules are unchanged from the prior
+regression-fix head. Earlier production-sample reconciliation remains applicable.
+The deployed preview still points to production Firebase. The older `talloc-889d3`
+project contains existing 2024 test data and is not a configured staging environment.
+Real Microsoft OAuth plus deployed booking/completion/export writes remain pending a
+separate staging environment. Production data, rules, credentials and deployment
+settings were not changed by these fixes.
