@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { clearFirestoreEmulator } from './wrapperFunctions.js';
 
 test.describe('Admin Workflow @teacherAdmin', () => {
     test.beforeEach(async ({ page }) => {
+        await clearFirestoreEmulator();
         await page.goto('/dashboard');
     });
 
@@ -69,6 +72,30 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             );
         });
 
+        test('an event form opened before Bootstrap loads recovers when the script is ready', async ({ context }) => {
+            const delayedPage = await context.newPage();
+            let releaseBootstrap;
+            const ready = new Promise(resolve => { releaseBootstrap = resolve; });
+            await delayedPage.route('**/bootstrap.bundle.min.js', async route => {
+                await ready;
+                await route.fulfill({ contentType: 'application/javascript', body: readFileSync('node_modules/bootstrap/dist/js/bootstrap.bundle.min.js', 'utf8') });
+            });
+            try {
+                await delayedPage.goto('/calendar', { waitUntil: 'domcontentloaded' });
+                await delayedPage.locator('.rbc-events-container').nth(1).click();
+                const title = delayedPage.getByRole('textbox', { name: 'Event title', includeHidden: true });
+                await expect(title).toHaveCount(1);
+                await expect(title).toBeHidden();
+                releaseBootstrap();
+                await expect(delayedPage.getByRole('textbox', { name: 'Event title' })).toBeVisible();
+                await delayedPage.getByRole('button', { name: 'Close', exact: true }).click();
+                await expect(title).toBeHidden();
+            } finally {
+                releaseBootstrap();
+                await delayedPage.close();
+            }
+        });
+
         test('should edit workTypes, statuses, and delete events', async ({ page }) => {
 
 
@@ -131,7 +158,10 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             // Delete
             await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
-            await page.getByRole('button', { name: 'Delete' }).click();
+            await page.getByRole('button', { name: 'Delete', exact: true }).click();
+            const confirmation = page.locator('.modal.show').filter({ has: page.getByRole('heading', { name: 'Delete Event', exact: true }) });
+            await expect(confirmation).toContainText('This cannot be undone.');
+            await confirmation.getByRole('button', { name: 'Delete', exact: true }).click();
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeHidden();
         });
     });

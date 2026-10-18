@@ -83,7 +83,7 @@ const BaseModal = ({
 
     // Initialize Bootstrap Modal once and keep event handlers pointed at current props.
     useEffect(() => {
-        if (!modalRef.current || typeof window === 'undefined' || !window.bootstrap) return;
+        if (!modalRef.current || typeof window === 'undefined') return;
 
         const modalElement = modalRef.current;
         const handleHidden = () => {
@@ -111,16 +111,27 @@ const BaseModal = ({
             }
         };
 
-        bsModalRef.current = new window.bootstrap.Modal(modalElement, {
-            backdrop: true,
-            keyboard: true,
-            focus: true
-        });
+        const initialise = () => {
+            if (bsModalRef.current || !window.bootstrap) return;
+            bsModalRef.current = new window.bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+            document.removeEventListener('load', initialise, true);
+            // The async Bootstrap script may finish after the opening effect ran.
+            if (desiredShowRef.current && !isClosing.current) bsModalRef.current.show();
+        };
 
         modalElement.addEventListener('hidden.bs.modal', handleHidden);
         modalElement.addEventListener('shown.bs.modal', handleShown);
+        // Resource load events do not bubble. Capture the CDN script's load after
+        // it installs window.bootstrap, then stop listening once initialized.
+        document.addEventListener('load', initialise, true);
+        initialise();
 
         return () => {
+            document.removeEventListener('load', initialise, true);
             modalElement.removeEventListener('hidden.bs.modal', handleHidden);
             modalElement.removeEventListener('shown.bs.modal', handleShown);
             if (bsModalRef.current) {

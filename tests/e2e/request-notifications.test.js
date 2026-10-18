@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clearFirestoreEmulator, seedStudentRequestInEmulator, seedUserInEmulator, seedStudentEligibilityInEmulator } from './wrapperFunctions';
+import { clearFirestoreEmulator, seedStudentRequestInEmulator, seedUserInEmulator, seedStudentEligibilityInEmulator, confirmAction } from './wrapperFunctions';
 
 // Real tab/window focus is part of this suite; headless Chromium can keep background tabs active.
 test.use({ storageState: 'tests/e2e/.auth/notificationAdmin.json', channel: 'chromium', headless: false });
@@ -40,7 +40,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await expect(page).toHaveURL(/\/dashboard/);
         await page.getByRole('button', { name: 'Pending Approvals 2', exact: true }).click();
         await expect(dropdown).toBeVisible();
-        await dropdown.locator('.list-group-item').first().getByRole('button', { name: 'Reject', exact: true }).click();
+        await confirmAction(page, /Reject this request\?/, () => dropdown.locator('.list-group-item').first().getByRole('button', { name: 'Reject', exact: true }).click());
         await expect(page.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
         const meetingResponse = page.waitForResponse(response => response.url().includes('/api/microsoft') && response.request().method() === 'POST');
         await dropdown.getByRole('button', { name: 'Approve', exact: true }).click();

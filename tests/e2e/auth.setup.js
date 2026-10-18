@@ -3,6 +3,7 @@ import { TEST_USERS } from '@/lib/security/testUsers';
 import fs from 'fs';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { clearFirestoreEmulator } from './wrapperFunctions.js';
 
 const TEAL = '\x1b[36m';
 const RESET = '\x1b[0m';
@@ -22,7 +23,11 @@ process.env.NODE_ENV = 'development';
 
 setup('authenticate users', async ({ browser }) => {
     setup.setTimeout(120000);
+    // Seed the same profiles used by per-test resets before issuing session cookies.
+    // Otherwise first login creates random authVersion values that a reset revokes.
+    await clearFirestoreEmulator();
     process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+    if (!/^(127\.0\.0\.1|localhost):\d+$/.test(process.env.FIREBASE_AUTH_EMULATOR_HOST)) throw new Error('E2E auth requires a local emulator.');
     const app = initializeApp({ projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-talloc' }, 'e2e-auth-fixtures');
     try {
         await Promise.all(Object.keys(TEST_USERS).map(email => getAuth(app).updateUser(email.toLowerCase(), { email: email.toLowerCase() })

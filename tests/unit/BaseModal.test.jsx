@@ -35,3 +35,39 @@ test('cancelling a hide while the editor is opening does not make its next Close
     act(() => jest.runAllTimers());
     expect(hide).toHaveBeenCalledTimes(1);
 });
+
+
+test('a modal opened before the async Bootstrap script loads becomes visible when it finishes', () => {
+    delete window.bootstrap;
+    const hide = jest.fn();
+    render(<BaseModal show onHide={hide} title="Delayed editor" />);
+    const modal = screen.getByText('Delayed editor').closest('.modal');
+    expect(modal).not.toHaveClass('show');
+    const script = document.createElement('script');
+    document.body.appendChild(script);
+    window.bootstrap = { Modal };
+    fireEvent.load(script);
+    act(() => jest.runAllTimers());
+    expect(modal).toHaveClass('show');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    act(() => jest.runAllTimers());
+    expect(hide).toHaveBeenCalledTimes(1);
+    script.remove();
+});
+
+test('a modal closed before Bootstrap loads stays closed and an unmounted modal never initializes', () => {
+    delete window.bootstrap;
+    const { rerender, unmount } = render(<BaseModal show title="Delayed editor" />);
+    const modal = screen.getByText('Delayed editor').closest('.modal');
+    rerender(<BaseModal show={false} title="Delayed editor" />);
+    const script = document.createElement('script');
+    document.body.appendChild(script);
+    window.bootstrap = { Modal };
+    fireEvent.load(script);
+    act(() => jest.runAllTimers());
+    expect(modal).not.toHaveClass('show');
+    unmount();
+    fireEvent.load(script);
+    expect(Modal.getInstance(modal)).toBeNull();
+    script.remove();
+});

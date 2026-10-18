@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clearFirestoreEmulator, seedShiftInEmulator } from './wrapperFunctions.js';
+import { clearFirestoreEmulator, seedShiftInEmulator, confirmAction } from './wrapperFunctions.js';
 
 test.describe('Coach Workflow @coachOnly', () => {
     test.beforeEach(async () => {
@@ -96,7 +96,7 @@ test.describe('Coach Workflow @coachOnly', () => {
         await availabilityButton.click();
 
         await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
-        await page.getByRole('button', { name: 'Delete' }).click();
+        await confirmAction(page, /Delete this availability\?/, () => page.getByRole('button', { name: 'Delete' }).click());
         await expect(page.getByRole('button', { name: /Availability/ })).toHaveCount(initialAvailabilityCount);
 
     });

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { clearFirestoreEmulator } from './wrapperFunctions.js';
+import { clearFirestoreEmulator, confirmAction } from './wrapperFunctions.js';
 
 test.describe('Tutor Workflow @tutorOnly', () => {
-    test.beforeAll(async () => {
+    test.beforeEach(async () => {
         await clearFirestoreEmulator();
     });
 
@@ -102,7 +102,7 @@ test.describe('Tutor Workflow @tutorOnly', () => {
         await page.getByRole('button', { name: /Availability/ }).first().click();
 
         await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
-        await page.getByRole('button', { name: 'Delete' }).click();
+        await confirmAction(page, /Delete this availability\?/, () => page.getByRole('button', { name: 'Delete' }).click());
         await expect(page.getByRole('button', { name: /Availability/ }).first()).not.toBeVisible();
 
     });
