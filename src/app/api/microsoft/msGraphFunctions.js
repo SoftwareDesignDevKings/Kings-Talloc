@@ -9,6 +9,7 @@
 
 import { DateTime } from 'luxon';
 import { sanitiseHtml } from '@/lib/security/sanitiseHtml';
+import { buildTeamsEventBody } from '@/lib/microsoft/eventBody';
 
 const GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const TIMEZONE = 'Australia/Sydney';
@@ -90,10 +91,7 @@ const buildHeaders = (accessToken, includeContentType = true) => {
 const buildEventBody = (subject, description, startTime, endTime, attendeesEmailArr, recurrenceOptions = null) => {
     const eventBody = {
         subject: subject,
-        body: {
-            contentType: 'HTML',
-            content: sanitiseHtml(description || ''),
-        },
+        body: buildTeamsEventBody(description),
         start: {
             dateTime: startTime,
             timeZone: TIMEZONE,
@@ -183,7 +181,20 @@ export const msCreateEvent = async (accessToken, { subject, description, startTi
             );
         }
 
-        const meeting = await response.json();
+        let meeting = await response.json();
+
+        // A successful calendar POST alone does not prove Teams was provisioned.
+        // Re-read the same event once in case join details were not in the POST
+        // response. Do not create a second event or silently save an empty URL.
+        const isJoinableTeamsEvent = (event) => event.isOnlineMeeting === true
+            && event.onlineMeetingProvider === 'teamsForBusiness'
+            && !!event.onlineMeeting?.joinUrl;
+        if (meeting.id && !isJoinableTeamsEvent(meeting)) {
+            meeting = await msGetEvent(accessToken, meeting.id);
+        }
+        if (!meeting.id || !isJoinableTeamsEvent(meeting)) {
+            throw new Error('The Microsoft calendar event was created, but Microsoft did not enable a joinable Teams meeting. Check the organiser\'s Teams availability in Outlook.');
+        }
 
         // Set auto-recording in the background (non-blocking)
         if (meeting.onlineMeeting?.id) {
@@ -221,6 +232,8 @@ export const msUpdateEvent = async (accessToken, eventId, { subject, description
         }
 
         const eventBody = buildEventBody(subject, description, startTime, endTime, attendees, recurrenceOptions);
+        const existingEvent = await msGetEvent(accessToken, eventId);
+        eventBody.body = buildTeamsEventBody(description, existingEvent.body || {});
 
         const response = await fetch(`${GRAPH_BASE_URL}/me/events/${eventId}`, {
             method: 'PATCH',
@@ -286,7 +299,10 @@ export const msGetEvent = async (accessToken, eventId) => {
     try {
         const response = await fetch(`${GRAPH_BASE_URL}/me/events/${eventId}`, {
             method: 'GET',
-            headers: buildHeaders(accessToken, false),
+            headers: {
+                ...buildHeaders(accessToken, false),
+                Prefer: 'outlook.body-content-type="html"',
+            },
         });
 
         if (!response.ok) {
@@ -358,30 +374,14 @@ export const msGetOccurrenceId = async (accessToken, seriesMasterId, occurrenceD
  */
 export const msUpdateOccurrence = async (accessToken, occurrenceId, { subject, description, startTime, endTime, attendees }) => {
     try {
+        const existingEvent = await msGetEvent(accessToken, occurrenceId);
+        const eventBody = buildEventBody(subject, description, startTime, endTime, attendees);
+        eventBody.body = buildTeamsEventBody(description, existingEvent.body || {});
+
         const response = await fetch(`${GRAPH_BASE_URL}/me/events/${occurrenceId}`, {
             method: 'PATCH',
             headers: buildHeaders(accessToken),
-            body: JSON.stringify({
-                subject: subject,
-                body: {
-                    contentType: 'HTML',
-                    content: sanitiseHtml(description || ''),
-                },
-                start: {
-                    dateTime: startTime,
-                    timeZone: TIMEZONE,
-                },
-                end: {
-                    dateTime: endTime,
-                    timeZone: TIMEZONE,
-                },
-                attendees: attendees.map((email) => ({
-                    emailAddress: {
-                        address: email,
-                    },
-                    type: 'required',
-                })),
-            }),
+            body: JSON.stringify(eventBody),
         });
 
         if (!response.ok) {
