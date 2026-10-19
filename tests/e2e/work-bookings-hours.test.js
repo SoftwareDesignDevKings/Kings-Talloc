@@ -96,7 +96,7 @@ test('tutor availability has no type selector and saves through the server', asy
 test('teacher creates Work with no acceptance controls and can mark it completed', async ({ page }) => {
     await db.collection('shifts').doc('work').set(data());
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /General Work/ }).first().click();
+    await page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
     await page.getByRole('button', { name: 'Settings & Status', exact: true }).click();
     await page.locator('#workType').click(); await expect(page.getByRole('option', { name: 'Tutoring', exact: true })).toHaveCount(0); await page.getByRole('option', { name: 'Work', exact: true }).click();
     await expect(page.getByText('Required for confirmation', { exact: true })).toHaveCount(0);
@@ -157,7 +157,7 @@ test('teacher can remove a student temporarily, receives an empty-save error, th
     await db.collection('studentTutorEligibility').doc(replacement).set({ eligibleTutorEmails: [tutor] });
     await db.collection('shifts').doc('session').set(data({ title: 'Student session', students: [{ value: student, label: 'John Doe' }], studentEmails: [student], emailsList: [tutor, student], createdByStudent: true }));
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /Student session/ }).first().click();
+    await page.getByRole('button', { name: /Student session/ }).first().getByText('Student session', { exact: true }).click();
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
     await page.locator('#participants .select__multi-value__remove').last().click();
     const emptyMessage = page.getByRole('alert').filter({ hasText: 'Add at least one student' });
@@ -179,8 +179,11 @@ test('saved general Work remains Work when a teacher tries to add a student book
     await db.collection('shifts').doc('work').set(data());
     await db.collection('canvasUsers').doc('peer').set({ email: student, name: 'John Doe' });
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /General Work/ }).first().click();
+    await page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
+    // Keep the pointer over the next header, as it may be during keyboard entry.
+    // The open dropdown must remain clickable above that hovered header.
+    await page.getByRole('button', { name: 'Settings & Status', exact: true }).hover();
     await page.locator('#students').fill('John');
     await page.getByRole('option', { name: 'John Doe', exact: true }).click();
     await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
@@ -396,6 +399,15 @@ const browserFailures = new WeakMap();
 test.beforeEach(async ({ page }) => {
     const failures = [];
     browserFailures.set(page, failures);
+    await page.addInitScript(() => {
+        window.workEditorClicks = [];
+        for (const type of ['mousedown', 'mouseup', 'click']) {
+            document.addEventListener(type, event => {
+                window.workEditorClicks.push({ type, target: event.target.outerHTML?.slice(0, 300) });
+                if (window.workEditorClicks.length > 60) window.workEditorClicks.shift();
+            }, true);
+        }
+    });
     page.on('pageerror', error => failures.push({ pageError: error.message }));
     page.on('requestfailed', request => {
         const url = new URL(request.url());
@@ -407,6 +419,7 @@ test.afterEach(async ({ page }, info) => {
     info.setTimeout(info.timeout + 10000);
     const editor = await page.evaluate(() => ({
         path: location.pathname,
+        clicks: window.workEditorClicks,
         bootstrapLoaded: Boolean(window.bootstrap),
         modals: [...document.querySelectorAll('.modal')].map(element => ({
             className: element.className,
@@ -417,4 +430,31 @@ test.afterEach(async ({ page }, info) => {
         visibleText: document.body.innerText.slice(-5000),
     })).catch(error => ({ captureError: error.message }));
     console.error('WORK_EDITOR_FAILURE', JSON.stringify({ editor, browserFailures: browserFailures.get(page) }));
+});
+
+
+test('booking updates read and acknowledge under compatible rules before calendar migration', async ({ page }) => {
+    await env.loadFirestoreRules({ rules: readFileSync('firebase/firestore.compat.rules', 'utf8') });
+    try {
+        const createdAt = new Date(Date.now() - 1000);
+        await db.collection('bookingNotifications').doc('own-compatible').set({
+            recipientEmail: student, kind: 'approved', title: 'Compatible session',
+            message: 'Your approved session is ready.', start: slot.toJSDate(), createdAt,
+        });
+        await db.collection('bookingNotifications').doc('foreign-compatible').set({
+            recipientEmail: tutor, kind: 'denied', title: 'Foreign session',
+            message: 'Another recipient only.', start: slot.toJSDate(), createdAt,
+        });
+        await signIn(page, 'Student');
+        const updates = page.getByLabel('Booking updates');
+        await expect(updates).toContainText('Your approved session is ready.');
+        await expect(updates).not.toContainText('Unable to refresh booking updates');
+        await expect(page.getByText('Another recipient only.')).toHaveCount(0);
+        await page.getByRole('button', { name: 'Dismiss updates', exact: true }).click();
+        await expect(updates).toHaveCount(0);
+        await expect.poll(async () => (await db.collection('bookingNotificationState').doc(student).get()).data()?.acknowledgedAt?.toMillis()).toBe(+createdAt);
+        expect((await db.collection('bookingNotificationState').doc(tutor).get()).exists).toBe(false);
+    } finally {
+        await env.loadFirestoreRules({ rules: readFileSync('firebase/firestore.rules', 'utf8') });
+    }
 });

@@ -1,0 +1,263 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────
+    // Auth helpers
+    // ─────────────────────────────────────
+
+    function getUserRole() {
+      return request.auth.token.defaultRole;
+    }
+
+    function getUserRoles() {
+      return request.auth.token.userRoles;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // ─────────────────────────────────────
+    // Role helpers
+    // Checks both defaultRole and userRoles array (multi-role system)
+    // ─────────────────────────────────────
+
+    // Full admin privileges
+    function isAdmin() {
+      return isAuthenticated() && (getUserRole() == 'admin' || 'admin' in getUserRoles());
+    }
+
+    // Teacher: shares admin calendar strategy — same shift create/edit/delete rights
+    function isTeacher() {
+      return isAuthenticated() && (getUserRole() == 'teacher' || 'teacher' in getUserRoles());
+    }
+
+    // Tutor
+    function isTutor() {
+      return isAuthenticated() && (getUserRole() == 'tutor' || 'tutor' in getUserRoles());
+    }
+
+    // Coach: same field-level permissions as tutor
+    function isCoach() {
+      return isAuthenticated() && (getUserRole() == 'coach' || 'coach' in getUserRoles());
+    }
+
+    function isStudent() {
+      return isAuthenticated() && (getUserRole() == 'student' || 'student' in getUserRoles());
+    }
+
+    // Convenience composites
+    function isAdminOrTeacher() {
+      return isAdmin() || isTeacher();
+    }
+
+    function isTutorOrCoach() {
+      return isTutor() || isCoach();
+    }
+
+    // ─────────────────────────────────────
+    // Ownership helpers
+    // ─────────────────────────────────────
+
+    // Check student owns a request via flat emailsList array
+    function studentOwnsRequest(studentEmail) {
+      return studentEmail != null
+        && 'emailsList' in resource.data
+        && resource.data.emailsList.hasAny([studentEmail]);
+    }
+
+    function requestHasNoClasses() {
+      return !('classes' in request.resource.data)
+        || request.resource.data.classes.size() == 0;
+    }
+
+    function resourceHasNoClasses() {
+      return !('classes' in resource.data)
+        || resource.data.classes.size() == 0;
+    }
+
+    function requestIsPending() {
+      return 'approvalStatus' in request.resource.data
+        && request.resource.data.approvalStatus == 'pending';
+    }
+
+    function resourceIsPending() {
+      return 'approvalStatus' in resource.data
+        && resource.data.approvalStatus == 'pending';
+    }
+
+    function studentWritesOwnRequest() {
+      return isStudent()
+        && 'studentEmails' in request.resource.data
+        && 'emailsList' in request.resource.data
+        && 'staffEmails' in request.resource.data
+        && request.resource.data.studentEmails.size() == 1
+        && request.resource.data.studentEmails.hasOnly([request.auth.token.email])
+        && request.resource.data.studentEmails.hasAll([request.auth.token.email])
+        && request.resource.data.staffEmails.size() == 1
+        && request.resource.data.emailsList.size() == 2
+        && request.resource.data.emailsList.hasAll(request.resource.data.staffEmails)
+        && request.resource.data.emailsList.hasAll(request.resource.data.studentEmails)
+        && get(/databases/$(database)/documents/studentTutorEligibility/$(request.auth.token.email)).data.eligibleTutorEmails.hasAny(request.resource.data.staffEmails)
+        && requestIsPending()
+        && requestHasNoClasses();
+    }
+
+    // Students can acknowledge each introduction independently, without editing their profile.
+    function studentAcknowledgesIntroduction(documentEmail) {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return isStudent()
+        && request.auth.token.email == documentEmail
+        && changedFields.hasOnly(['hasSeenWelcome', 'hasSeenCalendarHelp'])
+        && (!changedFields.hasAny(['hasSeenWelcome'])
+          || request.resource.data.get('hasSeenWelcome', false) == true)
+        && (!changedFields.hasAny(['hasSeenCalendarHelp'])
+          || request.resource.data.get('hasSeenCalendarHelp', false) == true);
+    }
+
+    // ─────────────────────────────────────
+    // Collections
+    // ─────────────────────────────────────
+
+    // Users — admins manage updates/deletion; students can acknowledge their own introductions.
+    match /users/{documentEmail} {
+      allow read: if isAuthenticated();
+      allow create: if isAdminOrTeacher() || (isAuthenticated() && request.auth.token.email == documentEmail);
+      allow update: if isAdmin() || studentAcknowledgesIntroduction(documentEmail);
+      allow delete: if isAdmin();
+    }
+
+    // Shifts — admins/teachers read all; others only read shifts they're assigned to
+    match /shifts/{shiftId} {
+      allow read: if isAdminOrTeacher()
+        || resource.data.emailsList.hasAny([request.auth.token.email]);
+      allow create, delete: if isAdminOrTeacher();
+      allow update: if isAdminOrTeacher()
+        || (isTutorOrCoach() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['workStatus']));
+    }
+
+    // Shared transaction guard for approvals assigning the same tutor.
+    match /tutorBookingGuards/{tutorEmail} {
+      allow read, create, update: if isAdminOrTeacher();
+    }
+
+    // Email Events Queue — only admins/teachers can read or write; only admins can delete
+    match /emailEventsQueue/{eventId} {
+      allow read, create, update: if isAdminOrTeacher();
+      allow delete: if isAdmin();
+    }
+
+    // Email Notifications — admins read/write from client (queueEmailNotification uses client SDK);
+    // server reads/deletes via Admin SDK which bypasses these rules
+    match /emailNotifications/{shiftId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Student Event Requests — admins/teachers read all; students read their own only; tutors/coaches blocked
+    match /studentEventRequests/{requestId} {
+      allow read: if isAdminOrTeacher()
+        || (isStudent() && studentOwnsRequest(request.auth.token.email));
+      allow create: if isAdminOrTeacher() || studentWritesOwnRequest();
+      allow update: if isAdminOrTeacher()
+        || (isStudent()
+          && studentOwnsRequest(request.auth.token.email)
+          && resourceIsPending()
+          && studentWritesOwnRequest());
+      allow delete: if isAdminOrTeacher()
+        || (isStudent()
+          && studentOwnsRequest(request.auth.token.email)
+          && resourceIsPending()
+          && resourceHasNoClasses());
+    }
+
+    // Tutor Availabilities — tutors and coaches manage their own (tutor field = email)
+    match /tutorAvailabilities/{availabilityId} {
+      allow read: if isAuthenticated();
+      allow create: if isTutorOrCoach()
+        && request.auth.token.email == request.resource.data.tutor;
+      allow update, delete: if isTutorOrCoach()
+        && request.auth.token.email == resource.data.tutor;
+    }
+
+    // Student-safe tutor eligibility generated from Canvas rosters and admin tutor coverage.
+    match /studentTutorEligibility/{studentEmail} {
+      allow read: if isAdminOrTeacher()
+        || (isStudent() && request.auth.token.email == studentEmail);
+      allow write: if false;
+    }
+
+    // Classes — admins/teachers manage; all authenticated can read
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrTeacher();
+    }
+
+    // Subjects — admins/teachers manage; all authenticated can read
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrTeacher();
+    }
+
+    // Students — admins/teachers manage; all authenticated can read
+    match /students/{studentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrTeacher();
+    }
+
+    // Canvas course whitelist — admins/teachers select which Canvas courses are synced
+    match /canvasCourseWhitelist/{courseId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Canvas cache/read model — written by server-side sync via Admin SDK
+    match /canvasCourses/{courseId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
+    match /canvasUsers/{userId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
+    match /canvasEnrollments/{enrollmentId} {
+      allow read: if isAdminOrTeacher();
+      allow write: if false;
+    }
+
+    match /canvasSyncLog/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /canvasSyncState/{stateId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Timesheets (templates) — admin only (API route also enforces this)
+    match /timesheets/{timesheetId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // BEGIN COMPATIBLE BOOKING NOTIFICATIONS
+    // Recipient-only updates while legacy calendar clients finish migrating.
+    match /bookingNotifications/{notificationId} {
+      allow read: if isAuthenticated()
+        && resource.data.recipientEmail == request.auth.token.email.lower();
+      allow write: if false;
+    }
+    match /bookingNotificationState/{email} {
+      allow read: if isAuthenticated() && email == request.auth.token.email.lower();
+      allow create, update: if isAuthenticated() && email == request.auth.token.email.lower()
+        && request.resource.data.keys().hasOnly(['acknowledgedAt', 'updatedAt'])
+        && request.resource.data.acknowledgedAt is timestamp
+        && request.resource.data.acknowledgedAt <= request.time
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    // END COMPATIBLE BOOKING NOTIFICATIONS
+  }
+}

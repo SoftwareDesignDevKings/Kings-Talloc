@@ -4,7 +4,7 @@ const project = 'projects/kings-talloc-1f638';
 const source = "rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { allow read: if false; } }\n";
 const rules = content => ({ source: { files: [{ name: 'firestore.rules', content }] } });
 const response = (value, status = 200) => ({ ok: status === 200, status, json: async () => value });
-function fakeApi({ unchanged = false, createStatus = 200, patchStatus = 200, verificationMismatch = false } = {}) {
+function fakeApi({ unchanged = false, oldSource = 'old rules', createStatus = 200, patchStatus = 200, verificationMismatch = false } = {}) {
     let published = false;
     return jest.fn(async (url, options) => {
         const resource = url.replace('https://firebaserules.googleapis.com/v1/', '');
@@ -15,7 +15,7 @@ function fakeApi({ unchanged = false, createStatus = 200, patchStatus = 200, ver
             }
             return response({ rulesetName: `${project}/rulesets/${published && !verificationMismatch ? 'new' : 'old'}` });
         }
-        if (resource === `${project}/rulesets/old`) return response(rules(unchanged ? source : 'old rules'));
+        if (resource === `${project}/rulesets/old`) return response(rules(unchanged ? source : oldSource));
         if (resource === `${project}/rulesets/new`) return response(rules(source));
         if (resource === `${project}/rulesets` && options.method === 'POST') {
             return response({ name: `${project}/rulesets/new` }, createStatus);
@@ -70,4 +70,24 @@ test('unexpected server resource names cannot redirect credentials to another pr
     const api = jest.fn(async () => response({ rulesetName: 'projects/other-project/rulesets/old' }));
     await expect(deploy(api)).rejects.toThrow('Unexpected Firebase Rules resource');
     expect(api).toHaveBeenCalledTimes(1);
+});
+
+
+test('compatibility publication only adds to the exact approved legacy source', async () => {
+    const api = fakeApi({ oldSource: 'approved legacy rules' });
+    await expect(deployFirestoreRules({ token: 'test-token', source,
+        allowedPreviousSources: ['approved legacy rules'], fetchImpl: api })).resolves.toMatchObject({ changed: true });
+});
+test.each(['already strict rules', 'an emergency production hotfix'])('compatibility stage refuses to replace %s', async oldSource => {
+    const api = fakeApi({ oldSource });
+    await expect(deployFirestoreRules({ token: 'test-token', source,
+        allowedPreviousSources: ['approved legacy rules'], fetchImpl: api })).rejects.toThrow('Strict or modified production rules were not changed');
+    expect(api.mock.calls).toHaveLength(2);
+    expect(api.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
+});
+test('an already published compatibility source is verified without rewriting rules', async () => {
+    const api = fakeApi({ unchanged: true });
+    await expect(deployFirestoreRules({ token: 'test-token', source,
+        allowedPreviousSources: ['approved legacy rules'], fetchImpl: api })).resolves.toMatchObject({ changed: false });
+    expect(api.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
 });

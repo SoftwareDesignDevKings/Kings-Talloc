@@ -1,5 +1,5 @@
-const { readFileSync, appendFileSync } = require('node:fs');
-const { join } = require('node:path');
+const { appendFileSync } = require('node:fs');
+const { loadRulesRelease } = require('./selectFirestoreRules.cjs');
 
 const PROJECT = 'kings-talloc-1f638';
 const RELEASE = `projects/${PROJECT}/releases/cloud.firestore`;
@@ -7,7 +7,7 @@ const RULESETS = `projects/${PROJECT}/rulesets`;
 
 // Use the Rules API directly so the identity needs no access to student data,
 // database configuration, indexes, billing, or other Firebase products.
-async function deployFirestoreRules({ token, source, fetchImpl = fetch }) {
+async function deployFirestoreRules({ token, source, allowedPreviousSources, fetchImpl = fetch }) {
     if (!token) throw new Error('Missing FIREBASE_RULES_ACCESS_TOKEN. Configure the GitHub OIDC connection.');
     if (!source.trim()) throw new Error('Refusing to publish an empty rules file.');
 
@@ -31,10 +31,16 @@ async function deployFirestoreRules({ token, source, fetchImpl = fetch }) {
     const normalize = value => value.replace(/\r\n/g, '\n').trimEnd();
     const matches = ruleset => ruleset.source?.files?.length === 1 &&
         normalize(ruleset.source.files[0].content ?? '') === normalize(source);
+    const matchesPrevious = (ruleset, previous) => ruleset.source?.files?.length === 1 &&
+        normalize(ruleset.source.files[0].content ?? '') === normalize(previous);
     const active = await request(RELEASE);
     const existing = await request(active.rulesetName);
     if (matches(existing)) {
         return { changed: false, rulesetName: active.rulesetName };
+    }
+
+    if (allowedPreviousSources && !allowedPreviousSources.some(previous => matchesPrevious(existing, previous))) {
+        throw new Error('Compatibility rules require the exact legacy rules. Strict or modified production rules were not changed.');
     }
 
     // Creating a ruleset validates it before the live release can change.
@@ -58,7 +64,7 @@ async function deployFirestoreRules({ token, source, fetchImpl = fetch }) {
 if (require.main === module) {
     deployFirestoreRules({
         token: process.env.FIREBASE_RULES_ACCESS_TOKEN,
-        source: readFileSync(join(__dirname, '../firebase/firestore.rules'), 'utf8'),
+        ...loadRulesRelease(process.env.FIRESTORE_RULES_STAGE || 'strict'),
     }).then(result => {
         const message = result.changed ? 'Published and verified production Firestore rules.' :
             'Verified production Firestore rules already match this commit.';
