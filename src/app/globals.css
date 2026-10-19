@@ -346,3 +346,8 @@ html .accordion {
 .react-datepicker-popper {
     z-index: 9999 !important;
 }
+
+/* Modal dropdowns must sit above neighbouring accordion headers on hover/focus. */
+.modal .select__menu {
+    z-index: 5;
+}

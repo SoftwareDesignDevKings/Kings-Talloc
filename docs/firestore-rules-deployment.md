@@ -1,7 +1,9 @@
 # Production Firestore rules deployment
 
-`firebase/firestore.rules` is the source of truth for the default database in
-`kings-talloc-1f638`. Firebase Spark and standard GitHub-hosted runners for this public
+`firebase/firestore.rules` is the final, migrated rules source for the default database
+in `kings-talloc-1f638`. Before migration is acknowledged,
+`firebase/firestore.compat.rules` preserves the exact pre-PR143 calendar permissions
+and adds recipient-only booking notifications. Firebase Spark and standard GitHub-hosted runners for this public
 repository support this workflow without a billing upgrade or credit card.
 
 ## What happens after a merge
@@ -13,7 +15,7 @@ job serializes releases and rejects commits already superseded by a newer `main`
 so an obsolete run cannot overwrite newer rules or certify an outdated app release.
 
 The job obtains a short-lived Google token, compares the live source with the checked-out
-rules, validates a new immutable ruleset if needed, publishes it to the existing default
+selected rules, validates a new immutable ruleset if needed, publishes it to the existing default
 database release, and reads it back to verify the source. An unchanged file is verified
 without creating another ruleset. Failures fail the job and appear in GitHub Actions.
 
@@ -51,17 +53,30 @@ longer consumed by CI; an administrator can revoke it after checking for any oth
 
 Vercel's Git deployment and GitHub Actions run independently. The scheduling rules
 job waits for `/version.json` on the production domain to identify the exact tested
-commit and scheduling API version, then waits five minutes and checks again. It also
-requires the `firebase-production` environment variable
+commit and scheduling API version, then waits five minutes and checks again. It selects
+the strict stage only when the `firebase-production` environment variable is
 `SCHEDULING_CLIENT_MIGRATION_ACK=server-writes-v1`. Leave that variable unset until
-the first-rollout procedure below is complete; an unset or incorrect value stops
-rules publication before credentials are obtained.
+the first-rollout procedure below is complete. An unset value selects the temporary
+compatibility rules; the exact value selects the strict rules. Any other value stops
+publication before credentials are obtained.
+
+The compatibility stage can only replace the exact legacy production source, or verify
+that the compatibility source is already active. The deployer compares the source before
+creating a ruleset. It refuses to replace already strict rules or an unreviewed production
+hotfix. Removing the acknowledgement after migration cannot silently reopen calendar
+writes. The compatibility baseline is checked against its pre-PR143 SHA-256 in CI.
+
+Both stages still require successful tests, the exact deployed app commit/API version,
+the five-minute interval and a final main/production recheck. Only the strict stage
+requires legacy-client migration confirmation. Compatibility publication enables live
+booking notices and their own acknowledgement state without a polling API or new index.
 
 Do **not** make production domain promotion depend on **Deploy production Firestore
 rules**: that job waits for the app to be live, so such a check would deadlock this
-release sequence. App CI can be required before promotion. Retain compatible rules
-while the new server-writing app is promoted and existing clients migrate. The final
-rules remove direct calendar writes; they must follow the app release.
+release sequence. App CI can be required before promotion. The compatibility
+stage retains calendar access while the new server-writing app is promoted and existing
+clients migrate. The final strict rules remove direct calendar writes; they must follow
+the app release and migration acknowledgement.
 
 ### First scheduling rollout
 
@@ -83,13 +98,14 @@ those tabs. A new guard shipped in PR143 cannot alter JavaScript already running
 2. Verify the metadata on the production domain. Keep this bootstrap live for at
    least one full five-minute polling interval while active users have their tabs
    open. Record the bootstrap build and time in the release record.
-3. Release the scheduling app with the old compatible rules still active. Verify
+3. Release the scheduling app with the old calendar rules still active. The successful
+   main workflow then publishes the additive compatibility notification rules. Verify
    Microsoft sign-in, the deployed app's commit/API metadata, and a controlled
    booking/completion/hours smoke test with designated test accounts. Wait another
    full polling interval and verify an old active tab reloads onto the new app.
 4. Arrange for returning users to refresh/reopen dormant or offline legacy tabs
    before using the calendar. Polling cannot prove that all old tabs have run. If
-   legacy users cannot be accounted for, keep the compatible rules and leave the
+   legacy users cannot be accounted for, keep the compatibility rules and leave the
    acknowledgement unset; use a coordinated maintenance window to complete migration.
 5. After the release owner has confirmed the migration, set the environment variable
    above and rerun the latest successful `main` CI workflow. The existing exact-commit,
@@ -112,8 +128,10 @@ without another commit. This is deployment on merges, not continuous polling for
 edits.
 
 To return to a client-writing app, first restore and verify its compatible rules through
-a reviewed rules PR while the current server-writing app is live. Then roll back the app
-and clear `SCHEDULING_CLIENT_MIGRATION_ACK`. Review data compatibility before either step. The workflow
+a reviewed rules PR while the current server-writing app is live. That rollback PR
+must explicitly authorize replacing the exact current strict source: the ordinary
+compatibility stage refuses to overwrite strict or separately modified rules. Then roll back the app
+and clear `SCHEDULING_CLIENT_MIGRATION_ACK`. Clearing the acknowledgement alone is not a rules rollback. Review data compatibility before either step. The workflow
 never deletes historical rulesets or automatically rolls back app releases.
 
 References: [Firebase Rules deployment](https://firebase.google.com/docs/rules/manage-deploy),

@@ -31,3 +31,22 @@ test.each([undefined, '', 'true', 'server-writes-v0'])('unconfirmed first-rollou
     await expect(waitForSchedulingRelease({ commit, clientMigrationAck: acknowledgement, fetchImpl, ...clock() })).rejects.toThrow('Legacy client migration is not confirmed');
     expect(fetchImpl).not.toHaveBeenCalled();
 });
+
+
+test('compatible notices can follow the exact live app without certifying legacy client migration', async () => {
+    const timing = clock();
+    const fetchImpl = jest.fn().mockResolvedValue(response({ gitCommit: commit, schedulingApiVersion: 1 }));
+    await waitForSchedulingRelease({ commit, rulesStage: 'compatibility', fetchImpl, ...timing });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(timing.pause).toHaveBeenCalledWith(300000);
+});
+test('compatible notices cannot publish before the exact tested app', async () => {
+    await expect(waitForSchedulingRelease({ commit, rulesStage: 'compatibility',
+        fetchImpl: async () => response({ gitCommit: 'b'.repeat(40), schedulingApiVersion: 1 }),
+        ...clock(), timeoutMs: 10 })).rejects.toThrow('not deployed');
+});
+test.each(['server-writes-v1', 'typo'])('compatibility stage rejects an acknowledged or invalid migration: %s', async clientMigrationAck => {
+    const fetchImpl = jest.fn();
+    await expect(waitForSchedulingRelease({ commit, rulesStage: 'compatibility', clientMigrationAck, fetchImpl })).rejects.toThrow('unset migration');
+    expect(fetchImpl).not.toHaveBeenCalled();
+});

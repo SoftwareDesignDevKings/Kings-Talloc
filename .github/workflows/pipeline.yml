@@ -105,12 +105,19 @@ jobs:
               with:
                   node-version: '22'
 
-            # Client calendar writes are now server-validated. Never tighten rules
-            # while the production app is still an older build or failed to deploy.
+            - name: Select compatible or migrated scheduling rules
+              id: rules-stage
+              run: node scripts/selectFirestoreRules.cjs
+              env:
+                  SCHEDULING_CLIENT_MIGRATION_ACK: ${{ vars.SCHEDULING_CLIENT_MIGRATION_ACK }}
+
+            # Exact app checks apply to both stages. Tightening calendar writes
+            # additionally requires the release owner's migration acknowledgement.
             - name: Wait for the tested app in production
               run: node scripts/waitForSchedulingRelease.cjs
               env:
                   EXPECTED_COMMIT: ${{ github.sha }}
+                  FIRESTORE_RULES_STAGE: ${{ steps.rules-stage.outputs.stage }}
                   SCHEDULING_CLIENT_MIGRATION_ACK: ${{ vars.SCHEDULING_CLIENT_MIGRATION_ACK }}
 
             - name: Recheck that main has not advanced
@@ -136,3 +143,4 @@ jobs:
               run: node scripts/deployFirestoreRules.cjs
               env:
                   FIREBASE_RULES_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+                  FIRESTORE_RULES_STAGE: ${{ steps.rules-stage.outputs.stage }}

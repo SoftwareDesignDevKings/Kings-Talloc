@@ -250,3 +250,39 @@ against the published runtime source: all 27 staff/day buckets still total **85h
 CSV and weekly Word totals agree, all 20 saved templates render, and Sunday/Monday,
 daylight-saving and partial-week boundaries pass. The local replay harness was updated
 to wait for asynchronous dashboard cards before reading them.
+
+
+## PR144: editor lifecycle and compatible booking notices
+
+The first post-merge main CI run and its retry each passed 290 unit tests, 233 Firebase
+checks and 16 existing browser checks, but two dedicated editor interactions timed out.
+A follow-up diagnostic run records browser errors, failed request paths and modal state.
+A separate deterministic lifecycle test reproduces a Bootstrap callback reading a disposed modal during
+React StrictMode effect replay. Modal initialization now waits until the replay completes,
+and unmounting lets opening/hiding transitions finish before disposal. Detached editors
+are removed after transition cleanup, including when Bootstrap temporarily reattaches them. Quick confirmation cancellation and delayed Bootstrap
+loading remain covered. Hosted diagnostics also show a student dropdown intercepted by
+the next accordion header. Keeping the pointer on that header reproduces the timeout
+locally. Modal dropdowns now stack above neighbouring headers, and the regression uses
+normal clicks with the pointer left over the header. Event-opening checks select the
+visible title rather than the centre of the drag/resize event wrapper. Three affected workflows pass twice each with 4x CPU throttling
+against isolated emulators, and all ten modal/confirmation unit checks pass.
+
+The production booking-updates warning is caused by new notification collections being
+absent from the retained calendar rules. The new compatibility stage adds recipient-only
+notice reads and validated own acknowledgement state to the exact pre-PR143 rules. Its
+baseline SHA-256 is tested, and publication refuses to replace strict rules or a separate
+production hotfix. The migration acknowledgement continues to gate strict calendar rules.
+Both stages retain exact-commit production checks and the polling grace interval. This
+keeps real-time notices without introducing frequent database/API polling. Six compatibility
+emulator checks cover recipient isolation, mixed-case identities, acknowledgement validation,
+server-only notices and retained legacy calendar writes. The browser also verifies own-notice
+display and dismissal while another recipient's notice stays hidden.
+
+The account-deletion browser check now waits for the completed AccessDenied redirect before
+admin recreation. Its previous immediate login-URL assertion allowed the rejected sign-in
+to race with recreating the account; old-token rejection remains checked after recreation.
+
+Production booking/approval/completion write testing remains pending at the maintainer's
+request. No production data or rules were changed by preparing these fixes; the shared
+paid-hours calculations and intended break rules are unchanged.
