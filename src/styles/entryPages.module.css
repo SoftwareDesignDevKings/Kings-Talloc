@@ -1,0 +1,33 @@
+.page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px;
+    background: var(--uui-color-bg-primary);
+    color: var(--uui-color-text-primary);
+}
+.landing { width: 100%; max-width: 804px; }
+.intro { text-align: center; margin-bottom: 40px; }
+.landingTitle { margin: 0 0 16px; font-size: clamp(2.25rem, 5vw, 3.5rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.description { max-width: 600px; margin: 0 auto; font-size: 1.125rem; line-height: 1.6; color: var(--uui-color-text-tertiary); }
+.features { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.feature { display: flex; align-items: flex-start; gap: 16px; padding: 24px; }
+.featureText { min-width: 0; }
+.featureTitle { margin: 0 0 8px; font-size: .875rem; line-height: 1.5; font-weight: 600; color: var(--uui-color-text-primary); }
+.featureDescription { margin: 0; font-size: .875rem; line-height: 1.5; color: var(--uui-color-text-tertiary); }
+.start { margin-top: 40px; text-align: center; }
+.login { width: 100%; max-width: 320px; }
+.crest { display: flex; justify-content: center; margin-bottom: 24px; }
+.crest img { width: 200px; max-width: 100%; height: auto; }
+.loginIntro { text-align: center; margin-bottom: 24px; }
+.loginTitle { margin: 0 0 8px; font-size: 1.875rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.loginDescription { margin: 0; font-size: .875rem; line-height: 1.5; color: var(--uui-color-text-tertiary); }
+.devPanel { margin-bottom: 24px; padding: 16px; background: var(--uui-color-bg-secondary); }
+.devTitle { margin: 0 0 16px; font-size: .75rem; font-weight: 600; letter-spacing: .05em; line-height: 1.5; text-transform: uppercase; color: var(--uui-color-text-tertiary); }
+.devAccounts { display: flex; flex-wrap: wrap; gap: 8px; }
+.devButton[data-untitled-button] { flex: 1 1 auto; min-width: 0; font-size: .75rem; white-space: normal; text-align: center; }
+.microsoftButton[data-untitled-button] { width: 100%; min-height: 44px; }
+.microsoftButton > svg { width: 18px; height: 18px; }
+@media (min-width: 768px) { .page { padding: 48px; } .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

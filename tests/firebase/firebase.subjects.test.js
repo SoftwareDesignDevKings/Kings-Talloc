@@ -31,7 +31,7 @@ beforeAll(async () => {
         firestore: {
             rules,
             host: 'localhost',
-            port: 8080,
+            port: Number((process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':').at(-1)),
         },
     });
 });

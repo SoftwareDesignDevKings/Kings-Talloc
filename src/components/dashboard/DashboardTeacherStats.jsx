@@ -1,4 +1,4 @@
-import { FiCalendar, FiUsers, FiAlertCircle } from '@/components/icons';
+import { Calendar, Users01, AlertCircle } from '@untitledui/icons';
 import BaseStatsCard from './cards/BaseStatsCard';
 import PendingApprovalsCard from './cards/PendingApprovalsCard';
 
@@ -10,22 +10,22 @@ const DashboardTeacherStats = ({ data }) => (
             delay={50}
         />
         <BaseStatsCard
-            icon={FiCalendar}
-            iconBgColor="bg-primary"
+            icon={Calendar}
+            color="brand"
             title="Student Tutor Sessions"
             value={data.teacherStats.studentSessions}
             delay={150}
         />
         <BaseStatsCard
-            icon={FiAlertCircle}
-            iconBgColor="bg-warning"
+            icon={AlertCircle}
+            color="warning"
             title="Uncompleted Tutor Sessions"
             value={data.teacherStats.uncompletedShifts}
             delay={250}
         />
         <BaseStatsCard
-            icon={FiUsers}
-            iconBgColor="bg-info"
+            icon={Users01}
+            color="brand"
             title="Tutors on My Students"
             value={data.teacherStats.uniqueTutors}
             delay={350}

@@ -13,9 +13,9 @@ jest.mock('@/components/forms/EventFormSections/EventDetailsSection', () => () =
 jest.mock('@/components/forms/EventFormSections/ParticipantsSection', () => () => null);
 jest.mock('@/components/forms/EventFormSections/SettingsSection', () => () => null);
 jest.mock('@/components/forms/EventFormSections/StudentRequestSection', () => () => null);
-jest.mock('@/components/modals/BaseModal', () => function MockModal({ show, title, children, customFooter, deleteButton, onSubmit, submitVariant }) {
+jest.mock('@/components/forms/EventFormSections/EventFormUI', () => ({ EventFormUIContext: require('react').createContext({}), StaffEventDialog: function MockModal({ show, title, children, customFooter, deleteButton, onSubmit, submitVariant }) {
     return show ? <div role="dialog" aria-label={title}>{children}{customFooter}{onSubmit && <button className={`btn btn-${submitVariant}`} onClick={() => onSubmit({ preventDefault() {} })}>Save</button>}{deleteButton && <button onClick={deleteButton.onClick}>Delete from editor</button>}</div> : null;
-});
+} }));
 beforeEach(() => { jest.clearAllMocks(); calendarEventHandleDelete.mockResolvedValue(); });
 test.each([false, true])('single event deletion asks first; student request=%s', async isStudentRequest => {
     const close = jest.fn();

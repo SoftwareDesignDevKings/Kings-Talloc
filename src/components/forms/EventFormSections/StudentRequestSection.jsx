@@ -1,129 +1,29 @@
 import React from 'react';
-import Select from 'react-select';
-import { MdNoteAlt, MdMenuBook, MdFlag, MdSchool } from '@/components/icons';
-import { sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
 import { isStudentSession } from '@/lib/scheduling/eventRules';
+import { sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
+import { MdSchool } from '@/components/icons';
+import { Badge } from '@/components/untitled/badge';
+import { Label } from '@/components/untitled/label';
+import { EventSection, EventSelect } from './EventFormUI';
+import styles from '@/styles/staffEventForm.module.css';
 
-const StudentRequestSection = ({
-    newEvent,
-    handleApprovalChange,
-    approvalOptions,
-    readOnly,
-}) => {
+const StudentRequestSection = ({ newEvent, handleApprovalChange, approvalOptions, readOnly }) => {
     if (!newEvent.createdByStudent && !isStudentSession(newEvent)) return null;
-
-    // Focus is useful when reviewing a pending request; approved sessions open general details.
-    const isExpanded = newEvent.approvalStatus === 'pending';
-    const classLabel = newEvent.classes?.[0]?.label || newEvent.classes?.[0]?.name;
-
-    return (
-        <div className="accordion-item">
-            <h2 className="accordion-header">
-                <button
-                    className={`accordion-button shadow-none ${isExpanded ? '' : 'collapsed'}`}
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#studentRequest"
-                    aria-expanded={isExpanded}
-                    aria-controls="studentRequest"
-                >
-                    <div className="d-flex align-items-center justify-content-between w-100 me-3">
-                        <div className="d-flex align-items-center">
-                            <MdNoteAlt className="me-2 text-primary" size={20} aria-hidden="true" />
-                            <span className="fw-bold">Session focus</span>
-                        </div>
-                        {newEvent.createdByStudent && <span className="badge rounded-pill bg-info fw-normal text-xs">STUDENT SUBMITTED</span>}
-                    </div>
-                </button>
-            </h2>
-            <div
-                id="studentRequest"
-                className={`accordion-collapse collapse ${isExpanded ? 'show' : ''}`}
-                data-bs-parent="#eventFormAccordion"
-            >
-                <div className="accordion-body p-4">
-                    <div className="p-3 bg-light rounded mb-4">
-                        <div className="row g-3">
-                            {classLabel && (
-                                <div className="col-6 border-end">
-                                    <label className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
-                                        <MdMenuBook /> Class
-                                    </label>
-                                    <div className="fw-bold text-primary">
-                                        {classLabel}
-                                    </div>
-                                </div>
-                            )}
-
-                            {!classLabel && newEvent.subject && (
-                                <div className="col-6 border-end">
-                                    <label className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
-                                        <MdMenuBook /> Legacy Subject
-                                    </label>
-                                    <div className="fw-bold text-primary">
-                                        {newEvent.subject.label || newEvent.subject}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="col-6">
-                                <div className="small fw-bold text-muted text-uppercase d-flex align-items-center gap-1 mb-1">
-                                    <MdFlag /> Focus
-                                </div>
-                                <div className="fw-bold text-dark">
-                                    {sessionFocusLabel(newEvent.preference)}
-                                </div>
-                            </div>
-                        </div>
-                        {newEvent.sessionTopics?.trim() && <div className="mt-3">
-                            <div className="small fw-bold text-muted text-uppercase mb-1">Topics to cover</div>
-                            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{newEvent.sessionTopics}</div>
-                        </div>}
-                    </div>
-
-                    {!readOnly && (
-                        <div className="pt-3 border-top">
-                            <label
-                                htmlFor="approvalStatus"
-                                className="form-label small fw-bold text-muted text-uppercase mb-2"
-                            >
-                                Administrative Decision
-                            </label>
-                            <Select
-                                name="approvalStatus"
-                                options={approvalOptions}
-                                onChange={handleApprovalChange}
-                                classNamePrefix="select"
-                                defaultValue={
-                                    newEvent.approvalStatus === 'approved'
-                                        ? { value: 'approved', label: 'Approve' }
-                                        : newEvent.approvalStatus === 'denied'
-                                          ? { value: 'denied', label: 'Deny' }
-                                          : null
-                                }
-                                isDisabled={readOnly}
-                                aria-label="Student request approval status"
-                                inputId="approvalStatus"
-                                styles={{
-                                    control: (base) => ({
-                                        ...base,
-                                        backgroundColor: '#fff',
-                                        borderColor: '#dee2e6',
-                                        borderRadius: '0.5rem',
-                                        padding: '2px',
-                                    }),
-                                }}
-                            />
-                            <div className="mt-2 text-muted text-xs">
-                                <MdSchool className="me-1" /> 
-                                Approving this request will automatically schedule the session and notify the student.
-                            </div>
-                        </div>
-                    )}
-                </div>
+    const classLabel = newEvent.classes?.[0]?.label || newEvent.classes?.[0]?.name || null;
+    return <EventSection id="studentRequest" title="Session focus" defaultExpanded={newEvent.approvalStatus === 'pending'} icon={MdSchool} trailing={newEvent.createdByStudent && <Badge size="sm" color="brand">STUDENT SUBMITTED</Badge>}>
+        <div className={styles.fields}>
+            <div className={styles.grid}>
+                {classLabel ? <div className={styles.field}><Label isRequired={false}>Class</Label><span>{classLabel}</span></div>
+                    : newEvent.subject ? <div className={styles.field}><Label isRequired={false}>Legacy Subject</Label><span>{newEvent.subject.label || newEvent.subject}</span></div> : null}
+                <div className={styles.field}><Label isRequired={false}>Focus</Label><span>{sessionFocusLabel(newEvent.preference)}</span></div>
             </div>
+            {newEvent.sessionTopics?.trim() && <div className={styles.field}><Label isRequired={false}>Topics to cover</Label><div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{newEvent.sessionTopics}</div></div>}
+            {!readOnly && <div className={styles.field}>
+                <EventSelect label="Administrative Decision" name="approvalStatus" options={approvalOptions} value={newEvent.approvalStatus}
+                    onChange={handleApprovalChange} aria-label="Student request approval status" />
+                <small className={styles.hint}>Approving this request will automatically schedule the session and notify the student.</small>
+            </div>}
         </div>
-    );
+    </EventSection>;
 };
-
-export default StudentRequestSection;
+export default React.memo(StudentRequestSection);

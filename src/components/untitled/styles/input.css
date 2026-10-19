@@ -1,0 +1,124 @@
+/* Shared Untitled components import the generated stylesheet. No global reset. */
+@layer theme, uui-base;
+@import "tailwindcss/theme.css" layer(theme) prefix(uui);
+@import "tailwindcss/utilities.css" prefix(uui) source(none);
+@import "./theme.css";
+
+@source "../button.jsx";
+@source "../input.jsx";
+@source "../input-date.jsx";
+@source "../date-time-picker.jsx";
+@source "../calendar.jsx";
+@source "../calendar-cell.jsx";
+@source "../textarea.jsx";
+@source "../radio-buttons.jsx";
+@source "../label.jsx";
+@source "../hint-text.jsx";
+@source "../tooltip.jsx";
+@source "../table-card.jsx";
+@source "../select.jsx";
+@source "../select-item.jsx";
+@source "../select-shared.jsx";
+@source "../popover.jsx";
+@source "../checkbox.jsx";
+@source "../toggle.jsx";
+@source "../modal.jsx";
+@source "../badge.jsx";
+@source "../tabs.jsx";
+@source "../sidebar-navigation.jsx";
+@source "../featured-icon.jsx";
+@source "../../AlertBox.jsx";
+
+[data-untitled-control] p {
+    margin: 0;
+}
+
+[data-untitled-select-popover] {
+    z-index: 1080;
+}
+
+[data-untitled-select-popover]:not([data-untitled-fixed-bottom]) {
+    max-height: min(16rem, var(--available-height, 16rem)) !important;
+}
+
+[data-untitled-toggle] > div:first-of-type {
+    flex-shrink: 0;
+}
+
+/* Button links receive this default from upstream Preflight. */
+[data-untitled-button][href] {
+    text-decoration: none;
+}
+
+[data-untitled-nav-item] {
+    text-decoration: none;
+}
+
+@utility transition-inherit-all {
+    transition-property: inherit;
+    transition-duration: inherit;
+    transition-timing-function: inherit;
+}
+
+/* The official button normally receives these defaults from Preflight.
+   Apply them to this component alone while Bootstrap remains in use. */
+@layer uui-base {
+    [data-featured-icon],
+    [data-featured-icon]::before,
+    [data-featured-icon]::after {
+        box-sizing: border-box;
+        border: 0 solid;
+    }
+    [data-untitled-badge] {
+        box-sizing: border-box;
+        border: 0 solid;
+    }
+
+    [data-untitled-control],
+    [data-untitled-control] *,
+    [data-untitled-control] *::before,
+    [data-untitled-control] *::after {
+        box-sizing: border-box;
+        border: 0 solid;
+    }
+
+    [data-untitled-control] button {
+        background-color: transparent;
+        font-family: inherit;
+        text-transform: none;
+    }
+
+    [data-untitled-button],
+    [data-untitled-button]::before {
+        box-sizing: border-box;
+        border: 0 solid;
+    }
+
+    [data-untitled-button] {
+        background-color: transparent;
+        font-family: inherit;
+        text-transform: none;
+    }
+
+    /* Input defaults normally supplied by Preflight, scoped to this component. */
+    [data-untitled-input],
+    [data-untitled-input] *,
+    [data-untitled-input] *::before,
+    [data-untitled-input] *::after {
+        box-sizing: border-box;
+        border: 0 solid;
+    }
+
+    [data-untitled-input] input {
+        min-width: 0;
+        font-family: inherit;
+        font-feature-settings: inherit;
+        font-variation-settings: inherit;
+        letter-spacing: inherit;
+    }
+
+    [data-untitled-input] input::placeholder {
+        opacity: 1;
+    }
+
+}

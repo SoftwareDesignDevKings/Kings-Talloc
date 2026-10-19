@@ -1,11 +1,18 @@
 'use client';
 
 import useBookableAvailability from '@/hooks/useBookableAvailability';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { isAfter, format } from 'date-fns';
-import Select from 'react-select';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { isAfter } from 'date-fns';
 import AsyncSelect from 'react-select/async';
-import BaseModal from '../modals/BaseModal.jsx';
+import { CalendarDateTime } from '@internationalized/date';
+import { StaffEventDialog } from './EventFormSections/EventFormUI';
+import { DateTimePicker } from '@/components/untitled/date-time-picker';
+import { RadioGroup, RadioButton } from '@/components/untitled/radio-buttons';
+import { Label } from '@/components/untitled/label';
+import CalendarMultiSelect from '@/components/calendar/CalendarMultiSelect';
+import styles from '@/styles/staffEventForm.module.css';
+import bookingStyles from '@/styles/studentBookingForm.module.css';
+import { TextAreaBase } from '@/components/untitled/textarea';
 import { useAppData } from '@/contexts/AppDataContext';
 import { updateEventInFirestore, createEventInFirestore } from '@/firestore/firestoreOperations';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
@@ -14,6 +21,12 @@ import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 import { SESSION_FOCUS_OPTIONS, SESSION_TOPICS_MAX_LENGTH, isValidSessionFocus, sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
 
 import useAlert from '@/hooks/useAlert.js';
+
+const pickerValue = raw => {
+    const date = new Date(raw);
+    return raw && !Number.isNaN(date.getTime())
+        ? new CalendarDateTime(date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes()) : null;
+};
 
 const StudentEventForm = ({
     mode,
@@ -68,6 +81,15 @@ const StudentEventForm = ({
     // for backward compat with existing logic
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const busy = useRef(false);
+    const dateTimeValidity = useRef({ start: true, end: true });
+    const [portalContainer, setPortalContainer] = useState(null);
+    const [tutorMenuOpen, setTutorMenuOpen] = useState(false);
+    const [studentsMenuOpen, setStudentsMenuOpen] = useState(false);
+    const [dateMenuOpen, setDateMenuOpen] = useState(false);
+    const startValue = useMemo(() => pickerValue(newEvent.start), [newEvent.start]);
+    const endValue = useMemo(() => pickerValue(newEvent.end), [newEvent.end]);
+
     const [tutorOptions, setTutorOptions] = useState([]);
     const [filteredTutors, setFilteredTutors] = useState([]);
     const [selectedTutor, setSelectedTutor] = useState(
@@ -134,7 +156,7 @@ const StudentEventForm = ({
     const validateDates = () => {
         const start = new Date(newEvent.start);
         const end = new Date(newEvent.end);
-        if (!isAfter(end, start)) {
+        if (!dateTimeValidity.current.start || !dateTimeValidity.current.end || !isAfter(end, start)) {
             addAlert('error', 'End date must be after the start date.');
             return false;
         }
@@ -241,10 +263,11 @@ const StudentEventForm = ({
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (isSubmitting) return false;
+        if (isSubmitting || busy.current) return false;
         if (!validateDates()) {
             return false; // Validation failed - don't close modal
         }
+        busy.current = true;
         setIsSubmitting(true);
         try {
             return await handleSubmit(e);
@@ -253,108 +276,60 @@ const StudentEventForm = ({
             addAlert('error', error.message || 'Failed to submit event request');
             return false;
         } finally {
+            busy.current = false;
             setIsSubmitting(false);
         }
     };
 
     return (
-        <BaseModal
+        <StaffEventDialog
             show={true}
-            onHide={() => setShowStudentModal(false)}
+            onHide={() => { if (!busy.current) setShowStudentModal(false); }}
             title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
             size="md"
             onSubmit={isView ? undefined : onSubmit}
             submitText={isEdit ? 'Save Changes' : 'Add Event'}
             loading={isSubmitting}
+            menuOpen={tutorMenuOpen || studentsMenuOpen || dateMenuOpen}
+            setPortalContainer={setPortalContainer}
             deleteButton={null}
             showFooter={!isView}
-            noValidate
         >
-            <div className="mb-3">
-                <label htmlFor="start" className="form-label">
-                    Start Time
-                </label>
-                <input
-                    type="datetime-local"
-                    className="form-control"
-                    name="start"
-                    id="start"
-                    value={format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")}
-                    onChange={handleDateChange}
-                    required
-                    disabled={isView}
-                    aria-label="Event start time"
-                    aria-required="true"
-                />
-            </div>
-            <div className="mb-3">
-                <label htmlFor="end" className="form-label">
-                    End Time
-                </label>
-                <input
-                    type="datetime-local"
-                    className="form-control"
-                    name="end"
-                    id="end"
-                    value={format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")}
-                    onChange={handleDateChange}
-                    required
-                    disabled={isView}
-                    aria-label="Event end time"
-                    aria-required="true"
-                />
-            </div>
-            <fieldset className="mb-3">
+            <div className={styles.fields}>
+            {['start', 'end'].map(name => <DateTimePicker key={name} name={name}
+                label={name === 'start' ? 'Start Time' : 'End Time'} value={name === 'start' ? startValue : endValue}
+                isDisabled={isView || isSubmitting} portalContainer={portalContainer} onOpenChange={setDateMenuOpen}
+                onDraftValidityChange={complete => { dateTimeValidity.current[name] = complete; }}
+                onChange={next => setNewEvent(prev => ({ ...prev, [name]: next ? next.toString() : '' }))} />)}
+            <fieldset className={styles.field}>
                 <legend className="form-label fs-6">Session focus{!isView && ' (required)'}</legend>
                 {isView ? <div>{sessionFocusLabel(newEvent.preference)}</div> : <>
-                    <div className="d-flex flex-wrap gap-2">
-                        {SESSION_FOCUS_OPTIONS.map(({ value, label }) => (
-                            <React.Fragment key={value}>
-                                <input
-                                    type="radio"
-                                    className="btn-check"
-                                    name="preference"
-                                    value={value}
-                                    id={`session-focus-${value.replace(/[^a-z]/gi, '')}`}
-                                    checked={selectedPreference === value}
-                                    onChange={() => handlePreferenceClick(value)}
-                                    required
-                                    aria-describedby={focusError ? 'session-focus-error' : undefined}
-                                />
-                                <label className="btn btn-sm btn-outline-primary" htmlFor={`session-focus-${value.replace(/[^a-z]/gi, '')}`}>{label}</label>
-                            </React.Fragment>
-                        ))}
-                    </div>
-                    {focusError && <div id="session-focus-error" className="text-danger small mt-2" role="alert">{focusError}</div>}
+                    <RadioGroup className={bookingStyles.preferences} aria-label="Session focus" name="preference"
+                        value={selectedPreference} onChange={handlePreferenceClick} isDisabled={isSubmitting} isRequired validationBehavior="aria">
+                        {SESSION_FOCUS_OPTIONS.map(({ value, label }) => <RadioButton key={value} value={value} label={label} />)}
+                    </RadioGroup>
+                    {focusError && <div id="session-focus-error" role="alert" className="text-danger small">{focusError}</div>}
                 </>}
             </fieldset>
-            <div className="mb-3">
-                <label htmlFor="sessionTopics" className="form-label">Topics to cover (optional)</label>
-                <textarea
-                    id="sessionTopics"
-                    name="sessionTopics"
-                    className="form-control"
-                    rows={3}
-                    value={newEvent.sessionTopics || ''}
-                    onChange={handleInputChange}
-                    maxLength={SESSION_TOPICS_MAX_LENGTH}
-                    disabled={isView}
-                    aria-describedby="session-topics-help"
-                />
-                <div id="session-topics-help" className="form-text">Include specific topics, questions or tasks you would like to cover.</div>
+            <div className={styles.field}>
+                <Label htmlFor="sessionTopics" isRequired={false}>Topics to cover (optional)</Label>
+                <TextAreaBase id="sessionTopics" name="sessionTopics" rows={3} value={newEvent.sessionTopics || ''}
+                    onChange={handleInputChange} maxLength={SESSION_TOPICS_MAX_LENGTH} disabled={isView || isSubmitting}
+                    aria-describedby="session-topics-help" />
+                <div id="session-topics-help" className={styles.hint}>Include specific topics, questions or tasks you would like to cover.</div>
             </div>
-            <div className="mb-3">
-                <label htmlFor="tutor" className="form-label">
-                    Assign Tutor
-                </label>
-                <Select
+            <div className={styles.field}>
+                <Label htmlFor="tutor" isRequired={false}>Assign Tutor</Label>
+                <CalendarMultiSelect
                     name="tutor"
                     options={filteredTutors}
                     value={selectedTutor}
                     onChange={handleTutorSelectChange}
-                    onMenuOpen={handleMenuOpen}
-                    classNamePrefix="select"
-                    isDisabled={isView}
+                    onMenuOpen={() => { handleMenuOpen(); setTutorMenuOpen(true); }}
+                    onMenuClose={() => setTutorMenuOpen(false)}
+                    menuIsOpen={tutorMenuOpen}
+                    menuPortalTarget={portalContainer}
+                    isDisabled={isView || isSubmitting}
                     noOptionsMessage={() => 'No tutors eligible for everyone in this booking are available at this time'}
                     aria-label="Assign tutor to event"
                     inputId="tutor"
@@ -365,6 +340,10 @@ const StudentEventForm = ({
                 <AsyncSelect
                     isMulti
                     name="students"
+                    menuPortalTarget={portalContainer}
+                    menuPosition="fixed"
+                    onMenuOpen={() => setStudentsMenuOpen(true)}
+                    onMenuClose={() => setStudentsMenuOpen(false)}
                     cacheOptions
                     loadOptions={loadStudentOptions}
                     value={selectedStudents}
@@ -372,7 +351,7 @@ const StudentEventForm = ({
                     classNamePrefix="select"
                     inputId="students"
                     aria-label="Students in this booking"
-                    isDisabled={isView}
+                    isDisabled={isView || isSubmitting}
                     isClearable={false}
                     styles={{ multiValueRemove: (base, state) => state.data.isFixed ? { ...base, display: 'none' } : base }}
                     noOptionsMessage={({ inputValue }) => inputValue.trim().length < 2 ? 'Type at least 2 letters to find students' : 'No students found'}
@@ -383,7 +362,8 @@ const StudentEventForm = ({
             </div>
             {!isView && (!bookableAvailability.ready || bookableAvailability.error) && <div role="status" className="small text-warning-emphasis">{bookableAvailability.error || 'Refreshing availability…'} <button type="button" className="btn btn-link btn-sm" onClick={bookableAvailability.refresh}>Retry</button></div>}
 
-        </BaseModal>
+            </div>
+        </StaffEventDialog>
     );
 };
 

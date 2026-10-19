@@ -21,9 +21,8 @@ jest.mock('@/firestore/firestoreOperations', () => ({
     deleteEventFromFirestore: jest.fn(),
 }));
 
-jest.mock('@/components/modals/BaseModal.jsx', () => ({
-    __esModule: true,
-    default: ({ children, onSubmit, noValidate }) => (
+jest.mock('@/components/forms/EventFormSections/EventFormUI', () => ({
+    StaffEventDialog: ({ children, onSubmit, noValidate }) => (
         <form onSubmit={onSubmit} noValidate={noValidate}>
             {children}
             <button type="submit">Submit</button>
@@ -31,7 +30,7 @@ jest.mock('@/components/modals/BaseModal.jsx', () => ({
     ),
 }));
 
-jest.mock('react-select', () => ({
+jest.mock('@/components/calendar/CalendarMultiSelect', () => ({
     __esModule: true,
     default: ({ options = [], value, onChange, onMenuOpen, inputId, 'aria-label': ariaLabel }) => (
         <select

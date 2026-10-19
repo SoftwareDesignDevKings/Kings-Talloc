@@ -12,7 +12,7 @@ test('deleting a request warns about lost rejection visibility and requires expl
     expect(confirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(cancel).toHaveBeenCalled(); expect(confirm).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('btn-danger');
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveAttribute('data-color', 'secondary-destructive');
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(confirm).toHaveBeenCalledWith('this');
 });
@@ -30,8 +30,8 @@ test('destructive confirmation buttons are locked while the write is in progress
 });
 test('reject and delete controls are both red and respect the processing lock', () => {
     render(<PendingApprovalItem disabled request={{ id: 'a', start: new Date(), end: new Date() }} onApprove={jest.fn()} onReject={jest.fn()} onDelete={jest.fn()} />);
-    expect(screen.getByRole('button', { name: 'Reject' })).toHaveClass('btn-outline-danger');
-    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('btn-danger');
+    expect(screen.getByRole('button', { name: 'Reject' })).toHaveAttribute('data-color', 'secondary-destructive');
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveAttribute('data-color', 'secondary-destructive');
     expect(screen.getByRole('button', { name: 'Reject' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
 });

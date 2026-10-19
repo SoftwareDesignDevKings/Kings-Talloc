@@ -12,9 +12,9 @@ const client = (identity = email, role = 'student') => env.authenticatedContext(
 }).firestore();
 const notice = recipientEmail => ({ recipientEmail, kind: 'approved', title: 'Session', message: 'Approved', start, createdAt: new Date() });
 beforeAll(async () => {
-    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+    process.env.FIRESTORE_EMULATOR_HOST = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080');
     env = await initializeTestEnvironment({ projectId: 'demo-talloc-compatible-rules', firestore: {
-        host: '127.0.0.1', port: 8080, rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.compat.rules'), 'utf8'),
+        host: '127.0.0.1', port: Number((process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':').at(-1)), rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.compat.rules'), 'utf8'),
     } });
     app = initializeApp({ projectId: 'demo-talloc-compatible-rules' }, 'compatible-notices'); db = getFirestore(app);
 });

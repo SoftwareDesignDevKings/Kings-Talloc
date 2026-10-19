@@ -1,6 +1,8 @@
 'use client';
 
-import BaseModal from './BaseModal.jsx';
+import DashboardDialog from '@/components/dashboard/DashboardDialog';
+import { Button } from '@/components/untitled/button';
+import styles from '@/styles/dashboard.module.css';
 import { AppLogout } from '@/lib/security/clientAuth';
 
 const ReLoginModal = ({ show, onHide }) => {
@@ -9,7 +11,7 @@ const ReLoginModal = ({ show, onHide }) => {
     };
 
     return (
-        <BaseModal
+        <DashboardDialog
             show={show}
             onHide={onHide}
             title="Microsoft Session Expired"
@@ -20,15 +22,15 @@ const ReLoginModal = ({ show, onHide }) => {
                 Your Microsoft session has expired.<br />
                 Please sign in again to send emails — your account will be reconnected automatically.
             </p>
-            <div className="d-flex gap-2 justify-content-end">
-                <button className="btn btn-outline-secondary" onClick={onHide}>
+            <div className={styles.reauthActions}>
+                <Button size="sm" color="secondary" onClick={onHide}>
                     Cancel
-                </button>
-                <button className="btn btn-primary" onClick={handleSignOut}>
+                </Button>
+                <Button size="sm" color="primary" onClick={handleSignOut}>
                     Sign in again
-                </button>
+                </Button>
             </div>
-        </BaseModal>
+        </DashboardDialog>
     );
 };
 

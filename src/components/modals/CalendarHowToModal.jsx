@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import BaseModal from './BaseModal';
-import { FaInfoCircle, FiSettings, MdEventNote, MdFlag } from '@/components/icons';
+import React, { useState, useEffect, useId } from 'react';
+import { Dialog, Modal, ModalOverlay } from '@/components/untitled/modal';
+import { Button } from '@/components/untitled/button';
+import { ChevronDown, XClose, InfoCircle, Settings01, Calendar, Flag02 } from '@untitledui/icons';
+import { TableCard } from '@/components/untitled/table-card';
+import guidance from '@/styles/studentGuidance.module.css';
+import styles from '@/styles/calendarControls.module.css';
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import useAuthSession from '@/hooks/useAuthSession';
-import { CALENDAR_COLOURS } from '@/constants/calendarColours';
+import CalendarColourGuide from '@/components/calendar/CalendarColourGuide';
 
 /**
  * "How to use" modal for students to understand calendar colors and filtering
@@ -15,8 +19,11 @@ import { CALENDAR_COLOURS } from '@/constants/calendarColours';
 const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
     const { session, userRole } = useAuthSession();
     const [showModal, setShowModal] = useState(show);
+    const [openSection, setOpenSection] = useState('colorsSection');
+    const titleId = useId();
 
     useEffect(() => {
+        let cancelled = false;
         // If autoShow is enabled and user is a student, check if they've seen it
         const checkCalendarHelpStatus = async () => {
             if (!autoShow || userRole !== 'student' || !session?.user?.email) return;
@@ -28,7 +35,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     // Show modal if hasSeenCalendarHelp is undefined or false
-                    if (!userData.hasSeenCalendarHelp) {
+                    if (!cancelled && !userData.hasSeenCalendarHelp) {
                         setShowModal(true);
                     }
                 }
@@ -38,6 +45,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
         };
 
         checkCalendarHelpStatus();
+        return () => { cancelled = true; };
     }, [autoShow, session?.user?.email, userRole]);
 
     // Sync with external show prop
@@ -63,94 +71,57 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
     };
 
     return (
-        <BaseModal
-            show={showModal}
-            onHide={handleClose}
-            title="How to Use the Calendar"
-            size="lg"
-            showFooter={true}
-            customFooter={
-                <div className="w-100 d-flex justify-content-center">
-                    <button
-                        type="button"
-                        className="btn btn-outline-primary px-4"
-                        onClick={handleClose}
-                    >
-                        Got it!
-                    </button>
-                </div>
-            }
-        >
-            <div className="text-start">
+        <ModalOverlay isOpen={showModal} isDismissable onOpenChange={open => { if (!open) handleClose(); }} className={styles.helpOverlay}>
+            <Modal className={styles.helpModal}>
+                <Dialog aria-labelledby={titleId} className={styles.helpDialog}>
+                    <header className={styles.helpHeader}>
+                        <h5 id={titleId} className={styles.helpTitle}>How to Use the Calendar</h5>
+                        <Button size="sm" color="tertiary" iconLeading={XClose} aria-label="Close" onClick={handleClose} />
+                    </header>
+                    <div className={styles.helpBody}>
+            <div className={guidance.helpContent}>
                 {/* Introduction */}
-                <p className="mb-4 text-center">
+                <p className={guidance.helpIntro}>
                     This calendar shows when tutors are available and lets you book tutoring sessions.
                 </p>
 
                 {/* Accordions */}
-                <div className="accordion mb-4" id="calendarHelpAccordion">
+                <div className={styles.helpAccordion} id="calendarHelpAccordion">
 
                                         {/* Calendar Colors Section - Default Open */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button className="accordion-button d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#colorsSection">
-                                <MdFlag size={18} className="text-primary" />
+                    <div className={styles.helpSection}>
+                        <h2>
+                            <Button size="sm" color="tertiary" className={styles.helpAccordionButton} iconLeading={Flag02} iconTrailing={ChevronDown} aria-expanded={openSection === 'colorsSection'} aria-controls="colorsSection" onClick={() => setOpenSection(current => current === 'colorsSection' ? null : 'colorsSection')}>
                                 <span>What do the Colours mean?</span>
-                            </button>
+                            </Button>
                         </h2>
-                        <div id="colorsSection" className="accordion-collapse collapse show" data-bs-parent="#calendarHelpAccordion">
-                            <div className="accordion-body">
-                                <p className="mb-3">
+                        <div id="colorsSection" hidden={openSection !== 'colorsSection'}>
+                            <div className={styles.helpAccordionBody}>
+                                <p className={guidance.spacedParagraph}>
                                     The calendar uses different colors to show different information:
                                 </p>
-                                <div className="d-flex flex-column gap-2">
-                                    {[
-                                        { ...CALENDAR_COLOURS.availabilityHeatmap, title: 'Green background', desc: 'Shows open tutor availability slots. Darker green = more tutors free.' },
-                                        { ...CALENDAR_COLOURS.availabilityBlock, title: 'Dashed outline', desc: 'A tutor-created availability block, shown as a planning item.' },
-                                        { ...CALENDAR_COLOURS.confirmed, title: 'Blue', desc: 'Confirmed tutoring sessions, including approved student requests.' },
-                                        { ...CALENDAR_COLOURS.coaching, title: 'Purple', desc: 'Coaching sessions.' },
-                                        { ...CALENDAR_COLOURS.pending, title: 'Orange', desc: 'Waiting for teacher approval on your booking request.' },
-                                        { ...CALENDAR_COLOURS.denied, title: 'Red', desc: 'Denied requests.' },
-                                        { ...CALENDAR_COLOURS.completed, title: 'Green event', desc: 'A session that has been marked completed.' },
-                                        { ...CALENDAR_COLOURS.notAttended, title: 'Pink', desc: 'A session marked as student did not attend.' },
-                                    ].map(({ bg, border, borderStyle = 'solid', title, desc }) => (
-                                        <div key={title} className="d-flex align-items-start">
-                                            <div className="me-3 mt-1 shrink-0" style={{
-                                                width: '24px',
-                                                height: '24px',
-                                                backgroundColor: bg,
-                                                border: `2px ${borderStyle} ${border}`,
-                                                borderRadius: '3px',
-                                            }} />
-                                            <div>
-                                                <strong>{title}</strong>
-                                                <p className="mb-0 small">{desc}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                <CalendarColourGuide userRole={userRole} descriptions />
                             </div>
                         </div>
                     </div>
                     
                     {/* Filter Panel Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button className="accordion-button collapsed d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterPanelSection">
-                                <FiSettings size={18} className="text-primary" />
+                    <div className={styles.helpSection}>
+                        <h2>
+                            <Button size="sm" color="tertiary" className={styles.helpAccordionButton} iconLeading={Settings01} iconTrailing={ChevronDown} aria-expanded={openSection === 'filterPanelSection'} aria-controls="filterPanelSection" onClick={() => setOpenSection(current => current === 'filterPanelSection' ? null : 'filterPanelSection')}>
                                 <span>Using the Filter Panel</span>
-                            </button>
+                            </Button>
                         </h2>
-                        <div id="filterPanelSection" className="accordion-collapse collapse" data-bs-parent="#calendarHelpAccordion">
-                            <div className="accordion-body">
-                                <ol className="mb-0">
-                                    <li className="mb-2">
+                        <div id="filterPanelSection" hidden={openSection !== 'filterPanelSection'}>
+                            <div className={styles.helpAccordionBody}>
+                                <ol className={guidance.steps}>
+                                    <li className={guidance.listItem}>
                                         <strong>Select a subject</strong> from the first dropdown (e.g. Software, IB CompSci)
                                     </li>
-                                    <li className="mb-2">
+                                    <li className={guidance.listItem}>
                                         <strong>Choose tutors</strong> from the second dropdown to see only their availabilities
                                     </li>
-                                    <li className="mb-0">
+                                    <li className={guidance.paragraph}>
                                         The calendar will update to show only the selected tutors&apos; available times
                                     </li>
                                 </ol>
@@ -159,26 +130,25 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                     </div>
 
                     {/* Event Interactions Section */}
-                    <div className="accordion-item">
-                        <h2 className="accordion-header">
-                            <button className="accordion-button collapsed d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#interactionsSection">
-                                <MdEventNote size={18} className="text-primary" />
+                    <div className={styles.helpSection}>
+                        <h2>
+                            <Button size="sm" color="tertiary" className={styles.helpAccordionButton} iconLeading={Calendar} iconTrailing={ChevronDown} aria-expanded={openSection === 'interactionsSection'} aria-controls="interactionsSection" onClick={() => setOpenSection(current => current === 'interactionsSection' ? null : 'interactionsSection')}>
                                 <span>Working with Events</span>
-                            </button>
+                            </Button>
                         </h2>
-                        <div id="interactionsSection" className="accordion-collapse collapse" data-bs-parent="#calendarHelpAccordion">
-                            <div className="accordion-body">
-                                <div className="mb-3">
+                        <div id="interactionsSection" hidden={openSection !== 'interactionsSection'}>
+                            <div className={styles.helpAccordionBody}>
+                                <div className={guidance.spacedParagraph}>
                                     <strong>Click an event</strong>
-                                    <p className="mb-0 small">Click any session to see full details like location, tutor name, and other students attending.</p>
+                                    <p className={guidance.smallParagraph}>Click any session to see full details like location, tutor name, and other students attending.</p>
                                 </div>
-                                <div className="mb-3">
+                                <div className={guidance.spacedParagraph}>
                                     <strong>Click a green time slot</strong>
-                                    <p className="mb-0 small">Click on a green background area to request a new tutoring session during that time.</p>
+                                    <p className={guidance.smallParagraph}>Click on a green background area to request a new tutoring session during that time.</p>
                                 </div>
-                                <div className="mb-0">
+                                <div className={guidance.paragraph}>
                                     <strong>Check the legend</strong>
-                                    <p className="mb-0 small">Look at the small legend in the bottom-right corner for a quick reminder of what each color means.</p>
+                                    <p className={guidance.smallParagraph}>Look at the small legend in the bottom-right corner for a quick reminder of what each color means.</p>
                                 </div>
                             </div>
                         </div>
@@ -186,28 +156,33 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                 </div>
 
                 {/* Booking Instructions */}
-                <div className="alert alert-success d-flex align-items-start mb-3">
-                    <FaInfoCircle size={20} className="text-success me-2 mt-1 flex-shrink-0" />
+                <TableCard.Root className={guidance.notice}>
+                    <InfoCircle width={20} height={20} aria-hidden="true" className={guidance.noticeIcon} />
                     <div>
                         <strong>To book a session:</strong> Click on a green time slot to see available tutors, then create a booking request. Your teacher will review and approve it.
                     </div>
-                </div>
+                </TableCard.Root>
 
                 {/* Bug Report */}
-                <div className="text-center pt-2 border-top">
-                    <small className="text-muted">
+                <div className={guidance.support}>
+                    <small >
                         Any bugs or errors? Please report to{' '}
                         <a
                             href="mailto:mienna@kings.edu.au"
-                            className="text-primary fw-semibold text-decoration-none"
-                            style={{ borderBottom: '1px solid currentColor' }}
+                            className={guidance.supportLink}
                         >
                             mienna@kings.edu.au
                         </a>
                     </small>
                 </div>
             </div>
-        </BaseModal>
+                    </div>
+                    <footer className={styles.helpFooter}>
+                        <Button size="sm" color="secondary" onClick={handleClose}>Got it!</Button>
+                    </footer>
+                </Dialog>
+            </Modal>
+        </ModalOverlay>
     );
 };
 

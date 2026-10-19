@@ -2,7 +2,13 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useAlert from '@/hooks/useAlert';
-import t from '@/styles/manageTable.module.css';
+import { RefreshCw01, SearchLg } from '@untitledui/icons';
+import { Button } from '@/components/untitled/button';
+import { Input } from '@/components/untitled/input';
+import { Badge } from '@/components/untitled/badge';
+import { TableCard } from '@/components/untitled/table-card';
+import { Tabs } from '@/components/untitled/tabs';
+import styles from '@/styles/canvasAdmin.module.css';
 import { formatDisplayDate, formatDisplayDateTime } from '@/utils/displayDate';
 
 const POLL_INTERVAL_MS = 3000;
@@ -30,44 +36,53 @@ const formatTermDateRange = (startAt, endAt) => {
     return '';
 };
 
-const SyncStatusBar = ({ status, onTrigger, syncing }) => {
-    if (!status) return null;
-    const { is_running, progress, last_status, last_error, last_full_sync_at } = status;
-
+const SyncStatusBar = ({ status, error, onRetry, onTrigger, syncing }) => {
+    const running = syncing || status?.is_running;
+    const failed = status?.last_status === 'failed';
+    const progress = status?.progress;
     return (
-        <div className={`alert mb-3 py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2 ${is_running ? 'alert-info' : last_status === 'failed' ? 'alert-danger' : 'alert-secondary'}`} style={{ fontSize: '0.85rem' }}>
-            <div>
-                {is_running ? (
-                    <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" />
-                        <strong>Syncing:</strong> {progress?.phase || 'In progress…'}
-                        {progress?.totalCourses > 0 && (
-                            <span className="ms-2 text-muted">
-                                ({progress.completedCourses}/{progress.totalCourses} courses)
-                            </span>
-                        )}
-                    </>
-                ) : (
-                    <>
-                        <strong>Last sync:</strong>{' '}
-                        {last_status === 'failed'
-                            ? <span className="text-danger">Failed — {last_error}</span>
-                            : last_full_sync_at
-                                ? formatDateTime(last_full_sync_at)
-                                : 'Never'}
-                    </>
-                )}
+        <section className={styles.syncCard} aria-label="Canvas sync">
+            <div className={styles.syncDetails}>
+                <div className={styles.syncHeading}>
+                    <h3>Canvas sync</h3>
+                    <Badge color={error || (!running && failed) ? 'error' : running ? 'brand' : 'gray'}>
+                        {error ? 'Status unavailable' : running ? 'Running' : failed ? 'Failed' : status ? 'Idle' : 'Loading'}
+                    </Badge>
+                </div>
+                <p className={styles.hint}>Sync whitelisted courses and their enrollments from Canvas.</p>
+                <div aria-live="polite" className={styles.syncProgress}>
+                    {error ? <span role="alert">{error}</span> : !status ? 'Loading sync status…' : running ? (
+                        <>
+                            <strong>Syncing:</strong> {progress?.phase || 'In progress…'}
+                            {progress?.totalCourses > 0 && <span> ({progress.completedCourses}/{progress.totalCourses} courses)</span>}
+                        </>
+                    ) : <><strong>Last sync:</strong> {failed ? `Failed — ${status.last_error || 'Unknown error'}` : formatDateTime(status.last_full_sync_at)}</>}
+                </div>
             </div>
-            <button
-                className="btn btn-sm btn-outline-primary"
-                onClick={onTrigger}
-                disabled={syncing || is_running}
-            >
-                {syncing || is_running ? 'Running…' : 'Run Sync'}
-            </button>
-        </div>
+            <div className={styles.syncActions}>
+                {error && <Button color="secondary" size="sm" onPress={onRetry}>Retry status</Button>}
+                <Button color="secondary" size="sm" iconLeading={RefreshCw01} onPress={onTrigger}
+                    isDisabled={!status || !!error || running} isLoading={running} showTextWhileLoading>
+                    {running ? 'Running…' : 'Run Sync'}
+                </Button>
+            </div>
+        </section>
     );
 };
+
+const ListState = ({ loading, error, onRetry, children }) => (
+    <tr className={styles.stateRow}><td colSpan={5}>
+        <div className={styles.tableState}>
+            {loading ? <span role="status">Loading courses…</span> : error ? (
+                <><span role="alert">{error}</span><Button color="secondary" size="sm" onPress={onRetry}>Retry courses</Button></>
+            ) : children}
+        </div>
+    </td></tr>
+);
+
+const Cell = ({ label, children, className }) => (
+    <td className={className}><span aria-hidden="true" className={styles.compactLabel}>{label}</span>{children}</td>
+);
 
 const CanvasWhitelistManager = () => {
     const { addAlert } = useAlert();
@@ -75,6 +90,11 @@ const CanvasWhitelistManager = () => {
     const [whitelisted, setWhitelisted] = useState(null);
     const [available, setAvailable] = useState(null);
     const [syncStatus, setSyncStatus] = useState(null);
+    const [statusError, setStatusError] = useState('');
+    const [whitelistError, setWhitelistError] = useState('');
+    const [availableError, setAvailableError] = useState('');
+    const [whitelistLoading, setWhitelistLoading] = useState(true);
+    const [availableLoading, setAvailableLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [activeTab, setActiveTab] = useState('whitelisted');
     const [search, setSearch] = useState('');
@@ -86,39 +106,63 @@ const CanvasWhitelistManager = () => {
     const fetchSyncStatus = useCallback(async () => {
         try {
             const res = await fetch('/api/canvas/sync/status');
-            if (!res.ok) return;
+            if (!res.ok) throw new Error('Status unavailable');
             const data = await res.json();
             setSyncStatus(data);
+            setStatusError('');
             return data;
         } catch {
+            setStatusError('Could not load sync status. Retry to check whether a sync is running.');
             return null;
         }
     }, []);
 
     const refreshWhitelistedCourses = useCallback(async () => {
+        setWhitelistLoading(true);
+        setWhitelistError('');
         try {
             const res = await fetch('/api/canvas/whitelist');
-            if (!res.ok) return false;
+            if (!res.ok) throw new Error('List unavailable');
             setWhitelisted(await res.json());
             return true;
         } catch {
+            setWhitelistError('Could not load whitelisted courses.');
             return false;
+        } finally {
+            setWhitelistLoading(false);
+        }
+    }, []);
+
+    const refreshAvailableCourses = useCallback(async () => {
+        setAvailableLoading(true);
+        setAvailableError('');
+        try {
+            const res = await fetch('/api/canvas/whitelist/available');
+            if (!res.ok) throw new Error('List unavailable');
+            setAvailable(await res.json());
+        } catch {
+            setAvailableError('Could not load Canvas courses.');
+        } finally {
+            setAvailableLoading(false);
         }
     }, []);
 
     const startPolling = useCallback(() => {
         if (pollRef.current) return;
+        // A slow status response must not launch overlapping polling requests.
+        let pending = false;
         pollRef.current = setInterval(async () => {
+            if (pending) return;
+            pending = true;
             const data = await fetchSyncStatus();
+            pending = false;
             if (data && !data.is_running) {
                 clearInterval(pollRef.current);
                 pollRef.current = null;
                 setSyncing(false);
                 if (data.last_status === 'success') {
                     const refreshed = await refreshWhitelistedCourses();
-                    if (!refreshed) {
-                        addAlert('error', 'Canvas sync completed, but the whitelisted list could not refresh.');
-                    }
+                    if (!refreshed) addAlert('error', 'Canvas sync completed, but the whitelisted list could not refresh.');
                     addAlert('success', 'Canvas sync completed successfully.');
                 } else if (data.last_status === 'failed') {
                     addAlert('error', `Sync failed: ${data.last_error}`);
@@ -127,19 +171,24 @@ const CanvasWhitelistManager = () => {
         }, POLL_INTERVAL_MS);
     }, [fetchSyncStatus, refreshWhitelistedCourses, addAlert]);
 
+    const retrySyncStatus = async () => {
+        const data = await fetchSyncStatus();
+        if (data?.is_running) startPolling();
+    };
+
     useEffect(() => {
-        const load = async () => {
-            const [wRes, aRes] = await Promise.all([
-                fetch('/api/canvas/whitelist'),
-                fetch('/api/canvas/whitelist/available'),
-            ]);
-            if (wRes.ok) setWhitelisted(await wRes.json());
-            if (aRes.ok) setAvailable(await aRes.json());
+        let mounted = true;
+        refreshWhitelistedCourses();
+        refreshAvailableCourses();
+        fetchSyncStatus().then(data => {
+            if (mounted && data?.is_running) startPolling();
+        });
+        return () => {
+            mounted = false;
+            clearInterval(pollRef.current);
+            pollRef.current = null;
         };
-        load();
-        fetchSyncStatus();
-        return () => { if (pollRef.current) clearInterval(pollRef.current); };
-    }, [fetchSyncStatus]);
+    }, [fetchSyncStatus, refreshWhitelistedCourses, refreshAvailableCourses, startPolling]);
 
     const whitelistedIds = new Set((whitelisted || []).map((c) => String(c.course_id)));
 
@@ -194,7 +243,6 @@ const CanvasWhitelistManager = () => {
             const data = await res.json();
             if (data.status === 'already_running') {
                 addAlert('info', 'A sync is already in progress.');
-                setSyncing(false);
                 startPolling();
                 return;
             }
@@ -227,171 +275,97 @@ const CanvasWhitelistManager = () => {
         );
     });
 
+    const isWhitelist = activeTab === 'whitelisted';
+    const rows = isWhitelist ? whitelisted || [] : filteredAvailable;
+    const loading = isWhitelist ? whitelistLoading : availableLoading;
+    const error = isWhitelist ? whitelistError : availableError;
+    const total = isWhitelist ? whitelisted?.length : available?.length;
+
     return (
-        <div className={t.container}>
-            <h2 className="h4 mb-3 fw-bold text-tks-secondary">Canvas Admin</h2>
-
-            <SyncStatusBar
-                status={syncStatus}
-                onTrigger={handleTriggerSync}
-                syncing={syncing}
-            />
-
-            <ul className="nav nav-tabs mb-3">
-                <li className="nav-item">
-                    <button
-                        className={`nav-link ${activeTab === 'whitelisted' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('whitelisted')}
-                    >
-                        Whitelisted
-                        {whitelisted && (
-                            <span className="badge bg-secondary ms-2">{whitelisted.length}</span>
-                        )}
-                    </button>
-                </li>
-                <li className="nav-item">
-                    <button
-                        className={`nav-link ${activeTab === 'available' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('available')}
-                    >
-                        All Canvas Courses
-                        {available && (
-                            <span className="badge bg-secondary ms-2">{available.length}</span>
-                        )}
-                    </button>
-                </li>
-            </ul>
-
-            {activeTab === 'whitelisted' && (
-                <div className={t.tableWrap}>
-                    <table className={`table table-hover mb-0 ${t.table}`}>
-                        <colgroup>
-                            <col />
-                            <col style={{ width: '16%' }} />
-                            <col style={{ width: '20%' }} />
-                            <col style={{ width: '18%' }} />
-                            <col style={{ width: '12%' }} />
-                        </colgroup>
-                        <thead>
-                            <tr>
-                                <th>Course Name</th>
-                                <th>Code</th>
-                                <th>Blueprint</th>
-                                <th>Last Synced</th>
-                                <th className={t.actionCol} style={{ textAlign: 'right' }}><span className="visually-hidden">Actions</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {whitelisted === null ? (
-                                <tr><td colSpan={5} className="text-center py-4"><span className="spinner-border spinner-border-sm" /></td></tr>
-                            ) : whitelisted.length === 0 ? (
-                                <tr><td colSpan={5} className="text-muted text-center py-4">No courses whitelisted yet. Add some from the All Canvas Courses tab.</td></tr>
-                            ) : (
-                                whitelisted.map((c) => (
-                                    <tr key={c.course_id}>
-                                        <td>{c.name || '—'}</td>
-                                        <td>{c.courseCode || c.course_code || '—'}</td>
-                                        <td>
-                                            {c.blueprint_course_name
-                                                ? <span className="badge bg-info text-dark" title={`Blueprint ID: ${c.blueprint_course_id}`}>{c.blueprint_course_name}</span>
-                                                : <span className="text-muted">—</span>}
-                                        </td>
-                                        <td>{formatDateTime(c.last_synced)}</td>
-                                        <td className={t.actionCol} style={{ textAlign: 'right' }}>
-                                            <div className={t.actionGroup} style={{ justifyContent: 'flex-end' }}>
-                                                <button
-                                                    className="btn btn-sm btn-outline-danger"
-                                                    disabled={removing.has(String(c.course_id))}
-                                                    onClick={() => handleRemove(c.course_id, c.name)}
-                                                >
-                                                    {removing.has(String(c.course_id)) ? '…' : 'Remove'}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {activeTab === 'available' && (
-                <>
-                    <div className={t.headerActions} style={{ marginBottom: '0.75rem' }}>
-                        <div className={t.searchWrapper}>
-                            <input
-                                type="text"
-                                placeholder="Search by name, code, or term"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="form-control"
-                            />
-                        </div>
-                    </div>
-                    <div className={t.tableWrap}>
-                        <table className={`table table-hover mb-0 ${t.table}`}>
-                            <colgroup>
-                                <col />
-                                <col style={{ width: '16%' }} />
-                                <col style={{ width: '20%' }} />
-                                <col style={{ width: '12%' }} />
-                                <col style={{ width: '12%' }} />
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>Course Name</th>
-                                    <th>Code</th>
-                                    <th>Term</th>
-                                    <th>State</th>
-                                    <th className={t.actionCol} style={{ textAlign: 'right' }}><span className="visually-hidden">Actions</span></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {available === null ? (
-                                    <tr><td colSpan={5} className="text-center py-4"><span className="spinner-border spinner-border-sm" /></td></tr>
-                                ) : filteredAvailable.length === 0 ? (
-                                    <tr><td colSpan={5} className="text-muted text-center py-4">No courses found.</td></tr>
-                                ) : (
-                                    filteredAvailable.map((c) => {
-                                        const id = String(c.id);
-                                        const isWhitelisted = whitelistedIds.has(id);
-                                        const termDateRange = formatTermDateRange(c.term_start_at, c.term_end_at);
-                                        return (
-                                            <tr key={id} style={isWhitelisted ? { opacity: 0.5 } : undefined}>
-                                                <td>{c.name || '—'}</td>
-                                                <td>{c.course_code || '—'}</td>
-                                                <td>
-                                                    <div>{c.term_name || '—'}</div>
-                                                    {termDateRange && (
-                                                        <small className="text-muted">{termDateRange}</small>
+        <div className={styles.container}>
+            <header className={styles.header}>
+                <h2>Canvas Admin</h2>
+                <p>Choose which Canvas courses are included in the sync.</p>
+            </header>
+            <SyncStatusBar status={syncStatus} error={statusError} onRetry={retrySyncStatus}
+                onTrigger={handleTriggerSync} syncing={syncing} />
+            <Tabs selectedKey={activeTab} onSelectionChange={setActiveTab} className={styles.tabs}>
+                <Tabs.List type="underline" size="sm" aria-label="Canvas courses" className={styles.tabList}>
+                    <Tabs.Item id="whitelisted" badge={whitelisted?.length} className={styles.tab}>Whitelisted</Tabs.Item>
+                    <Tabs.Item id="available" badge={available?.length} className={styles.tab}>All Canvas Courses</Tabs.Item>
+                </Tabs.List>
+                {['whitelisted', 'available'].map(key => (
+                    <Tabs.Panel key={key} id={key} className={styles.panel}>
+                        <TableCard.Root className={styles.tableCard}>
+                            <div className={styles.toolbar}>
+                                <div>
+                                    <h3>{isWhitelist ? 'Whitelisted courses' : 'All Canvas courses'}</h3>
+                                    <p className={styles.hint}>{isWhitelist ? 'These courses are included when you run a sync.' : 'Search current-year courses and add them to the whitelist.'}</p>
+                                </div>
+                                {!isWhitelist && <div className={styles.search}>
+                                    <Input size="md" icon={SearchLg} aria-label="Search Canvas courses"
+                                        placeholder="Search by name, code, or term" value={search} onChange={setSearch} />
+                                </div>}
+                            </div>
+                            <div className={styles.tableRegion} role="region" aria-label={isWhitelist ? 'Whitelisted courses table' : 'All Canvas courses table'} tabIndex={0}>
+                                <table className={styles.table} aria-label={isWhitelist ? 'Whitelisted courses' : 'All Canvas courses'}>
+                                    <thead><tr>
+                                        <th scope="col">Course Name</th><th scope="col">Code</th>
+                                        <th scope="col">{isWhitelist ? 'Blueprint' : 'Term'}</th>
+                                        <th scope="col">{isWhitelist ? 'Last Synced' : 'State'}</th>
+                                        <th scope="col" className={styles.actionHeading}>Actions</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {loading || error || rows.length === 0 ? (
+                                            <ListState loading={loading} error={error} onRetry={isWhitelist ? refreshWhitelistedCourses : refreshAvailableCourses}>
+                                                {isWhitelist ? <>
+                                                    <span>No courses whitelisted yet. Add some from the All Canvas Courses tab.</span>
+                                                    <Button color="secondary" size="sm" onPress={() => setActiveTab('available')}>Browse Canvas courses</Button>
+                                                </> : <>
+                                                    <span>No courses found.</span>
+                                                    {search.trim() && <Button color="secondary" size="sm" onPress={() => setSearch('')}>Clear search</Button>}
+                                                </>}
+                                            </ListState>
+                                        ) : rows.map(c => {
+                                            const id = String(isWhitelist ? c.course_id : c.id);
+                                            const added = whitelistedIds.has(id);
+                                            const termDates = formatTermDateRange(c.term_start_at, c.term_end_at);
+                                            return <tr key={id}>
+                                                <Cell label="Course Name" className={styles.courseName}>{c.name || '—'}</Cell>
+                                                <Cell label="Code">{c.courseCode || c.course_code || '—'}</Cell>
+                                                <Cell label={isWhitelist ? 'Blueprint' : 'Term'}>
+                                                    {isWhitelist ? c.blueprint_course_name ? (
+                                                        <Badge color="brand" className={styles.wrappingBadge} title={`Blueprint ID: ${c.blueprint_course_id}`}>{c.blueprint_course_name}</Badge>
+                                                    ) : '—' : <>
+                                                        <div>{c.term_name || '—'}</div>
+                                                        {termDates && <small className={styles.termDates}>{termDates}</small>}
+                                                    </>}
+                                                </Cell>
+                                                <Cell label={isWhitelist ? 'Last Synced' : 'State'}>
+                                                    {isWhitelist ? formatDateTime(c.last_synced) : <Badge color={c.workflow_state === 'available' ? 'success' : 'gray'}>{c.workflow_state || '—'}</Badge>}
+                                                </Cell>
+                                                <Cell label="Actions"><div className={styles.rowActions}>
+                                                    {isWhitelist ? (
+                                                        <Button color="secondary-destructive" size="sm" isLoading={removing.has(id)} showTextWhileLoading
+                                                            onPress={() => handleRemove(c.course_id, c.name)}>Remove</Button>
+                                                    ) : (
+                                                        <Button color="secondary" size="sm" isDisabled={added || whitelistLoading || !!whitelistError}
+                                                            isLoading={adding.has(id)} showTextWhileLoading onPress={() => handleAdd(c)}>{added ? 'Added' : 'Add'}</Button>
                                                     )}
-                                                </td>
-                                                <td>
-                                                    <span className={`badge ${c.workflow_state === 'available' ? 'bg-success' : 'bg-secondary'}`}>
-                                                        {c.workflow_state || '—'}
-                                                    </span>
-                                                </td>
-                                                <td className={t.actionCol}>
-                                                    <div className={t.actionGroup}>
-                                                        <button
-                                                            className="btn btn-sm btn-outline-primary"
-                                                            disabled={isWhitelisted || adding.has(id)}
-                                                            onClick={() => handleAdd(c)}
-                                                        >
-                                                            {isWhitelisted ? 'Added' : adding.has(id) ? '…' : 'Add'}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </>
-            )}
+                                                </div></Cell>
+                                            </tr>;
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className={styles.tableSummary} aria-live="polite">
+                                {loading ? 'Loading courses…' : error ? 'Courses unavailable' : `${rows.length} of ${total ?? 0} courses`}
+                                {!isWhitelist && whitelistError && <span> · Whitelist unavailable. <Button color="link-color" size="sm" onPress={refreshWhitelistedCourses}>Retry whitelist</Button></span>}
+                            </div>
+                        </TableCard.Root>
+                    </Tabs.Panel>
+                ))}
+            </Tabs>
         </div>
     );
 };

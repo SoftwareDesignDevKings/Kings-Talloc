@@ -24,6 +24,7 @@ const nextConfig = {
     },
     experimental: {
         optimizePackageImports: [
+            '@untitledui/icons',
             'react-big-calendar',
             'react-select',
             'react-icons',

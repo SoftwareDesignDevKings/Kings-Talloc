@@ -1,9 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { SiMicrosoft } from '@/components/icons';
 import { AppLogin } from '@/lib/security/clientAuth';
+import { Button } from '@/components/untitled/button';
+import { TableCard } from '@/components/untitled/table-card';
+import styles from '@/styles/entryPages.module.css';
 
 // Dev bypass users (matches authOptions.js)
 const DEV_USERS = [
@@ -18,10 +21,13 @@ const DEV_USERS = [
 ];
 
 export default function Login() {
+    const [isReady, setIsReady] = useState(false);
+    useEffect(() => { setIsReady(true); }, []);
+
     return (
-        <div className="d-flex align-items-center justify-content-center min-vh-100 bg-white">
-            <div className="w-100 p-4 p-md-5" style={{ maxWidth: '400px' }}>
-                <div className="d-flex justify-content-center mb-4 fade-in">
+        <div className={styles.page}>
+            <div className={styles.login}>
+                <div className={`${styles.crest} fade-in`}>
                     <Image
                         src="/TKS-CREST-PMS.svg"
                         alt="The King's School Logo"
@@ -31,43 +37,45 @@ export default function Login() {
                         unoptimized
                     />
                 </div>
-                <div className="text-center mb-4 fade-in" style={{ animationDelay: '100ms' }}>
-                    <h1 className="h3 fw-bolder text-dark mb-2" style={{ letterSpacing: '-0.02em' }}>
+                <div className={`${styles.loginIntro} fade-in`} style={{ animationDelay: '100ms' }}>
+                    <h1 className={styles.loginTitle}>
                         Kings-Talloc
                     </h1>
-                    <p className="text-muted small">
+                    <p className={styles.loginDescription}>
                         Please sign in to access your dashboard.
                     </p>
                 </div>
                 <div className="fade-in" style={{ animationDelay: '200ms' }}>
-
-                    
-                    {(process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ) && (
-                        <div className="mb-4 p-3 border rounded-3 bg-light">
-                            <p className="small fw-bold text-muted mb-3 text-uppercase" style={{ letterSpacing: '0.05em' }}>Dev Accounts</p>
-                            <div className="d-flex flex-wrap gap-2">
+                    {(process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && (
+                        <TableCard.Root className={styles.devPanel}>
+                            <p className={styles.devTitle}>Dev Accounts</p>
+                            <div className={styles.devAccounts}>
                                 {DEV_USERS.map(user => (
-                                    <button
+                                    <Button
                                         key={user.id}
+                                        isDisabled={!isReady}
                                         onClick={() => AppLogin(user.id)}
-                                        className="btn btn-outline-primary btn-sm grow text-xs"
+                                        size="xs"
+                                        color="secondary"
+                                        className={styles.devButton}
                                     >
                                         {user.label}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
-                        </div>
+                        </TableCard.Root>
                     )}
-                    
-                    <div className="d-flex flex-column gap-3">
-                        <button
+                    <div>
+                        <Button
+                            isDisabled={!isReady}
                             onClick={() => AppLogin('AZURE')}
-                            className="btn btn-dark w-100 d-flex align-items-center justify-content-center gap-2 py-2"
-                            style={{ minHeight: '44px' }}
+                            size="lg"
+                            color="primary"
+                            className={styles.microsoftButton}
+                            iconLeading={<SiMicrosoft size={18} data-icon="leading" aria-hidden="true" />}
                         >
-                            <SiMicrosoft size={18} />
-                            <span className="fw-medium">Sign in with Microsoft</span>
-                        </button>
+                            Sign in with Microsoft
+                        </Button>
                     </div>
                 </div>
             </div>

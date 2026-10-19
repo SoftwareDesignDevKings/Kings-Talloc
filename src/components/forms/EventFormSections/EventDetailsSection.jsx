@@ -1,10 +1,25 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { format, isValid } from 'date-fns';
-import { MdEventNote, MdAccessTime, SiMicrosoftTeams } from '@/components/icons';
-import styles from '@/styles/availabilityForm.module.css';
+import React, { useCallback, useState, useEffect, useContext, useMemo } from 'react';
+import { CalendarDateTime } from '@internationalized/date';
+import { MdEventNote, SiMicrosoftTeams } from '@/components/icons';
+import { Button } from '@/components/untitled/button';
+import { InputBase } from '@/components/untitled/input';
+import { DateTimePicker } from '@/components/untitled/date-time-picker';
+import { TextAreaBase } from '@/components/untitled/textarea';
+import { Label } from '@/components/untitled/label';
+import { EventSection, EventFormUIContext } from './EventFormUI';
+import styles from '@/styles/staffEventForm.module.css';
 
-const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing = {} }) => {
-    const [isRecurring, setIsRecurring] = useState(!!newEvent.recurring)
+const pickerValue = raw => {
+    const date = new Date(raw);
+    return raw && !Number.isNaN(date.getTime())
+        ? new CalendarDateTime(date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes()) : null;
+};
+
+const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnly, isEditing = false }) => {
+    const { busy, portalContainer, setMenuOpen, dateTimeValidity } = useContext(EventFormUIContext);
+    const disabled = readOnly || busy;
+    const startValue = useMemo(() => pickerValue(newEvent.start), [newEvent.start]);
+    const endValue = useMemo(() => pickerValue(newEvent.end), [newEvent.end]);
     const [initialOccurenceNum, setInitialOccurenceNum] = useState(newEvent.occurenceNum);
 
     // Capture the occurenceNum once when it first arrives from the parent (async hydration)
@@ -14,11 +29,6 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
             setInitialOccurenceNum(newEvent.occurenceNum);
         }
     }, [newEvent.occurenceNum, initialOccurenceNum]);
-
-    // Sync isRecurring state with newEvent.recurring changes
-    useEffect(() => {
-        setIsRecurring(!!newEvent.recurring)
-    }, [newEvent.recurring])
 
     const handleOccurenceNumChange = useCallback((e) => {
         // Store raw string while typing so "10" isn't truncated to "1"
@@ -50,220 +60,51 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
             recurring: prev.recurring === 'fortnightly' ? null : 'fortnightly',
         }));
     }, [setNewEvent]);
-    // Pending requests open their focus; approved bookings open their time and details.
-    const isExpanded = !(newEvent.createdByStudent && newEvent.approvalStatus === 'pending');
 
-    return (
-        <div className="accordion-item">
-            <h2 className="accordion-header">
-                <button
-                    className={`accordion-button shadow-none ${isExpanded ? '' : 'collapsed'}`}
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#eventDetails"
-                    aria-expanded={isExpanded}
-                    aria-controls="eventDetails"
-                >
-                    <div className="d-flex align-items-center justify-content-between w-100 me-3">
-                        <div className="d-flex align-items-center">
-                            <MdEventNote className="me-2 text-primary" size={20} aria-hidden="true" />
-                            <span className="fw-bold">General Information</span>
-                        </div>
-                        {newEvent.createTeamsMeeting && (
-                            <SiMicrosoftTeams className="text-tks-secondary" size={18} title="Teams Meeting Enabled" />
-                        )}
-                    </div>
-                </button>
-            </h2>
-            <div
-                id="eventDetails"
-                className={`accordion-collapse collapse ${isExpanded ? 'show' : ''}`}
-                data-bs-parent="#eventFormAccordion"
-            >
-                <div className="accordion-body p-4">
-                    <div className="mb-4">
-                        <label htmlFor="title" className="form-label small fw-bold text-muted text-uppercase">
-                            Event Title
-                        </label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="title"
-                            id="title"
-                            placeholder="e.g. Weekly Math Tutoring"
-                            value={newEvent.title}
-                            onChange={handleInputChange}
-                            disabled={readOnly}
-                            aria-label="Event title"
-                            aria-required="true"
-                        />
-                    </div>
-
-                    <div className="mb-4">
-                        <label htmlFor="description" className="form-label small fw-bold text-muted text-uppercase">
-                            Description (Optional)
-                        </label>
-                        <textarea
-                            className="form-control"
-                            rows={2}
-                            name="description"
-                            id="description"
-                            placeholder="Add any notes or context..."
-                            value={newEvent.description}
-                            onChange={handleInputChange}
-                            disabled={readOnly}
-                            aria-label="Event description"
-                        />
-                    </div>
-
-                    <div className="row g-3 mb-4">
-                        <div className="col-md-6">
-                            <label
-                                htmlFor="start"
-                                className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1"
-                            >
-                                <MdAccessTime /> Start Time
-                            </label>
-                            <input
-                                type="datetime-local"
-                                className="form-control"
-                                name="start"
-                                id="start"
-                                value={
-                                    newEvent.start && isValid(new Date(newEvent.start))
-                                        ? format(new Date(newEvent.start), "yyyy-MM-dd'T'HH:mm")
-                                        : ''
-                                }
-                                onChange={handleInputChange}
-                                required
-                                disabled={readOnly}
-                                aria-label="Event start time"
-                                aria-required="true"
-                            />
-                        </div>
-                        <div className="col-md-6">
-                            <label
-                                htmlFor="end"
-                                className="form-label small fw-bold text-muted text-uppercase d-flex align-items-center gap-1"
-                            >
-                                <MdAccessTime /> End Time
-                            </label>
-                            <input
-                                type="datetime-local"
-                                className="form-control"
-                                name="end"
-                                id="end"
-                                value={
-                                    newEvent.end && isValid(new Date(newEvent.end))
-                                        ? format(new Date(newEvent.end), "yyyy-MM-dd'T'HH:mm")
-                                        : ''
-                                }
-                                onChange={handleInputChange}
-                                required
-                                disabled={readOnly}
-                                aria-label="Event end time"
-                                aria-required="true"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-3 border-top">
-                        {!readOnly && (
-                            <div className="d-flex align-items-center gap-3">
-                                <button
-                                    type="button"
-                                    className={`btn d-flex align-items-center gap-2 ${newEvent.createTeamsMeeting ? '' : styles.teamsButtonOutline} ${newEvent.createTeamsMeeting ? 'btn-outline-danger' : 'btn-outline-primary'}`}
-                                    onClick={handleTeamsMeetingToggle}
-                                    aria-pressed={newEvent.createTeamsMeeting}
-                                    aria-label={`${newEvent.createTeamsMeeting ? 'Remove' : 'Add'} online Teams meeting`}
-                                >
-                                    <SiMicrosoftTeams size={24} aria-hidden="true" />
-                                    <span>{newEvent.createTeamsMeeting ? 'Remove Teams Meeting' : 'Add Teams Meeting'}</span>
-                                </button>
-                            </div>
-                        )}
-
-                        {newEvent.teamsJoinUrl && (
-                            <a
-                                href={newEvent.teamsJoinUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-outline-success d-flex align-items-center gap-2"
-                            >
-                                <SiMicrosoftTeams size={18} /> Join Now
-                            </a>
-                        )}
-
-                        {!readOnly && (
-                            <div className="d-flex align-items-center gap-2 ms-auto">
-                                <small className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.7rem' }}>Recurrence:</small>
-                                <div
-                                    className="btn-group btn-group-sm"
-                                    role="group"
-                                    aria-labelledby="recurring-label"
-                                >
-                                    <button
-                                        type="button"
-                                        className={`btn ${newEvent.recurring === 'weekly' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                        onClick={() => {
-                                            handleWeeklyRecurringToggle()
-                                            setIsRecurring(true)
-                                        }}
-                                        disabled={isEditing}
-                                        aria-pressed={newEvent.recurring === 'weekly'}
-                                    >
-                                        Weekly
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`btn ${newEvent.recurring === 'fortnightly' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                        onClick={() => {
-                                            handleFortnightlyRecurringToggle()
-                                            setIsRecurring(true)
-                                        }}
-                                        disabled={isEditing}
-                                        aria-pressed={newEvent.recurring === 'fortnightly'}
-                                    >
-                                        Fortnightly
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {isRecurring && !newEvent.isRecurringInstance && !readOnly && (
-                        <div className="mt-3 p-3 bg-light rounded d-flex align-items-center justify-content-between">
-                            {isEditing && initialOccurenceNum ? (
-                                <div className="small text-muted">
-                                    <span className="fw-bold">Active Occurrences:</span> {newEvent.eventExceptions && newEvent.eventExceptions.length > 0
-                                        ? newEvent.occurenceNum - newEvent.eventExceptions.length
-                                        : newEvent.occurenceNum}
-                                </div>
-                            ) : (
-                                <>
-                                    <label htmlFor="occurenceNum" className="form-label small fw-bold text-muted text-uppercase mb-0 me-3">
-                                        Occurrences *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        className="form-control form-control-sm w-auto"
-                                        name="occurenceNum"
-                                        id="occurenceNum"
-                                        style={{ maxWidth: '100px' }}
-                                        value={newEvent.occurenceNum || ''}
-                                        onChange={handleOccurenceNumChange}
-                                        onBlur={handleOccurenceNumBlur}
-                                        min="2"
-                                        placeholder="Min 2"
-                                    />
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
+    return <EventSection id="eventDetails" title="General Information" defaultExpanded={!(newEvent.createdByStudent && newEvent.approvalStatus === 'pending')} icon={MdEventNote}
+        trailing={newEvent.createTeamsMeeting && <SiMicrosoftTeams size={18} title="Teams Meeting Enabled" />}>
+        <div className={styles.fields}>
+            <div className={styles.field}>
+                <Label htmlFor="title" isRequired={false}>Event Title</Label>
+                <InputBase type="text" name="title" id="title" placeholder="e.g. Weekly Math Tutoring" value={newEvent.title || ''}
+                    onChange={handleInputChange} isDisabled={disabled} disabled={disabled} aria-label="Event title" aria-required="true" />
             </div>
+            <div className={styles.field}>
+                <Label htmlFor="description" isRequired={false}>Description (Optional)</Label>
+                <TextAreaBase rows={2} name="description" id="description" placeholder="Add any notes or context..." value={newEvent.description || ''}
+                    onChange={handleInputChange} disabled={disabled} aria-label="Event description" />
+            </div>
+            <div className={styles.grid}>
+                {['start', 'end'].map(name => {
+                    return <DateTimePicker key={name} name={name} label={name === 'start' ? 'Start Time' : 'End Time'} value={name === 'start' ? startValue : endValue}
+                        isDisabled={disabled} portalContainer={portalContainer} onOpenChange={setMenuOpen}
+                        onDraftValidityChange={complete => { if (dateTimeValidity) dateTimeValidity.current[name] = complete; }}
+                        onChange={next => setNewEvent(prev => ({ ...prev, [name]: next ? next.toString() : '' }))} />;
+                })}
+            </div>
+            <div className={styles.actions}>
+                {!readOnly && <Button size="sm" color={newEvent.createTeamsMeeting ? 'secondary-destructive' : 'secondary'} isDisabled={busy}
+                    onClick={handleTeamsMeetingToggle} aria-pressed={!!newEvent.createTeamsMeeting}
+                    aria-label={`${newEvent.createTeamsMeeting ? 'Remove' : 'Add'} online Teams meeting`}>
+                    <SiMicrosoftTeams size={20} aria-hidden="true" />{newEvent.createTeamsMeeting ? 'Remove Teams Meeting' : 'Add Teams Meeting'}
+                </Button>}
+                {newEvent.teamsJoinUrl && <Button size="sm" color="secondary" href={newEvent.teamsJoinUrl} target="_blank" rel="noopener noreferrer"><SiMicrosoftTeams size={18} />Join Now</Button>}
+                {!readOnly && <div className={styles.recurrence}>
+                    <span id="recurring-label">Recurrence:</span>
+                    <div className={styles.buttonGroup} role="group" aria-labelledby="recurring-label">
+                        <Button size="sm" color="secondary" onClick={handleWeeklyRecurringToggle} isDisabled={isEditing || busy} aria-pressed={newEvent.recurring === 'weekly'}>Weekly</Button>
+                        <Button size="sm" color="secondary" onClick={handleFortnightlyRecurringToggle} isDisabled={isEditing || busy} aria-pressed={newEvent.recurring === 'fortnightly'}>Fortnightly</Button>
+                    </div>
+                </div>}
+            </div>
+            {!!newEvent.recurring && !newEvent.isRecurringInstance && !readOnly && <div className={styles.occurrences}>
+                {isEditing && initialOccurenceNum ? <span><strong>Active Occurrences:</strong> {newEvent.eventExceptions?.length ? newEvent.occurenceNum - newEvent.eventExceptions.length : newEvent.occurenceNum}</span> : <>
+                    <Label htmlFor="occurenceNum" isRequired={false}>Occurrences *</Label>
+                    <InputBase type="number" name="occurenceNum" id="occurenceNum" value={newEvent.occurenceNum || ''}
+                        onChange={handleOccurenceNumChange} onBlur={handleOccurenceNumBlur} min="2" placeholder="Min 2" isDisabled={busy} disabled={busy} />
+                </>}
+            </div>}
         </div>
-    );
+    </EventSection>;
 };
-
 export default React.memo(EventDetailsSection);

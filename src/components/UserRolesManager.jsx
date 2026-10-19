@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import Select from 'react-select';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { MultiSelect } from '@/components/untitled/multi-select';
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import useAlert from '@/hooks/useAlert';
 import { AppLogout } from '@/lib/security/clientAuth';
 import styles from '@/styles/userRoles.module.css';
-import t from '@/styles/manageTable.module.css';
+import { Button } from '@/components/untitled/button';
+import { Input } from '@/components/untitled/input';
+import { UserRolesSelect } from '@/components/UserRolesSelect';
+import { Toggle } from '@/components/untitled/toggle';
+import { Dialog, Modal, ModalOverlay } from '@/components/untitled/modal';
+import { TableCard } from '@/components/untitled/table-card';
+import { Badge } from '@/components/untitled/badge';
+import { SearchLg, XClose, Upload01, Edit01, Trash01 } from '@untitledui/icons';
 import { getRequestNotificationPreference } from '@/utils/requestNotifications';
 import {
     buildTutorCoverageOptionGroups,
@@ -30,6 +37,8 @@ const sortUsers = (list) => [...list].sort((a, b) => getRolePriority(a) - getRol
 const UserRolesManager = () => {
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
+    const [usersLoading, setUsersLoading] = useState(true);
+    const [usersError, setUsersError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
@@ -42,19 +51,11 @@ const UserRolesManager = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [uploadingTimesheets, setUploadingTimesheets] = useState({});
     const { addAlert } = useAlert();
-    const modalRef = useRef(null);
+    const [coveragePortal, setCoveragePortal] = useState(null);
+    const [coverageMenuOpen, setCoverageMenuOpen] = useState(false);
+    const [rolesMenuOpen, setRolesMenuOpen] = useState(false);
+    const timesheetInputs = useRef({});
 
-    // Extra roles available per defaultRole.
-    // Teacher and tutor/coach are mutually exclusive — selecting one hides the other.
-    const EXTRA_ROLES_BY_DEFAULT = {
-        admin:   ['teacher'],
-        teacher: ['admin'],
-        tutor:   ['coach', 'admin'],
-        coach:   ['tutor', 'admin'],
-        student: [],
-    };
-
-    const extraRoleOptions = EXTRA_ROLES_BY_DEFAULT[role] ?? [];
     const tutorCoverageOptionGroups = useMemo(
         () => buildTutorCoverageOptionGroups(canvasCourses),
         [canvasCourses],
@@ -66,17 +67,26 @@ const UserRolesManager = () => {
     const userHasTutorAccess = role === 'tutor' || userRoles.includes('tutor');
     const userHasTeacherAccess = role === 'teacher' || userRoles.includes('teacher');
 
-    useEffect(() => {
-        const fetchUsers = async () => {
+    const loadUsers = useCallback(async () => {
+        setUsersLoading(true);
+        setUsersError('');
+        try {
             const querySnapshot = await getDocs(collection(db, 'users'));
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
             const sortedUsers = sortUsers(usersList);
             setUsers(sortedUsers);
             setFilteredUsers(sortedUsers);
-        };
+        } catch (error) {
+            console.error('Error loading users:', error);
+            setUsersError('Could not load users. Please try again.');
+        } finally {
+            setUsersLoading(false);
+        }
+    }, []);
 
-        fetchUsers();
+    useEffect(() => {
+        loadUsers();
 
         const fetchCanvasCourses = async () => {
             const querySnapshot = await getDocs(collection(db, 'canvasCourses'));
@@ -87,7 +97,7 @@ const UserRolesManager = () => {
             console.error('Error loading Canvas coverage options:', error);
             setCanvasCourses([]);
         });
-    }, []);
+    }, [loadUsers]);
 
     useEffect(() => {
         const results = users.filter(
@@ -101,38 +111,6 @@ const UserRolesManager = () => {
         setFilteredUsers(results);
     }, [searchTerm, users]);
 
-    useEffect(() => {
-        if (showModal && modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
-            const modalElement = modalRef.current;
-            // Initialize Bootstrap modal with accessibility features
-            const modalInstance = new window.bootstrap.Modal(modalElement, {
-                backdrop: 'static',
-                keyboard: true,
-                focus: true,
-            });
-            modalInstance.show();
-
-            // Handle modal close event
-            const handleModalHidden = () => {
-                setShowModal(false);
-                setEmail('');
-                setName('');
-                setRole('student');
-                setUserRoles([]);
-                setRequestNotificationsEnabled(null);
-                setTutorCoverage([]);
-                setIsEditing(false);
-            };
-
-            modalElement.addEventListener('hidden.bs.modal', handleModalHidden);
-
-            return () => {
-                modalInstance.hide();
-                modalElement.removeEventListener('hidden.bs.modal', handleModalHidden);
-            };
-        }
-    }, [showModal]);
-
     const validateEmail = (email) => {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return re.test(String(email).toLowerCase());
@@ -140,6 +118,7 @@ const UserRolesManager = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!role) return;
         if (!validateEmail(email)) {
             addAlert('error', 'Please enter a valid email address.');
             return;
@@ -161,23 +140,7 @@ const UserRolesManager = () => {
 
             addAlert('success', `Role of ${role} assigned to ${email}`);
 
-            // Close modal using Bootstrap API
-            if (modalRef.current && typeof window !== 'undefined' && window.bootstrap) {
-                const modalInstance = window.bootstrap.Modal.getInstance(modalRef.current);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            } else {
-                // Fallback if Bootstrap not loaded
-                setShowModal(false);
-                setEmail('');
-                setName('');
-                setRole('student');
-                setUserRoles([]);
-                setRequestNotificationsEnabled(null);
-                setTutorCoverage([]);
-                setIsEditing(false);
-            }
+            handleCloseModal();
 
             const querySnapshot = await getDocs(collection(db, 'users'));
             const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -234,6 +197,19 @@ const UserRolesManager = () => {
         setShowModal(true);
     };
 
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setCoverageMenuOpen(false);
+        setRolesMenuOpen(false);
+        setEmail('');
+        setName('');
+        setRole('student');
+        setUserRoles([]);
+        setRequestNotificationsEnabled(null);
+        setTutorCoverage([]);
+        setIsEditing(false);
+    };
+
     const fileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -280,23 +256,39 @@ const UserRolesManager = () => {
     };
 
     return (
-        <div className={t.container}>
-            <h2 className="h4 mb-3 fw-bold text-tks-secondary">
-                Manage User Roles
-            </h2>
+        <section className={styles.section} aria-labelledby="manageUsersHeading">
+            <header className={styles.sectionHeader}>
+                <div>
+                    <h2 id="manageUsersHeading" className={styles.sectionTitle}>Manage User Roles</h2>
+                    <p className={styles.sectionDescription}>Manage user access and tutor timesheets.</p>
+                </div>
+            </header>
 
-            <div className={t.headerActions}>
-                <div className={t.searchWrapper}>
-                    <input
+            <TableCard.Root size="sm" className={styles.tableCard}>
+            <div className={styles.toolbar}>
+                <div className={styles.searchWrapper}>
+                    <Input
                         type="text"
+                        size="md"
+                        icon={SearchLg}
+                        aria-label="Search users"
                         placeholder="Search users..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="form-control"
+                        onChange={setSearchTerm}
                     />
                 </div>
-                <button
-                    onClick={() => {
+                <div className={styles.toolbarActions}>
+                <Button
+                    href="/api/download-template"
+                    download="Timesheet_Template.docx"
+                    color="secondary"
+                    size="sm"
+                    className={styles.templateButton}
+                >Timesheet Template</Button>
+                <Button
+                    color="primary"
+                    size="sm"
+                    onPress={() => {
                         setShowModal(true);
                         setIsEditing(false);
                         setEmail('');
@@ -306,52 +298,52 @@ const UserRolesManager = () => {
                         setRequestNotificationsEnabled(null);
                         setTutorCoverage([]);
                     }}
-                    className="btn btn-outline-primary btn-sm"
                 >
                     Add User Role
-                </button>
+                </Button>
+                </div>
             </div>
 
-            <div className="d-flex flex-wrap gap-2 mb-3">
-                <a
-                    href="/api/download-template"
-                    download="Timesheet_Template.docx"
-                    className="btn btn-outline-secondary btn-sm rounded-pill"
-                >
-                    Timesheet Template
-                </a>
-            </div>
-
-            <div className={t.tableWrap}>
-                <table className={`table table-hover mb-0 ${t.table}`} style={{ tableLayout: 'fixed' }}>
+            <div className={styles.tableScroll} role="region" aria-label="Manage users table" tabIndex={0} aria-busy={usersLoading}>
+                <table className={styles.usersTable} aria-label="Manage user roles">
                     <thead>
                         <tr>
-                            <th scope="col" style={{ width: '35%' }}>User</th>
-                            <th scope="col" style={{ width: '30%' }}>Roles</th>
-                            <th scope="col" style={{ width: '35%', textAlign: 'right' }} className={t.actionCol}><span className="visually-hidden">Actions</span></th>
+                            <th scope="col">User</th>
+                            <th scope="col">Roles</th>
+                            <th scope="col" className={styles.actionsHeading}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredUsers.map((user) => (
+                        {usersLoading || usersError || filteredUsers.length === 0 ? (
+                            <tr className={styles.stateRow}><td colSpan={3}>
+                                <div className={styles.tableState} role={usersError ? 'alert' : 'status'}>
+                                    {usersLoading ? 'Loading users…' : usersError || (users.length ? 'No matching users' : 'No users yet')}
+                                    {!usersLoading && usersError && <Button color="secondary" size="sm" onPress={loadUsers}>Try again</Button>}
+                                    {!usersLoading && !usersError && users.length > 0 && <Button color="secondary" size="sm" onPress={() => setSearchTerm('')}>Clear search</Button>}
+                                </div>
+                            </td></tr>
+                        ) : filteredUsers.map((user) => (
                             <tr key={user.id}>
-                                <td style={{ overflow: 'hidden' }}>
-                                    <div className="fw-bold text-truncate">{user.name}</div>
-                                    <div className="text-muted small text-truncate">{user.email}</div>
+                                <td className={styles.userCell}>
+                                    <div className={styles.userName}>{user.name || user.email}</div>
+                                    <div className={styles.userEmail}>{user.email}</div>
                                 </td>
-                                <td>
-                                    <div className="d-flex flex-column flex-sm-row flex-wrap align-items-start gap-1">
-                                        <span className={`${styles.roleBadge} ${styles.roleBadgePrimary}`}>
+                                <td className={styles.rolesCell}>
+                                    <span className={styles.compactLabel} aria-hidden="true">Roles</span>
+                                    <div className={styles.roleBadges}>
+                                        <Badge color="brand" size="sm">
                                             {(user.defaultRole || user.role).toUpperCase()}
-                                        </span>
+                                        </Badge>
                                         {user.userRoles && user.userRoles.map(r => (
-                                            <span key={r} className={styles.roleBadge}>
+                                            <Badge key={r} color="gray" size="sm">
                                                 {r.toUpperCase()}
-                                            </span>
+                                            </Badge>
                                         ))}
                                     </div>
                                 </td>
-                                <td className={t.actionCol} style={{ textAlign: 'right' }}>
-                                    <div className={t.actionGroup} style={{ justifyContent: 'flex-end' }}>
+                                <td className={styles.actionsCell}>
+                                    <span className={styles.compactLabel} aria-hidden="true">Actions</span>
+                                    <div className={styles.rowActions}>
                                         {hasTutorAccess(user) && (
                                             <>
                                                 <input
@@ -369,34 +361,41 @@ const UserRolesManager = () => {
                                                     }}
                                                     className="d-none"
                                                     id={`timesheet-upload-${user.email}`}
+                                                    ref={element => { timesheetInputs.current[user.email] = element; }}
                                                     disabled={uploadingTimesheets[user.email]}
                                                 />
-                                                <label
-                                                    htmlFor={`timesheet-upload-${user.email}`}
-                                                    className={`btn btn-sm mb-0 ${styles.uploadLabel} ${
-                                                        uploadingTimesheets[user.email]
-                                                            ? 'btn-secondary disabled'
-                                                            : 'btn-outline-success'
-                                                    }`}
-                                                >
-                                                    {uploadingTimesheets[user.email] ? '...' : 'Upload'}
-                                                </label>
+                                                <Button
+                                                    type="button"
+                                                    color="tertiary"
+                                                    size="xs"
+                                                    iconLeading={Upload01}
+                                                    className={styles.rowAction}
+                                                    aria-label="Upload"
+                                                    title="Upload timesheet"
+                                                    isLoading={!!uploadingTimesheets[user.email]}
+                                                    isDisabled={!!uploadingTimesheets[user.email]}
+                                                    onPress={() => timesheetInputs.current[user.email]?.click()}
+                                                />
                                             </>
                                         )}
-                                        <button
-                                            onClick={() => handleEdit(user)}
-                                            className="btn btn-sm btn-outline-primary"
+                                        <Button
+                                            onPress={() => handleEdit(user)}
+                                            color="tertiary"
+                                            size="xs"
+                                            iconLeading={Edit01}
+                                            className={styles.rowAction}
                                             aria-label="Edit user"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(user.email)}
-                                            className="btn btn-sm btn-outline-danger"
+                                            title="Edit user"
+                                        />
+                                        <Button
+                                            onPress={() => handleDelete(user.email)}
+                                            color="tertiary-destructive"
+                                            size="xs"
+                                            iconLeading={Trash01}
+                                            className={styles.rowAction}
                                             aria-label="Delete user"
-                                        >
-                                            Delete
-                                        </button>
+                                            title="Delete user"
+                                        />
                                     </div>
                                 </td>
                             </tr>
@@ -404,172 +403,133 @@ const UserRolesManager = () => {
                     </tbody>
                 </table>
             </div>
+            <div className={styles.tableSummary}>
+                {!usersLoading && !usersError && `${filteredUsers.length} of ${users.length} users`}
+            </div>
+            </TableCard.Root>
 
             {showModal && (
-                <div
-                    className="modal fade"
-                    ref={modalRef}
-                    tabIndex="-1"
-                    aria-labelledby="userRoleModalLabel"
+                <ModalOverlay
+                    isOpen={showModal}
+                    isDismissable={false}
+                    isKeyboardDismissDisabled={coverageMenuOpen || rolesMenuOpen}
+                    onOpenChange={open => { if (!open) handleCloseModal(); }}
+                    className={styles.userOverlay}
                 >
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content border-0 shadow-lg">
-                            <div className="modal-header border-bottom-0 pb-0">
+                    <Modal className={styles.userModal}>
+                        <Dialog ref={setCoveragePortal} aria-labelledby="userRoleModalLabel" className={styles.modalDialog}>
+                            <div className={`modal-header border-bottom-0 ${styles.modalHeader}`}>
                                 <h5 className="modal-title fw-bold" id="userRoleModalLabel">
                                     {isEditing ? 'Edit User' : 'Add New User'}
                                 </h5>
-                                <button
+                                <Button
                                     type="button"
-                                    className="btn-close"
-                                    data-bs-dismiss="modal"
+                                    color="tertiary"
+                                    size="sm"
+                                    iconLeading={<XClose data-icon aria-hidden="true" />}
+                                    className="ms-auto"
+                                    onPress={handleCloseModal}
                                     aria-label="Close"
-                                ></button>
+                                />
                             </div>
-                            <form onSubmit={handleSubmit}>
+                            <form onSubmit={handleSubmit} className={styles.modalForm}>
                                 <div className="modal-body pt-4">
                                     <div className={styles.modalSection}>
                                         <div className="mb-3">
-                                            <label htmlFor="userEmail" className="form-label small fw-bold text-muted">
-                                                Email Address
-                                            </label>
-                                            <input
+                                            <Input
+                                                label="Email Address"
+                                                hideRequiredIndicator
                                                 type="email"
-                                                className="form-control"
+                                                size="md"
                                                 id="userEmail"
                                                 value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                required
-                                                disabled={isEditing}
+                                                onChange={setEmail}
+                                                isRequired
+                                                isDisabled={isEditing}
+                                                validationBehavior="native"
                                             />
                                         </div>
                                         <div className="mb-0">
-                                            <label htmlFor="userName" className="form-label small fw-bold text-muted">
-                                                Full Name
-                                            </label>
-                                            <input
+                                            <Input
+                                                label="Full Name"
+                                                hideRequiredIndicator
                                                 type="text"
-                                                className="form-control"
+                                                size="md"
                                                 id="userName"
                                                 value={name}
-                                                onChange={(e) => setName(e.target.value)}
-                                                required
+                                                onChange={setName}
+                                                isRequired
+                                                validationBehavior="native"
                                             />
                                         </div>
                                     </div>
 
                                     <div className={styles.modalSection}>
-                                        <label htmlFor="userRole" className="form-label small fw-bold text-muted">
-                                            Default Access Role
-                                        </label>
-                                        <select
-                                            className="form-select"
-                                            id="userRole"
-                                            value={role}
-                                            onChange={(e) => {
-                                                const newDefault = e.target.value;
-                                                setRole(newDefault);
-                                                // strip any userRoles that aren't valid for the new defaultRole
-                                                const allowed = EXTRA_ROLES_BY_DEFAULT[newDefault] ?? [];
-                                                const nextUserRoles = userRoles.filter(r => allowed.includes(r));
+                                        <label htmlFor="userRole" className={styles.sectionLabel}>Roles</label>
+                                        <UserRolesSelect
+                                            role={role} userRoles={userRoles}
+                                            portalContainer={coveragePortal}
+                                            isOpen={rolesMenuOpen} onOpenChange={setRolesMenuOpen}
+                                            onChange={({ role: nextRole, userRoles: nextUserRoles }) => {
+                                                setRole(nextRole);
                                                 setUserRoles(nextUserRoles);
-                                                if (newDefault !== 'tutor' && !nextUserRoles.includes('tutor')) {
+                                                if (nextRole !== 'tutor' && !nextUserRoles.includes('tutor')) {
                                                     setTutorCoverage([]);
                                                 }
                                             }}
-                                        >
-                                            <option value="student">Student</option>
-                                            {role === 'admin' && <option value="admin">Admin</option>}
-                                            <option value="tutor">Tutor</option>
-                                            <option value="coach">Coach</option>
-                                            <option value="teacher">Teacher</option>
-                                        </select>
+                                        />
                                     </div>
 
-                                    {extraRoleOptions.length > 0 && (
-                                        <div className={styles.modalSection}>
-                                            <label className="form-label small fw-bold text-muted mb-0">
-                                                Additional Privileges
-                                            </label>
-                                            <div className={styles.rolesGrid}>
-                                                {extraRoleOptions.map((roleOption) => {
-                                                    const isSelected = userRoles.includes(roleOption);
-                                                    return (
-                                                        <button
-                                                            type="button"
-                                                            key={roleOption}
-                                                            className={`badge rounded-pill ${styles.selectableBadge} ${isSelected ? styles.selectableBadgeSelected : 'bg-light text-dark'}`}
-                                                            onClick={() => {
-                                                                const nextUserRoles = isSelected
-                                                                    ? userRoles.filter(r => r !== roleOption)
-                                                                    : [...userRoles, roleOption];
-                                                                setUserRoles(nextUserRoles);
-                                                                if (role !== 'tutor' && !nextUserRoles.includes('tutor')) {
-                                                                    setTutorCoverage([]);
-                                                                }
-                                                            }}
-                                                        >
-                                                            {roleOption.toUpperCase()}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
                                     {userHasTeacherAccess && (
                                         <div className={styles.modalSection}>
-                                            <div className="form-check form-switch">
-                                                <input
+                                                <Toggle
                                                     id="requestNotificationsEnabled"
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    checked={requestNotificationsEnabled ?? getRequestNotificationPreference(email)}
-                                                    onChange={event => setRequestNotificationsEnabled(event.target.checked)}
+                                                    className={styles.notificationToggle}
+                                                    label="Tutoring request notifications"
+                                                    isSelected={requestNotificationsEnabled ?? getRequestNotificationPreference(email)}
+                                                    onChange={setRequestNotificationsEnabled}
                                                     aria-describedby="requestNotificationsHelp"
                                                 />
-                                                <label className="form-check-label fw-semibold" htmlFor="requestNotificationsEnabled">
-                                                    Tutoring request notifications
-                                                </label>
-                                            </div>
-                                            <div id="requestNotificationsHelp" className="form-text">
+                                            <div id="requestNotificationsHelp" className={styles.fieldHint}>
                                                 Show new requests in this teacher’s browser tab while they’re away, including when using their admin view.
                                             </div>
                                         </div>
                                     )}
                                     {userHasTutorAccess && (
                                         <div className={styles.modalSection}>
-                                            <label htmlFor="tutorCoverage" className="form-label small fw-bold text-muted">
+                                            <label htmlFor="tutorCoverage" className={styles.sectionLabel}>
                                                 Tutor Class Coverage
                                             </label>
-                                            <Select
-                                                isMulti
-                                                inputId="tutorCoverage"
-                                                options={tutorCoverageOptionGroups}
-                                                value={tutorCoverage}
-                                                onChange={(selectedOptions) => setTutorCoverage(selectedOptions || [])}
-                                                classNamePrefix="select"
-                                                noOptionsMessage={() => 'No Canvas courses synced'}
+                                            <MultiSelect
+                                                id="tutorCoverage" aria-label="Tutor Class Coverage" placeholder="Select..."
+                                                items={tutorCoverageOptions} groups={tutorCoverageOptionGroups}
+                                                selectedItems={tutorCoverage} onSelectionChange={setTutorCoverage}
+                                                isMulti isClearable shouldFlip={false} portalContainer={coveragePortal}
+                                                isOpen={coverageMenuOpen} onOpenChange={setCoverageMenuOpen}
+                                                emptyMessage={query => query ? 'No matching Canvas courses' : 'No Canvas courses synced'}
                                             />
                                         </div>
                                     )}
                                 </div>
                                 <div className="modal-footer border-top-0 pt-0">
-                                    <button
+                                    <Button
                                         type="button"
-                                        className="btn btn-link text-muted text-decoration-none"
-                                        data-bs-dismiss="modal"
+                                        color="secondary"
+                                        size="sm"
+                                        onPress={handleCloseModal}
                                     >
                                         Cancel
-                                    </button>
-                                    <button type="submit" className="btn btn-outline-primary px-4">
+                                    </Button>
+                                    <Button type="submit" color="primary" size="sm" isDisabled={!role}>
                                         {isEditing ? 'Save Changes' : 'Create User'}
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                </div>
+                        </Dialog>
+                    </Modal>
+                </ModalOverlay>
             )}
-        </div>
+        </section>
     );
 };
 

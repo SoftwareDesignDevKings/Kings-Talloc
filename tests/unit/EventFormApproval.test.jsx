@@ -16,9 +16,9 @@ jest.mock('@/components/forms/EventFormSections/ParticipantsSection', () => () =
 jest.mock('@/components/forms/EventFormSections/SettingsSection', () => () => null);
 jest.mock('@/components/forms/EventFormSections/StudentRequestSection', () => () => null);
 jest.mock('@/components/modals/DeleteConfirmationModal', () => () => null);
-jest.mock('@/components/modals/BaseModal', () => ({
-    __esModule: true,
-    default: ({ onSubmit, loading }) => <button disabled={loading} onClick={async () => mockSubmitResult(await onSubmit({ preventDefault() {} }))}>Save</button>,
+jest.mock('@/components/forms/EventFormSections/EventFormUI', () => ({
+    EventFormUIContext: require('react').createContext({}),
+    StaffEventDialog: ({ onSubmit, loading }) => <button disabled={loading} onClick={async () => mockSubmitResult(await onSubmit({ preventDefault() {} }))}>Save</button>,
 }));
 
 test.each([true, false])('calendar approval uses the shared transaction path and propagates success=%s', async (success) => {

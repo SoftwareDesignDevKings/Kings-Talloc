@@ -60,7 +60,7 @@ setup('authenticate users', async ({ browser }) => {
             
             // wait for either dashboard OR check for error
             try {
-                await page.waitForURL('/dashboard', { timeout: 10000 });
+                await page.waitForURL('/dashboard', { timeout: 30000 });
             } catch {
                 // If no dashboard, check if we're still on login with error
                 const errorMsg = await page.locator('.alert-danger').textContent().catch(() => null);

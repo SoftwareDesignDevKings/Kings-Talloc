@@ -14,7 +14,7 @@ test.describe('Tutor Workflow @tutorOnly', () => {
 
         await page.locator('.rbc-events-container').nth(2).click();
 
-        await page.locator('#locationType').click();
+        await page.getByRole('button', { name: /Location type/ }).click();
         await expect(page.getByRole('option', { name: 'Remote' })).toBeVisible();
         await page.keyboard.press('ArrowDown');
         await page.keyboard.press('Enter');
@@ -46,7 +46,7 @@ test.describe('Tutor Workflow @tutorOnly', () => {
             await expect(adminPage.getByRole('button', { name: 'Participants' })).toBeVisible();
             await adminPage.getByRole('button', { name: 'Participants' }).click();
 
-            await adminPage.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
+            await adminPage.getByRole('button', { name: 'Assign tutors to event', exact: true }).click();
 
             await expect(adminPage.getByRole('option', { name: /Viraj Patel/i })).toBeVisible();
             await adminPage.getByRole('option', { name: /Viraj Patel/i }).click();
@@ -68,7 +68,7 @@ test.describe('Tutor Workflow @tutorOnly', () => {
 
         await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
         await page.getByRole('button', { name: 'Settings & Status' }).click();
-        await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();
+        await page.getByRole('button', { name: /Event work status/ }).click();
 
         await expect(page.getByRole('option', { name: 'Completed', exact: true })).toBeVisible();
         await page.getByRole('option', { name: 'Completed', exact: true }).click();
@@ -81,7 +81,7 @@ test.describe('Tutor Workflow @tutorOnly', () => {
 
         await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
         await page.getByRole('button', { name: 'Settings & Status' }).click();
-        await expect(page.locator('div').filter({ hasText: /^Completed$/ }).nth(1)).toBeVisible();
+        await expect(page.getByRole('button', { name: /Event work status/ })).toBeVisible();
     });
 
     test('tutor adds availability, tutor delete availability', async ({ page }) => {

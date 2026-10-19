@@ -19,7 +19,7 @@ jest.mock('@/components/forms/EventFormSections/ParticipantsSection', () => func
 jest.mock('@/components/forms/EventFormSections/SettingsSection', () => () => null);
 jest.mock('@/components/forms/EventFormSections/StudentRequestSection', () => () => null);
 jest.mock('@/components/modals/DeleteConfirmationModal', () => () => null);
-jest.mock('@/components/modals/BaseModal', () => ({ __esModule: true, default: ({ children, onSubmit, loading }) => <div data-testid="editor">{children}<button disabled={loading} onClick={async () => mockSubmitResult(await onSubmit({ preventDefault() {} }))}>Save</button></div> }));
+jest.mock('@/components/forms/EventFormSections/EventFormUI', () => ({ EventFormUIContext: require('react').createContext({}), StaffEventDialog: ({ children, onSubmit, loading }) => <div data-testid="editor">{children}<button disabled={loading} onClick={async () => mockSubmitResult(await onSubmit({ preventDefault() {} }))}>Save</button></div> }));
 const original = { id: 'session', title: 'Session', start: new Date('2027-04-06T05:00Z'), end: new Date('2027-04-06T06:00Z'), staff: [{ value: 'tutor@kings.edu.au' }], students: [{ value: 'student@kings.edu.au' }], additionalStudents: [], workType: 'work', approvalStatus: 'approved', createdByStudent: true };
 function Editor({ event = original }) {
     const [draft, setDraft] = useState(event);

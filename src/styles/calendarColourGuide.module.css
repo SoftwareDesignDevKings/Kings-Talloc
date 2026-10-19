@@ -1,0 +1,8 @@
+.list { display: flex; flex-direction: column; gap: 10px; }
+.list[data-descriptions] { gap: 12px; }
+.entry { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.list[data-descriptions] .entry { align-items: flex-start; }
+.swatch { display: block; flex: 0 0 28px; width: 28px; height: 18px; margin-top: 1px; }
+.text { min-width: 0; color: var(--uui-color-text-secondary); font-size: .8125rem; line-height: 1.5; overflow-wrap: anywhere; }
+.list[data-descriptions] .label { color: var(--uui-color-text-primary); font-weight: 600; }
+.entry .description { margin: 0; font-size: .8125rem; line-height: 1.5; }

@@ -1,19 +1,19 @@
 import React from 'react';
-import t from '@/styles/manageTable.module.css';
+import styles from './StudentList.module.css';
 
 const StudentList = ({ cls, confirmRemoveStudent }) => {
     return (
-        <div>
-            <p className={t.expandLabel}>
+        <div className={styles.roster}>
+            <p className={styles.heading}>
                 Students{cls.students?.length ? ` (${cls.students.length})` : ''}
             </p>
             {cls.students && cls.students.length > 0 ? (
-                <div className={t.memberList}>
+                <ul className={styles.list} aria-label="Enrolled students">
                     {cls.students.map((student) => (
-                        <div key={student.email} className={t.memberItem}>
-                            <div>
-                                <div className={t.memberName}>{student.name || 'No name'}</div>
-                                <div className={t.memberEmail}>{student.email}</div>
+                        <li key={student.email} className={styles.item}>
+                            <div className={styles.identity}>
+                                <div className={styles.name}>{student.name || 'No name'}</div>
+                                <div className={styles.email}>{student.email}</div>
                             </div>
                             {confirmRemoveStudent && (
                                 <button
@@ -23,11 +23,11 @@ const StudentList = ({ cls, confirmRemoveStudent }) => {
                                     Remove
                                 </button>
                             )}
-                        </div>
+                        </li>
                     ))}
-                </div>
+                </ul>
             ) : (
-                <p className={t.emptyMessage}>No students added to this class yet.</p>
+                <p className={styles.emptyMessage}>No students added to this class yet.</p>
             )}
         </div>
     );

@@ -1,0 +1,79 @@
+/* React Big Calendar retains its positioning, hit targets and slot dimensions. */
+.surface:global(.rbc-calendar) {
+    --calendar-text: var(--uui-color-text-secondary);
+    font-family: inherit;
+    font-size: .8125rem;
+    line-height: 1.4;
+}
+.surface :global(.rbc-time-view), .surface :global(.rbc-month-view) {
+    border-color: var(--uui-color-border-secondary);
+    border-radius: 12px;
+    background: var(--uui-color-bg-primary);
+    box-shadow: var(--uui-shadow-xs);
+    overflow: hidden;
+}
+.surface :global(.rbc-time-header), .surface :global(.rbc-month-header) {
+    background: var(--uui-color-bg-secondary);
+}
+.surface :global(.rbc-time-view .rbc-allday-cell) {
+    display: none;
+}
+.surface:global(.rbc-calendar) :global(.rbc-header) {
+    padding: 8px 6px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--uui-color-text-secondary);
+    border-color: var(--uui-color-border-secondary);
+}
+.headerLabel { font-weight: 600; }
+.surface :global(.rbc-time-header-content),
+.surface :global(.rbc-time-header.rbc-overflowing),
+.surface :global(.rbc-time-content),
+.surface :global(.rbc-time-content) > * + * > *,
+.surface :global(.rbc-timeslot-group),
+.surface :global(.rbc-day-bg) + :global(.rbc-day-bg),
+.surface :global(.rbc-month-row) + :global(.rbc-month-row),
+.surface :global(.rbc-time-header) > :global(.rbc-row):first-child {
+    border-color: var(--uui-color-border-secondary);
+}
+.surface :global(.rbc-day-slot .rbc-time-slot) {
+    border-top-color: var(--uui-color-border-secondary);
+}
+.surface :global(.rbc-time-gutter), .surface :global(.rbc-time-header-gutter) {
+    color: var(--uui-color-text-tertiary);
+    background: var(--uui-color-bg-primary);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+}
+.surface :global(.rbc-today) { background-color: var(--uui-color-bg-primary_hover); }
+.surface :global(.rbc-off-range-bg) { background-color: var(--uui-color-bg-secondary); }
+.surface :global(.rbc-off-range) { color: var(--uui-color-text-quaternary); }
+.surface:global(.rbc-calendar) :global(.rbc-date-cell) {
+    padding: 4px 6px;
+    font-size: .75rem;
+    font-weight: 500;
+}
+.surface :global(.rbc-current-time-indicator) { background-color: var(--uui-color-fg-brand-primary); }
+.surface :global(.rbc-event:focus) { outline: none; }
+.surface :global(.rbc-event:focus-visible) {
+    outline: 2px solid var(--uui-color-border-brand);
+    outline-offset: 1px;
+}
+.surface :global(.rbc-event-label) { font-size: .6875rem; font-variant-numeric: tabular-nums; }
+.surface :global(.custom-slot-text) { color: var(--uui-color-text-secondary); }
+.surface :global(.text-line) { font-family: inherit; font-weight: 500; }
+.surface :global(.rbc-show-more) {
+    border-radius: 4px;
+    background: var(--uui-color-bg-primary);
+    color: var(--uui-color-text-brand-secondary);
+    font-size: .75rem;
+    font-weight: 600;
+}
+.surface :global(.rbc-overlay) {
+    border: 1px solid var(--uui-color-border-secondary);
+    border-radius: 12px;
+    background: var(--uui-color-bg-primary);
+    color: var(--uui-color-text-secondary);
+    box-shadow: var(--uui-shadow-xs);
+}
+.surface :global(.rbc-overlay-header) { border-color: var(--uui-color-border-secondary); }

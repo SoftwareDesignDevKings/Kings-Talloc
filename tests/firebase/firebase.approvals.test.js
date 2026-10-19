@@ -19,8 +19,8 @@ const data = (overrides = {}) => ({ title: 'Student session', preference: 'Gener
 const call = (input, actor = teacher, time = clock) => scheduleMutation(db, actor, { operationId: randomUUID(), ...input }, { now: () => time });
 const seed = (id, overrides = {}) => db.collection('studentEventRequests').doc(id).set(data(overrides));
 beforeAll(async () => {
-    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
-    env = await initializeTestEnvironment({ projectId: 'demo-talloc-scheduling-tests', firestore: { host: '127.0.0.1', port: 8080, rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.rules'), 'utf8') } });
+    process.env.FIRESTORE_EMULATOR_HOST = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080');
+    env = await initializeTestEnvironment({ projectId: 'demo-talloc-scheduling-tests', firestore: { host: '127.0.0.1', port: Number((process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':').at(-1)), rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.rules'), 'utf8') } });
     app = initializeApp({ projectId: 'demo-talloc-scheduling-tests' }, 'scheduling-tests'); db = getFirestore(app);
 });
 beforeEach(async () => { await env.clearFirestore(); await db.collection('users').doc(tutor.email).set(tutor); await db.collection('users').doc(student.email).set(student); await db.collection('studentTutorEligibility').doc(student.email).set({ eligibleTutorEmails: [tutor.email] }); });

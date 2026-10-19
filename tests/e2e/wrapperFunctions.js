@@ -33,7 +33,7 @@ export async function clearFirestoreEmulator() {
     await Promise.all(Object.entries(TEST_USERS).map(([email, user]) => seedUserInEmulator(email, { ...user, email, hasSeenWelcome: true, hasSeenCalendarHelp: true })));
 }
 
-const toFirestoreValue = (value) => {
+export const toFirestoreValue = (value) => {
     if (value === null || value === undefined) return { nullValue: null };
     if (value instanceof Date) return { timestampValue: value.toISOString() };
     if (Array.isArray(value)) {
@@ -55,6 +55,10 @@ const toFirestoreValue = (value) => {
     return { stringValue: String(value) };
 };
 
+export async function seedTutorAvailabilityInEmulator(id, availability) {
+    return seedDocumentInEmulator('tutorAvailabilities', id, availability);
+}
+
 export async function seedShiftInEmulator(id, shift) {
     return seedDocumentInEmulator('shifts', id, shift);
 }
@@ -65,6 +69,14 @@ export async function seedStudentRequestInEmulator(id, request) {
 
 export async function seedUserInEmulator(email, user) {
     return seedDocumentInEmulator('users', email, user);
+}
+
+export async function seedCanvasCourseInEmulator(id, course) {
+    return seedDocumentInEmulator('canvasCourses', id, course);
+}
+
+export async function seedCanvasEnrollmentInEmulator(id, enrollment) {
+    return seedDocumentInEmulator('canvasEnrollments', id, enrollment);
 }
 
 async function seedDocumentInEmulator(collectionName, id, document) {

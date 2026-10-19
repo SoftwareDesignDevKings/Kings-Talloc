@@ -1,151 +1,65 @@
 import React from 'react';
-import { FiCalendar } from '@/components/icons';
+import LoadingSkeleton from '@/components/LoadingSkeleton';
+import { Calendar } from '@untitledui/icons';
 import { formatDisplayDate, formatDisplayTime } from '@/utils/displayDate';
+import { TableCard } from '@/components/untitled/table-card';
+import { Badge } from '@/components/untitled/badge';
+import { FeaturedIcon } from '@/components/untitled/featured-icon';
+import styles from '@/styles/dashboard.module.css';
 
 const WORK_TYPE_BADGE = {
-    coaching: {
-        label: 'Coaching',
-        style: {
-            background: 'rgba(107, 70, 141, 0.09)',
-            color: '#6b468d',
-        },
-    },
-    tutoring: {
-        label: 'Tutoring',
-        style: {
-            background: 'rgba(26, 77, 111, 0.09)',
-            color: 'var(--tks-secondary)',
-        },
-    },
-    work: {
-        label: 'Work',
-        style: {
-            background: 'rgba(107, 114, 128, 0.1)',
-            color: '#4b5563',
-        },
-    },
+    coaching: { label: 'Coaching', color: 'purple' },
+    tutoring: { label: 'Tutoring', color: 'brand' },
+    work: { label: 'Work', color: 'gray' },
 };
-
-const EventItem = ({ event, index, totalEvents, userRole, isToday }) => {
-    const staffNames = event.staff?.map((s) => s.label || s.value || s) || [];
+const EventItem = ({ event, userRole, isToday }) => {
+    const staffNames = event.staff?.map(s => s.label || s.value || s) || [];
     const showStaff = ['teacher', 'admin', 'student'].includes(userRole) && staffNames.length > 0;
     const showApprovalStatus = ['teacher', 'admin', 'student'].includes(userRole);
     const isPending = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'pending';
     const isApproved = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'approved';
     const workTypeBadge = WORK_TYPE_BADGE[event.workType];
-
     return (
-        <div
-            className="d-flex align-items-stretch"
-            style={{
-                borderBottom: index < totalEvents - 1 ? '1px solid var(--tks-border-subtle)' : 'none',
-            }}
-        >
-            {/* Time column */}
-            <div
-                className="shrink-0 d-flex flex-column align-items-end justify-content-center px-3 py-3"
-                style={{ width: isToday ? '80px' : '140px' }}
-            >
-                <span
-                    className="text-muted tabular-nums text-nowrap"
-                    style={{ fontSize: '0.72rem' }}
-                >
-                    {isToday
-                        ? formatDisplayTime(event.start)
-                        : formatDisplayDate(event.start)}
-                </span>
-                <span
-                    className="text-muted tabular-nums text-nowrap"
-                    style={{ fontSize: '0.72rem', opacity: 0.6 }}
-                >
-                    {isToday
-                        ? formatDisplayTime(event.end)
-                        : `${formatDisplayTime(event.start)} – ${formatDisplayTime(event.end)}`}
-                </span>
+        <li className={styles.eventItem}>
+            <div className={styles.eventTime}>
+                <span>{isToday ? formatDisplayTime(event.start) : formatDisplayDate(event.start)}</span>
+                <span>{isToday ? formatDisplayTime(event.end) : `${formatDisplayTime(event.start)} – ${formatDisplayTime(event.end)}`}</span>
             </div>
-
-            {/* Content */}
-            <div className="grow px-3 py-3">
-                <div className="d-flex align-items-center gap-2 flex-wrap">
-                    <span className="fw-semibold text-dark small">{event.title}</span>
-                    {workTypeBadge && (
-                        <span
-                            style={{
-                                fontSize: '0.6rem',
-                                fontWeight: 500,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.05em',
-                                borderRadius: '3px',
-                                padding: '0.1rem 0.35rem',
-                                ...workTypeBadge.style,
-                            }}
-                        >
-                            {workTypeBadge.label}
-                        </span>
-                    )}
-                    {isPending && (
-                        <span className="badge bg-warning text-dark text-xs">Pending</span>
-                    )}
-                    {isApproved && (
-                        <span className="badge bg-success text-xs">Approved</span>
-                    )}
+            <div className={styles.eventContent}>
+                <div className={styles.eventTitleRow}>
+                    <span className={styles.eventTitle}>{event.title}</span>
+                    {workTypeBadge && <Badge color={workTypeBadge.color} size="sm">{workTypeBadge.label}</Badge>}
+                    {isPending && <Badge color="warning" size="sm">Pending</Badge>}
+                    {isApproved && <Badge color="success" size="sm">Approved</Badge>}
                 </div>
-
-                {event.description && (
-                    <p className="mb-0 text-secondary fst-italic small" style={{ whiteSpace: 'pre-wrap' }}>
-                        {event.description}
-                    </p>
-                )}
-
-                <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                    {showStaff && (
-                        <span className="text-muted text-xs">{userRole === 'student' ? 'Tutor: ' : ''}{staffNames.join(', ')}</span>
-                    )}
-                    {event.students?.length > 0 && (
-                        <span className="text-muted text-xs">
-                            {showStaff && '·'}{' '}
-                            {event.students.length} student{event.students.length !== 1 ? 's' : ''}
-                        </span>
-                    )}
+                {event.description && <p className={styles.eventDescription}>{event.description}</p>}
+                <div className={styles.eventDetails}>
+                    {showStaff && <span>{userRole === 'student' ? 'Tutor: ' : ''}{staffNames.join(', ')}</span>}
+                    {event.students?.length > 0 && <span>
+                        {showStaff && '·'}{' '}
+                        {event.students.length} student{event.students.length !== 1 ? 's' : ''}
+                    </span>}
                 </div>
             </div>
-        </div>
+        </li>
     );
 };
-
-const EventsList = ({ events, title, emptyMessage, userRole, isToday = false, totalCount = events.length }) => {
-    return (
-        <div className="card shadow-sm h-100" style={{ border: '1px solid var(--tks-border)' }}>
-            <div className="card-header bg-white border-bottom d-flex align-items-center gap-2 py-3">
-                <FiCalendar className="text-muted" size={16} />
-                <h6 className="mb-0 fw-semibold text-dark">{title}</h6>
-                {events.length > 0 && (
-                    <span className="ms-auto badge-muted">{totalCount > events.length ? `${events.length} of ${totalCount}` : events.length}</span>
-                )}
-            </div>
-            <div className="card-body p-0">
-                {events.length === 0 ? (
-                    <div className="text-center py-5 px-3">
-                        <FiCalendar className="text-muted mb-2" size={32} />
-                        <p className="text-muted small mb-0">{emptyMessage}</p>
-                    </div>
-                ) : (
-                    <div>
-                        {events.map((event, index) => (
-                            <EventItem
-                                key={event.id}
-                                event={event}
-                                index={index}
-                                totalEvents={events.length}
-                                userRole={userRole}
-                                isToday={isToday}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
+const EventsList = ({ events, title, emptyMessage, userRole, isToday = false, isLoading = false, totalCount = events.length }) => (
+    <TableCard.Root aria-busy={isLoading}>
+        <header className={styles.listHeader}>
+            <Calendar aria-hidden="true" />
+            <h6 className={styles.listTitle}>{title}</h6>
+            {!isLoading && events.length > 0 && <Badge color="gray" size="sm">{totalCount > events.length ? `${events.length} of ${totalCount}` : events.length}</Badge>}
+        </header>
+        {isLoading ? <div className={styles.emptyState} aria-hidden="true">
+            <LoadingSkeleton width="55%" height="18px" />
+            <LoadingSkeleton width="35%" height="14px" />
+        </div> : events.length === 0 ? <div className={styles.emptyState}>
+            <FeaturedIcon icon={Calendar} color="gray" size="md" aria-hidden="true" />
+            <p>{emptyMessage}</p>
+        </div> : <ul className={styles.eventList}>
+            {events.map(event => <EventItem key={event.id} event={event} userRole={userRole} isToday={isToday} />)}
+        </ul>}
+    </TableCard.Root>
+);
 export default EventsList;

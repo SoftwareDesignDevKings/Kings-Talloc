@@ -1,6 +1,9 @@
 import React from 'react';
 import StudentList from './StudentList.jsx';
+import { Button } from '@/components/untitled/button';
+import { FiChevronDown, FiChevronRight } from '@/components/icons';
 import t from '@/styles/manageTable.module.css';
+import styles from './ClassRow.module.css';
 
 const ClassRow = ({
     cls,
@@ -10,6 +13,7 @@ const ClassRow = ({
     const isExpanded = expandedClasses.has(cls.id);
     const collapseId = `class-collapse-${cls.id}`;
     const studentCount = cls.students?.length || 0;
+    const toggleLabel = `${isExpanded ? 'Hide' : 'Show'} students in ${cls.name}`;
 
     return (
         <>
@@ -19,30 +23,32 @@ const ClassRow = ({
                 <td>{studentCount}</td>
                 <td className={t.actionCol} style={{ textAlign: 'right' }}>
                     <div className={t.actionGroup} style={{ justifyContent: 'flex-end' }}>
-                        <button
-                            onClick={handleExpandClass}
-                            className="btn btn-sm btn-outline-secondary"
+                        <Button
+                            color="tertiary"
+                            size="sm"
+                            iconLeading={isExpanded
+                                ? <FiChevronDown data-icon aria-hidden="true" />
+                                : <FiChevronRight data-icon aria-hidden="true" />}
+                            onPress={handleExpandClass}
+                            aria-label={toggleLabel}
+                            title={toggleLabel}
                             aria-expanded={isExpanded}
                             aria-controls={collapseId}
-                        >
-                            {isExpanded ? 'Collapse' : 'Expand Students'}
-                        </button>
+                        />
                     </div>
                 </td>
             </tr>
-            <tr className={t.expandRow}>
+            <tr className={t.expandRow} data-canvas-roster-row>
                 <td colSpan={4}>
                     <div
                         id={collapseId}
                         role="region"
                         aria-label={`Students in ${cls.name}`}
-                        className={`collapse${isExpanded ? ' show' : ''}`}
+                        hidden={!isExpanded}
+                        tabIndex={0}
+                        className={styles.rosterRegion}
                     >
-                        <div className={t.expandPanel}>
-                            <div className={t.expandPanelInner}>
-                                <StudentList cls={cls} />
-                            </div>
-                        </div>
+                        <StudentList cls={cls} />
                     </div>
                 </td>
             </tr>

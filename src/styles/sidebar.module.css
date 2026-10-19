@@ -1,205 +1,141 @@
-/* Sidebar Component Styles */
-
-/* Sidebar Container */
 .sidebarContainer {
-    /* Width is driven by the --sidebar-w CSS variable set via inline style,
-       which allows CSS transitions to fire reliably across class changes.
-       class-based min/max-width overrides with !important break transitions. */
+    --sidebar-motion: 260ms cubic-bezier(.2, 0, 0, 1);
     width: var(--sidebar-w, 16rem);
-    height: 100%;
-    background-color: var(--tks-surface);
-    color: var(--tks-text-primary);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    transition: width 300ms cubic-bezier(0.25, 1, 0.5, 1);
-    overflow: hidden;
+    min-height: 0;
     flex-shrink: 0;
+    overflow-x: hidden;
+    color: var(--uui-color-text-primary);
+    transition: width var(--sidebar-motion);
 }
 
-/* .sidebarCollapsed is kept as a modifier class only for child element selectors
-   (e.g. .sidebarCollapsed .navLabel). Width is not set here. */
-.sidebarCollapsed {
-    /* intentionally empty — width is set by --sidebar-w CSS variable */
+.header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px;
+    align-items: center;
+    padding: 20px 24px 16px;
 }
+.headerToggle[data-untitled-button] { width: 32px; height: 32px; padding: 6px; }
+.headerToggle > svg { transition: transform var(--sidebar-motion); }
+.sidebarCollapsed .headerToggle > svg { transform: rotate(180deg); }
 
-/* Menu Title */
 .menuTitle {
-    color: var(--tks-secondary);
-}
-
-/* Toggle Button */
-.toggleButton {
-    color: var(--tks-secondary);
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 150ms ease-in-out;
-}
-
-.toggleButton:hover {
-    color: var(--tks-primary);
-}
-
-.toggleButton:focus {
-    outline: none; /* suppress browser default on mouse click */
-}
-
-.toggleButton:focus-visible {
-    outline: 2px solid var(--tks-primary);
-    outline-offset: 2px;
-    border-radius: 4px;
-}
-
-/* Navigation List */
-.navList {
-    margin-top: 1rem;
-    list-style: none;
-    padding-left: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-/* Navigation List Items */
-.navItem {
-    list-style: none;
-}
-
-/* Divider separating primary navigation from management/admin links */
-.navDivider {
-    list-style: none;
-    height: 1px;
-    margin: 0.5rem 1.5rem;
-    background-color: var(--tks-border);
-}
-
-/* Anchor rendered by Next.js <Link> */
-.navLink {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 0.5rem 1.5rem;
-    text-decoration: none;
-    color: inherit;
-    transition: background-color 150ms ease-in-out;
-}
-
-.navLink:hover, .activeNavLink {
-    background-color: var(--tks-primary-subtle);
-    color: var(--tks-secondary);
+    margin: 0;
+    color: var(--uui-color-text-primary);
+    font-size: 1.25rem;
+    line-height: 1.4;
     font-weight: 600;
 }
 
-.activeNavLink .navIcon {
-    color: var(--tks-primary);
+.navList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    list-style: none;
+    padding: 0 16px;
+    margin: 0;
 }
 
-.navLink:focus {
-    outline: none;
+.navDivider {
+    height: 1px;
+    margin: 8px 0;
+    background-color: var(--uui-color-border-secondary);
 }
 
-.navLink:focus-visible {
-    outline: 2px solid var(--tks-primary);
-    outline-offset: -2px;
-    border-radius: 4px;
-}
-
-.navLinkCollapsed {
-    justify-content: center;
-    gap: 0;
-}
-
-.navLinkExpanded {
-    gap: 0.5rem;
-}
-
-.navIcon {
-    color: var(--tks-secondary);
-    flex-shrink: 0;
-}
-
-/* Text labels that fade out when sidebar collapses */
 .navLabel {
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
-    max-width: 200px;
     opacity: 1;
-    transition: opacity 150ms ease, max-width 300ms cubic-bezier(0.25, 1, 0.5, 1);
+    transition: opacity 160ms ease 80ms;
 }
 
 .sidebarCollapsed .navLabel {
-    max-width: 0;
     opacity: 0;
+    transition-delay: 0s;
 }
 
-/* Profile Section */
+.navItem[data-untitled-nav-item] {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    column-gap: 8px;
+    min-height: 36px;
+    overflow: hidden;
+}
+.navItem > svg { margin: 0; justify-self: center; }
+.navItem > span { min-width: 0; opacity: 1; transition: opacity 160ms ease 80ms; }
+.sidebarCollapsed .navItem > span { opacity: 0; transition-delay: 0s; }
+
 .profileSection {
-    padding: 1rem;
-    border-top: 1px solid var(--tks-border);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    flex-shrink: 0;
+    gap: 12px;
+    padding: 16px;
+    margin-top: 24px;
+    border-top: 1px solid var(--uui-color-border-secondary);
 }
 
 .profileContainer {
-    display: flex;
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
     align-items: center;
-    background: none;
-    border: none;
-    padding: 0;
-    width: 100%;
-    text-align: left;
-    color: var(--tks-text-primary);
+    gap: 12px;
+    min-width: 0;
+    padding-inline: 8px;
+    height: 32px;
+    overflow: hidden;
 }
 
-.profileContainerCollapsed {
-    justify-content: center;
+.userName {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
 }
 
-.profileContainerExpanded {
-    gap: 0.75rem;
-}
-
-.profileImage {
-    border-radius: 9999px;
-    border: 2px solid var(--tks-primary-subtle);
+.profileImage, .profilePlaceholder {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--uui-color-border-secondary);
 }
 
 .profilePlaceholder {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 9999px;
-    background-color: var(--tks-border-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--tks-secondary);
+    color: var(--uui-color-text-tertiary);
+    background-color: var(--uui-color-bg-secondary);
 }
 
-/* Layout-only styles — colors/hover/transitions handled by Bootstrap btn-outline-danger */
-.logoutButton {
-    min-height: 40px;
-    border-radius: 0.5rem;
+.profilePlaceholder svg {
+    width: 20px;
+    height: 20px;
 }
 
-.logoutButtonCollapsed {
-    justify-content: center;
-    padding: 0;
-    width: 36px;
-    margin: 0 auto;
-}
-
-.logoutButtonExpanded {
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+.profileSection .footerButton {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    justify-content: start;
     width: 100%;
+    column-gap: 8px;
+    padding: 8px;
+    min-height: 36px;
+    overflow: hidden;
 }
+.footerButton > svg { justify-self: center; }
+.footerButton > [data-text] {
+    padding: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+    opacity: 1;
+    transition: opacity 160ms ease 80ms;
+}
+.sidebarCollapsed .footerButton > [data-text] { opacity: 0; transition-delay: 0s; }
 
-/* Icon inside logout button inherits the button's danger color, not the sidebar nav color */
-.logoutIcon {
-    flex-shrink: 0;
-    color: inherit;
+@media (prefers-reduced-motion: reduce) {
+    .sidebarContainer, .navLabel, .navItem > span, .footerButton > [data-text], .headerToggle > svg {
+        transition: none;
+    }
 }

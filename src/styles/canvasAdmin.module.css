@@ -1,0 +1,84 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    height: 100%;
+    gap: 20px;
+    padding: 24px;
+    color: var(--uui-color-text-secondary);
+    container-type: inline-size;
+}
+.header h2 { margin: 0 0 6px; font-size: 1.5rem; font-weight: 600; color: var(--uui-color-text-primary); }
+.header p { margin: 0; color: var(--uui-color-text-tertiary); font-size: .875rem; }
+.syncCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--uui-color-border-secondary);
+    border-radius: 12px;
+    background: var(--uui-color-bg-primary);
+}
+.syncDetails { min-width: 0; flex: 1 1 240px; overflow-wrap: anywhere; }
+.syncHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.syncHeading h3, .toolbar h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--uui-color-text-primary); }
+.hint { margin: 4px 0 0; color: var(--uui-color-text-tertiary); font-size: .875rem; }
+.syncProgress { margin-top: 12px; font-size: .875rem; }
+.syncActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tabs { flex: 1; min-height: 0; gap: 20px; }
+.tabList { flex-shrink: 0; flex-wrap: wrap; row-gap: 12px; }
+.tabList .tab { min-width: 0; white-space: normal; text-align: center; }
+.tabList .tab > span { flex-wrap: wrap; }
+.panel { display: flex; flex: 1; min-height: 0; min-width: 0; }
+.tableCard { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 20px 16px; border-bottom: 1px solid var(--uui-color-border-secondary); }
+.toolbar > div { min-width: 0; }
+.search { flex: 0 1 340px; width: 100%; }
+.search [data-input-wrapper], .search [data-input] { min-width: 0; }
+.tableRegion { overflow: auto; flex: 1; min-height: 120px; min-width: 0; outline-offset: -2px; }
+.tableRegion:focus-visible { outline: 2px solid var(--uui-color-border-brand); }
+.table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .875rem; }
+.table th { position: sticky; top: 0; z-index: 1; padding: 12px 16px; background: var(--uui-color-bg-secondary); font-size: .75rem; font-weight: 500; text-align: left; color: var(--uui-color-text-tertiary); border-bottom: 1px solid var(--uui-color-border-secondary); }
+.table th:first-child { width: 30%; }
+.table th:nth-child(2) { width: 14%; }
+.table th:nth-child(3) { width: 24%; }
+.table th:nth-child(4) { width: 100px; }
+.table th:last-child { width: 120px; }
+.table td { padding: 16px; vertical-align: middle; border-bottom: 1px solid var(--uui-color-border-secondary); overflow-wrap: anywhere; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: var(--uui-color-bg-primary_hover); }
+.courseName { font-weight: 500; color: var(--uui-color-text-primary); }
+.termDates { display: block; margin-top: 4px; color: var(--uui-color-text-tertiary); }
+.table .wrappingBadge { max-width: 100%; white-space: normal; text-align: left; }
+.actionHeading { text-align: right !important; }
+.rowActions { display: flex; justify-content: flex-end; }
+.compactLabel { display: none; }
+.tableState { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px 16px; text-align: center; color: var(--uui-color-text-tertiary); }
+.tableState button { max-width: 100%; white-space: normal; }
+.tableSummary { padding: 12px 16px; border-top: 1px solid var(--uui-color-border-secondary); color: var(--uui-color-text-tertiary); font-size: .75rem; }
+@container (max-width: 680px) {
+    .table thead { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .table, .table tbody { display: block; }
+    .table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 16px; border-bottom: 1px solid var(--uui-color-border-secondary); }
+    .table tbody tr:last-child { border-bottom: 0; }
+    .table td { display: block; padding: 0; border: 0; width: 100%; }
+    .compactLabel { display: block; margin-bottom: 6px; font-size: .75rem; font-weight: 500; color: var(--uui-color-text-tertiary); }
+    .table .courseName { grid-column: 1 / -1; }
+    .rowActions { align-items: center; }
+    .table .stateRow td { grid-column: 1 / -1; }
+    .table tbody .stateRow { padding: 0; }
+}
+@container (max-width: 380px) {
+    .table tbody tr { grid-template-columns: minmax(0, 1fr); }
+    .rowActions { justify-content: flex-start; }
+}
+@media (max-width: 600px) {
+    .container { padding: 16px; gap: 16px; overflow-y: auto; }
+    .syncCard, .header { flex-shrink: 0; }
+    .tabs, .panel { flex: 1 0 auto; }
+    .tableRegion { max-height: 60vh; }
+}

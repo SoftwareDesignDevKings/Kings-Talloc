@@ -1,6 +1,5 @@
 /**
- * Calendar colour constants — must stay in sync with calendarUI.js.
- * Used by CalendarLegend, WelcomeModal, and CalendarHowToModal.
+ * Shared calendar palettes used by event rendering and all colour guides.
  *
  * Design system ("Warm Saturated", Option 2 from Calendar Redesign v2):
  *   - HUE encodes TYPE      → indigo=tutoring, plum=coaching, amber=pending,
@@ -17,8 +16,11 @@
  *   - Availability is the calmest hue (mint) with a dotted border so it reads
  *     as a planning *layer*, not an action item.
  */
+export const getAvailabilityHeatColor = (count, capacity) =>
+    `rgba(144, 238, 144, ${Math.min(1, Math.max(0, count / Math.max(1, capacity)))})`;
+
 export const CALENDAR_COLOURS = {
-    availabilityHeatmap: { bg: 'rgba(218, 247, 227, 0.55)', border: '#00572e' },
+    availabilityHeatmap: { bg: getAvailabilityHeatColor(0.55, 1), border: '#00572e' },
     availabilityBlock:   { bg: '#daf7e3',                  border: '#00572e', text: '#1a1d23', borderStyle: 'dotted' },
     confirmed:           { bg: '#cce0ff',                  border: '#0044cc', text: '#1a1d23' },
     coaching:            { bg: '#e2b4ee',                  border: '#833794', text: '#1a1d23' },
@@ -28,4 +30,14 @@ export const CALENDAR_COLOURS = {
     coachingCompleted:   { bg: '#bf7dcf',                  border: '#6f0f82', text: '#1a1d23' },
     notAttended:         { bg: '#eccdbf',                  border: '#8f5a41', text: '#1a1d23' },
     declined:            { bg: '#e8e9ec',                  border: '#6b7280', text: '#1a1d23' },
+};
+
+export const getCalendarPaletteStyle = ({ bg, border, text = 'black', borderStyle = 'solid' }) => {
+    const patterned = borderStyle === 'dashed' || borderStyle === 'dotted';
+    return {
+        backgroundColor: bg, color: text,
+        border: patterned ? `2px ${borderStyle} ${border}` : `1px solid ${border}33`,
+        borderLeft: patterned ? `2px ${borderStyle} ${border}` : `4px solid ${border}`,
+        borderRadius: '4px', boxShadow: patterned ? 'none' : 'var(--uui-shadow-xs)', fontWeight: 500,
+    };
 };

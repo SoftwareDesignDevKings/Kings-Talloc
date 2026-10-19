@@ -46,7 +46,7 @@ describe('CanvasWhitelistManager', () => {
     test('renders term details for current-year Canvas courses only', async () => {
         render(<CanvasWhitelistManager />);
 
-        await userEvent.click(screen.getByRole('button', { name: /all canvas courses/i }));
+        await userEvent.click(screen.getByRole('tab', { name: /all canvas courses/i }));
 
         expect(await screen.findByText('Term')).toBeInTheDocument();
         expect(screen.getByText('Mathematics Year 10')).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('CanvasWhitelistManager', () => {
     test('searches available courses by term name', async () => {
         render(<CanvasWhitelistManager />);
 
-        await userEvent.click(screen.getByRole('button', { name: /all canvas courses/i }));
+        await userEvent.click(screen.getByRole('tab', { name: /all canvas courses/i }));
         await screen.findByText('Mathematics Year 10');
         await userEvent.type(screen.getByPlaceholderText(/search by name, code, or term/i), 'term 2');
 

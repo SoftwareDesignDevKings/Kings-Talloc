@@ -18,8 +18,8 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             await expect(page.getByRole('heading', { name: 'Canvas Admin' })).toBeVisible();
             await expect(page.getByRole('button', { name: /Run Sync/i })).toBeVisible();
-            await expect(page.getByRole('button', { name: /Whitelisted/i })).toBeVisible();
-            await expect(page.getByRole('button', { name: /All Canvas Courses/i })).toBeVisible();
+            await expect(page.getByRole('tab', { name: /Whitelisted/i })).toBeVisible();
+            await expect(page.getByRole('tab', { name: /All Canvas Courses/i })).toBeVisible();
         });
 
         test('should show read-only Canvas classes', async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await page.getByRole('textbox', { name: 'Event title' }).fill('Software');
 
             await page.getByRole('button', { name: 'Participants' }).click();
-            await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
+            await page.getByRole('button', { name: 'Assign tutors to event', exact: true }).click();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
 
             await expect(page.getByRole('button', {name: 'General Information' })).toBeVisible();
@@ -72,7 +72,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             );
         });
 
-        test('an event form opened before Bootstrap loads recovers when the script is ready', async ({ context }) => {
+        test('an event form works while the Bootstrap script is still loading', async ({ context }) => {
             const delayedPage = await context.newPage();
             let releaseBootstrap;
             const ready = new Promise(resolve => { releaseBootstrap = resolve; });
@@ -85,7 +85,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
                 await delayedPage.locator('.rbc-events-container').nth(1).click();
                 const title = delayedPage.getByRole('textbox', { name: 'Event title', includeHidden: true });
                 await expect(title).toHaveCount(1);
-                await expect(title).toBeHidden();
+                await expect(title).toBeVisible();
                 releaseBootstrap();
                 await expect(delayedPage.getByRole('textbox', { name: 'Event title' })).toBeVisible();
                 await delayedPage.getByRole('button', { name: 'Close', exact: true }).click();
@@ -108,7 +108,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('button', { name: 'Participants' })).toBeVisible();
             await page.getByRole('button', { name: 'Participants' }).click();
 
-            await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
+            await page.getByRole('button', { name: 'Assign tutors to event', exact: true }).click();
 
             await expect(page.getByRole('option', { name: /Viraj Patel/i })).toBeVisible();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
@@ -122,7 +122,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
             await page.getByRole('button', { name: 'Settings & Status' }).click();
-            await page.locator('div').filter({ hasText: /^Work$/ }).nth(1).click();
+            await page.getByRole('button', { name: /Event work type/ }).click();
 
             await expect(page.getByRole('option', { name: 'Tutoring' })).toHaveCount(0);
             await page.getByRole('option', { name: 'Work', exact: true }).click();
@@ -137,10 +137,10 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
             await page.getByRole('button', { name: 'Settings & Status' }).click();
 
-            await expect(page.getByText('Work TypeWork')).toBeVisible();
+            await expect(page.getByRole('button', { name: /Event work type/ })).toContainText('Work');
 
             // Change Status → Completed
-            await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();
+            await page.getByRole('button', { name: /Event work status/ }).click();
 
             await expect(page.getByRole('option', { name: 'Completed', exact: true })).toBeVisible();
             await page.getByRole('option', { name: 'Completed', exact: true }).click();
@@ -154,12 +154,12 @@ test.describe('Admin Workflow @teacherAdmin', () => {
 
             await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
             await page.getByRole('button', { name: 'Settings & Status' }).click();
-            await expect(page.locator('div').filter({ hasText: /^Completed$/ }).nth(1)).toBeVisible();
+            await expect(page.getByRole('button', { name: /Event work status/ })).toBeVisible();
 
             // Delete
             await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
             await page.getByRole('button', { name: 'Delete', exact: true }).click();
-            const confirmation = page.locator('.modal.show').filter({ has: page.getByRole('heading', { name: 'Delete Event', exact: true }) });
+            const confirmation = page.getByRole('dialog', { name: 'Delete Event', exact: true });
             await expect(confirmation).toContainText('This cannot be undone.');
             await confirmation.getByRole('button', { name: 'Delete', exact: true }).click();
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeHidden();
@@ -182,7 +182,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('button', { name: 'Participants' })).toBeVisible();
             await page.getByRole('button', { name: 'Participants' }).click();
 
-            await page.locator('.mb-4 > .css-b62m3t-container > .select__control > .select__value-container > .select__input-container').click();
+            await page.getByRole('button', { name: 'Assign tutors to event', exact: true }).click();
 
             await expect(page.getByRole('option', { name: /Viraj Patel/i })).toBeVisible();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
@@ -198,7 +198,7 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
             await page.getByRole('button', { name: 'Settings & Status' }).click();
 
-            await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();
+            await page.getByRole('button', { name: /Event work status/ }).click();
 
             await expect(page.getByRole('option', { name: 'Completed', exact: true })).toBeVisible();
             await page.getByRole('option', { name: 'Completed', exact: true }).click();

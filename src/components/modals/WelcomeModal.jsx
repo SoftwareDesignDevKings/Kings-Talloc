@@ -2,11 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import BaseModal from './BaseModal';
-import { FiHome, FiCalendar, FaInfoCircle } from '@/components/icons';
+import DashboardDialog from '@/components/dashboard/DashboardDialog';
+import { Button } from '@/components/untitled/button';
+import styles from '@/styles/studentGuidance.module.css';
+import { FeaturedIcon } from '@/components/untitled/featured-icon';
+import { TableCard } from '@/components/untitled/table-card';
+import { HomeLine, Calendar, InfoCircle } from '@untitledui/icons';
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { CALENDAR_COLOURS } from '@/constants/calendarColours';
+import CalendarColourGuide from '@/components/calendar/CalendarColourGuide';
 
 /**
  * Welcome modal for new students explaining the app functionality
@@ -16,6 +20,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
+        let cancelled = false;
         const checkWelcomeStatus = async () => {
             // Only show for students
             if (userRole !== 'student' || !userEmail) return;
@@ -27,7 +32,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     // Show modal if hasSeenWelcome is undefined or false
-                    if (!userData.hasSeenWelcome) {
+                    if (!cancelled && !userData.hasSeenWelcome) {
                         setShowModal(true);
                     }
                 }
@@ -37,6 +42,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
         };
 
         checkWelcomeStatus();
+        return () => { cancelled = true; };
     }, [userEmail, userRole]);
 
     const handleClose = async () => {
@@ -54,101 +60,80 @@ const WelcomeModal = ({ userEmail, userRole }) => {
     };
 
     return (
-        <BaseModal
+        <DashboardDialog
             show={showModal}
             onHide={handleClose}
             title="Welcome to Kings Talloc"
             size="lg"
             showFooter={true}
             customFooter={
-                <div className="w-100 d-flex justify-content-center">
-                    <button
+                <div className={styles.footerActions}>
+                    <Button
                         type="button"
-                        className="btn btn-outline-primary px-4"
+                        size="sm"
+                        color="primary"
                         onClick={handleClose}
                     >
                         Get Started
-                    </button>
+                    </Button>
                 </div>
             }
         >
-            {/* overide base modal pading */}
-            <div className="text-center" style={{ marginTop: '-1.5rem' }}>
+            <div className={styles.welcomeContent}>
                 {/* School Crest */}
-                <div className="d-flex justify-content-center">
+                <div className={styles.crest}>
                     <Image
                         src="/TKS-CREST-PMS.svg"
                         alt="The King's School Logo"
                         width={250}
                         height={250}
-                        className="rounded"
                         priority
                         unoptimized
                     />
                 </div>
 
                 {/* Introduction */}
-                <p className="lead mb-">
+                <p className={styles.intro}>
                     Kings Talloc is your tutoring booking platform for the Computing Studies Department at The King&apos;s School.
                 </p>
 
                 {/* Dashboard Section */}
-                <div className="text-start mb-4 p-3 bg-light rounded d-flex align-items-center">
-                    <div className="d-flex align-items-center justify-content-center me-3 shrink-0" style={{ width: '40px' }}>
-                        <FiHome size={24} className="text-primary" />
-                    </div>
+                <TableCard.Root className={styles.featureCard}>
+                    <FeaturedIcon icon={HomeLine} size="md" color="brand" theme="modern" aria-hidden="true" className={styles.featureIcon} />
                     <div>
-                        <h5 className="mb-1 fw-bold">Dashboard</h5>
-                        <p className="mb-0">
+                        <h5 className={styles.featureTitle}>Dashboard</h5>
+                        <p className={styles.paragraph}>
                             View your upcoming tutoring sessions and see your tutoring schedule at a glance.
                         </p>
                     </div>
-                </div>
+                </TableCard.Root>
 
                 {/* Calendar Section */}
-                <div className="text-start mb-4 p-3 bg-light rounded d-flex align-items-center">
-                    <div className="d-flex align-items-center justify-content-center me-3 shrink-0" style={{ width: '40px' }}>
-                        <FiCalendar size={24} className="text-primary" />
-                    </div>
+                <TableCard.Root className={styles.featureCard}>
+                    <FeaturedIcon icon={Calendar} size="md" color="brand" theme="modern" aria-hidden="true" className={styles.featureIcon} />
                     <div>
-                        <h5 className="mb-1 fw-bold">Calendar</h5>
-                        <p className="mb-0">
+                        <h5 className={styles.featureTitle}>Calendar</h5>
+                        <p className={styles.paragraph}>
                             Browse available tutoring sessions and manage your bookings. This is where you can see all tutors&apos; availability and book sessions.
                         </p>
                     </div>
-                </div>
+                </TableCard.Root>
 
                 {/* Calendar Legend */}
-                <div className="text-start mb-4 p-3 border rounded">
-                    <h6 className="fw-bold mb-3">Calendar Color Guide</h6>
-                    <div className="d-flex flex-column gap-2">
-                        {[
-                            { ...CALENDAR_COLOURS.availabilityHeatmap, label: <><strong>Green background:</strong> Open tutor availability slots (darker = more tutors available)</> },
-                            { ...CALENDAR_COLOURS.availabilityBlock, label: <><strong>Dashed outline:</strong> Tutor-created availability block</> },
-                            { ...CALENDAR_COLOURS.confirmed, label: <><strong>Blue:</strong> Confirmed tutoring sessions</> },
-                            { ...CALENDAR_COLOURS.coaching, label: <><strong>Purple:</strong> Coaching sessions</> },
-                            { ...CALENDAR_COLOURS.pending, label: <><strong>Orange:</strong> Pending booking requests (awaiting approval)</> },
-                            { ...CALENDAR_COLOURS.denied, label: <><strong>Red:</strong> Denied requests</> },
-                            { ...CALENDAR_COLOURS.completed, label: <><strong>Green event:</strong> Completed tutoring session</> },
-                            { ...CALENDAR_COLOURS.notAttended, label: <><strong>Pink:</strong> Student did not attend</> },
-                        ].map(({ bg, border, borderStyle = 'solid', label }, i) => (
-                            <div key={i} className="d-flex align-items-center gap-2">
-                                <div className="shrink-0" style={{ width: '20px', height: '20px', backgroundColor: bg, border: `2px ${borderStyle} ${border}`, borderRadius: '3px' }} />
-                                <small>{label}</small>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <TableCard.Root className={styles.legendCard}>
+                    <h6 className={styles.legendTitle}>Calendar Color Guide</h6>
+                    <CalendarColourGuide userRole={userRole} descriptions />
+                </TableCard.Root>
 
                 {/* Important Notice */}
-                <div className="alert alert-success d-flex align-items-start">
-                    <FaInfoCircle size={20} className="text-success me-2 mt-1 flex-shrink-0" />
-                    <div className="text-start">
+                <TableCard.Root className={styles.notice}>
+                    <InfoCircle width={20} height={20} aria-hidden="true" className={styles.noticeIcon} />
+                    <div className={styles.noticeText}>
                         <strong>Important:</strong> All tutoring session bookings must be made through the Calendar tab. Navigate to Calendar to book, view, or cancel your sessions.
                     </div>
-                </div>
+                </TableCard.Root>
             </div>
-        </BaseModal>
+        </DashboardDialog>
     );
 };
 

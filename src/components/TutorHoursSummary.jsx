@@ -3,17 +3,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/firestore/firestoreClient';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import DatePicker from 'react-datepicker';
-import enAU from 'date-fns/locale/en-AU';
-import 'react-datepicker/dist/react-datepicker.css';
+import { DatePicker } from '@/components/untitled/date-picker';
 import { CSVLink } from 'react-csv';
-import { FaInfoCircle } from '@/components/icons';
+import { Download01, InfoCircle } from '@untitledui/icons';
+import { Button } from '@/components/untitled/button';
+import { TableCard } from '@/components/untitled/table-card';
+import styles from '@/styles/tutorHours.module.css';
 import useAlert from '@/hooks/useAlert';
 import useAuthSession from '@/hooks/useAuthSession';
 import { ownEventsFilter } from '@/lib/patterns/calendarStrategy';
 import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
+import { formatDisplayDate } from '@/utils/displayDate';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
-import { DISPLAY_DATE_FORMAT, formatDisplayDate } from '@/utils/displayDate';
 
 const getMonday = (d) => {
     d = new Date(d);
@@ -38,6 +39,10 @@ const buildUserNameMap = (userDocs) => {
     return namesByEmail;
 };
 
+const HoursCell = ({ label, children, className }) => (
+    <td className={className}><span aria-hidden="true" className={styles.compactLabel}>{label}</span>{children}</td>
+);
+
 /**
  * Component to display and manage tutor hours summary
  */
@@ -46,7 +51,7 @@ const TutorHoursSummary = () => {
     const { userRole, userRoles, session } = useAuthSession();
     const userEmail = session?.user?.email;
     const isAdmin = userRole === 'admin' || userRoles?.includes('admin') || userRole === 'teacher' || userRoles?.includes('teacher');
-    
+
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {
         const monday = getMonday(new Date());
@@ -56,13 +61,27 @@ const TutorHoursSummary = () => {
         return sunday;
     });
     const [tutorHours, setTutorHours] = useState([]);
-    const [loadState, setLoadState] = useState('loading');
-    const loadGeneration = useRef(0);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [datePending, setDatePending] = useState({ start: false, end: false });
+    const [generating, setGenerating] = useState(new Set());
+    const requestRef = useRef(0);
+    const csvRef = useRef(null);
+    const rangeError = datePending.start || datePending.end
+        ? 'Enter a valid date (DD/MM/YYYY), or choose one from the calendar.'
+        : !startDate || !endDate ? 'Choose both a start date and an end date.'
+            : startDate > endDate ? 'End date must be on or after the start date.' : '';
 
     const fetchTutorHours = useCallback(async () => {
-        const generation = ++loadGeneration.current;
-        if (!userEmail) return;
-        setLoadState('loading');
+        const request = ++requestRef.current;
+        if (rangeError || !userEmail) {
+            setTutorHours([]);
+            setLoading(false);
+            setLoadError('');
+            return;
+        }
+        setLoading(true);
+        setLoadError('');
         try {
             let accessFilter = [];
 
@@ -140,18 +159,21 @@ const TutorHoursSummary = () => {
             }));
             if (!isAdmin) tutorHoursArray = tutorHoursArray.filter(tutor => tutor.email === userEmail?.toLowerCase());
 
-            if (generation === loadGeneration.current) { setTutorHours(tutorHoursArray); setLoadState('ready'); }
-        } catch (error) {
-            console.error('Hours summary could not refresh', error);
-            if (generation === loadGeneration.current) setLoadState('error');
+            if (request === requestRef.current) setTutorHours(tutorHoursArray);
+        } catch {
+            if (request === requestRef.current) {
+                setTutorHours([]);
+                setLoadError('Could not load hours. Please try again.');
+            }
+        } finally {
+            if (request === requestRef.current) setLoading(false);
         }
-    }, [startDate, endDate, userEmail, isAdmin]);
+    }, [startDate, endDate, userEmail, isAdmin, rangeError]);
 
     useEffect(() => {
-        const tracker = loadGeneration;
         fetchTutorHours();
-        return () => { tracker.current++; };
-    }, [startDate, endDate, fetchTutorHours]);
+        return () => { requestRef.current++; };
+    }, [fetchTutorHours]);
 
     const csvData = tutorHours.map((tutor) => ({
         Email: tutor.email,
@@ -164,6 +186,9 @@ const TutorHoursSummary = () => {
     }));
 
     const handleGenerateTimesheet = async (tutorEmail, tutorName, roleType) => {
+        if (loading || loadError || rangeError) return;
+        const key = `${tutorEmail}:${roleType}`;
+        setGenerating(prev => new Set(prev).add(key));
         try {
             // Send data to API route - send ISO timestamps to avoid timezone parsing issues
             const response = await fetch('/api/timesheet', {
@@ -189,141 +214,93 @@ const TutorHoursSummary = () => {
             // Download the file
             const blob = await response.blob();
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
+            const downloadUrl = URL.createObjectURL(blob);
+            link.href = downloadUrl;
             link.download = `${tutorName}_${roleType}_timesheet_${formatDisplayDate(startDate)}_to_${formatDisplayDate(endDate)}.${response.headers.get('Content-Type')?.includes('zip') ? 'zip' : 'docx'}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            // Release after the browser has begun consuming the download.
+            setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
 
             const roleLabel = roleType === 'coach' ? 'Coach' : 'Tutor';
             addAlert('success', `${roleLabel} timesheet generated and downloaded successfully`);
         } catch (error) {
             console.error('Error generating timesheet:', error);
             addAlert('error', `Error: ${error.message}`);
+        } finally {
+            setGenerating(prev => { const next = new Set(prev); next.delete(key); return next; });
         }
     };
 
-    return (
-        <div className="p-2 p-md-4 bg-white rounded shadow-lg h-100 d-flex flex-column">
-            <h2 className="h4 mb-4 fw-bold text-tks-secondary">
-                Tutor Hours Summary
-            </h2>
-            <div className="d-flex flex-column flex-md-row align-items-md-end gap-3 mb-3">
-                <div>
-                    <label className="form-label small fw-medium text-secondary d-block mb-1">
-                        Start Date
-                    </label>
-                    <DatePicker
-                        selected={startDate}
-                        dateFormat={DISPLAY_DATE_FORMAT}
-                        locale={enAU}
-                        onChange={(date) => setStartDate(getMonday(date))}
-                        className="form-control form-control-sm"
-                    />
-                </div>
-                <div>
-                    <label className="form-label small fw-medium text-secondary d-block mb-1">
-                        End Date
-                    </label>
-                    <DatePicker
-                        selected={endDate}
-                        dateFormat={DISPLAY_DATE_FORMAT}
-                        locale={enAU}
-                        onChange={(date) => setEndDate(new Date(date.setHours(23, 59, 59, 999)))}
-                        className="form-control form-control-sm"
-                    />
-                </div>
-                <CSVLink
-                    data={csvData}
-                    filename={`tutor_hours_${formatDisplayDate(startDate)}_to_${formatDisplayDate(endDate)}.csv`}
-                    className={`btn btn-outline-primary btn-sm${loadState !== 'ready' ? ' disabled' : ''}`}
-                    aria-disabled={loadState !== 'ready'}
-                    onClick={() => loadState === 'ready'}
-                >
-                    Export as CSV
-                </CSVLink>
-            </div>
-            <div className="mb-3 p-3 border border-secondary-subtle bg-light rounded d-flex align-items-start gap-2">
-                <FaInfoCircle className="text-secondary mt-1 shrink-0 fs-5" />
-                <div className="small text-secondary">
-                    <p className="mb-2">
-                        Please check if the hours are correct by Friday. If there are any
-                        discrepancies, report them to Michael Ienna.
-                    </p>
-                    <p className="mb-0">
-                        Any given hours that are between 3 (exclusive) and 6 (inclusive) hours account for a 30-minute break. Any given hours that are greater than 6 (exclusive) account for a 1-hour break.
-                    </p>
-                </div>
-            </div>
+    const reportReady = !loading && !loadError && !rangeError;
+    const dateFields = [
+        { key: 'start', label: 'Start Date', value: startDate, set: date => setStartDate(date ? getMonday(date) : null) },
+        { key: 'end', label: 'End Date', value: endDate, set: date => setEndDate(date ? new Date(new Date(date).setHours(23, 59, 59, 999)) : null) },
+    ];
 
-            {loadState === 'loading' && <p role="status">Refreshing hours…</p>}
-            {loadState === 'error' && <p role="alert">Hours could not refresh. Any displayed hours are the last loaded result. <button className="btn btn-link btn-sm" onClick={fetchTutorHours}>Retry</button></p>}
-            <div className="grow overflow-auto">
-                <div className="table-responsive">
-                    <table className="table table-sm table-hover bg-white">
-                        <thead className="sticky-top bg-light" style={{ zIndex: 1 }}>
-                        <tr>
-                            <th className="small fw-medium text-secondary">Email</th>
-                            <th className="small fw-medium text-secondary">Name</th>
-                            <th className="small fw-medium text-secondary">Work</th>
-                            <th className="small fw-medium text-secondary">Coaching</th>
-                            <th className="small fw-medium text-secondary">Total</th>
-                            {isAdmin && (
-                                <th className="small fw-medium text-secondary">Actions</th>
-                            )}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tutorHours.map((tutor, index) => (
-                            <tr key={index}>
-                                <td className="small text-break align-middle">{tutor.email}</td>
-                                <td className="small align-middle">{tutor.name}{tutor.warnings.map((warning, i) => <div key={i} className="text-warning-emphasis small" role="status">⚠ {formatDisplayDate(warning.date)}: {warning.message}</div>)}</td>
-                                <td className="small align-middle">{formatDuration(tutor.workMs)}</td>
-                                <td className="small align-middle">{formatDuration(tutor.coachingMs)}</td>
-                                <td className="small fw-semibold align-middle">
-                                    {formatDuration(tutor.workMs + tutor.coachingMs)}
-                                </td>
-                                {isAdmin && (
-                                    <td className="small align-middle">
-                                        <div className="d-flex flex-column gap-2 align-items-start">
-                                            <button
-                                                onClick={() =>
-                                                    handleGenerateTimesheet(
-                                                        tutor.email,
-                                                        tutor.name,
-                                                        'tutor',
-                                                    )
-                                                }
-                                                disabled={loadState !== 'ready'}
-                                                className="btn btn-sm btn-outline-success"
-                                            >
-                                                Generate Tutor Timesheet
-                                            </button>
-                                            {tutor.coachingHours > 0 && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleGenerateTimesheet(
-                                                            tutor.email,
-                                                            tutor.name,
-                                                            'coach',
-                                                        )
-                                                    }
-                                                    disabled={loadState !== 'ready'}
-                                                    className="btn btn-sm btn-outline-secondary"
-                                                >
-                                                    Generate Coach Timesheet
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                )}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                </div>
+    return (
+        <section className={styles.section} aria-labelledby="tutorHoursHeading">
+            <header className={styles.header}>
+                <h2 id="tutorHoursHeading">Tutor Hours Summary</h2>
+            </header>
+            <div className={styles.filters}>
+                {dateFields.map(field => <div key={field.key} className={styles.dateField}>
+                    <DatePicker id={`hours-${field.key}`} label={field.label} value={field.value} onChange={field.set}
+                        onDraftValidityChange={valid => setDatePending(previous => previous[field.key] === !valid ? previous : { ...previous, [field.key]: !valid })}
+                        aria-describedby={rangeError ? 'hours-date-error' : undefined} isInvalid={!!rangeError} />
+                </div>)}
+                <Button color="secondary" size="md" iconLeading={Download01} isDisabled={!reportReady}
+                    onPress={() => csvRef.current?.link?.click()} className={styles.exportButton}>Export as CSV</Button>
+                <CSVLink ref={csvRef} data={csvData}
+                    filename={`tutor_hours_${startDate ? formatDisplayDate(startDate) : ''}_to_${endDate ? formatDisplayDate(endDate) : ''}.csv`}
+                    hidden aria-hidden="true" tabIndex={-1}>Download hours CSV</CSVLink>
             </div>
-        </div>
+            {rangeError && <p id="hours-date-error" role="alert" className={styles.dateError}>{rangeError}</p>}
+            <aside className={styles.information} aria-label="Hours and break information">
+                <InfoCircle aria-hidden="true" />
+                <div>
+                    <p>Please check if the hours are correct by Friday. If there are any discrepancies, report them to Michael Ienna.</p>
+                    <p>Shifts over 3 hours and up to 6 hours include a 30-minute break deduction. Shifts over 6 hours include a 1-hour break deduction.</p>
+                </div>
+            </aside>
+            <TableCard.Root className={styles.tableCard}>
+                <div className={styles.tableRegion} role="region" aria-label="Tutor hours table" tabIndex={0}>
+                    <table className={styles.table} aria-label="Tutor hours summary">
+                        <thead><tr>
+                            <th scope="col">Email</th><th scope="col">Name</th><th scope="col">Work</th>
+                            <th scope="col">Coaching</th><th scope="col">Total</th>
+                            {isAdmin && <th scope="col" className={styles.actionHeading}>Timesheets</th>}
+                        </tr></thead>
+                        <tbody>
+                            {!reportReady || tutorHours.length === 0 ? <tr className={styles.stateRow}><td colSpan={isAdmin ? 6 : 5}>
+                                <div className={styles.tableState}>
+                                    {rangeError ? <span>Choose a valid date range to view hours.</span> : loading ? <span role="status">Loading hours…</span> : loadError ? <>
+                                        <span role="alert">{loadError}</span><Button color="secondary" size="sm" onPress={fetchTutorHours}>Try again</Button>
+                                    </> : <span role="status">No completed hours for these dates.</span>}
+                                </div>
+                            </td></tr> : tutorHours.map(tutor => <tr key={tutor.email}>
+                                <HoursCell label="Email">{tutor.email}</HoursCell>
+                                <HoursCell label="Name" className={styles.personName}>{tutor.name}{tutor.warnings.map((warning, index) => <div key={index} role="status" className="text-warning-emphasis small">⚠ {formatDisplayDate(warning.date)}: {warning.message}</div>)}</HoursCell>
+                                <HoursCell label="Work">{formatDuration(tutor.workMs)}</HoursCell>
+                                <HoursCell label="Coaching">{formatDuration(tutor.coachingMs)}</HoursCell>
+                                <HoursCell label="Total" className={styles.total}>{formatDuration(tutor.workMs + tutor.coachingMs)}</HoursCell>
+                                {isAdmin && <HoursCell label="Timesheets"><div className={styles.rowActions}>
+                                    <Button color="secondary" size="xs" iconLeading={Download01} className={styles.timesheetButton}
+                                        aria-label="Generate Tutor Timesheet" title="Generate tutor timesheet"
+                                        isLoading={generating.has(`${tutor.email}:tutor`)} showTextWhileLoading
+                                        onPress={() => handleGenerateTimesheet(tutor.email, tutor.name, 'tutor')}>Tutor</Button>
+                                    {tutor.coachingHours > 0 && <Button color="secondary" size="xs" iconLeading={Download01} className={styles.timesheetButton}
+                                        aria-label="Generate Coach Timesheet" title="Generate coach timesheet"
+                                        isLoading={generating.has(`${tutor.email}:coach`)} showTextWhileLoading
+                                        onPress={() => handleGenerateTimesheet(tutor.email, tutor.name, 'coach')}>Coach</Button>}
+                                </div></HoursCell>}
+                            </tr>)}
+                        </tbody>
+                    </table>
+                </div>
+            </TableCard.Root>
+        </section>
     );
 };
 

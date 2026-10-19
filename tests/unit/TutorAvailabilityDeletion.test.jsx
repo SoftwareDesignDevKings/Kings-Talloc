@@ -13,9 +13,10 @@ beforeEach(() => { jest.clearAllMocks(); jest.spyOn(window, 'confirm').mockRetur
 test.each([false, true])('availability deletion requires confirmation: %s', async confirmed => {
     window.confirm.mockReturnValue(confirmed);
     const event = { id: 'rendered-fragment', originalAvailabilityId: 'availability', workType: ['work'] };
-    render(<TutorAvailabilityForm mode="edit" newAvailability={event} eventToEdit={event} setNewAvailability={jest.fn()} setShowModal={jest.fn()} userRole="tutor" />);
+    render(<TutorAvailabilityForm mode="edit" newAvailability={event} eventToEdit={event} setNewAvailability={jest.fn()} setShowModal={mockResult} userRole="tutor" />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(mockResult).toHaveBeenCalledWith(confirmed));
+    if (confirmed) await waitFor(() => expect(mockResult).toHaveBeenCalledWith(false));
+    else expect(mockResult).not.toHaveBeenCalled();
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Existing approved sessions will remain'));
     if (confirmed) {
         expect(deleteEventFromFirestore).toHaveBeenCalledWith('availability', 'tutorAvailabilities');

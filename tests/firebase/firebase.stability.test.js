@@ -18,8 +18,8 @@ const call = (input, actor = teacher) => scheduleMutation(db, actor, { operation
 const pending = (id, extra = {}) => db.collection('studentEventRequests').doc(id).set(event(extra));
 const approved = (id, extra = {}) => db.collection('shifts').doc(id).set(event({ createdByStudent: false, approvalStatus: 'approved', ...extra }));
 beforeAll(async () => {
- process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
- env = await initializeTestEnvironment({ projectId: 'demo-talloc-stability-tests', firestore: { host: '127.0.0.1', port: 8080, rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.rules'), 'utf8') } });
+ process.env.FIRESTORE_EMULATOR_HOST = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080');
+ env = await initializeTestEnvironment({ projectId: 'demo-talloc-stability-tests', firestore: { host: '127.0.0.1', port: Number((process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':').at(-1)), rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.rules'), 'utf8') } });
  app = initializeApp({ projectId: 'demo-talloc-stability-tests' }, 'stability-tests'); db = getFirestore(app);
 });
 beforeEach(async () => {
