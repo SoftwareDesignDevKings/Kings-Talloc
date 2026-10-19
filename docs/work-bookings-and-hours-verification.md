@@ -260,7 +260,7 @@ A follow-up diagnostic run records browser errors, failed request paths and moda
 A separate deterministic lifecycle test reproduces a Bootstrap callback reading a disposed modal during
 React StrictMode effect replay. Modal initialization now waits until the replay completes,
 and unmounting lets opening/hiding transitions finish before disposal. Detached editors
-cannot be reattached by Bootstrap. Quick confirmation cancellation and delayed Bootstrap
+are removed after transition cleanup, including when Bootstrap temporarily reattaches them. Quick confirmation cancellation and delayed Bootstrap
 loading remain covered. Hosted diagnostics also show a student dropdown intercepted by
 the next accordion header. Keeping the pointer on that header reproduces the timeout
 locally. Modal dropdowns now stack above neighbouring headers, and the regression uses
@@ -274,7 +274,14 @@ notice reads and validated own acknowledgement state to the exact pre-PR143 rule
 baseline SHA-256 is tested, and publication refuses to replace strict rules or a separate
 production hotfix. The migration acknowledgement continues to gate strict calendar rules.
 Both stages retain exact-commit production checks and the polling grace interval. This
-keeps real-time notices without introducing frequent database/API polling.
+keeps real-time notices without introducing frequent database/API polling. Six compatibility
+emulator checks cover recipient isolation, mixed-case identities, acknowledgement validation,
+server-only notices and retained legacy calendar writes. The browser also verifies own-notice
+display and dismissal while another recipient's notice stays hidden.
+
+The account-deletion browser check now waits for the completed AccessDenied redirect before
+admin recreation. Its previous immediate login-URL assertion allowed the rejected sign-in
+to race with recreating the account; old-token rejection remains checked after recreation.
 
 Production booking/approval/completion write testing remains pending at the maintainer's
 request. No production data or rules were changed by preparing these fixes; the shared

@@ -342,9 +342,7 @@ test('deleted accounts cannot return until admin recreation, and recreation does
         expect((await readWithOldToken(studentPage, oldToken, 'users', student)).status()).toBe(403);
         expect((await studentPage.request.post('/api/scheduling', { data: {} })).status()).toBe(401);
         await studentPage.goto('/login');
-        const rejectedSignIn = studentPage.waitForResponse(response => response.url().endsWith('/api/auth/callback/dev-student'));
         await studentPage.getByRole('button', { name: 'Student', exact: true }).click();
-        expect((await (await rejectedSignIn).json()).url).toContain('error=AccessDenied');
         // Finish the rejected sign-in before allowing the administrator to recreate it.
         await expect(studentPage).toHaveURL(/\/login\?error=AccessDenied/);
         expect((await db.collection('users').doc(student).get()).exists).toBe(false);
