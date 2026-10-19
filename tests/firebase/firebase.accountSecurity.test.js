@@ -5,7 +5,7 @@ let env;
 const admin = 'admin@kings.edu.au', student = 'student@student.kings.edu.au';
 const asUser = (email, roles = {}) => env.authenticatedContext(email, { email, defaultRole: 'admin', userRoles: [], ...roles }).firestore();
 const seed = (collection, id, data) => env.withSecurityRulesDisabled(context => context.firestore().collection(collection).doc(id).set(data));
-beforeAll(async () => { env = await initializeTestEnvironment({ projectId: 'test-project-account-security', firestore: { host: 'localhost', port: 8080, rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.rules'),'utf8') } }); });
+beforeAll(async () => { env = await initializeTestEnvironment({ projectId: 'test-project-account-security', firestore: { host: 'localhost', port: Number((process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':').at(-1)), rules: fs.readFileSync(path.join(__dirname, '../../firebase/firestore.rules'),'utf8') } }); });
 beforeEach(async () => { await env.clearFirestore(); await seedRuleAccounts(env); });
 afterAll(async () => env.cleanup());
 test.each([admin, student])('private calendar credentials and revocations cannot be read or written by %s', async email => {

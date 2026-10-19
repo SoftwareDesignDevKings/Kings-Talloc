@@ -1,109 +1,77 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertCircle, AlertTriangle, CheckCircle, InfoCircle, XClose } from '@untitledui/icons';
+import { Button } from '@/components/untitled/button';
+import { FeaturedIcon } from '@/components/untitled/featured-icon';
+import styles from '@/styles/alerts.module.css';
 
-const TOAST_MAX_WIDTH = 360;
+const variants = {
+    error: { color: 'error', icon: AlertCircle },
+    warning: { color: 'warning', icon: AlertTriangle },
+    info: { color: 'brand', icon: InfoCircle },
+    success: { color: 'success', icon: CheckCircle },
+};
+const DISMISS_DELAY = 5000;
+const EXIT_DURATION = 150;
 
-/**
- * Notification alert box component for displaying messages
- * - Type: can be either "ERROR", "WARNING", "INFO", or "SUCCESS"
- * @param {string} message - The message to display in the alert box
- * @param {string} type - The type of alert: 'error', 'warning', 'info', 'success'
- * @param {Function} onClose - Callback fired when the toast is dismissed
- * @returns {JSX.Element | null}
- */
-const AlertBox = ({ message, type, onClose }) => {
-    const toastRef = useRef(null);
-    // Keep the latest onClose in a ref so the show/dispose effect doesn't
-    // re-run every time the parent re-creates the callback (which restarts
-    // Bootstrap's fade-in animation — the "flashing" bug).
+const AlertBox = ({ message, type, onClose, dismissRequested = false }) => {
+    const [isClosing, setIsClosing] = useState(false);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
+    const timers = useRef({ auto: null, exit: null });
+    const interaction = useRef({ hovered: false, focused: false, closing: false });
+    const config = variants[type?.toLowerCase()];
 
-    if (!type) {
-        throw new Error("AlertBox: 'type' prop is required (ERROR, SUCCESS, or INFO)");
-    }
-
-    if (!message) {
-        throw new Error("AlertBox: 'message' prop is required");
-    }
-
-    const lowerType = type.toLowerCase();
-
-    const alertConfig = {
-        error: {
-            colour: 'bg-danger',
-            iconClass: 'bi-exclamation-triangle-fill',
-        },
-        warning: {
-            colour: 'bg-warning',
-            iconClass: 'bi-exclamation-triangle-fill',
-            textClass: 'text-dark',
-        },
-        info: {
-            colour: 'bg-primary',
-            iconClass: 'bi-info-circle-fill',
-        },
-        success: {
-            colour: 'bg-success',
-            iconClass: 'bi-check-circle-fill',
-        },
-    };
-
-    const config = alertConfig[lowerType];
+    const dismiss = useCallback(() => {
+        if (interaction.current.closing) return;
+        interaction.current.closing = true;
+        clearTimeout(timers.current.auto);
+        setIsClosing(true);
+        timers.current.exit = setTimeout(() => onCloseRef.current?.(), EXIT_DURATION);
+    }, []);
+    const restartDelay = useCallback(() => {
+        clearTimeout(timers.current.auto);
+        const { hovered, focused, closing } = interaction.current;
+        if (!hovered && !focused && !closing) {
+            timers.current.auto = setTimeout(dismiss, DISMISS_DELAY);
+        }
+    }, [dismiss]);
 
     useEffect(() => {
-        if (!config) {
-            return;
-        }
+        if (!config) return;
+        restartDelay();
+        const pending = timers.current;
+        return () => { clearTimeout(pending.auto); clearTimeout(pending.exit); };
+    }, [config, restartDelay]);
+    useEffect(() => { if (dismissRequested) dismiss(); }, [dismissRequested, dismiss]);
 
-        const toastElement = toastRef.current;
-
-        if (toastElement && window.bootstrap) {
-            const toastBootstrap =
-                window.bootstrap.Toast.getOrCreateInstance(toastElement);
-
-            const handleHidden = () => {
-                onCloseRef.current?.();
-            };
-
-            toastElement.addEventListener('hidden.bs.toast', handleHidden);
-            toastBootstrap.show();
-
-            return () => {
-                toastElement.removeEventListener('hidden.bs.toast', handleHidden);
-                toastBootstrap.dispose();
-            };
-        }
-    }, [config]);
-
-    if (!config) {
-        return null;
-    }
+    if (!type) throw new Error("AlertBox: 'type' prop is required (ERROR, SUCCESS, or INFO)");
+    if (!message) throw new Error("AlertBox: 'message' prop is required");
+    if (!config) return null;
 
     return (
         <div
-            ref={toastRef}
-            className={`toast align-items-center border-0 mb-2 shadow ${config.textClass || 'text-white'} ${config.colour}`}
+            className={`${styles.alert} uui:shadow-lg`}
+            data-untitled-alert
+            data-closing={isClosing || undefined}
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
-            data-bs-autohide="true"
-            data-bs-delay="5000"
-            style={{ maxWidth: TOAST_MAX_WIDTH, width: '100%' }}
+            onMouseEnter={() => { interaction.current.hovered = true; restartDelay(); }}
+            onMouseLeave={() => { interaction.current.hovered = false; restartDelay(); }}
+            onFocus={() => { interaction.current.focused = true; restartDelay(); }}
+            onBlur={event => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                    interaction.current.focused = false;
+                    restartDelay();
+                }
+            }}
         >
-            <div className="d-flex">
-                <div className="toast-body d-flex align-items-center flex-grow-1 py-3 px-3" style={{ minWidth: 0 }}>
-                    <i className={`bi ${config.iconClass} me-3 fs-5 flex-shrink-0`}></i>
-                    <span className="fs-6" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{message}</span>
-                </div>
-                <button
-                    type="button"
-                    className={`btn-close ${config.textClass ? '' : 'btn-close-white'} me-3 m-auto`}
-                    data-bs-dismiss="toast"
-                    aria-label="Close"
-                ></button>
-            </div>
+            <FeaturedIcon size="sm" theme="light" color={config.color} icon={config.icon} aria-hidden="true" />
+            <span className={styles.message}>{message}</span>
+            <Button size="sm" color="tertiary" iconLeading={XClose} aria-label="Close"
+                className={styles.close} onClick={dismiss} />
         </div>
     );
 };

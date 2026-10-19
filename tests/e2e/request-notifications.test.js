@@ -1,3 +1,4 @@
+import { fillEventDateTime } from './dateTimePickerHelpers';
 import { test, expect } from '@playwright/test';
 import { clearFirestoreEmulator, seedStudentRequestInEmulator, seedUserInEmulator, seedStudentEligibilityInEmulator, confirmAction } from './wrapperFunctions';
 
@@ -25,11 +26,13 @@ test.describe('Request notifications @teacherAdmin', () => {
         await page.goto('/dashboard');
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         await page.getByRole('button', { name: 'Pending Approvals 2', exact: true }).click();
-        const dropdown = page.locator('#pending-approvals .list-group');
+        const dropdown = page.getByRole('dialog', { name: 'Pending Approvals', exact: true }).getByRole('list');
         await expect(dropdown.getByText('A session tomorrow', { exact: true })).toBeVisible();
-        await expect(dropdown.locator('.list-group-item').first()).toContainText('A session tomorrow');
+        await expect(dropdown.getByRole('listitem').first()).toContainText('A session tomorrow');
         await expect(dropdown.getByText('A session in four weeks', { exact: true })).toBeVisible();
         await expect(dropdown.getByText('Missed session', { exact: true })).toHaveCount(0);
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog', { name: 'Pending Approvals', exact: true })).toHaveCount(0);
         await page.getByRole('link', { name: 'Calendar', exact: true }).click();
         await expect(page).toHaveURL(/\/calendar/);
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
@@ -40,7 +43,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await expect(page).toHaveURL(/\/dashboard/);
         await page.getByRole('button', { name: 'Pending Approvals 2', exact: true }).click();
         await expect(dropdown).toBeVisible();
-        await confirmAction(page, /Reject this request\?/, () => dropdown.locator('.list-group-item').first().getByRole('button', { name: 'Reject', exact: true }).click());
+        await confirmAction(page, /Reject this request\?/, () => dropdown.getByRole('listitem').first().getByRole('button', { name: 'Reject', exact: true }).click());
         await expect(page.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
         const meetingResponse = page.waitForResponse(response => response.url().includes('/api/microsoft') && response.request().method() === 'POST');
         await dropdown.getByRole('button', { name: 'Approve', exact: true }).click();
@@ -89,7 +92,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await seedUserInEmulator('computing@kings.edu.au', { email: 'computing@kings.edu.au', name: 'Demo Other Admin', defaultRole: 'teacher', userRoles: ['admin'] });
         await page.goto('/userRoles');
         await page.getByRole('row').filter({ hasText: 'mienna@kings.edu.au' }).getByRole('button', { name: 'Edit user', exact: true }).click();
-        const setting = page.getByRole('checkbox', { name: 'Tutoring request notifications', exact: true });
+        const setting = page.getByRole('switch', { name: 'Tutoring request notifications', exact: true });
         await expect(setting).toBeChecked();
         await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
@@ -109,7 +112,8 @@ test.describe('Request notifications @teacherAdmin', () => {
 
             await page.getByRole('row').filter({ hasText: 'computing@kings.edu.au' }).getByRole('button', { name: 'Edit user', exact: true }).click();
             await expect(setting).not.toBeChecked();
-            await setting.check();
+            await setting.locator('xpath=ancestor::label[1]').click();
+            await expect(setting).toBeChecked();
             await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
             await expect(setting).toHaveCount(0);
             // Reopen to verify persistence and let the live preference listener receive the save.
@@ -118,7 +122,8 @@ test.describe('Request notifications @teacherAdmin', () => {
             await expect(otherPage).toHaveTitle('Kings-Talloc');
             await seedStudentRequestInEmulator('after-opt-in', request('New after opt-in', 3));
             await expect(otherPage).toHaveTitle('(1) Kings-Talloc');
-            await setting.uncheck();
+            await setting.locator('xpath=ancestor::label[1]').click();
+            await expect(setting).not.toBeChecked();
             await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
             await expect(otherPage).toHaveTitle('Kings-Talloc');
         } finally {
@@ -136,12 +141,14 @@ test.describe('Request notifications @teacherAdmin', () => {
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
         await page.getByRole('button', { name: 'Pending Approvals 1', exact: true }).click();
-        const dropdown = page.locator('#pending-approvals .list-group');
+        const dropdown = page.getByRole('dialog', { name: 'Pending Approvals', exact: true }).getByRole('list');
         await expect(dropdown.getByText('Baseline', { exact: true })).toBeVisible();
         await expect(dropdown.getByRole('button', { name: 'Approve', exact: true })).toBeVisible();
         await seedStudentRequestInEmulator('new', request('New in teacher view', 3));
         await expect(page.getByRole('button', { name: 'Pending Approvals 2', exact: true })).toBeVisible();
         await expect(page).toHaveTitle('Kings-Talloc');
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog', { name: 'Pending Approvals', exact: true })).toHaveCount(0);
         await page.getByRole('button', { name: 'View as Admin', exact: true }).click();
         await expect(page.getByRole('button', { name: 'Pending Approvals 2', exact: true })).toBeVisible();
     });
@@ -151,7 +158,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await seedUserInEmulator('tutorAdmin@kings.edu.au', { email: 'tutorAdmin@kings.edu.au', name: 'Tutor Admin', defaultRole: 'tutor', userRoles: ['admin'], requestNotificationsEnabled: true });
         await page.goto('/userRoles');
         await page.getByRole('row').filter({ hasText: 'tutorAdmin@kings.edu.au' }).getByRole('button', { name: 'Edit user', exact: true }).click();
-        await expect(page.getByRole('checkbox', { name: 'Tutoring request notifications', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('switch', { name: 'Tutoring request notifications', exact: true })).toHaveCount(0);
         const teacherContext = await browser.newContext({ storageState: 'tests/e2e/.auth/teacher.json' });
         const adminContext = await browser.newContext({ storageState: 'tests/e2e/.auth/tutorAdmin.json' });
         try {

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fillEventDateTime } from './dateTimePickerHelpers';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
@@ -8,6 +9,24 @@ import { readFileSync } from 'fs';
 import PizZip from 'pizzip';
 
 let env, app, db;
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-talloc-work-hours';
+const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8180';
+const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9199';
+const searchParticipants = async (page, query) => {
+    await page.getByRole('button', { name: 'Assign students to event', exact: true }).click();
+    await page.getByRole('searchbox', { name: 'Search Assign students to event', exact: true }).fill(query);
+};
+const openEventEditor = async (page, title) => {
+    const event = page.locator('.rbc-calendar .rbc-event').filter({ has: page.getByText(title, { exact: true }) });
+    const editor = page.getByRole('dialog', { name: 'Edit Event', exact: true });
+    // Firestore snapshots can replace an event between mouse-down and mouse-up.
+    // Retry only opening the editor; all scheduling writes below are still performed once.
+    await expect(async () => {
+        if (await editor.isVisible()) return;
+        await event.click({ position: { x: 12, y: 16 }, timeout: 5000 });
+        await expect(editor).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15000 });
+};
 const tutor = 'tutor@kings.edu.au', student = 'student@kings.edu.au';
 const slot = DateTime.now().setZone('Australia/Sydney').plus({ days: 1 }).set({ hour: 15, minute: 0, second: 0, millisecond: 0 });
 const data = (extra = {}) => ({ title: 'General Work', start: slot.toJSDate(), end: slot.plus({ hours: 3 }).toJSDate(), staff: [{ value: tutor, label: 'Viraj Patel' }], students: [], staffEmails: [tutor], studentEmails: [], emailsList: [tutor], workType: 'work', recurring: null, createdByStudent: false, approvalStatus: 'approved', workStatus: 'notCompleted', ...extra });
@@ -17,13 +36,13 @@ const seedTimesheetTemplate = async () => {
     zip.folder('word').file('document.xml', '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>MONDAY {mondayDate} {mondayCommenced} {mondayFinished} {mondayBreak} {mondayTotal} TUESDAY {tuesdayDate} {tuesdayCommenced} {tuesdayFinished} {tuesdayBreak} {tuesdayTotal} WEDNESDAY {wednesdayDate} {wednesdayCommenced} {wednesdayFinished} {wednesdayBreak} {wednesdayTotal} THURSDAY {thursdayDate} {thursdayCommenced} {thursdayFinished} {thursdayBreak} {thursdayTotal} FRIDAY {fridayDate} {fridayCommenced} {fridayFinished} {fridayBreak} {fridayTotal} SATURDAY {saturdayDate} {saturdayCommenced} {saturdayFinished} {saturdayBreak} {saturdayTotal} SUNDAY {sundayDate} {sundayCommenced} {sundayFinished} {sundayBreak} {sundayTotal} TOTAL {totalHours}</w:t></w:r></w:p><w:sectPr/></w:body></w:document>');
     await db.collection('timesheets').doc(tutor).set({ fileData: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${zip.generate({ type: 'base64' })}` });
 };
-const signIn = async (page, label) => { const hydrated = page.waitForResponse(response => response.url().endsWith('/api/auth/session')); await page.goto('/login', { waitUntil: 'domcontentloaded' }); await hydrated; await page.getByRole('button', { name: label, exact: true }).click(); await expect(page).toHaveURL(/dashboard/); await expect(page.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible(); };
+const signIn = async (page, label) => { const hydrated = page.waitForResponse(response => response.url().endsWith('/api/auth/session')); await page.goto('/login', { waitUntil: 'domcontentloaded' }); await hydrated; await page.getByRole('button', { name: label, exact: true }).click(); await expect(page).toHaveURL(/dashboard/, { timeout: 30000 }); await expect(page.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible(); };
 
 test.beforeAll(async () => {
-    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8180';
-    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9199';
-    env = await initializeTestEnvironment({ projectId: 'demo-talloc-work-hours', firestore: { host: '127.0.0.1', port: 8180, rules: readFileSync('firebase/firestore.rules', 'utf8') } });
-    app = initializeApp({ projectId: 'demo-talloc-work-hours' }, 'work-hours-browser'); db = getFirestore(app);
+    process.env.FIRESTORE_EMULATOR_HOST = firestoreHost;
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = authHost;
+    env = await initializeTestEnvironment({ projectId, firestore: { host: firestoreHost.split(':')[0], port: Number(firestoreHost.split(':')[1]), rules: readFileSync('firebase/firestore.rules', 'utf8') } });
+    app = initializeApp({ projectId }, 'work-hours-browser'); db = getFirestore(app);
     for (const email of ['tutor@kings.edu.au', 'student@kings.edu.au', 'teacher@kings.edu.au', 'computing@kings.edu.au', 'mienna@kings.edu.au']) {
         await getAuth(app).updateUser(email, { email }).catch(() => getAuth(app).createUser({ uid: email, email }));
     }
@@ -39,20 +58,21 @@ test.beforeEach(async () => {
 test.afterAll(async () => { await env?.cleanup(); if (db) await db.terminate(); if (app) await deleteApp(app); });
 
 test('student books during Work, names a group, and teacher approves through the dashboard', async ({ page, browser }) => {
+    test.setTimeout(120000);
     await db.collection('shifts').doc('work').set(data());
     await db.collection('canvasUsers').doc('peer').set({ email: 'peer@kings.edu.au', name: 'Casey Example' });
     await db.collection('studentTutorEligibility').doc('peer@kings.edu.au').set({ eligibleTutorEmails: [tutor] });
     await signIn(page, 'Student');
     await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
     await page.locator('.rbc-events-container').nth(2).click();
-    await expect(page.getByLabel('Event start time')).toBeVisible();
+    await expect(page.getByRole('group', { name: /^Event start time/ })).toBeVisible();
     // Click waits for the modal opening animation before typing into its fields.
-    await page.getByLabel('Event start time').click();
-    await page.getByLabel('Event start time').fill(slot.plus({ minutes: 30 }).toFormat("yyyy-MM-dd'T'HH:mm"));
-    await page.getByLabel('Event end time').fill(slot.plus({ hours: 1 }).toFormat("yyyy-MM-dd'T'HH:mm"));
+    await page.getByRole('group', { name: /^Event start time/ }).click();
+    await fillEventDateTime(page, 'start', slot.plus({ minutes: 30 }).toFormat("yyyy-MM-dd'T'HH:mm"));
+    await fillEventDateTime(page, 'end', slot.plus({ hours: 1 }).toFormat("yyyy-MM-dd'T'HH:mm"));
     await page.getByLabel('Students in this booking').fill('Casey');
     await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
-    await page.locator('#tutor').click(); await page.getByRole('option', { name: /Viraj Patel/ }).click();
+    await page.getByRole('button', { name: 'Assign tutor to event', exact: true }).click(); await page.getByRole('option', { name: /Viraj Patel/ }).click();
     await page.getByRole('button', { name: 'Add Event', exact: true }).click();
     await expect(page.locator('#session-focus-error')).toContainText('Select a session focus');
     expect((await db.collection('studentEventRequests').get()).empty).toBe(true);
@@ -80,7 +100,7 @@ test('student books during Work, names a group, and teacher approves through the
         const session = (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).data();
         expect(session.preference).toBe('Exam Help'); expect(session.sessionTopics).toBe('Quadratic equations, questions 4–8.');
         await page.goto('/dashboard'); await expect(page.getByText('Your tutoring request was approved.')).toBeVisible();
-        const approvedCard = page.locator('.card').filter({ has: page.getByRole('heading', { name: 'Approved Requests', exact: true }) });
+        const approvedCard = page.locator('[data-untitled-card]').filter({ has: page.getByRole('heading', { name: 'Approved Requests', exact: true }) });
         await expect(approvedCard.getByRole('heading', { level: 3 })).toHaveText('1');
     } finally { await teacherContext.close(); }
 });
@@ -96,11 +116,11 @@ test('tutor availability has no type selector and saves through the server', asy
 test('teacher creates Work with no acceptance controls and can mark it completed', async ({ page }) => {
     await db.collection('shifts').doc('work').set(data());
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
+    await openEventEditor(page, 'General Work');
     await page.getByRole('button', { name: 'Settings & Status', exact: true }).click();
-    await page.locator('#workType').click(); await expect(page.getByRole('option', { name: 'Tutoring', exact: true })).toHaveCount(0); await page.getByRole('option', { name: 'Work', exact: true }).click();
+    await page.getByRole('button', { name: /Event work type/ }).click(); await expect(page.getByRole('option', { name: 'Tutoring', exact: true })).toHaveCount(0); await page.getByRole('option', { name: 'Work', exact: true }).click();
     await expect(page.getByText('Required for confirmation', { exact: true })).toHaveCount(0);
-    await page.locator('#workStatus').click(); await page.getByRole('option', { name: 'Completed', exact: true }).click();
+    await page.getByRole('button', { name: /Event work status/ }).click(); await page.getByRole('option', { name: 'Completed', exact: true }).click();
     const saved = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Save Changes', exact: true }).click(); expect((await saved).status()).toBe(200);
     expect((await db.collection('shifts').doc('work').get()).data().workStatus).toBe('completed');
@@ -128,8 +148,8 @@ test('actual Mondays export separately and short shifts warn without blocking do
 test('two tabs acknowledge only new requests and returning preserves outstanding approvals', async ({ page, context }) => {
     for (let index = 0; index < 2; index++) await db.collection('studentEventRequests').doc(`old-${index}`).set(data({ title: `Existing ${index}`, start: slot.plus({ days: index }).toJSDate(), end: slot.plus({ days: index, hours: 1 }).toJSDate(), students: [{ value: student }], createdByStudent: true, approvalStatus: 'pending', createdAt: new Date(Date.now() - 86400000), emailsList: [tutor, student], studentEmails: [student] }));
     await signIn(page, 'Michael (Notifications)');
-    await expect(page.locator('#pending-approvals h3')).toHaveText('2');
-    const second = await context.newPage(); await second.goto('/dashboard'); await expect(second.locator('#pending-approvals h3')).toHaveText('2');
+    await expect(page.locator('#pending-approvals').getByRole('heading', { level: 3 })).toHaveText('2');
+    const second = await context.newPage(); await second.goto('/dashboard'); await expect(second.locator('#pending-approvals').getByRole('heading', { level: 3 })).toHaveText('2');
     // Chromium automation keeps each target focused on some hosts. Control only the
     // focus signal; snapshots and cross-tab localStorage events remain real.
     const setActive = async (tab, active) => tab.evaluate(active => {
@@ -143,12 +163,12 @@ test('two tabs acknowledge only new requests and returning preserves outstanding
     for (let index = 2; index < 5; index++) await db.collection('studentEventRequests').doc(`new-${index}`).set(data({ title: `New ${index}`, start: slot.plus({ days: index }).toJSDate(), end: slot.plus({ days: index, hours: 1 }).toJSDate(), students: [{ value: student }], createdByStudent: true, approvalStatus: 'pending', createdAt: new Date(), emailsList: [tutor, student], studentEmails: [student] }));
     await expect(page).toHaveTitle('(3) Kings-Talloc'); await expect(second).toHaveTitle('(3) Kings-Talloc');
     await setActive(second, true); await expect(second).toHaveTitle('Kings-Talloc'); await expect(page).toHaveTitle('Kings-Talloc');
-    await expect(second.locator('#pending-approvals h3')).toHaveText('5');
-    await second.locator('#pending-approvals [role="button"]').click();
+    await expect(second.locator('#pending-approvals').getByRole('heading', { level: 3 })).toHaveText('5');
+    await second.getByRole('button', { name: /Pending Approvals/ }).click();
     const approved = second.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
     await second.getByRole('button', { name: 'Approve', exact: true }).first().click(); expect((await approved).status()).toBe(200);
-    await expect(second.locator('#pending-approvals h3')).toHaveText('4');
-    await second.reload(); await expect(second).toHaveTitle('Kings-Talloc'); await expect(second.locator('#pending-approvals h3')).toHaveText('4');
+    await expect(second.locator('#pending-approvals').getByRole('heading', { level: 3 })).toHaveText('4');
+    await second.reload(); await expect(second).toHaveTitle('Kings-Talloc'); await expect(second.locator('#pending-approvals').getByRole('heading', { level: 3 })).toHaveText('4');
 });
 
 test('teacher can remove a student temporarily, receives an empty-save error, then saves a replacement', async ({ page }) => {
@@ -157,9 +177,9 @@ test('teacher can remove a student temporarily, receives an empty-save error, th
     await db.collection('studentTutorEligibility').doc(replacement).set({ eligibleTutorEmails: [tutor] });
     await db.collection('shifts').doc('session').set(data({ title: 'Student session', students: [{ value: student, label: 'John Doe' }], studentEmails: [student], emailsList: [tutor, student], createdByStudent: true }));
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /Student session/ }).first().getByText('Student session', { exact: true }).click();
+    await openEventEditor(page, 'Student session');
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
-    await page.locator('#participants .select__multi-value__remove').last().click();
+    await page.getByRole('button', { name: 'Remove John Doe', exact: true }).click();
     const emptyMessage = page.getByRole('alert').filter({ hasText: 'Add at least one student' });
     await expect(emptyMessage).toHaveCount(0);
     let writes = 0;
@@ -167,7 +187,7 @@ test('teacher can remove a student temporarily, receives an empty-save error, th
     await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
     await expect(emptyMessage).toBeVisible(); await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
     expect(writes).toBe(0); expect((await db.collection('shifts').doc('session').get()).data().studentEmails).toEqual([student]);
-    await page.locator('#students').fill('Casey'); await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
+    await searchParticipants(page, 'Casey'); await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
     await expect(emptyMessage).toHaveCount(0);
     const save = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Save Changes', exact: true }).click(); expect((await save).status()).toBe(200);
@@ -179,12 +199,12 @@ test('saved general Work remains Work when a teacher tries to add a student book
     await db.collection('shifts').doc('work').set(data());
     await db.collection('canvasUsers').doc('peer').set({ email: student, name: 'John Doe' });
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
+    await openEventEditor(page, 'General Work');
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
     // Keep the pointer over the next header, as it may be during keyboard entry.
     // The open dropdown must remain clickable above that hovered header.
     await page.getByRole('button', { name: 'Settings & Status', exact: true }).hover();
-    await page.locator('#students').fill('John');
+    await searchParticipants(page, 'John');
     await page.getByRole('option', { name: 'John Doe', exact: true }).click();
     await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Create a separate student session' })).toBeVisible();
@@ -204,10 +224,10 @@ test('complex completed hours agree across dashboard, summary, CSV and Word; sho
     ];
     for (const [id, extra] of fixtures) await db.collection('shifts').doc(id).set(data({ workStatus: 'completed', ...extra }));
     await signIn(page, 'Teacher + Admin');
-    const completed = page.locator('.card').filter({ has: page.getByText('Completed Hours', { exact: true }) });
+    const completed = page.locator('[data-untitled-card]').filter({ has: page.getByText('Completed Hours', { exact: true }) });
     await expect(completed.locator('h3')).toHaveText('6h 0m');
     await expect(completed).toContainText('Work: 4h 30m | Coaching: 1h 30m');
-    const allocated = page.locator('.card').filter({ has: page.getByText('Total Allocated Hours', { exact: true }) });
+    const allocated = page.locator('[data-untitled-card]').filter({ has: page.getByText('Total Allocated Hours', { exact: true }) });
     await expect(allocated.locator('h3')).toHaveText('8h 30m');
     await page.getByRole('link', { name: 'Tutor Hours', exact: true }).click();
     const row = page.getByRole('row').filter({ hasText: tutor });
@@ -216,7 +236,7 @@ test('complex completed hours agree across dashboard, summary, CSV and Word; sho
     await expect(row.getByRole('cell', { name: '6h 0m', exact: true })).toBeVisible();
     await expect(row).toContainText('Complex day:'); await expect(row).toContainText('Coaching is under 2 hours');
     await expect(row.getByRole('button', { name: 'Generate Coach Timesheet', exact: true })).toBeEnabled();
-    const downloadPromise = page.waitForEvent('download'); await page.getByRole('link', { name: 'Export as CSV', exact: true }).click();
+    const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export as CSV', exact: true }).click();
     const csv = readFileSync(await (await downloadPromise).path(), 'utf8');
     expect(csv).toContain('"4.5","1.5","6"'); expect(csv).toContain('Complex day:'); expect(csv).toContain('Coaching is under 2 hours');
     await seedTimesheetTemplate();
@@ -234,7 +254,7 @@ test('Reject retains a visible decision; confirmed calendar Delete removes it an
     await signIn(page, 'Teacher');
     await page.getByRole('button', { name: /Pending Approvals/ }).click();
     const reject = page.getByRole('button', { name: 'Reject', exact: true });
-    await expect(reject).toHaveClass(/btn-outline-danger/);
+    await expect(reject).toHaveAttribute('data-color', 'secondary-destructive');
     page.once('dialog', dialog => dialog.dismiss());
     await reject.click();
     expect((await db.collection('studentEventRequests').doc('decision-delete').get()).data().approvalStatus).toBe('pending');
@@ -270,7 +290,7 @@ test('dashboard Delete warns, cancellation keeps the request, and confirmation r
     await signIn(page, 'Teacher');
     await page.getByRole('button', { name: /Pending Approvals/ }).click();
     const remove = page.getByRole('button', { name: 'Delete', exact: true });
-    await expect(remove).toHaveClass(/btn-danger/);
+    await expect(remove).toHaveAttribute('data-color', 'secondary-destructive');
     let message;
     page.once('dialog', dialog => { message = dialog.message(); return dialog.dismiss(); });
     await remove.click();
@@ -286,14 +306,14 @@ test('dashboard Delete warns, cancellation keeps the request, and confirmation r
 
 const firebaseIdToken = async page => {
     const session = await (await page.request.get('/api/auth/session')).json();
-    const response = await page.request.post('http://127.0.0.1:9199/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=demo-work-hours-api-key', {
+    const response = await page.request.post(`http://${authHost}/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=demo-work-hours-api-key`, {
         data: { token: session.user.firebaseToken, returnSecureToken: true },
     });
     expect(response.status()).toBe(200);
     return (await response.json()).idToken;
 };
 const readWithOldToken = (page, token, collection, id) => page.request.get(
-    `http://127.0.0.1:8180/v1/projects/demo-talloc-work-hours/databases/(default)/documents/${collection}/${encodeURIComponent(id)}`,
+    `http://${firestoreHost}/v1/projects/${projectId}/databases/(default)/documents/${collection}/${encodeURIComponent(id)}`,
     { headers: { Authorization: `Bearer ${token}` } },
 );
 
@@ -362,7 +382,7 @@ test('admin account screen creates and edits accounts through the secured API', 
     await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
     await page.getByLabel('Email Address', { exact: true }).fill(email);
     await page.getByLabel('Full Name', { exact: true }).fill('New Test Tutor');
-    await page.getByLabel('Default Access Role', { exact: true }).selectOption('tutor');
+    await page.getByRole('button', { name: 'Roles', exact: true }).click(); await page.getByRole('option', { name: 'Tutor', exact: true }).click();
     let saved = page.waitForResponse(response => response.url().endsWith('/api/users') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Create User', exact: true }).click();
     expect((await saved).status()).toBe(200);
@@ -464,4 +484,48 @@ test('booking updates read and acknowledge under compatible rules before calenda
     } finally {
         await installRules('firebase/firestore.rules');
     }
+});
+
+test('segmented date drafts cannot save stale values and nested popups fit a phone', async ({ page }) => {
+    await db.collection('shifts').doc('work').set(data());
+    await signIn(page, 'Teacher');
+    await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
+    const open = () => page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
+    await open();
+    const dialog = page.getByRole('dialog', { name: 'Edit Event', exact: true });
+    const minute = dialog.getByRole('group', { name: /^Event end time/ }).getByRole('spinbutton', { name: /^minute/ });
+    await minute.click(); await minute.press('Backspace'); await minute.press('Backspace');
+    await expect(minute).toHaveAttribute('data-placeholder', 'true');
+    await dialog.getByLabel('Event description').fill('Unsaved draft');
+    await expect(minute).toHaveAttribute('data-placeholder', 'true');
+    let writes = 0;
+    page.on('request', request => { if (request.url().endsWith('/api/scheduling') && request.method() === 'POST') writes++; });
+    await dialog.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'End date must be after the start date.' })).toBeVisible();
+    expect(writes).toBe(0); expect((await db.collection('shifts').doc('work').get()).data().description).toBeUndefined();
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.setViewportSize({ width: 320, height: 568 }); await open();
+    await dialog.getByRole('button', { name: /^Choose end date and time/ }).click();
+    const popup = page.getByRole('dialog', { name: 'End Time picker', exact: true });
+    await expect(popup).toBeVisible();
+    const bounds = await popup.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0); expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+    expect(bounds.y).toBeGreaterThanOrEqual(0); expect(bounds.y + bounds.height).toBeLessThanOrEqual(568);
+    await page.keyboard.press('Escape'); await expect(popup).toHaveCount(0); await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click(); expect(writes).toBe(0);
+});
+
+test('report dates keep day-first parsing and preserve invalid drafts without exporting stale hours', async ({ page }) => {
+    await db.collection('shifts').doc('work').set(data({ workStatus: 'completed' }));
+    await signIn(page, 'Teacher + Admin'); await page.goto('/tutorHours');
+    const start = page.getByRole('textbox', { name: 'Start Date', exact: true });
+    const end = page.getByRole('textbox', { name: 'End Date', exact: true });
+    await start.fill('19/10/2026'); await start.press('Enter');
+    await end.fill('25/10/2026'); await end.press('Enter');
+    await expect(start).toHaveValue('19/10/2026'); await expect(end).toHaveValue('25/10/2026');
+    const exportButton = page.getByRole('button', { name: 'Export as CSV', exact: true });
+    await expect(exportButton).toBeEnabled();
+    await start.fill('31/02/2026'); await start.press('Enter');
+    await expect(exportButton).toBeDisabled(); await expect(start).toHaveValue('31/02/2026');
+    await start.press('Escape'); await expect(start).toHaveValue('19/10/2026'); await expect(exportButton).toBeEnabled();
 });

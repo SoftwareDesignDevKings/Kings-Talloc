@@ -62,7 +62,7 @@ test.describe('Coach Workflow @coachOnly', () => {
 
         await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
         await page.getByRole('button', { name: 'Settings & Status' }).click();
-        await page.locator('div').filter({ hasText: /^Not Completed$/ }).nth(1).click();
+        await page.getByRole('button', { name: /Event work status/ }).click();
         await page.getByRole('option', { name: 'Completed', exact: true }).click();
 
         await expect(page.getByRole('button', {name : 'Save Status' })).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('Coach Workflow @coachOnly', () => {
 
         await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
         await page.getByRole('button', { name: 'Settings & Status' }).click();
-        await expect(page.locator('div').filter({ hasText: /^Completed$/ }).nth(1)).toBeVisible();
+        await expect(page.getByRole('button', { name: /Event work status/ })).toBeVisible();
     });
 
     test('tutor adds availability, tutor delete availability', async ({ page }) => {

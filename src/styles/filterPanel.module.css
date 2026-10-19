@@ -1,213 +1,74 @@
-/* Filter Panel Component Styles */
-
-
-/* Filter Panel Container */
 .filterPanelContainer {
-    background-color: var(--tks-surface);
-    color: var(--tks-text-primary);
+    --filter-width: 16rem;
+    --filter-motion: 240ms cubic-bezier(.2, 0, 0, 1);
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    transition: width 150ms ease-in-out;
     position: relative;
     flex-shrink: 0;
+    min-height: 0;
+    background: var(--uui-color-bg-primary);
+    color: var(--uui-color-text-primary);
+    transition: width var(--filter-motion);
 }
-
-/* Toggle Button - Absolutely positioned outside panel */
-.toggleButton {
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.filterPanelContainer.open { width: var(--filter-width); }
+.filterPanelContainer.closed { width: 0; }
+.toggleButton[data-untitled-button] {
+    width: 32px;
+    height: 40px;
+    padding: 6px;
     position: absolute;
-    left: -2.5rem;
+    left: -32px;
     top: 50%;
     transform: translateY(-50%);
     z-index: 10;
-    cursor: pointer;
-    background-color: var(--tks-secondary);
-    color: var(--tks-surface);
-    border-radius: 0.375rem 0 0 0.375rem; /* rounded-l-md */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: none;
-    transition: background-color 200ms ease-in-out, box-shadow 200ms ease-in-out;
+    border-radius: 8px 0 0 8px;
+    outline-offset: -2px;
+    transition: left var(--filter-motion), background-color 150ms ease;
 }
-
-.toggleButton:hover {
-    background-color: var(--tks-secondary-hover);
+.toggleButton > svg { transition: transform var(--filter-motion); }
+.toggleButton[aria-expanded="false"] > svg { transform: rotate(180deg); }
+.filterViewport {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    transition: opacity 180ms ease 60ms, transform var(--filter-motion), visibility 0s;
 }
-
-.toggleButton:focus {
-    outline: none; /* suppress browser default on mouse click */
+.closed .filterViewport {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(12px);
+    transition: opacity 120ms ease, transform var(--filter-motion), visibility 0s linear 240ms;
 }
-
-.toggleButton:focus-visible {
-    outline: 2px solid var(--tks-surface);
-    outline-offset: 2px;
-    box-shadow:
-        0 0 0 4px rgba(26, 77, 111, 0.45), /* navy ring matching brand */
-        0 4px 6px -1px rgba(0, 0, 0, 0.1),
-        0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-/* Filter Content */
+/* Keep labels at their full width while the outer panel slides. */
 .filterContent {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    width: 100%;
-    padding: 1rem;
+    width: var(--filter-width);
+    height: 100%;
+    padding: 20px 16px;
+    border-left: 1px solid var(--uui-color-border-secondary);
     overflow-y: auto;
     overflow-x: hidden;
 }
-
-/* Ensure all direct children take full width */
-.filterContent > * {
-    width: 100%;
+.filterHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
+.filterTitle { margin: 0; color: var(--uui-color-text-primary); font-size: 1rem; font-weight: 600; }
+.filterSectionLabel { font-size: .75rem; font-weight: 600; color: var(--uui-color-text-tertiary); }
+.toggleRow[data-untitled-toggle], .subToggleRow[data-untitled-toggle] { width: 100%; align-items: center; flex-direction: row-reverse; justify-content: space-between; gap: 12px; padding: 6px 0; cursor: pointer; }
+.toggleRow > div:last-child, .subToggleRow > div:last-child { flex: 1; min-width: 0; }
+.toggleRow p, .subToggleRow p { line-height: 1.4; }
+.subToggleRow[data-untitled-toggle] { padding-left: 20px; }
+.subToggleRow p { font-size: .8125rem; color: var(--uui-color-text-tertiary); }
+.subToggleRow[data-disabled] { cursor: not-allowed; }
+.filterDivider { border: 0; border-top: 1px solid var(--uui-color-border-secondary); margin: 0 0 12px; opacity: 1; }
+.legendSection { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--uui-color-border-secondary); }
+.legendHeader { padding: 8px 0 12px; }
+@media (max-width: 767px) { .filterPanelContainer.open, .filterPanelContainer.closed { display: none; width: 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .filterPanelContainer, .toggleButton[data-untitled-button], .toggleButton > svg, .filterViewport, .closed .filterViewport { transition: none; }
 }
-
-.filterTitle {
-    margin-bottom: 1rem;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--tks-text-muted);
-}
-
-
-.filterPanelContainer.open {
-    width: 16rem;
-}
-
-.filterPanelContainer.closed {
-    width: 0;
-}
-
-@media (max-width: 767px) {
-    .filterPanelContainer.open {
-        width: 0;
-        overflow: hidden;
-    }
-}
-
-/* Section label above toggle rows */
-.filterSectionLabel {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--tks-text-subtle);
-}
-
-/* ── Toggle switch ─────────────────────────────────────────── */
-
-/* Row: label on left, switch on right */
-.toggleRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.35rem 0;
-    cursor: pointer;
-    user-select: none;
-}
-
-.toggleRow:hover .toggleLabel {
-    color: var(--tks-secondary);
-}
-
-.toggleLabel {
-    font-size: 0.875rem;
-    color: var(--tks-text-primary);
-    line-height: 1.3;
-    flex: 1;
-    transition: color var(--transition-fast);
-}
-
-.toggleLabelMuted {
-    font-size: 0.8125rem;
-    color: var(--tks-text-muted);
-}
-
-/* The <span> wrapper that positions the input + track */
-.toggle {
-    position: relative;
-    width: 34px;
-    height: 20px;
-    flex-shrink: 0;
-}
-
-.toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-/* Pill-shaped track */
-.toggleTrack {
-    position: absolute;
-    inset: 0;
-    background: var(--tks-border);
-    border-radius: 9999px;
-    transition: background var(--transition-fast);
-}
-
-.toggle input:checked + .toggleTrack {
-    background: var(--tks-primary);
-}
-
-/* Sliding knob */
-.toggleTrack::after {
-    content: '';
-    position: absolute;
-    left: 3px;
-    top: 3px;
-    width: 14px;
-    height: 14px;
-    background: #fff;
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    transition: transform var(--transition-fast);
-}
-
-.toggle input:checked + .toggleTrack::after {
-    transform: translateX(14px);
-}
-
-/* Keyboard focus ring on the track */
-.toggle input:focus-visible + .toggleTrack {
-    outline: 2px solid var(--tks-primary);
-    outline-offset: 2px;
-    border-radius: 9999px;
-}
-
-/* Indented sub-toggle (e.g. "Hide mine" under "Show availabilities") */
-.subToggleRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.35rem 0 0.35rem 1.25rem;
-    cursor: pointer;
-    user-select: none;
-}
-
-.subToggleRow:hover .toggleLabel {
-    color: var(--tks-secondary);
-}
-
-/* ── Section divider ─────────────────────────────────────────── */
-.filterDivider {
-    border: none;
-    border-top: 1px solid var(--tks-border-subtle);
-    margin: 0.5rem 0;
-}
-
-/* Legend at the bottom of the filter panel */
-.legendSection {
-    margin-top: auto;
-    padding-top: 1rem;
-    border-top: 1px solid var(--tks-border);
-}
-

@@ -1,0 +1,30 @@
+.toolbar:global(.rbc-toolbar) { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; container: calendar-toolbar / inline-size; }
+.buttonGroup { display: inline-flex; flex-wrap: nowrap; gap: 0; width: fit-content; border: 1px solid var(--uui-color-border-primary); border-radius: 8px; background: var(--uui-color-bg-primary); box-shadow: 0 1px 2px rgb(10 13 18 / 5%); }
+/* Override RBC's legacy button reset and focus/active states, while retaining
+   the shared control's hover treatment and keyboard focus ring. */
+.toolbar:global(.rbc-toolbar) button[data-untitled-button] { display: inline-flex; align-items: center; justify-content: center; margin: 0; padding: 8px 10px; border: 0; border-radius: 0; color: var(--uui-color-text-secondary); background: var(--uui-color-bg-primary); font-size: .875rem; font-weight: 600; line-height: 20px; box-shadow: none; }
+.toolbar:global(.rbc-toolbar) button[data-untitled-button]:hover, .toolbar:global(.rbc-toolbar) button[data-untitled-button]:active, .toolbar:global(.rbc-toolbar) button[data-untitled-button].activeView { background: var(--uui-color-bg-primary_hover); color: var(--uui-color-text-primary); }
+.toolbar:global(.rbc-toolbar) button[data-untitled-button]:focus-visible { outline: 2px solid var(--uui-color-border-brand); outline-offset: -2px; z-index: 1; }
+.toolbar:global(.rbc-toolbar) button[data-untitled-button]:first-child { border-radius: 7px 0 0 7px; }
+.toolbar:global(.rbc-toolbar) button[data-untitled-button]:last-child { border-radius: 0 7px 7px 0; }
+.toolbar:global(.rbc-toolbar) button[data-untitled-button] + button[data-untitled-button] { border-left: 1px solid var(--uui-color-border-primary); }
+.toolbar .rangeLabel { padding: 0; flex: 1; min-width: 140px; color: var(--uui-color-text-primary); font-size: 1rem; font-weight: 600; }
+.helpOverlay[data-untitled-modal-overlay] { z-index: 1070; align-items: center; }
+.helpModal { max-width: 800px; }
+.helpModal .helpDialog { display: flex; flex-direction: column; overflow: hidden; }
+.helpHeader { display: flex; align-items: center; gap: 16px; padding: 20px 20px 0; flex-shrink: 0; }
+.helpTitle { flex: 1; margin: 0; color: var(--uui-color-text-primary); font-size: 1.125rem; font-weight: 600; }
+.helpBody { padding: 20px; overflow-y: auto; min-height: 0; font-size: .875rem; line-height: 1.5; color: var(--uui-color-text-secondary); }
+.helpFooter { padding: 16px 20px; border-top: 1px solid var(--uui-color-border-secondary); flex-shrink: 0; display: flex; justify-content: center; }
+.helpAccordion { border: 1px solid var(--uui-color-border-secondary); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+.helpSection + .helpSection { border-top: 1px solid var(--uui-color-border-secondary); }
+.helpSection h2 { margin: 0; }
+.helpAccordionButton[data-untitled-button] { width: 100%; border-radius: 0; justify-content: flex-start; text-align: left; padding: 16px; }
+.helpAccordionButton > span[data-text] { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; white-space: normal; }
+.helpAccordionButton > svg:first-child { flex-shrink: 0; color: var(--uui-color-fg-brand-primary); }
+.helpAccordionButton[aria-expanded="true"] > svg:last-child { transform: rotate(180deg); }
+.helpAccordionBody { padding: 0 16px 16px; }
+.helpAccordionBody[hidden] { display: none; }
+@container calendar-toolbar (max-width: 640px) { .toolbar .rangeLabel { order: -1; flex-basis: 100%; min-width: 0; text-align: center; } }
+@container calendar-toolbar (max-width: 340px) { .buttonGroup { justify-content: center; margin-inline: auto; } .toolbar:global(.rbc-toolbar) button[data-untitled-button] { padding: 6px 8px; } }
+@media (max-width: 767px) { .toolbar:global(.rbc-toolbar) { flex-direction: column; gap: 8px; } .toolbar .rangeLabel { min-width: 0; width: 100%; flex-basis: auto; } .toolbar:global(.rbc-toolbar) button[data-untitled-button] { padding: 6px 8px; } .buttonGroup { justify-content: center; } }

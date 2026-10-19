@@ -1,0 +1,482 @@
+/* Untitled UI MIT theme, light mode only for the compatibility trial. */
+@theme {
+    /* FONT FAMILY */
+    --font-body: var(--uui-font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-display: var(--uui-font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-mono: ui-monospace, "Roboto Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    /* FONT SIZE */
+    --text-xs: calc(var(--uui-spacing) * 3);
+    --text-xs--line-height: calc(var(--uui-spacing) * 4.5);
+
+    --text-sm: calc(var(--uui-spacing) * 3.5);
+    --text-sm--line-height: calc(var(--uui-spacing) * 5);
+
+    --text-md: calc(var(--uui-spacing) * 4);
+    --text-md--line-height: calc(var(--uui-spacing) * 6);
+
+    --text-lg: calc(var(--uui-spacing) * 4.5);
+    --text-lg--line-height: calc(var(--uui-spacing) * 7);
+
+    --text-xl: calc(var(--uui-spacing) * 5);
+    --text-xl--line-height: calc(var(--uui-spacing) * 7.5);
+
+    --text-display-xs: calc(var(--uui-spacing) * 6);
+    --text-display-xs--line-height: calc(var(--uui-spacing) * 8);
+
+    --text-display-sm: calc(var(--uui-spacing) * 7.5);
+    --text-display-sm--line-height: calc(var(--uui-spacing) * 9.5);
+
+    --text-display-md: calc(var(--uui-spacing) * 9);
+    --text-display-md--line-height: calc(var(--uui-spacing) * 11);
+    --text-display-md--letter-spacing: -0.72px;
+
+    --text-display-lg: calc(var(--uui-spacing) * 12);
+    --text-display-lg--line-height: calc(var(--uui-spacing) * 15);
+    --text-display-lg--letter-spacing: -0.96px;
+
+    --text-display-xl: calc(var(--uui-spacing) * 15);
+    --text-display-xl--line-height: calc(var(--uui-spacing) * 18);
+    --text-display-xl--letter-spacing: -1.2px;
+
+    --text-display-2xl: calc(var(--uui-spacing) * 18);
+    --text-display-2xl--line-height: calc(var(--uui-spacing) * 22.5);
+    --text-display-2xl--letter-spacing: -1.44px;
+
+    /* MAX WIDTH */
+    --max-width-container: 1280px;
+
+    /* BREAKPOINTS */
+    --breakpoint-xxs: 320px;
+    /* This must match the breakpoint in Sonner: https://github.com/emilkowalski/sonner/blob/main/src/styles.css */
+    --breakpoint-xs: 600px;
+
+    /* SHADOW */
+    --shadow-xs: 0px 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0px 12px 16px -4px rgba(0, 0, 0, 0.08), 0px 4px 6px -2px rgba(0, 0, 0, 0.03), 0px 2px 2px -1px rgba(0, 0, 0, 0.04);
+    --shadow-xl: 0px 20px 24px -4px rgba(0, 0, 0, 0.08), 0px 8px 8px -4px rgba(0, 0, 0, 0.03), 0px 3px 3px -1.5px rgba(0, 0, 0, 0.04);
+    --shadow-2xl: 0px 24px 48px -12px rgba(0, 0, 0, 0.18), 0px 4px 4px -2px rgba(0, 0, 0, 0.04);
+    --shadow-3xl: 0px 32px 64px -12px rgba(0, 0, 0, 0.14), 0px 5px 5px -2.5px rgba(0, 0, 0, 0.04);
+
+    --shadow-skeuomorphic: 0px 0px 0px 1px rgba(0, 0, 0, 0.18) inset, 0px -2px 0px 0px rgba(0, 0, 0, 0.05) inset;
+    --shadow-xs-skeuomorphic: var(--uui-shadow-skeuomorphic), var(--uui-shadow-xs);
+
+    --shadow-modern-mockup-inner-lg: 0px 0px 3.765px 1.255px rgba(10, 13, 18, 0.08) inset, 0px 0px 2.51px 1.255px rgba(10, 13, 18, 0.03) inset;
+    --shadow-modern-mockup-inner-md: 0px 0px 1.692px 0.564px rgba(10, 13, 18, 0.08) inset, 0px 0px 1.128px 0.564px rgba(10, 13, 18, 0.03) inset;
+    --shadow-modern-mockup-inner-sm: 0px 0px 4.48px 1.493px rgba(10, 13, 18, 0.08) inset, 0px 0px 2.987px 1.493px rgba(10, 13, 18, 0.03) inset;
+
+    --shadow-modern-mockup-outer-lg:
+        0px 7.529px 10.039px -2.51px rgba(10, 13, 18, 0.08), 0px 2.51px 3.765px -1.255px rgba(10, 13, 18, 0.03),
+        0px 1.255px 1.255px -0.627px rgba(10, 13, 18, 0.04);
+    --shadow-modern-mockup-outer-md:
+        0px 3.385px 4.513px -1.128px rgba(10, 13, 18, 0.08), 0px 1.128px 1.692px -0.564px rgba(10, 13, 18, 0.03),
+        0px 0.564px 0.564px -0.282px rgba(10, 13, 18, 0.04);
+
+    --drop-shadow-iphone-mockup: 20px 12px 18px rgba(16, 24, 40, 0.2);
+
+    /* ANIMATIONS */
+    --animate-marquee: marquee 60s linear infinite;
+    --animate-caret-blink: caret-blink 1s infinite;
+
+    @keyframes marquee {
+        0% {
+            transform: translateX(0);
+        }
+        100% {
+            transform: translateX(-100%);
+        }
+    }
+
+    @keyframes caret-blink {
+        0%,
+        50% {
+            opacity: 1;
+        }
+        51%,
+        100% {
+            opacity: 0;
+        }
+    }
+
+    /* BASE COLOR */
+    --color-transparent: rgb(0 0 0 / 0);
+
+    /* These will be inverted in dark mode. */
+    --color-alpha-white: rgb(255 255 255);
+    --color-alpha-black: rgb(0 0 0);
+
+    --color-brand-50: rgb(249 245 255);
+    --color-brand-100: rgb(244 235 255);
+    --color-brand-200: rgb(233 215 254);
+    --color-brand-300: rgb(214 187 251);
+    --color-brand-400: rgb(182 146 246);
+    --color-brand-500: rgb(158 119 237);
+    --color-brand-600: rgb(127 86 217);
+    --color-brand-700: rgb(105 65 198);
+    --color-brand-800: rgb(83 56 158);
+    --color-brand-900: rgb(66 48 125);
+    --color-brand-950: rgb(44 28 95);
+
+    /* LIGHT MODE VARIABLES */
+
+    --color-alpha-white: rgb(255 255 255);
+    --color-alpha-black: rgb(0 0 0);
+
+    /* UTILITY COLORS */
+    --color-utility-blue-50: var(--uui-color-blue-50);
+    --color-utility-blue-100: var(--uui-color-blue-100);
+    --color-utility-blue-200: var(--uui-color-blue-200);
+    --color-utility-blue-300: var(--uui-color-blue-300);
+    --color-utility-blue-400: var(--uui-color-blue-400);
+    --color-utility-blue-500: var(--uui-color-blue-500);
+    --color-utility-blue-600: var(--uui-color-blue-600);
+    --color-utility-blue-700: var(--uui-color-blue-700);
+
+    --color-utility-brand-50: var(--uui-color-brand-50);
+    --color-utility-brand-50_alt: var(--uui-color-brand-50);
+    --color-utility-brand-100: var(--uui-color-brand-100);
+    --color-utility-brand-100_alt: var(--uui-color-brand-100);
+    --color-utility-brand-200: var(--uui-color-brand-200);
+    --color-utility-brand-200_alt: var(--uui-color-brand-200);
+    --color-utility-brand-300: var(--uui-color-brand-300);
+    --color-utility-brand-300_alt: var(--uui-color-brand-300);
+    --color-utility-brand-400: var(--uui-color-brand-400);
+    --color-utility-brand-400_alt: var(--uui-color-brand-400);
+    --color-utility-brand-500: var(--uui-color-brand-500);
+    --color-utility-brand-500_alt: var(--uui-color-brand-500);
+    --color-utility-brand-600: var(--uui-color-brand-600);
+    --color-utility-brand-600_alt: var(--uui-color-brand-600);
+    --color-utility-brand-700: var(--uui-color-brand-700);
+    --color-utility-brand-700_alt: var(--uui-color-brand-700);
+    --color-utility-brand-800: var(--uui-color-brand-800);
+    --color-utility-brand-800_alt: var(--uui-color-brand-800);
+    --color-utility-brand-900: var(--uui-color-brand-900);
+    --color-utility-brand-900_alt: var(--uui-color-brand-900);
+
+    --color-utility-neutral-50: var(--uui-color-neutral-50);
+    --color-utility-neutral-100: var(--uui-color-neutral-100);
+    --color-utility-neutral-200: var(--uui-color-neutral-200);
+    --color-utility-neutral-300: var(--uui-color-neutral-300);
+    --color-utility-neutral-400: var(--uui-color-neutral-400);
+    --color-utility-neutral-500: var(--uui-color-neutral-500);
+    --color-utility-neutral-600: var(--uui-color-neutral-600);
+    --color-utility-neutral-700: var(--uui-color-neutral-700);
+    --color-utility-neutral-800: var(--uui-color-neutral-800);
+    --color-utility-neutral-900: var(--uui-color-neutral-900);
+
+    --color-utility-red-50: var(--uui-color-red-50);
+    --color-utility-red-100: var(--uui-color-red-100);
+    --color-utility-red-200: var(--uui-color-red-200);
+    --color-utility-red-300: var(--uui-color-red-300);
+    --color-utility-red-400: var(--uui-color-red-400);
+    --color-utility-red-500: var(--uui-color-red-500);
+    --color-utility-red-600: var(--uui-color-red-600);
+    --color-utility-red-700: var(--uui-color-red-700);
+
+    --color-utility-yellow-50: var(--uui-color-yellow-50);
+    --color-utility-yellow-100: var(--uui-color-yellow-100);
+    --color-utility-yellow-200: var(--uui-color-yellow-200);
+    --color-utility-yellow-300: var(--uui-color-yellow-300);
+    --color-utility-yellow-400: var(--uui-color-yellow-400);
+    --color-utility-yellow-500: var(--uui-color-yellow-500);
+    --color-utility-yellow-600: var(--uui-color-yellow-600);
+    --color-utility-yellow-700: var(--uui-color-yellow-700);
+
+    --color-utility-green-50: var(--uui-color-green-50);
+    --color-utility-green-100: var(--uui-color-green-100);
+    --color-utility-green-200: var(--uui-color-green-200);
+    --color-utility-green-300: var(--uui-color-green-300);
+    --color-utility-green-400: var(--uui-color-green-400);
+    --color-utility-green-500: var(--uui-color-green-500);
+    --color-utility-green-600: var(--uui-color-green-600);
+    --color-utility-green-700: var(--uui-color-green-700);
+
+    --color-utility-orange-50: var(--uui-color-orange-50);
+    --color-utility-orange-100: var(--uui-color-orange-100);
+    --color-utility-orange-200: var(--uui-color-orange-200);
+    --color-utility-orange-300: var(--uui-color-orange-300);
+    --color-utility-orange-400: var(--uui-color-orange-400);
+    --color-utility-orange-500: var(--uui-color-orange-500);
+    --color-utility-orange-600: var(--uui-color-orange-600);
+    --color-utility-orange-700: var(--uui-color-orange-700);
+
+    --color-utility-indigo-50: var(--uui-color-indigo-50);
+    --color-utility-indigo-100: var(--uui-color-indigo-100);
+    --color-utility-indigo-200: var(--uui-color-indigo-200);
+    --color-utility-indigo-300: var(--uui-color-indigo-300);
+    --color-utility-indigo-400: var(--uui-color-indigo-400);
+    --color-utility-indigo-500: var(--uui-color-indigo-500);
+    --color-utility-indigo-600: var(--uui-color-indigo-600);
+    --color-utility-indigo-700: var(--uui-color-indigo-700);
+
+    --color-utility-fuchsia-50: var(--uui-color-fuchsia-50);
+    --color-utility-fuchsia-100: var(--uui-color-fuchsia-100);
+    --color-utility-fuchsia-200: var(--uui-color-fuchsia-200);
+    --color-utility-fuchsia-300: var(--uui-color-fuchsia-300);
+    --color-utility-fuchsia-400: var(--uui-color-fuchsia-400);
+    --color-utility-fuchsia-500: var(--uui-color-fuchsia-500);
+    --color-utility-fuchsia-600: var(--uui-color-fuchsia-600);
+    --color-utility-fuchsia-700: var(--uui-color-fuchsia-700);
+
+    --color-utility-pink-50: var(--uui-color-pink-50);
+    --color-utility-pink-100: var(--uui-color-pink-100);
+    --color-utility-pink-200: var(--uui-color-pink-200);
+    --color-utility-pink-300: var(--uui-color-pink-300);
+    --color-utility-pink-400: var(--uui-color-pink-400);
+    --color-utility-pink-500: var(--uui-color-pink-500);
+    --color-utility-pink-600: var(--uui-color-pink-600);
+    --color-utility-pink-700: var(--uui-color-pink-700);
+
+    --color-utility-purple-50: var(--uui-color-purple-50);
+    --color-utility-purple-100: var(--uui-color-purple-100);
+    --color-utility-purple-200: var(--uui-color-purple-200);
+    --color-utility-purple-300: var(--uui-color-purple-300);
+    --color-utility-purple-400: var(--uui-color-purple-400);
+    --color-utility-purple-500: var(--uui-color-purple-500);
+    --color-utility-purple-600: var(--uui-color-purple-600);
+    --color-utility-purple-700: var(--uui-color-purple-700);
+
+    --color-utility-sky-50: var(--uui-color-sky-50);
+    --color-utility-sky-100: var(--uui-color-sky-100);
+    --color-utility-sky-200: var(--uui-color-sky-200);
+    --color-utility-sky-300: var(--uui-color-sky-300);
+    --color-utility-sky-400: var(--uui-color-sky-400);
+    --color-utility-sky-500: var(--uui-color-sky-500);
+    --color-utility-sky-600: var(--uui-color-sky-600);
+    --color-utility-sky-700: var(--uui-color-sky-700);
+
+    --color-utility-slate-50: var(--uui-color-slate-50);
+    --color-utility-slate-100: var(--uui-color-slate-100);
+    --color-utility-slate-200: var(--uui-color-slate-200);
+    --color-utility-slate-300: var(--uui-color-slate-300);
+    --color-utility-slate-400: var(--uui-color-slate-400);
+    --color-utility-slate-500: var(--uui-color-slate-500);
+    --color-utility-slate-600: var(--uui-color-slate-600);
+    --color-utility-slate-700: var(--uui-color-slate-700);
+
+    --color-utility-emerald-50: var(--uui-color-emerald-50);
+    --color-utility-emerald-100: var(--uui-color-emerald-100);
+    --color-utility-emerald-200: var(--uui-color-emerald-200);
+    --color-utility-emerald-300: var(--uui-color-emerald-300);
+    --color-utility-emerald-400: var(--uui-color-emerald-400);
+    --color-utility-emerald-500: var(--uui-color-emerald-500);
+    --color-utility-emerald-600: var(--uui-color-emerald-600);
+    --color-utility-emerald-700: var(--uui-color-emerald-700);
+
+    --color-utility-amber-50: var(--uui-color-amber-50);
+    --color-utility-amber-100: var(--uui-color-amber-100);
+    --color-utility-amber-200: var(--uui-color-amber-200);
+    --color-utility-amber-300: var(--uui-color-amber-300);
+    --color-utility-amber-400: var(--uui-color-amber-400);
+    --color-utility-amber-500: var(--uui-color-amber-500);
+    --color-utility-amber-600: var(--uui-color-amber-600);
+    --color-utility-amber-700: var(--uui-color-amber-700);
+
+    /* TEXT COLORS */
+    --color-text-primary: var(--uui-color-neutral-900);
+    --color-text-tertiary: var(--uui-color-neutral-600);
+    --color-text-error-primary: var(--uui-color-red-600);
+    --color-text-warning-primary: var(--uui-color-yellow-600);
+    --color-text-success-primary: var(--uui-color-green-600);
+    --color-text-secondary: var(--uui-color-neutral-700);
+    --color-text-secondary_hover: var(--uui-color-neutral-800);
+    --color-text-tertiary_hover: var(--uui-color-neutral-700);
+    --color-text-brand-secondary: var(--uui-color-brand-700);
+    --color-text-placeholder: var(--uui-color-neutral-500);
+    --color-text-brand-tertiary: var(--uui-color-brand-600);
+    --color-text-editor-icon-fg: var(--uui-color-neutral-400);
+    --color-text-editor-icon-fg_active: var(--uui-color-neutral-500);
+    --color-text-quaternary: var(--uui-color-neutral-500);
+    --color-text-brand-primary: var(--uui-color-brand-900);
+    --color-text-primary_on-brand: var(--uui-color-white);
+    --color-text-secondary_on-brand: var(--uui-color-brand-200);
+    --color-text-tertiary_on-brand: var(--uui-color-brand-200);
+    --color-text-quaternary_on-brand: var(--uui-color-brand-300);
+    --color-text-brand-tertiary_alt: var(--uui-color-brand-600);
+    --color-text-error-primary_hover: var(--uui-color-red-700);
+    --color-text-brand-secondary_hover: var(--uui-color-brand-800);
+
+    /* BORDER COLORS */
+    --color-border-primary: var(--uui-color-neutral-300);
+    --color-border-secondary: var(--uui-color-neutral-200);
+    --color-border-secondary_alt: rgb(0 0 0 / 0.1);
+    --color-border-tertiary: var(--uui-color-neutral-100);
+    --color-border-error: var(--uui-color-red-500);
+    --color-border-error_subtle: var(--uui-color-red-300);
+    --color-border-brand: var(--uui-color-brand-500);
+    --color-border-brand_alt: var(--uui-color-brand-600);
+
+    /* FOREGROUND COLORS */
+    --color-fg-secondary: var(--uui-color-neutral-700);
+    --color-fg-warning-primary: var(--uui-color-yellow-600);
+    --color-fg-success-primary: var(--uui-color-green-600);
+    --color-fg-white: var(--uui-color-white);
+    --color-fg-success-secondary: var(--uui-color-green-500);
+    --color-fg-secondary_hover: var(--uui-color-neutral-800);
+    --color-fg-primary: var(--uui-color-neutral-900);
+    --color-fg-brand-secondary: var(--uui-color-brand-500);
+    --color-fg-brand-primary: var(--uui-color-brand-600);
+    --color-fg-quaternary: var(--uui-color-neutral-400);
+    --color-fg-quaternary_hover: var(--uui-color-neutral-500);
+    --color-fg-error-primary: var(--uui-color-red-600);
+    --color-fg-warning-secondary: var(--uui-color-yellow-500);
+    --color-fg-error-secondary: var(--uui-color-red-500);
+    --color-fg-tertiary: var(--uui-color-neutral-600);
+    --color-fg-tertiary_hover: var(--uui-color-neutral-700);
+    --color-fg-brand-primary_alt: var(--uui-color-fg-brand-primary);
+    --color-fg-brand-secondary_alt: var(--uui-color-fg-brand-secondary);
+    --color-fg-brand-secondary_hover: var(--uui-color-brand-600);
+
+    /* BACKGROUND COLORS */
+    --color-bg-primary: var(--uui-color-white);
+    --color-bg-tertiary: var(--uui-color-neutral-100);
+    --color-bg-brand-primary: var(--uui-color-brand-50);
+    --color-bg-error-secondary: var(--uui-color-red-100);
+    --color-bg-warning-primary: var(--uui-color-yellow-50);
+    --color-bg-warning-secondary: var(--uui-color-yellow-100);
+    --color-bg-success-primary: var(--uui-color-green-50);
+    --color-bg-success-secondary: var(--uui-color-green-100);
+    --color-bg-brand-solid: var(--uui-color-brand-600);
+    --color-bg-secondary-solid: var(--uui-color-neutral-600);
+    --color-bg-error-solid: var(--uui-color-red-600);
+    --color-bg-warning-solid: var(--uui-color-yellow-600);
+    --color-bg-success-solid: var(--uui-color-green-600);
+    --color-bg-secondary_hover: var(--uui-color-neutral-100);
+    --color-bg-primary_hover: var(--uui-color-neutral-50);
+    --color-bg-brand-solid_hover: var(--uui-color-brand-700);
+    --color-bg-error-primary: var(--uui-color-red-50);
+    --color-bg-brand-secondary: var(--uui-color-brand-100);
+    --color-bg-quaternary: var(--uui-color-neutral-200);
+    --color-bg-primary_alt: var(--uui-color-white);
+    --color-bg-brand-primary_alt: var(--uui-color-brand-50);
+    --color-bg-secondary_alt: var(--uui-color-neutral-50);
+    --color-bg-overlay: var(--uui-color-neutral-950);
+    --color-bg-brand-section: var(--uui-color-brand-800);
+    --color-bg-brand-section_subtle: var(--uui-color-brand-700);
+    --color-bg-primary-solid: var(--uui-color-neutral-950);
+    --color-bg-error-solid_hover: var(--uui-color-red-700);
+
+    /* COMPONENT COLORS */
+    --color-app-store-badge-border: 166 166 166 1;
+    --color-avatar-styles-bg-neutral: 224 224 224 1;
+    --color-featured-icon-light-fg-brand: var(--uui-color-brand-600);
+    --color-featured-icon-light-fg-error: var(--uui-color-red-600);
+    --color-featured-icon-light-fg-gray: var(--uui-color-neutral-500);
+    --color-featured-icon-light-fg-success: var(--uui-color-green-600);
+    --color-featured-icon-light-fg-warning: var(--uui-color-yellow-600);
+    --color-focus-ring-error: var(--uui-color-red-500);
+    --color-focus-ring: var(--uui-color-brand-500);
+    --color-footer-button-fg: var(--uui-color-brand-200);
+    --color-footer-button-fg_hover: var(--uui-color-white);
+    --color-icon-fg-brand: var(--uui-color-brand-600);
+    --color-icon-fg-brand_on-brand: var(--uui-color-brand-200);
+    --color-screen-mockup-border: var(--uui-color-neutral-900);
+
+    --color-slider-handle-bg: var(--uui-color-white);
+    --color-slider-handle-border: var(--uui-color-brand-600);
+    --color-toggle-border: var(--uui-color-neutral-300);
+    --color-toggle-slim-border_pressed-hover: var(--uui-color-bg-brand-solid_hover);
+    --color-toggle-slim-border_pressed: var(--uui-color-bg-brand-solid);
+    --color-tooltip-supporting-text: var(--uui-color-neutral-300);
+
+    /* BACKGROUND PROPERTY COLORS */
+    --background-color-primary: var(--uui-color-bg-primary);
+    --background-color-tertiary: var(--uui-color-bg-tertiary);
+    --background-color-brand-primary: var(--uui-color-bg-brand-primary);
+    --background-color-error-secondary: var(--uui-color-bg-error-secondary);
+    --background-color-warning-primary: var(--uui-color-bg-warning-primary);
+    --background-color-warning-secondary: var(--uui-color-bg-warning-secondary);
+    --background-color-success-primary: var(--uui-color-bg-success-primary);
+    --background-color-success-secondary: var(--uui-color-bg-success-secondary);
+    --background-color-brand-solid: var(--uui-color-bg-brand-solid);
+    --background-color-secondary-solid: var(--uui-color-bg-secondary-solid);
+    --background-color-error-solid: var(--uui-color-bg-error-solid);
+    --background-color-warning-solid: var(--uui-color-bg-warning-solid);
+    --background-color-success-solid: var(--uui-color-bg-success-solid);
+    --background-color-secondary_hover: var(--uui-color-bg-secondary_hover);
+    --background-color-primary_hover: var(--uui-color-bg-primary_hover);
+    --background-color-brand-solid_hover: var(--uui-color-bg-brand-solid_hover);
+    --background-color-error-primary: var(--uui-color-bg-error-primary);
+    --background-color-brand-secondary: var(--uui-color-bg-brand-secondary);
+    --background-color-secondary: var(--uui-color-bg-secondary);
+    --background-color-quaternary: var(--uui-color-bg-quaternary);
+    --background-color-primary_alt: var(--uui-color-bg-primary_alt);
+    --background-color-brand-primary_alt: var(--uui-color-bg-brand-primary_alt);
+    --background-color-secondary_alt: var(--uui-color-bg-secondary_alt);
+    --background-color-overlay: var(--uui-color-bg-overlay);
+    --background-color-brand-section: var(--uui-color-bg-brand-section);
+    --background-color-brand-section_subtle: var(--uui-color-bg-brand-section_subtle);
+    --background-color-primary-solid: var(--uui-color-bg-primary-solid);
+    --background-color-error-solid_hover: var(--uui-color-bg-error-solid_hover);
+    --background-color-border-brand: var(--uui-color-border-brand);
+    --background-color-border-brand_alt: var(--uui-color-border-brand_alt);
+
+    /* TEXT PROPERTY COLORS */
+    --color-text-white: var(--uui-color-white);
+    --text-color-primary: var(--uui-color-text-primary);
+    --text-color-secondary: var(--uui-color-text-secondary);
+    --text-color-secondary_hover: var(--uui-color-text-secondary_hover);
+    --text-color-tertiary: var(--uui-color-text-tertiary);
+    --text-color-tertiary_hover: var(--uui-color-text-tertiary_hover);
+    --text-color-error-primary: var(--uui-color-text-error-primary);
+    --text-color-warning-primary: var(--uui-color-text-warning-primary);
+    --text-color-success-primary: var(--uui-color-text-success-primary);
+    --text-color-brand-secondary: var(--uui-color-text-brand-secondary);
+    --text-color-placeholder: var(--uui-color-text-placeholder);
+    --text-color-brand-tertiary: var(--uui-color-text-brand-tertiary);
+    --text-color-editor-icon-fg: var(--uui-color-text-editor-icon-fg);
+    --text-color-editor-icon-fg_active: var(--uui-color-text-editor-icon-fg_active);
+    --text-color-quaternary: var(--uui-color-text-quaternary);
+    --text-color-brand-primary: var(--uui-color-text-brand-primary);
+    --text-color-primary_on-brand: var(--uui-color-text-primary_on-brand);
+    --text-color-secondary_on-brand: var(--uui-color-text-secondary_on-brand);
+    --text-color-tertiary_on-brand: var(--uui-color-text-tertiary_on-brand);
+    --text-color-quaternary_on-brand: var(--uui-color-text-quaternary_on-brand);
+    --text-color-brand-tertiary_alt: var(--uui-color-text-brand-tertiary_alt);
+    --text-color-error-primary_hover: var(--uui-color-text-error-primary_hover);
+    --text-color-brand-secondary_hover: var(--uui-color-text-brand-secondary_hover);
+    --text-color-tooltip-supporting-text: var(--uui-color-tooltip-supporting-text);
+
+    /* BORDER PROPERTY COLORS */
+    --border-color-primary: var(--uui-color-border-primary);
+    --border-color-secondary: var(--uui-color-border-secondary);
+    --border-color-secondary_alt: var(--uui-color-border-secondary_alt);
+    --border-color-tertiary: var(--uui-color-border-tertiary);
+    --border-color-error: var(--uui-color-border-error);
+    --border-color-error_subtle: var(--uui-color-border-error_subtle);
+    --border-color-brand: var(--uui-color-border-brand);
+    --border-color-brand_alt: var(--uui-color-border-brand_alt);
+    --border-color-brand-solid: var(--uui-color-bg-brand-solid);
+    --border-color-brand-solid_hover: var(--uui-color-bg-brand-solid_hover);
+
+    /* RING PROPERTY COLORS */
+    --ring-color-primary: var(--uui-color-border-primary);
+    --ring-color-secondary: var(--uui-color-border-secondary);
+    --ring-color-secondary_alt: var(--uui-color-border-secondary_alt);
+    --ring-color-tertiary: var(--uui-color-border-tertiary);
+    --ring-color-error: var(--uui-color-border-error);
+    --ring-color-error_subtle: var(--uui-color-border-error_subtle);
+    --ring-color-brand: var(--uui-color-border-brand);
+    --ring-color-brand_alt: var(--uui-color-border-brand_alt);
+    --ring-color-brand-solid: var(--uui-color-bg-brand-solid);
+    --ring-color-brand-solid_hover: var(--uui-color-bg-brand-solid_hover);
+
+    /* OUTLINE PROPERTY COLORS */
+    --outline-color-primary: var(--uui-color-border-primary);
+    --outline-color-secondary: var(--uui-color-border-secondary);
+    --outline-color-secondary_alt: var(--uui-color-border-secondary_alt);
+    --outline-color-tertiary: var(--uui-color-border-tertiary);
+    --outline-color-error: var(--uui-color-border-error);
+    --outline-color-error_subtle: var(--uui-color-border-error_subtle);
+    --outline-color-brand: var(--uui-color-border-brand);
+    --outline-color-brand_alt: var(--uui-color-border-brand_alt);
+    --outline-color-brand-solid: var(--uui-color-bg-brand-solid);
+    --outline-color-brand-solid_hover: var(--uui-color-bg-brand-solid_hover);
+}
+
+/* Used directly by CSS modules, so retain it without a matching utility class. */
+@theme static {
+    --color-bg-secondary: var(--uui-color-neutral-50);
+}

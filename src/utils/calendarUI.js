@@ -3,14 +3,10 @@
  * All functions prefixed with 'calendarUI'
  */
 
-import { CALENDAR_COLOURS } from '@/constants/calendarColours';
+import { CALENDAR_COLOURS, getAvailabilityHeatColor, getCalendarPaletteStyle } from '@/constants/calendarColours';
 
 // Helper function to calculate the green color intensity based on the number of available tutors
-const calculateGreenIntensity = (numTutors, maxTutors) => {
-    const intensity = Math.min(1, numTutors / maxTutors);
-    const baseGreen = { r: 144, g: 238, b: 144 };
-    return `rgba(${baseGreen.r}, ${baseGreen.g}, ${baseGreen.b}, ${intensity})`;
-};
+const calculateGreenIntensity = getAvailabilityHeatColor;
 
 /**
  * Get event style based on event type and status
@@ -72,21 +68,8 @@ export const calendarUIGetEventStyle = (event, userRole, userEmail) => {
     // Solid events use a prominent left accent + soft outer border.
     // Availability blocks use a full dotted border (no accent bar) so they
     // visually read as a different *kind* of thing, not just a different status.
-    const isPatterned = borderStyle === 'dashed' || borderStyle === 'dotted';
     return {
-        style: {
-            backgroundColor,
-            color,
-            border: isPatterned
-                ? `2px ${borderStyle} ${borderColor}`
-                : `1px solid ${borderColor}33`,
-            borderLeft: isPatterned
-                ? `2px ${borderStyle} ${borderColor}`
-                : `4px solid ${borderColor}`,
-            borderRadius: '4px',
-            boxShadow: isPatterned ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.06)',
-            fontWeight: 500,
-        },
+        style: getCalendarPaletteStyle({ bg: backgroundColor, border: borderColor, text: color, borderStyle }),
     };
 };
 

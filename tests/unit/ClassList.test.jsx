@@ -38,7 +38,7 @@ describe('ClassList', () => {
     test('expands Canvas roster details', () => {
         render(<ClassList />);
 
-        fireEvent.click(screen.getByRole('button', { name: /expand students/i }));
+        fireEvent.click(screen.getByRole('button', { name: /show students/i }));
         expect(screen.getByText('Jane Student')).toBeInTheDocument();
         expect(screen.getByText('jane@example.edu')).toBeInTheDocument();
     });

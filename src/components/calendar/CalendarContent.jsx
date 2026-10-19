@@ -19,10 +19,12 @@ import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 
 import { CalendarEntityType, CalendarFlow } from '@lib/patterns/calendarStrategy';
 import { isValidSessionFocus } from '@/lib/scheduling/sessionFocus';
+import surfaceStyles from '@/styles/calendarSurface.module.css';
 
 import CustomTimeslot from './CustomTimeslot.jsx';
 import CustomEvent, { getEventParticipantInitials } from './CustomEvent.jsx';
 import CalendarFilterPanel from './CalendarFilterPanel.jsx';
+import CalendarToolbar from './CalendarToolbar';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
@@ -569,9 +571,10 @@ const CalendarContent = () => {
 
     return (
         <div className="d-flex h-100 w-100">
-            <div className="grow p-3 calendar-scroll-container position-relative">
+            <div className="grow p-3 calendar-scroll-container position-relative" style={{ minWidth: 0 }}>
                 <div className="h-100">
                     <DnDCalendar
+                        className={surfaceStyles.surface}
                         culture="en-AU"
                         localizer={localizer}
                         formats={calendarFormats}
@@ -579,13 +582,14 @@ const CalendarContent = () => {
                         backgroundEvents={rbcBackgroundEvents}
                         startAccessor="start"
                         endAccessor="end"
+                        showMultiDayTimes
                         min={minTime}
                         max={maxTime}
                         style={{ height: '100%' }}
 
                         date={calendarDate}
                         onNavigate={handleNavigate}
-                        view={calendarView}
+                        view={rbcViews.includes(calendarView) ? calendarView : Views.DAY}
                         onView={setCalendarView}
                         views={rbcViews}
 
@@ -599,15 +603,16 @@ const CalendarContent = () => {
                         selectable
                         popup
                         messages={calendarUIMessages}
-                        eventPropGetter={calendarUIGetEventStyle}
+                        eventPropGetter={event => calendarUIGetEventStyle(event, userRole, session.user.email)}
 
                         onSelectEvent={handleSelectEvent}
                         onSelectSlot={handleSelectSlot}
 
                         components={{
+                            toolbar: CalendarToolbar,
                             event: renderEvent,
                             timeSlotWrapper: renderTimeSlotWrapper,
-                            header: ({ label }) => <span style={{ fontWeight: 'bold' }}>{label}</span>
+                            header: ({ label }) => <span className={surfaceStyles.headerLabel}>{label}</span>
                         }}
                     />
                 </div>

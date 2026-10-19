@@ -1,14 +1,12 @@
 import React, { useMemo } from 'react';
 import { addMinutes } from 'date-fns';
+import { getAvailabilityHeatColor } from '@/constants/calendarColours';
 
 /**
  * Compute a green background colour whose opacity reflects
  * how many tutors are available in this slot relative to the week.
  */
-const computeAvailabilityHeatColor = (slotTutorCount, weeklyTutorCapacity) => {
-    const opacity = Math.min(1, slotTutorCount / weeklyTutorCapacity);
-    return `rgba(144, 238, 144, ${opacity})`;
-};
+const computeAvailabilityHeatColor = getAvailabilityHeatColor;
 
 const normaliseEmail = (email) => (typeof email === 'string' ? email.toLowerCase() : '');
 

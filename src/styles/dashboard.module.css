@@ -1,0 +1,63 @@
+.section { container-type: inline-size; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.statsGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.statsGrid:empty { display: none; }
+.statsGrid > * { min-width: 0; }
+.metricCard { height: 100%; }
+.metricBody { display: flex; align-items: flex-start; gap: 16px; padding: 20px; min-width: 0; }
+.metricText { flex: 1; min-width: 0; }
+.metricTitle { display: block; margin: 0 0 8px; color: var(--uui-color-text-tertiary); font-size: .875rem; font-weight: 500; line-height: 1.4; white-space: normal; overflow-wrap: anywhere; }
+.metricValue { display: block; margin: 0; font-size: 1.875rem; font-weight: 600; line-height: 1.25; color: var(--uui-color-text-primary); font-variant-numeric: tabular-nums; }
+.metricSubtitle { display: block; margin-top: 8px; font-size: .75rem; line-height: 1.5; color: var(--uui-color-text-tertiary); overflow-wrap: anywhere; }
+.pendingTrigger[data-untitled-button] { display: block; width: 100%; height: 100%; padding: 0; border-radius: 12px; text-align: left; outline-offset: -2px; }
+.pendingTrigger > span[data-text] { display: block; padding: 0; }
+.pendingChevron { width: 16px; height: 16px; flex-shrink: 0; margin-top: 4px; color: var(--uui-color-text-tertiary); }
+.pendingPopover[data-untitled-control] { z-index: 1070; width: 380px; max-width: calc(100vw - 32px); max-height: min(400px, var(--available-height, 400px)); padding: 0; }
+/* The popover owns scrolling so React Aria can keep the focused action in view. */
+.pendingDialog { max-height: none; overflow: visible; outline: none; }
+.requestList, .eventList { list-style: none; padding: 0; margin: 0; }
+.requestItem { padding: 16px; border-bottom: 1px solid var(--uui-color-border-secondary); }
+.requestItem:last-child { border-bottom: 0; }
+.requestContent { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.requestTitle { font-size: .875rem; font-weight: 600; color: var(--uui-color-text-primary); overflow-wrap: anywhere; }
+.requestDetails { margin-top: 4px; font-size: .75rem; line-height: 1.5; color: var(--uui-color-text-tertiary); overflow-wrap: anywhere; }
+.requestActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.requestState { padding: 24px 16px; font-size: .875rem; color: var(--uui-color-text-tertiary); text-align: center; }
+.requestError { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; margin-top: 8px; font-size: .75rem; color: var(--uui-color-text-tertiary); }
+.notificationActions { min-width: 0; }
+.notificationActions > button { max-width: 100%; white-space: normal; }
+.listHeader { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--uui-color-border-secondary); }
+.listHeader > svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--uui-color-text-tertiary); }
+.listTitle { margin: 0; flex: 1; min-width: 0; font-size: 1rem; line-height: 1.5; font-weight: 600; color: var(--uui-color-text-primary); }
+.eventItem { display: flex; min-width: 0; border-bottom: 1px solid var(--uui-color-border-secondary); }
+.eventItem:last-child { border-bottom: 0; }
+.eventTime { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex: 0 0 90px; gap: 2px; padding: 16px 12px; font-size: .75rem; color: var(--uui-color-text-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eventContent { flex: 1; min-width: 0; padding: 16px 20px 16px 8px; }
+.eventTitleRow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.eventTitle { font-size: .875rem; font-weight: 600; color: var(--uui-color-text-primary); overflow-wrap: anywhere; }
+.eventDescription { margin: 6px 0 0; font-size: .875rem; line-height: 1.5; color: var(--uui-color-text-secondary); font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
+.eventDetails { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: .75rem; color: var(--uui-color-text-tertiary); overflow-wrap: anywhere; }
+.emptyState { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 16px; text-align: center; }
+.emptyState p { margin: 0; font-size: .875rem; color: var(--uui-color-text-tertiary); }
+.confirmation { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 16px; border: 1px solid var(--uui-color-border-secondary); border-radius: 12px; background: var(--uui-color-bg-secondary); font-size: .875rem; color: var(--uui-color-text-secondary); }
+.confirmation { background: var(--uui-color-utility-yellow-50); border-color: var(--uui-color-utility-yellow-200); }
+.confirmation svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--uui-color-utility-yellow-700); }
+.dialogOverlay[data-untitled-modal-overlay] { z-index: 1070; align-items: center; }
+.dialogModal { max-width: 500px; }
+.dialogModal.large { max-width: 800px; }
+.dialogModal .dialog { display: flex; flex-direction: column; overflow: hidden; }
+.dialogHeader { display: flex; align-items: center; gap: 16px; padding: 20px 20px 0; flex-shrink: 0; }
+.dialogTitle { flex: 1; margin: 0; color: var(--uui-color-text-primary); font-size: 1.125rem; font-weight: 600; line-height: 1.5; }
+.dialogBody { min-height: 0; overflow-y: auto; padding: 20px; font-size: .875rem; color: var(--uui-color-text-secondary); }
+.dialogFooter { flex-shrink: 0; padding: 16px 20px; border-top: 1px solid var(--uui-color-border-secondary); }
+.reauthActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+@container (min-width: 440px) { .statsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (min-width: 640px) { .statsGrid[data-role="admin"] { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (min-width: 1000px) { .statsGrid:not([data-role="admin"]) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container (max-width: 360px) {
+    .eventItem { flex-direction: column; }
+    .eventTime { flex: none; flex-direction: row; justify-content: flex-start; align-items: baseline; gap: 12px; padding: 16px 16px 0; }
+    .eventContent { padding: 8px 16px 16px; }
+    .metricBody { padding: 16px; }
+}
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .metricCard { animation: none; } }

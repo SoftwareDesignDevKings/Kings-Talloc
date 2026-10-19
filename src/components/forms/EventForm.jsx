@@ -1,10 +1,10 @@
 'use client';
 import { isStudentSession, workCategory, getParticipantEditError } from '@/lib/scheduling/eventRules';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { isAfter } from 'date-fns';
-import { components } from 'react-select';
-import BaseModal from '../modals/BaseModal.jsx';
+import { StaffEventDialog, EventFormUIContext } from './EventFormSections/EventFormUI';
+import styles from '@/styles/staffEventForm.module.css';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal.jsx';
 import EventDetailsSection from './EventFormSections/EventDetailsSection.jsx';
 import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
@@ -54,6 +54,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
     const [selectedStudents, setSelectedStudents] = useState(newEvent.students || []);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const busyRef = useRef(false);
+    const dateTimeValidity = useRef({ start: true, end: true });
+    const [portalContainer, setPortalContainer] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState(newEvent.createdByStudent && newEvent.approvalStatus === 'pending' ? 'studentRequest' : 'eventDetails');
     const [participantError, setParticipantError] = useState(null);
     const isRejectingRequest = eventToEdit?.isStudentRequest && newEvent.approvalStatus === 'denied';
     const removesPaidTime = isEditing && newEvent.workStatus !== eventToEdit?.workStatus
@@ -102,7 +107,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
     const validateDates = () => {
         const start = new Date(newEvent.start);
         const end = new Date(newEvent.end);
-        if (!isAfter(end, start)) {
+        if (!dateTimeValidity.current.start || !dateTimeValidity.current.end || !isAfter(end, start)) {
             addAlert('error', 'End date must be after the start date.');
             return false; // Validation failed
         }
@@ -184,10 +189,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (isSubmitting) return false;
+        if (busyRef.current) return false;
 
         if (removesPaidTime && !window.confirm('Change this session’s completion status? This can reduce the hours counted for payment.')) return false;
         if (removesMeeting && !window.confirm('Remove this session’s Teams meeting? The existing meeting and its joining link will be deleted.')) return false;
+        busyRef.current = true;
         setIsSubmitting(true);
         try {
         // Tutors/coaches may only update workStatus — send only that field to satisfy
@@ -317,6 +323,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
             addAlert('error', `Failed to submit event: ${error.message}`);
             return false;
         } finally {
+            busyRef.current = false;
             setIsSubmitting(false);
         }
     };
@@ -328,7 +335,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
     };
 
     const handleConfirmDelete = async (deleteOption) => {
-        if (isSubmitting) return;
+        if (busyRef.current) return;
+        busyRef.current = true;
         setIsSubmitting(true);
         try {
             await calendarEventHandleDelete(eventToEdit, deleteOption, {
@@ -345,6 +353,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
             setShowDeleteConfirm(false);
             // Don't close main modal on error
         } finally {
+            busyRef.current = false;
             setIsSubmitting(false);
         }
     };
@@ -378,32 +387,16 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
         }
     };
 
-    const customOption = (props) => {
-        const { data } = props;
-        return (
-            <components.Option {...props}>
-                <span>{getStatusIcon(data.locationType)}</span> {data.label}
-            </components.Option>
-        );
-    };
-
-    const customSingleValue = (props) => {
-        const { data } = props;
-        return (
-            <components.SingleValue {...props}>
-                <span>{getStatusIcon(data.locationType)}</span> {data.label}
-            </components.SingleValue>
-        );
-    };
+    const renderStaffOption = option => <><span>{getStatusIcon(option.locationType)}</span> {option.label}</>;
 
     return (
         <>
-            <BaseModal
+            <StaffEventDialog
                 show={!showDeleteConfirm}
-                onHide={() => setShowModal(false)}
+                onHide={() => { if (!busyRef.current) setShowModal(false); }}
                 title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
-                size="lg"
-                suppressOnHidden={showDeleteConfirm}
+                setPortalContainer={setPortalContainer}
+                menuOpen={menuOpen}
                 onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
                 submitText={isRejectingRequest ? 'Reject Request' : isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
                 submitVariant={isRejectingRequest || removesPaidTime || removesMeeting ? 'danger' : 'outline-primary'}
@@ -418,10 +411,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                         : null
                 }
                 showFooter={!isView || isTutorPartialEdit}
-                noValidate
             >
                 {participantError && <div className="alert alert-danger" role="alert">{participantError}</div>}
-                <div className="accordion" id="eventFormAccordion">
+                <EventFormUIContext.Provider value={{ portalContainer, setMenuOpen, dateTimeValidity, busy: isSubmitting, activeSection, setActiveSection }}>
+                <div className={styles.sections}>
                     <EventDetailsSection
                         newEvent={newEvent}
                         setNewEvent={setNewEvent}
@@ -434,8 +427,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                         selectedStaff={selectedStaff}
                         handleStaffSelectChange={handleStaffSelectChange}
                         staffOptions={staffOptions}
-                        customOption={customOption}
-                        customSingleValue={customSingleValue}
+                        renderStaffOption={renderStaffOption}
                         selectedClasses={selectedClasses}
                         handleClassSelectChange={handleClassSelectChange}
                         classOptions={classOptions}
@@ -465,13 +457,14 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                         readOnly={isView || !eventToEdit?.isStudentRequest}
                     />
                 </div>
-            </BaseModal>
+                </EventFormUIContext.Provider>
+            </StaffEventDialog>
 
             <DeleteConfirmationModal
                 show={showDeleteConfirm}
-                onHide={() => setShowDeleteConfirm(false)}
-                onConfirm={handleConfirmDelete}
                 loading={isSubmitting}
+                onHide={() => { if (!busyRef.current) setShowDeleteConfirm(false); }}
+                onConfirm={handleConfirmDelete}
                 isStudentRequest={Boolean(eventToEdit?.isStudentRequest)}
                 isRecurring={eventToEdit?.recurring || eventToEdit?.isRecurringInstance}
                 isOriginal={eventToEdit?.recurring && !eventToEdit?.isRecurringInstance}

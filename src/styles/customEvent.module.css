@@ -16,9 +16,9 @@
 
 .eventTitle {
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: .8125rem;
     line-height: 1.35;
-    color: #1a1d23;
+    color: inherit;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -27,9 +27,9 @@
 }
 
 .staffInitials {
-    font-size: 0.7rem;
+    font-size: .6875rem;
     font-weight: 500;
-    color: #1a1d23;
+    color: inherit;
     margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
@@ -37,16 +37,16 @@
     opacity: 0.75;
 }
 
-.duplicateButton {
+.duplicateButton[data-untitled-button] {
     position: absolute;
     top: 2px;
     right: 2px;
     width: 20px;
     height: 20px;
     padding: 3px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 1px solid var(--tks-border);
-    border-radius: 4px;
+    background-color: var(--uui-color-bg-primary);
+    border: 1px solid var(--uui-color-border-secondary);
+    border-radius: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -55,7 +55,7 @@
     transition: opacity var(--transition-fast),
         background-color var(--transition-fast),
         transform var(--transition-fast);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--uui-shadow-xs);
     /* The button stays mounted at all times so an in-flight click is never
        lost to a React state toggle (the original bug: hovering the button
        could land on an overlapping neighbour, drop the parent's hover state,
@@ -64,6 +64,7 @@
     opacity: 0;
     pointer-events: none;
 }
+.duplicateButton[data-untitled-button] svg { width: 14px; height: 14px; }
 
 /* Reveal on hover or keyboard focus anywhere within the event. The parent
    .rbc-event is simultaneously raised above overlapping siblings (see
@@ -74,7 +75,7 @@
     pointer-events: auto;
 }
 
-.duplicateButton:hover {
-    background-color: white;
+.duplicateButton[data-untitled-button]:hover {
+    background-color: var(--uui-color-bg-primary_hover);
     transform: scale(1.1);
 }

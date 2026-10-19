@@ -1,37 +1,24 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
+import LoadingSkeleton from '@/components/LoadingSkeleton';
+import { useDashboardLoading } from '../DashboardLoadingContext';
+import { TableCard } from '@/components/untitled/table-card';
+import { FeaturedIcon } from '@/components/untitled/featured-icon';
+import styles from '@/styles/dashboard.module.css';
 
-const BaseStatsCard = ({ icon: Icon, iconBgColor, title, value, subtitle, delay = 0, colClass = 'col-12 col-md-4 col-lg-3' }) => {
-    const cardRef = useRef(null);
-
-    useEffect(() => {
-        if (cardRef.current) {
-            const timer = setTimeout(() => {
-                cardRef.current.classList.add('show');
-            }, delay);
-            return () => clearTimeout(timer);
-        }
-    }, [delay]);
-
+const BaseStatsCard = ({ icon, color = 'brand', title, value, subtitle, delay = 0, isLoading: loadingOverride }) => {
+    const shiftsLoading = useDashboardLoading();
+    const isLoading = loadingOverride ?? shiftsLoading;
     return (
-        <div className={colClass}>
-            <div ref={cardRef} className="card border-0 shadow-sm fade h-100">
-                <div className="card-body d-flex align-items-center">
-                    <div className="d-flex align-items-center">
-                        <div className="flex-shrink-0">
-                            <div className={`${iconBgColor} bg-opacity-10 rounded p-3`}>
-                                <Icon className={iconBgColor.replace('bg-', 'text-')} size={24} />
-                            </div>
-                        </div>
-                        <div className="flex-grow-1 ms-3">
-                            <h6 className="text-muted mb-1 small">{title}</h6>
-                            <h3 className="mb-0 fw-bold">{value}</h3>
-                            {subtitle && <small className="text-muted">{subtitle}</small>}
-                        </div>
-                    </div>
-                </div>
+    <TableCard.Root className={styles.metricCard} aria-busy={isLoading} style={{ '--metric-delay': `${delay}ms` }}>
+        <div className={styles.metricBody}>
+            <FeaturedIcon icon={icon} color={color} size="md" aria-hidden="true" />
+            <div className={styles.metricText}>
+                <h6 className={styles.metricTitle}>{title}</h6>
+                <h3 className={styles.metricValue}>{isLoading ? <LoadingSkeleton width="64px" /> : value}</h3>
+                {subtitle && <small className={styles.metricSubtitle}>{isLoading ? <LoadingSkeleton width="140px" /> : subtitle}</small>}
             </div>
         </div>
-    );
+    </TableCard.Root>
+);
 };
-
 export default BaseStatsCard;

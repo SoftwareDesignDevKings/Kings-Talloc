@@ -49,9 +49,11 @@ setup('authenticate users', async ({ browser }) => {
         
         try {
             
-            const hydrated = page.waitForResponse(response => response.url().endsWith('/api/auth/session'));
-            await page.goto('/login');
-            await hydrated;
+            // The first session request includes cold dev-server compilation in CI.
+            await Promise.all([
+                page.waitForResponse(response => response.url().endsWith('/api/auth/session'), { timeout: 60000 }),
+                page.goto('/login'),
+            ]);
             
             // click the dev button
             const devButton = page.getByRole('button', { name: buttonLabel, exact: true });
@@ -60,7 +62,7 @@ setup('authenticate users', async ({ browser }) => {
             
             // wait for either dashboard OR check for error
             try {
-                await page.waitForURL('/dashboard', { timeout: 10000 });
+                await page.waitForURL('/dashboard', { timeout: 30000 });
             } catch {
                 // If no dashboard, check if we're still on login with error
                 const errorMsg = await page.locator('.alert-danger').textContent().catch(() => null);

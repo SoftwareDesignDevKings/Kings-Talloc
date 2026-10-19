@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { MdContentCopy } from '@/components/icons';
+import { Copy01 } from '@untitledui/icons';
+import { Button } from '@/components/untitled/button';
 import styles from '@/styles/customEvent.module.css';
 
 /**
@@ -109,18 +110,19 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors, dayInitials }) 
             )}
 
             {canDuplicate && (
-                <button
+                <Button
                     type="button"
+                    size="sm"
+                    color="secondary"
+                    iconLeading={Copy01}
+                    aria-label="Duplicate event"
                     onClick={handleDuplicateClick}
-                    onPointerDownCapture={stopCalendarSelection}
-                    onMouseDownCapture={stopCalendarSelection}
+                    onPointerDown={stopCalendarSelection}
                     onMouseDown={stopCalendarSelection}
                     onMouseUp={handleMouseUp}
                     className={styles.duplicateButton}
                     title="Duplicate event"
-                >
-                    <MdContentCopy size={16} />
-                </button>
+                />
             )}
         </div>
     );

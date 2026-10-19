@@ -1,8 +1,9 @@
-import React, { useMemo, useEffect } from 'react';
-import Select from 'react-select';
-import { FiChevronLeft, FiChevronRight, FaInfoCircle } from '@/components/icons';
+import React, { useMemo, useEffect, useState } from 'react';
+import CalendarMultiSelect from './CalendarMultiSelect';
+import { Button } from '@/components/untitled/button';
+import { Toggle } from '@/components/untitled/toggle';
+import { ChevronRight, InfoCircle } from '@untitledui/icons';
 import styles from '@/styles/filterPanel.module.css';
-import { useState } from 'react';
 import { useCalendarUI } from '@contexts/CalendarUIContext';
 import { useAppData } from '@/contexts/AppDataContext';
 import CalendarHowToModal from '@/components/modals/CalendarHowToModal';
@@ -57,42 +58,36 @@ const CalendarFilterPanel = () => {
                 isOpen ? styles.open : styles.closed
             }`}
         >
-            <button
+            <Button
+                size="sm"
+                color="secondary"
                 className={styles.toggleButton}
+                iconLeading={ChevronRight}
+                aria-label={isOpen ? 'Collapse filters' : 'Expand filters'}
                 onClick={() => setIsOpen((v) => !v)}
-                data-bs-toggle="collapse"
-                data-bs-target="#filterPanelCollapse"
                 aria-expanded={isOpen}
                 aria-controls="filterPanelCollapse"
-            >
-                {isOpen ? <FiChevronRight /> : <FiChevronLeft />}
-            </button>
+            />
 
-            <div className={`${styles.filterContent} collapse${isOpen ? ' show' : ''}`} id="filterPanelCollapse">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                        <h3 className={`${styles.filterTitle} mb-0`}>Filters</h3>
-                        <div className="d-flex gap-2 align-items-center">
-                            {userRole === 'student' && (
-                                <button
-                                    className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                                    onClick={() => setShowHowToModal(true)}
-                                    title="How to use the calendar"
-                                >
-                                    <FaInfoCircle size={16} />
-                                    <span className="d-none d-md-inline">Help</span>
-                                </button>
-                            )}
-                        </div>
+            <div className={styles.filterViewport} aria-hidden={!isOpen} ref={element => { element?.toggleAttribute('inert', !isOpen); }} id="filterPanelCollapse">
+                <div className={styles.filterContent}>
+                    <div className={styles.filterHeader}>
+                        <h3 className={styles.filterTitle}>Filters</h3>
+                        {userRole === 'student' && (
+                            <Button size="sm" color="tertiary" iconLeading={InfoCircle}
+                                onClick={() => setShowHowToModal(true)}>
+                                <span title="How to use the calendar">Help</span>
+                            </Button>
+                        )}
                     </div>
 
                     {/* ───── Dropdown filters ───── */}
 
                     {calendarFilters.canFilterByTutor && (
                         <div className="mb-3">
-                            <Select
+                            <CalendarMultiSelect
                                 isMulti
                                 placeholder={userRole === 'student' ? "Select tutors to view availabilities" : "Select tutors"}
-                                classNamePrefix="select"
                                 options={tutorOptions}
                                 value={filters.filterByTutor}
                                 onChange={actions.setFilterByTutor}
@@ -103,10 +98,9 @@ const CalendarFilterPanel = () => {
 
                     {calendarFilters.canFilterByAvailabilityType && (
                         <div className="mb-3">
-                            <Select
+                            <CalendarMultiSelect
                                 isMulti
                                 placeholder="Filter availabilities"
-                                classNamePrefix="select"
                                 isClearable
                                 options={availabilityWorkTypeOptions}
                                 value={filters.filterAvailabilityByWorkType}
@@ -125,32 +119,10 @@ const CalendarFilterPanel = () => {
                             </div>
 
                             {calendarScope.canToggleCoachingShifts && (
-                                <label className={styles.toggleRow}>
-                                    <span className={styles.toggleLabel}>Coaching</span>
-                                    <span className={styles.toggle}>
-                                        <input
-                                            type="checkbox"
-                                            checked={visibility.showCoachingEvents}
-                                            onChange={(e) => actions.setShowCoachingEvents(e.target.checked)}
-                                            aria-label="Show coaching shifts"
-                                        />
-                                        <span className={styles.toggleTrack} />
-                                    </span>
-                                </label>
+                                <Toggle className={styles.toggleRow} label="Coaching" isSelected={visibility.showCoachingEvents} onChange={actions.setShowCoachingEvents} aria-label="Show coaching shifts" />
                             )}
 
-                            <label className={styles.toggleRow}>
-                                <span className={styles.toggleLabel}>Work</span>
-                                <span className={styles.toggle}>
-                                    <input
-                                        type="checkbox"
-                                        checked={visibility.showWorkEvents}
-                                        onChange={(e) => actions.setShowWorkEvents(e.target.checked)}
-                                        aria-label="Show work shifts"
-                                    />
-                                    <span className={styles.toggleTrack} />
-                                </span>
-                            </label>
+                            <Toggle className={styles.toggleRow} label="Work" isSelected={visibility.showWorkEvents} onChange={actions.setShowWorkEvents} aria-label="Show work shifts" />
                         </div>
                     )}
 
@@ -159,33 +131,10 @@ const CalendarFilterPanel = () => {
                             <hr className={styles.filterDivider} />
                             <div className="mb-3">
                                 <div className={`${styles.filterSectionLabel} mb-1`}>Availability</div>
-                                <label className={styles.toggleRow}>
-                                    <span className={styles.toggleLabel}>Show tutor availability</span>
-                                    <span className={styles.toggle}>
-                                        <input
-                                            type="checkbox"
-                                            checked={visibility.showTutorInitials}
-                                            onChange={(e) => actions.setShowTutorInitials(e.target.checked)}
-                                            aria-label="Show tutor availabilities"
-                                        />
-                                        <span className={styles.toggleTrack} />
-                                    </span>
-                                </label>
+                                <Toggle className={styles.toggleRow} label="Show tutor availability" isSelected={visibility.showTutorInitials} onChange={actions.setShowTutorInitials} aria-label="Show tutor availabilities" />
 
                                 {(userRole === 'tutor' || userRole === 'coach') && (
-                                    <label className={`${styles.subToggleRow} ${!visibility.showTutorInitials ? 'opacity-50' : ''}`}>
-                                        <span className={`${styles.toggleLabel} ${styles.toggleLabelMuted}`}>Hide my availability</span>
-                                        <span className={styles.toggle}>
-                                            <input
-                                                type="checkbox"
-                                                checked={visibility.hideOwnAvailabilities}
-                                                onChange={(e) => actions.setHideOwnAvailabilities(e.target.checked)}
-                                                disabled={!visibility.showTutorInitials}
-                                                aria-label="Hide my own availabilities"
-                                            />
-                                            <span className={styles.toggleTrack} />
-                                        </span>
-                                    </label>
+                                    <Toggle className={`${styles.subToggleRow} ${!visibility.showTutorInitials ? 'opacity-50' : ''}`} label="Hide my availability" isSelected={visibility.hideOwnAvailabilities} onChange={actions.setHideOwnAvailabilities} isDisabled={!visibility.showTutorInitials} aria-label="Hide my own availabilities" />
                                 )}
                             </div>
                         </>
@@ -195,18 +144,7 @@ const CalendarFilterPanel = () => {
                         <>
                             <hr className={styles.filterDivider} />
                             <div className="mb-3">
-                                <label className={styles.toggleRow}>
-                                    <span className={styles.toggleLabel}>Hide denied requests</span>
-                                    <span className={styles.toggle}>
-                                        <input
-                                            type="checkbox"
-                                            checked={visibility.hideDeniedStudentRequests}
-                                            onChange={(e) => actions.setHideDeniedStudentRequests(e.target.checked)}
-                                            aria-label="Hide denied student requests"
-                                        />
-                                        <span className={styles.toggleTrack} />
-                                    </span>
-                                </label>
+                                <Toggle className={styles.toggleRow} label="Hide denied requests" isSelected={visibility.hideDeniedStudentRequests} onChange={actions.setHideDeniedStudentRequests} aria-label="Hide denied student requests" />
                             </div>
                         </>
                     )}
@@ -216,6 +154,8 @@ const CalendarFilterPanel = () => {
                         <CalendarLegend userRole={userRole} />
                     </div>
                 </div>
+
+            </div>
 
             <CalendarHowToModal
                 show={showHowToModal}

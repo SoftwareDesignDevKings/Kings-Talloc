@@ -1,0 +1,110 @@
+.searchWrapper {
+    min-width: 0;
+}
+
+.tableCard {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    container-type: inline-size;
+}
+
+.tableScroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    container-type: inline-size;
+}
+
+.tableScroll:focus-visible {
+    outline: 2px solid var(--uui-color-border-brand);
+    outline-offset: -2px;
+}
+
+/* Untitled's small table spacing and colors on the existing semantic table.
+   Keep native table/roster interaction for this incremental checkpoint. */
+.table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    color: var(--uui-color-text-tertiary);
+    font-size: 0.875rem;
+}
+
+.table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--uui-color-border-secondary);
+    background: var(--uui-color-bg-secondary, #fafafa);
+    color: var(--uui-color-text-quaternary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--uui-color-border-secondary);
+    vertical-align: middle;
+}
+
+.table th:first-child {
+    width: 100%;
+    min-width: 200px;
+}
+
+.table td:first-child {
+    overflow-wrap: anywhere;
+}
+
+.table tbody > tr:not([data-canvas-roster-row]) > td:first-child {
+    color: var(--uui-color-text-primary);
+    font-weight: 500;
+}
+
+.table th:nth-child(2),
+.table th:nth-child(3),
+.table td:nth-child(2),
+.table td:nth-child(3) {
+    white-space: nowrap;
+}
+
+.table tbody > tr:not([data-canvas-roster-row]):hover {
+    background: var(--uui-color-bg-secondary, #fafafa);
+}
+
+.table [data-canvas-roster-row] > td {
+    padding: 0;
+    border: 0;
+}
+
+/* Keep the open roster readable while the columns scroll horizontally. */
+.table [data-canvas-roster-row] [role="region"] {
+    position: sticky;
+    left: 0;
+    max-width: 100cqw;
+}
+
+.actions {
+    width: 76px;
+    min-width: 76px;
+    text-align: right;
+}
+
+.scrollHint {
+    display: none;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--uui-color-border-secondary);
+    color: var(--uui-color-text-tertiary);
+    font-size: 0.75rem;
+}
+
+@container (max-width: 559px) {
+    .scrollHint {
+        display: block;
+    }
+}

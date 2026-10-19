@@ -1,35 +1,282 @@
-/* Role badges */
-.roleBadge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.625rem;
-    border-radius: 2rem;
-    font-weight: 500;
-    font-size: 0.75rem;
-    background-color: #e9ecef;
-    color: #495057;
-    margin-right: 0.25rem;
+.section {
+    container-type: inline-size;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
-
-.roleBadgePrimary {
-    background-color: var(--tks-primary-subtle);
-    color: var(--tks-secondary);
+.sectionHeader {
+    flex-shrink: 0;
 }
-
-/* File upload button */
-.uploadLabel {
-    margin-bottom: 0;
-    cursor: pointer;
+.sectionTitle {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--uui-color-text-primary);
+}
+.sectionDescription {
+    margin: 4px 0 0;
     font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
-    transition: all 0.2s ease;
+    color: var(--uui-color-text-tertiary);
 }
-
-.uploadLabel:hover {
-    transform: translateY(-1px);
+.section .tableCard {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+}
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid var(--uui-color-border-secondary);
+    flex-shrink: 0;
+}
+.searchWrapper {
+    flex: 1 1 220px;
+    min-width: min(250px, 100%);
+}
+.toolbarActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+}
+.templateButton {
+    max-width: 100%;
+    white-space: normal;
+}
+.tableScroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-gutter: stable;
+}
+.tableScroll:focus-visible {
+    outline: 2px solid var(--uui-color-border-brand);
+    outline-offset: -2px;
+}
+.usersTable {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    color: var(--uui-color-text-secondary);
+    font-size: 0.875rem;
+}
+.usersTable th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--uui-color-bg-secondary);
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--uui-color-text-tertiary);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--uui-color-border-secondary);
+}
+.usersTable th:first-child {
+    width: 42%;
+}
+.usersTable th:nth-child(2) {
+    width: 22%;
+}
+.usersTable th.actionsHeading {
+    width: 36%;
+    text-align: right;
+}
+.usersTable td {
+    padding: 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--uui-color-border-secondary);
+}
+.usersTable tbody tr:last-child td {
+    border-bottom: 0;
+}
+.usersTable tbody tr:hover {
+    background: var(--uui-color-bg-primary_hover);
+}
+.userName {
+    font-weight: 600;
+    color: var(--uui-color-text-primary);
+    overflow-wrap: anywhere;
+}
+.userEmail {
+    margin-top: 2px;
+    color: var(--uui-color-text-tertiary);
+    overflow-wrap: anywhere;
+}
+.roleBadges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+.rowActions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+}
+.rowAction[data-untitled-button] {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    flex-shrink: 0;
+}
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+    .rowActions {
+        opacity: 0;
+        transition: opacity 120ms ease-out;
+    }
+    .usersTable tbody tr:hover .rowActions,
+    .usersTable tbody tr:focus-within .rowActions,
+    .rowActions:has([data-loading]) {
+        opacity: 1;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .rowActions { transition: none; }
+}
+.compactLabel {
+    display: none;
+}
+.tableState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--uui-color-text-tertiary);
+}
+.tableSummary {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    border-top: 1px solid var(--uui-color-border-secondary);
+    font-size: 0.75rem;
+    color: var(--uui-color-text-tertiary);
+    min-height: 42px;
+}
+@container (max-width: 520px) {
+    .usersTable thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .usersTable, .usersTable tbody {
+        display: block;
+    }
+    .usersTable tbody tr {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border-bottom: 1px solid var(--uui-color-border-secondary);
+    }
+    .usersTable tbody tr:last-child {
+        border-bottom: 0;
+    }
+    .usersTable td {
+        display: block;
+        padding: 0;
+        border: 0;
+        width: 100%;
+    }
+    .compactLabel {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--uui-color-text-tertiary);
+    }
+    .rowActions {
+        justify-content: flex-start;
+    }
+    .usersTable tbody .stateRow {
+        padding: 0;
+    }
+}
+@container (max-width: 420px) {
+    .toolbarActions {
+        width: 100%;
+    }
+    .toolbarActions > a, .toolbarActions > button {
+        width: 100%;
+    }
 }
 
 /* Modal sections */
+.userOverlay[data-untitled-modal-overlay] {
+    z-index: 1070;
+    align-items: center;
+}
+
+.userModal {
+    max-width: 500px;
+}
+
+.userModal .modalDialog {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.userModal .modalHeader {
+    padding: 20px 20px 0;
+    flex-shrink: 0;
+}
+
+.userModal :global(.modal-body) {
+    overflow-y: auto;
+    min-height: 0;
+    padding: 20px;
+}
+
+.userModal :global(.modal-footer) {
+    padding: 16px 20px;
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.userModal :global(.modal-footer) > * {
+    margin: 0;
+}
+
+.userModal .modalForm {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sectionLabel {
+    display: block;
+    color: var(--uui-color-text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.375rem;
+}
+
+.notificationToggle {
+    width: 100%;
+    max-width: 100%;
+}
+
+.fieldHint {
+    color: var(--uui-color-text-tertiary);
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
 .modalSection {
     padding-bottom: 1rem;
     margin-bottom: 1.5rem;
@@ -39,36 +286,4 @@
 .modalSection:last-child {
     border-bottom: none;
     margin-bottom: 0;
-}
-
-/* Additional privileges grid */
-.rolesGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.selectableBadge {
-    cursor: pointer;
-    text-align: center;
-    padding: 0.5rem;
-    border: 2px solid transparent;
-    transition: all var(--transition-fast, 150ms cubic-bezier(0.25, 1, 0.5, 1));
-    user-select: none;
-}
-
-.selectableBadge:hover {
-    border-color: var(--tks-primary);
-    transform: translateY(-1px);
-}
-
-.selectableBadge:active {
-    transform: scale(0.95);
-}
-
-.selectableBadgeSelected {
-    background-color: var(--tks-primary);
-    color: white;
-    box-shadow: 0 4px 6px -1px var(--tks-primary-subtle);
 }

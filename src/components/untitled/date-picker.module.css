@@ -1,0 +1,4 @@
+.control { position: relative; min-width: 0; }
+.input { padding-left: 40px; }
+.trigger[data-untitled-button] { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); padding: 0; width: 20px; height: 20px; color: var(--uui-color-fg-quaternary); }
+.popover { width: min(280px, calc(100vw - 16px)); }

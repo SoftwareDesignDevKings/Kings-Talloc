@@ -43,8 +43,8 @@ const AppLayout = ({ session, userRole, children }) => {
                     <hr className="my-4 divider-offset"/>
 
                     {/* content area with scroll */}
-                    <div className="grow overflow-hidden content-scroll-area">
-                        <div key={pathname} className="fade-in h-100">
+                    <div className={`grow overflow-hidden content-scroll-area${pathname === '/calendar' ? ' calendar-content-area' : ''}`}>
+                        <div key={pathname} className="h-100">
                             {children}
                         </div>
                     </div>

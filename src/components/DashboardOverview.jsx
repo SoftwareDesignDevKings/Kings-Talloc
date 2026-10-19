@@ -2,11 +2,10 @@
 
 import { calculateHours } from '@/lib/scheduling/hours';
 import BookingNotices from '@/components/dashboard/BookingNotices';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import useAuthSession from '@/hooks/useAuthSession';
 import DashboardStatsCards from '@/components/dashboard/DashboardStatsCards.jsx';
 import EventsList from '@/components/dashboard/EventsList.jsx';
-import PersonalCalendarModal from '@/components/modals/PersonalCalendarModal.jsx';
 import WelcomeModal from '@/components/modals/WelcomeModal.jsx';
 import ReLoginModal from '@/components/modals/ReLoginModal.jsx';
 import useAlert from '@/hooks/useAlert';
@@ -15,12 +14,28 @@ import { addWeeks, endOfWeek, isWithinInterval, startOfWeek } from 'date-fns';
 import { formatDisplayDate } from '@/utils/displayDate';
 import { fetchCacheClasses } from '@/firestore/firestoreFetch';
 
+import { Button } from '@/components/untitled/button';
+import styles from '@/styles/dashboard.module.css';
+
 const DashboardOverview = () => {
     const { session, userRole, userRoles } = useAuthSession();
     const isAdmin = userRole === 'admin' || userRoles?.includes('admin');
     const { addAlert } = useAlert();
     const [needsReauth, setNeedsReauth] = useState(false);
     const [isSendingEmails, setIsSendingEmails] = useState(false);
+    const notificationActionsRef = useRef(null);
+    const reauthWasOpen = useRef(false);
+
+    useEffect(() => {
+        if (needsReauth) {
+            reauthWasOpen.current = true;
+        } else if (reauthWasOpen.current) {
+            reauthWasOpen.current = false;
+            // The async request disables the trigger before opening the dialog.
+            // Return keyboard focus to it when the dialog closes.
+            notificationActionsRef.current?.querySelector('button')?.focus();
+        }
+    }, [needsReauth]);
     const {
         calendarShifts,
         calendarStudentRequests,
@@ -28,7 +43,6 @@ const DashboardOverview = () => {
         setCalendarDateRange,
     } = useAppData();
 
-    const [showCalendarModal, setShowCalendarModal] = useState(false);
     const [teacherClasses, setTeacherClasses] = useState([]);
 
     useEffect(() => {
@@ -235,17 +249,12 @@ const DashboardOverview = () => {
     };
 
     return (
-        <div className="container-fluid p-0">
+        <div className={styles.section}>
 
             <BookingNotices />
             {/* Stats Cards */}
             {/* We don't need onUpdate anymore because the AppDataProvider updates automatically via listeners */}
             <DashboardStatsCards userRole={userRole} data={dashboardData} />
-
-            <PersonalCalendarModal
-                show={showCalendarModal}
-                onHide={() => setShowCalendarModal(false)}
-            />
 
             <ReLoginModal
                 show={needsReauth}
@@ -253,17 +262,11 @@ const DashboardOverview = () => {
             />
 
             {isAdmin && (
-                <div className="row mb-3">
-                    <div className="col-12">
-                        <button
-                            className="btn btn-outline-success"
-                            onClick={handleSendEmailNotifications}
-                            disabled={isSendingEmails}
-                            aria-busy={isSendingEmails}
-                        >
-                            {isSendingEmails ? 'Sending Shift Notifications...' : 'Email Shift Notifications'}
-                        </button>
-                    </div>
+                <div ref={notificationActionsRef} className={styles.notificationActions}>
+                    <Button size="sm" color="secondary" onClick={handleSendEmailNotifications}
+                        isDisabled={isSendingEmails} aria-busy={isSendingEmails}>
+                        {isSendingEmails ? 'Sending Shift Notifications...' : 'Email Shift Notifications'}
+                    </Button>
                 </div>
             )}
 
@@ -273,32 +276,23 @@ const DashboardOverview = () => {
             />
 
             {/* Today's Events */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <EventsList
-                        events={dashboardData.todayEvents}
-                        title="Events for Today"
-                        emptyMessage="No events scheduled for today"
-                        userRole={userRole}
-                        isToday={true}
-                    />
-                </div>
-            </div>
-
+            <EventsList
+                events={dashboardData.todayEvents}
+                title="Events for Today"
+                emptyMessage="No events scheduled for today"
+                userRole={userRole}
+                isToday={true}
+            />
 
             {/* Upcoming Events */}
-            <div className="row">
-                <div className="col-12">
-                    <EventsList
-                        events={dashboardData.upcomingEvents}
-                        totalCount={dashboardData.upcomingEventsCount}
-                        title="Upcoming Events"
-                        emptyMessage="No upcoming events scheduled"
-                        userRole={userRole}
-                        isToday={false}
-                    />
-                </div>
-            </div>
+            <EventsList
+                events={dashboardData.upcomingEvents}
+                totalCount={dashboardData.upcomingEventsCount}
+                title="Upcoming Events"
+                emptyMessage="No upcoming events scheduled"
+                userRole={userRole}
+                isToday={false}
+            />
         </div>
     );
 };

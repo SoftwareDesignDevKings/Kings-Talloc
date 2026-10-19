@@ -1,118 +1,31 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import BaseModal from './BaseModal';
 import { REQUEST_DELETE_WARNING } from '@/utils/destructiveActions';
+import React, { useState, useEffect } from 'react';
+import { StaffEventDialog } from '@/components/forms/EventFormSections/EventFormUI';
+import { Button } from '@/components/untitled/button';
+import { RadioGroup, RadioButton } from '@/components/untitled/radio-buttons';
+import styles from '@/styles/staffEventForm.module.css';
 
-/**
- * Confirms single-event, recurring-event and student-request deletion.
- */
 const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOriginal, isStudentRequest = false, loading = false }) => {
-    // Default to 'all' if deleting original event, 'this' for instances
-    const [deleteOption, setDeleteOption] = useState(isOriginal ? 'all' : 'this'); // 'this' | 'thisAndFuture' | 'all'
-
-    // Reset deleteOption when modal opens or props change
-    useEffect(() => {
-        if (show) {
-            setDeleteOption(isOriginal ? 'all' : 'this');
-        }
-    }, [show, isOriginal]);
-
-    const getTitle = () => {
-        if (isRecurring && isOriginal) {
-            return 'Delete Recurring Event';
-        }
-        if (isRecurring && !isOriginal) {
-            return 'Delete Recurring Event';
-        }
-        return isStudentRequest ? 'Delete Student Request' : 'Delete Event';
-    };
-
-    const handleConfirm = () => {
-        if (!loading) onConfirm(isRecurring ? deleteOption : 'this');
-    };
-
-    return (
-        <BaseModal
-            show={show}
-            onHide={onHide}
-            title={getTitle()}
-            size="md"
-            loading={loading}
-            customFooter={
-                <>
-                    <button type="button" className="btn btn-outline-secondary" onClick={onHide} disabled={loading}>
-                        Cancel
-                    </button>
-                    <button type="button" className="btn btn-danger" onClick={handleConfirm} disabled={loading}>
-                        {loading ? 'Deleting…' : 'Delete'}
-                    </button>
-                </>
-            }
-        >
-            {isStudentRequest && <p className="text-danger" role="alert">{REQUEST_DELETE_WARNING}</p>}
-            {isRecurring && isOriginal ? (
-                <>
-                    <p className="mb-3">
-                        This is a recurring event. What would you like to delete?
-                    </p>
-                    <div className="form-check mb-2">
-                        <input
-                            className="form-check-input"
-                            type="radio"
-                            name="deleteOption"
-                            id="deleteAll"
-                            value="all"
-                            checked={deleteOption === 'all'}
-                            onChange={(e) => setDeleteOption(e.target.value)}
-                        />
-                        <label className="form-check-label" htmlFor="deleteAll">
-                            All occurrences
-                        </label>
-                    </div>
-                </>
-            ) : isRecurring && !isOriginal ? (
-                <>
-                    <p className="mb-3">What would you like to delete?</p>
-                    <div className="form-check mb-2">
-                        <input
-                            className="form-check-input"
-                            type="radio"
-                            name="deleteOption"
-                            id="deleteThis"
-                            value="this"
-                            checked={deleteOption === 'this'}
-                            onChange={(e) => setDeleteOption(e.target.value)}
-                        />
-                        <label className="form-check-label" htmlFor="deleteThis">
-                            Only this occurrence
-                        </label>
-                    </div>
-                    <div className="form-check mb-3">
-                        <input
-                            className="form-check-input"
-                            type="radio"
-                            name="deleteOption"
-                            id="deleteThisAndFuture"
-                            value="thisAndFuture"
-                            checked={deleteOption === 'thisAndFuture'}
-                            onChange={(e) => setDeleteOption(e.target.value)}
-                        />
-                        <label className="form-check-label" htmlFor="deleteThisAndFuture">
-                            This and all future occurrences
-                        </label>
-                    </div>
-                    <div className="alert alert-warning mb-0" role="alert">
-                        <small className="text-danger">
-                            <strong>Note:</strong> Deletes only non-modified allocated shifts into the future. All modified occurrences will need to be deleted separately.
-                        </small>
-                    </div>
-                </>
-            ) : !isStudentRequest ? (
-                <p className="mb-0">Are you sure you want to permanently delete this event? This cannot be undone.</p>
-            ) : null}
-        </BaseModal>
-    );
+    const [deleteOption, setDeleteOption] = useState(isOriginal ? 'all' : 'this');
+    useEffect(() => { if (show) setDeleteOption(isOriginal ? 'all' : 'this'); }, [show, isOriginal]);
+    return <StaffEventDialog size="md" show={show} onHide={onHide} title={isRecurring ? 'Delete Recurring Event' : isStudentRequest ? 'Delete Student Request' : 'Delete Event'} loading={loading}
+        customFooter={<>
+            <Button size="sm" color="secondary" isDisabled={loading} onClick={onHide}>Cancel</Button>
+            <Button size="sm" color="secondary-destructive" isDisabled={loading} onClick={() => { if (!loading) onConfirm(isRecurring ? deleteOption : 'this'); }}>{loading ? 'Deleting…' : 'Delete'}</Button>
+        </>}>
+        {isStudentRequest && <p className="text-danger" role="alert">{REQUEST_DELETE_WARNING}</p>}
+        {isRecurring ? <div className={styles.fields}>
+            <p>{isOriginal ? 'This is a recurring event. What would you like to delete?' : 'What would you like to delete?'}</p>
+            <RadioGroup aria-label="Delete occurrences" name="deleteOption" value={deleteOption} onChange={setDeleteOption} isDisabled={loading}>
+                {isOriginal ? <RadioButton value="all" label="All occurrences" /> : <>
+                    <RadioButton value="this" label="Only this occurrence" />
+                    <RadioButton value="thisAndFuture" label="This and all future occurrences" />
+                </>}
+            </RadioGroup>
+            {!isOriginal && <div className={styles.warning} role="alert"><strong>Note:</strong> Deletes only non-modified allocated shifts into the future. All modified occurrences will need to be deleted separately.</div>}
+        </div> : !isStudentRequest ? <p>Are you sure you want to permanently delete this event? This cannot be undone.</p> : null}
+    </StaffEventDialog>;
 };
-
 export default DeleteConfirmationModal;
