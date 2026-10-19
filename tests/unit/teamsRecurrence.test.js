@@ -5,14 +5,14 @@ const json = data => ({ ok: true, json: async () => data });
 beforeEach(() => { global.fetch = jest.fn(); });
 
 test('Graph recurrence uses Sydney dates/weekdays and the saved occurrence count across DST', async () => {
-    fetch.mockResolvedValue(json({ id: 'series', onlineMeeting: { joinUrl: 'join-url' } }));
+    fetch.mockResolvedValue(json({ id: 'series', isOnlineMeeting: true, onlineMeetingProvider: 'teamsForBusiness', onlineMeeting: { joinUrl: 'join-url' } }));
     await msCreateEvent('mock-test-token', { subject: 'Series', startTime: '2026-09-27T23:00:00.000Z', endTime: '2026-09-28T00:00:00.000Z', attendees: [], recurrenceOptions: { recurring: 'weekly', occurenceNum: 3 } });
     const body = JSON.parse(fetch.mock.calls[0][1].body);
     expect(body.start).toEqual({ dateTime: '2026-09-28T09:00:00', timeZone: 'Australia/Sydney' });
     expect(body.recurrence).toEqual({ pattern: { type: 'weekly', interval: 1, daysOfWeek: ['Monday'] }, range: { type: 'endDate', startDate: '2026-09-28', endDate: '2026-10-12', recurrenceTimeZone: 'Australia/Sydney' } });
 });
 test('an earlier saved until date limits fortnightly Teams recurrence', async () => {
-    fetch.mockResolvedValue(json({ id: 'series' }));
+    fetch.mockResolvedValue(json({ id: 'series', isOnlineMeeting: true, onlineMeetingProvider: 'teamsForBusiness', onlineMeeting: { joinUrl: 'join-url' } }));
     await msCreateEvent('mock-test-token', { subject: 'Series', startTime: '2026-10-04T22:00:00Z', endTime: '2026-10-04T23:00:00Z', attendees: [], recurrenceOptions: { recurring: 'fortnightly', occurenceNum: 5, until: '2026-10-18T22:00:00Z' } });
     const body = JSON.parse(fetch.mock.calls[0][1].body);
     expect(body.recurrence.pattern.interval).toBe(2); expect(body.recurrence.range.endDate).toBe('2026-10-19');

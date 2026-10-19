@@ -42,4 +42,13 @@ const customJestConfig = {
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-module.exports = createJestConfig(customJestConfig);
+module.exports = async () => {
+    const config = await createJestConfig(customJestConfig)();
+    // The Teams body preservation tests use the real HTML parser, which shares
+    // native ESM dependencies with sanitize-html. Let Jest transform that family.
+    config.transformIgnorePatterns = [
+        '/node_modules/(?!(htmlparser2|domhandler|domutils|domelementtype|dom-serializer|entities|@firebase/rules-unit-testing)/)',
+        ...config.transformIgnorePatterns.filter(pattern => !pattern.includes('node_modules')),
+    ];
+    return config;
+};
