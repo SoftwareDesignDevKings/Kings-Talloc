@@ -6,6 +6,7 @@ beforeEach(() => { jest.useFakeTimers(); window.bootstrap = { Modal }; });
 afterEach(() => {
     act(() => jest.runAllTimers());
     cleanup();
+    act(() => jest.runAllTimers());
     document.querySelectorAll('.modal-backdrop').forEach(element => element.remove());
     document.body.classList.remove('modal-open');
     delete window.bootstrap;
@@ -27,6 +28,7 @@ test('quickly cancelling during a hide animation restores the editor and still a
 test('cancelling a hide while the editor is opening does not make its next Close reopen it', () => {
     const hide = jest.fn();
     const { rerender } = render(<BaseModal show onHide={hide} title="Editor" />);
+    act(() => jest.advanceTimersByTime(0));
     rerender(<BaseModal show={false} suppressOnHidden onHide={hide} title="Editor" />);
     rerender(<BaseModal show onHide={hide} title="Editor" />);
     act(() => jest.runAllTimers());
@@ -70,4 +72,29 @@ test('a modal closed before Bootstrap loads stays closed and an unmounted modal 
     fireEvent.load(script);
     expect(Modal.getInstance(modal)).toBeNull();
     script.remove();
+});
+
+
+test('StrictMode mounting leaves one working editor and no stale transition callbacks', () => {
+    const hide = jest.fn();
+    render(<React.StrictMode><BaseModal show onHide={hide} title="Strict editor" /></React.StrictMode>);
+    act(() => jest.runAllTimers());
+    expect(screen.getByRole('heading', { name: 'Strict editor' }).closest('.modal')).toHaveClass('show');
+    expect(document.querySelectorAll('.modal-backdrop')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    act(() => jest.runAllTimers());
+    expect(hide).toHaveBeenCalledTimes(1);
+});
+
+
+test('unmounting while opening finishes cleanup without a stale Bootstrap callback', () => {
+    const hide = jest.fn();
+    const { unmount } = render(<BaseModal show onHide={hide} title="Leaving editor" />);
+    act(() => jest.advanceTimersByTime(0));
+    unmount();
+    act(() => jest.runAllTimers());
+    expect(document.querySelectorAll('.modal-backdrop')).toHaveLength(0);
+    expect(document.body).not.toHaveClass('modal-open');
+    expect(screen.queryByText('Leaving editor')).not.toBeInTheDocument();
+    expect(hide).not.toHaveBeenCalled();
 });

@@ -86,7 +86,11 @@ const BaseModal = ({
         if (!modalRef.current || typeof window === 'undefined') return;
 
         const modalElement = modalRef.current;
+        let phase = 'hidden';
+        const handleShowing = () => { phase = 'showing'; };
+        const handleHiding = () => { phase = 'hiding'; };
         const handleHidden = () => {
+            phase = 'hidden';
             isClosing.current = false;
             // Bootstrap ignores show() during its hide animation. A quick Cancel
             // in a confirmation must restore the editor once that animation ends.
@@ -101,6 +105,7 @@ const BaseModal = ({
             }
         };
         const handleShown = () => {
+            phase = 'shown';
             isClosing.current = false;
             // Likewise, retry a hide requested while the modal was opening.
             if (!desiredShowRef.current) {
@@ -123,20 +128,47 @@ const BaseModal = ({
             if (desiredShowRef.current && !isClosing.current) bsModalRef.current.show();
         };
 
+        modalElement.addEventListener('show.bs.modal', handleShowing);
+        modalElement.addEventListener('hide.bs.modal', handleHiding);
         modalElement.addEventListener('hidden.bs.modal', handleHidden);
         modalElement.addEventListener('shown.bs.modal', handleShown);
         // Resource load events do not bubble. Capture the CDN script's load after
         // it installs window.bootstrap, then stop listening once initialized.
         document.addEventListener('load', initialise, true);
-        initialise();
+        // StrictMode replays effect setup/cleanup before this task runs. Starting
+        // an animated show in the first setup leaves callbacks on a disposed modal.
+        const initialiseTimer = setTimeout(initialise, 0);
 
         return () => {
+            clearTimeout(initialiseTimer);
             document.removeEventListener('load', initialise, true);
+            modalElement.removeEventListener('show.bs.modal', handleShowing);
+            modalElement.removeEventListener('hide.bs.modal', handleHiding);
             modalElement.removeEventListener('hidden.bs.modal', handleHidden);
             modalElement.removeEventListener('shown.bs.modal', handleShown);
-            if (bsModalRef.current) {
-                bsModalRef.current.dispose();
-                bsModalRef.current = null;
+            const instance = bsModalRef.current;
+            bsModalRef.current = null;
+            if (!instance) return;
+            const detached = !modalElement.isConnected;
+            const dispose = () => {
+                instance.dispose();
+                // Bootstrap may append a detached element to finish showing it.
+                if (detached) modalElement.remove();
+            };
+            const hideThenDispose = () => {
+                modalElement.addEventListener('hidden.bs.modal', dispose, { once: true });
+                instance.hide();
+            };
+            // Bootstrap's queued transition callbacks still need their instance.
+            // Let an opening/hiding transition finish before releasing it.
+            if (phase === 'showing') {
+                modalElement.addEventListener('shown.bs.modal', hideThenDispose, { once: true });
+            } else if (phase === 'shown') {
+                hideThenDispose();
+            } else if (phase === 'hiding') {
+                modalElement.addEventListener('hidden.bs.modal', dispose, { once: true });
+            } else {
+                dispose();
             }
         };
     }, []);
