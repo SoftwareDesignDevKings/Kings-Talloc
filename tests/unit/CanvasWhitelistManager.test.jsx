@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import CanvasWhitelistManager from '@/components/canvas/CanvasWhitelistManager';
 
+const mockAddAlert = jest.fn();
+
 jest.mock('@/hooks/useAlert', () => ({
     __esModule: true,
-    default: () => ({ addAlert: jest.fn() }),
+    default: () => ({ addAlert: mockAddAlert }),
 }));
 
 const jsonResponse = (body) => ({
@@ -48,12 +50,15 @@ describe('CanvasWhitelistManager', () => {
 
         await userEvent.click(screen.getByRole('tab', { name: /all canvas courses/i }));
 
-        expect(await screen.findByText('Term')).toBeInTheDocument();
-        expect(screen.getByText('Mathematics Year 10')).toBeInTheDocument();
-        expect(screen.getByText('2026 Term 2')).toBeInTheDocument();
-        expect(screen.getByText((content) =>
-            content.includes('2026') && content.includes('-')
-        )).toBeInTheDocument();
+        await waitFor(() => {
+            const table = screen.getByRole('table', { name: 'All Canvas courses', exact: true });
+            expect(within(table).getByRole('columnheader', { name: 'Term', exact: true })).toBeInTheDocument();
+            expect(within(table).getByRole('cell', { name: 'Mathematics Year 10', exact: true })).toBeInTheDocument();
+            expect(within(table).getByText('2026 Term 2')).toBeInTheDocument();
+            expect(within(table).getByText((content) =>
+                content.includes('2026') && content.includes('-')
+            )).toBeInTheDocument();
+        });
         expect(screen.queryByText('Ancient History 2025')).not.toBeInTheDocument();
     });
 
@@ -61,7 +66,7 @@ describe('CanvasWhitelistManager', () => {
         render(<CanvasWhitelistManager />);
 
         await userEvent.click(screen.getByRole('tab', { name: /all canvas courses/i }));
-        await screen.findByText('Mathematics Year 10');
+        await waitFor(() => expect(screen.getByRole('cell', { name: 'Mathematics Year 10', exact: true })).toBeInTheDocument());
         await userEvent.type(screen.getByPlaceholderText(/search by name, code, or term/i), 'term 2');
 
         await waitFor(() => {
