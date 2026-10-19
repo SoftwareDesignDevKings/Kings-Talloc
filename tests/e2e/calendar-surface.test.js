@@ -46,8 +46,15 @@ const close = async page => {
     const dialog = page.getByRole('dialog').first();
     await dialog.getByRole('button', { name: 'Close', exact: true }).click(); await expect(page.getByRole('dialog')).toHaveCount(0);
 };
+const scrollToSlot = async (page, day, hour) => {
+    const target = slot(page, day, hour);
+    // A scheduling snapshot can replace slots while scrolling; resolve the fresh slot again.
+    // Scroll without hovering because another event may cover this drag destination.
+    await expect(async () => { await target.scrollIntoViewIfNeeded(); }).toPass({ timeout: 15000 });
+    return target;
+};
 const dragTo = async (page, event, day, hour, resize = false) => {
-    const target = slot(page, day, hour); await target.scrollIntoViewIfNeeded();
+    const target = await scrollToSlot(page, day, hour);
     await event.hover();
     const source = resize ? event.locator('.rbc-addons-dnd-resize-ns-anchor').last() : event;
     const from = await source.boundingBox(); const to = await target.boundingBox();
@@ -149,7 +156,8 @@ test('drag and resize persist the exact shifted interval and slot selection stil
     expect(iso((await read('shifts/ui-calendar-surface-main')).fields.end.timestampValue)).toBe(iso(at(13)));
     await dragTo(page, block(page), 3, 14, true);
     await expect.poll(async () => iso((await read('shifts/ui-calendar-surface-main')).fields.end.timestampValue)).toBe(iso(at(14)));
-    const target = slot(page, 4, 13); await target.scrollIntoViewIfNeeded(); const box = await target.boundingBox();
+    const target = await scrollToSlot(page, 4, 13); const box = await target.boundingBox();
+    // RBC receives slot selection through its overlaid events container.
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await expect(page.getByRole('dialog', { name: 'Add New Event', exact: true })).toBeVisible(); await close(page);
 });

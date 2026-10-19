@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { DateTime } from 'luxon';
 import { seedShiftInEmulator, seedStudentRequestInEmulator, seedUserInEmulator } from './wrapperFunctions';
 
 test.use({ timezoneId: 'Australia/Sydney' });
@@ -19,7 +20,8 @@ const patchHelp = async fields => {
 let originalHelp;
 let helpPrepared = false;
 const makeShift = (title, workType) => {
-    const start = new Date(); start.setHours(12, 0, 0, 0);
+    // Fixture timestamps must use the browser's zone, independent of the runner's TZ.
+    const start = DateTime.now().setZone('Australia/Sydney').set({ hour: 12, minute: 0, second: 0, millisecond: 0 }).toJSDate();
     return { title, workType, start, end: new Date(+start + 3600000), recurring: null, workStatus: 'notCompleted',
         staff: [{ value: 'tutor@kings.edu.au', label: 'Calendar Fixture Tutor' }], students: [{ value: 'student@kings.edu.au', label: 'Calendar Fixture Student' }],
         emailsList: emails, staffEmails: ['tutor@kings.edu.au'], studentEmails: ['student@kings.edu.au'] };
