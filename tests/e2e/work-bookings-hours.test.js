@@ -16,6 +16,17 @@ const searchParticipants = async (page, query) => {
     await page.getByRole('button', { name: 'Assign students to event', exact: true }).click();
     await page.getByRole('searchbox', { name: 'Search Assign students to event', exact: true }).fill(query);
 };
+const openEventEditor = async (page, title) => {
+    const event = page.locator('.rbc-calendar .rbc-event').filter({ has: page.getByText(title, { exact: true }) });
+    const editor = page.getByRole('dialog', { name: 'Edit Event', exact: true });
+    // Firestore snapshots can replace an event between mouse-down and mouse-up.
+    // Retry only opening the editor; all scheduling writes below are still performed once.
+    await expect(async () => {
+        if (await editor.isVisible()) return;
+        await event.click({ position: { x: 12, y: 16 }, timeout: 5000 });
+        await expect(editor).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15000 });
+};
 const tutor = 'tutor@kings.edu.au', student = 'student@kings.edu.au';
 const slot = DateTime.now().setZone('Australia/Sydney').plus({ days: 1 }).set({ hour: 15, minute: 0, second: 0, millisecond: 0 });
 const data = (extra = {}) => ({ title: 'General Work', start: slot.toJSDate(), end: slot.plus({ hours: 3 }).toJSDate(), staff: [{ value: tutor, label: 'Viraj Patel' }], students: [], staffEmails: [tutor], studentEmails: [], emailsList: [tutor], workType: 'work', recurring: null, createdByStudent: false, approvalStatus: 'approved', workStatus: 'notCompleted', ...extra });
@@ -105,7 +116,7 @@ test('tutor availability has no type selector and saves through the server', asy
 test('teacher creates Work with no acceptance controls and can mark it completed', async ({ page }) => {
     await db.collection('shifts').doc('work').set(data());
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
+    await openEventEditor(page, 'General Work');
     await page.getByRole('button', { name: 'Settings & Status', exact: true }).click();
     await page.getByRole('button', { name: /Event work type/ }).click(); await expect(page.getByRole('option', { name: 'Tutoring', exact: true })).toHaveCount(0); await page.getByRole('option', { name: 'Work', exact: true }).click();
     await expect(page.getByText('Required for confirmation', { exact: true })).toHaveCount(0);
@@ -166,7 +177,7 @@ test('teacher can remove a student temporarily, receives an empty-save error, th
     await db.collection('studentTutorEligibility').doc(replacement).set({ eligibleTutorEmails: [tutor] });
     await db.collection('shifts').doc('session').set(data({ title: 'Student session', students: [{ value: student, label: 'John Doe' }], studentEmails: [student], emailsList: [tutor, student], createdByStudent: true }));
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /Student session/ }).first().getByText('Student session', { exact: true }).click();
+    await openEventEditor(page, 'Student session');
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
     await page.getByRole('button', { name: 'Remove John Doe', exact: true }).click();
     const emptyMessage = page.getByRole('alert').filter({ hasText: 'Add at least one student' });
@@ -188,7 +199,7 @@ test('saved general Work remains Work when a teacher tries to add a student book
     await db.collection('shifts').doc('work').set(data());
     await db.collection('canvasUsers').doc('peer').set({ email: student, name: 'John Doe' });
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
-    await page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
+    await openEventEditor(page, 'General Work');
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
     // Keep the pointer over the next header, as it may be during keyboard entry.
     // The open dropdown must remain clickable above that hovered header.
