@@ -390,3 +390,31 @@ test('date-bounded availability preserves old recurring Work, group eligibility 
     const group = await page.request.get(`/api/availability?${query}&students=${encodeURIComponent(JSON.stringify(['ineligible@kings.edu.au']))}`);
     expect(group.status()).toBe(200); expect((await group.json()).slots).toEqual([]);
 });
+
+// Keep emulator-only browser evidence in CI logs when an editor interaction fails.
+const browserFailures = new WeakMap();
+test.beforeEach(async ({ page }) => {
+    const failures = [];
+    browserFailures.set(page, failures);
+    page.on('pageerror', error => failures.push({ pageError: error.message }));
+    page.on('requestfailed', request => {
+        const url = new URL(request.url());
+        failures.push({ request: `${url.origin}${url.pathname}`, error: request.failure()?.errorText });
+    });
+});
+test.afterEach(async ({ page }, info) => {
+    if (info.status === info.expectedStatus) return;
+    info.setTimeout(info.timeout + 10000);
+    const editor = await page.evaluate(() => ({
+        path: location.pathname,
+        bootstrapLoaded: Boolean(window.bootstrap),
+        modals: [...document.querySelectorAll('.modal')].map(element => ({
+            className: element.className,
+            display: getComputedStyle(element).display,
+            hidden: element.getAttribute('aria-hidden'),
+            text: element.textContent.slice(0, 2000),
+        })),
+        visibleText: document.body.innerText.slice(-5000),
+    })).catch(error => ({ captureError: error.message }));
+    console.error('WORK_EDITOR_FAILURE', JSON.stringify({ editor, browserFailures: browserFailures.get(page) }));
+});
