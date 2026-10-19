@@ -342,8 +342,11 @@ test('deleted accounts cannot return until admin recreation, and recreation does
         expect((await readWithOldToken(studentPage, oldToken, 'users', student)).status()).toBe(403);
         expect((await studentPage.request.post('/api/scheduling', { data: {} })).status()).toBe(401);
         await studentPage.goto('/login');
+        const rejectedSignIn = studentPage.waitForResponse(response => response.url().endsWith('/api/auth/callback/dev-student'));
         await studentPage.getByRole('button', { name: 'Student', exact: true }).click();
-        await expect(studentPage).toHaveURL(/login/);
+        expect((await (await rejectedSignIn).json()).url).toContain('error=AccessDenied');
+        // Finish the rejected sign-in before allowing the administrator to recreate it.
+        await expect(studentPage).toHaveURL(/\/login\?error=AccessDenied/);
         expect((await db.collection('users').doc(student).get()).exists).toBe(false);
         expect((await page.request.post('/api/users', { data: { mode: 'create', email: student, name: 'John Doe', defaultRole: 'student', userRoles: [] } })).status()).toBe(200);
         await signIn(studentPage, 'Student');
@@ -434,7 +437,13 @@ test.afterEach(async ({ page }, info) => {
 
 
 test('booking updates read and acknowledge under compatible rules before calendar migration', async ({ page }) => {
-    await env.loadFirestoreRules({ rules: readFileSync('firebase/firestore.compat.rules', 'utf8') });
+    const installRules = async file => {
+        const rulesEnv = await initializeTestEnvironment({ projectId: env.projectId, firestore: {
+            ...env.emulators.firestore, rules: readFileSync(file, 'utf8'),
+        } });
+        await rulesEnv.cleanup();
+    };
+    await installRules('firebase/firestore.compat.rules');
     try {
         const createdAt = new Date(Date.now() - 1000);
         await db.collection('bookingNotifications').doc('own-compatible').set({
@@ -455,6 +464,6 @@ test('booking updates read and acknowledge under compatible rules before calenda
         await expect.poll(async () => (await db.collection('bookingNotificationState').doc(student).get()).data()?.acknowledgedAt?.toMillis()).toBe(+createdAt);
         expect((await db.collection('bookingNotificationState').doc(tutor).get()).exists).toBe(false);
     } finally {
-        await env.loadFirestoreRules({ rules: readFileSync('firebase/firestore.rules', 'utf8') });
+        await installRules('firebase/firestore.rules');
     }
 });
