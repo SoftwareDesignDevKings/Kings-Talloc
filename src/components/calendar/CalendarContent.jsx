@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays, endOfWeek } from 'date-fns';
 import enAU from 'date-fns/locale/en-AU';
-import { DISPLAY_DATE_FORMAT } from '@/utils/displayDate';
+import { DISPLAY_DATE_FORMAT, formatCompactTimeRange } from '@/utils/displayDate';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 
 import { useCalendarUI } from '@contexts/CalendarUIContext';
@@ -56,6 +56,8 @@ const calendarFormats = {
     dayHeaderFormat: `${DISPLAY_DATE_FORMAT} (EEEE)`,
     dayRangeHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
         `${calendarLocalizer.format(start, DISPLAY_DATE_FORMAT, culture)} – ${calendarLocalizer.format(end, DISPLAY_DATE_FORMAT, culture)}`,
+    // Compact ranges fit narrow week columns, e.g. "3:00 – 4:00 pm".
+    eventTimeRangeFormat: ({ start, end }) => formatCompactTimeRange(start, end),
     agendaDateFormat: DISPLAY_DATE_FORMAT,
     agendaHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
         `${calendarLocalizer.format(start, DISPLAY_DATE_FORMAT, culture)} – ${calendarLocalizer.format(end, DISPLAY_DATE_FORMAT, culture)}`,

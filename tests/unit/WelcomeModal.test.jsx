@@ -15,7 +15,7 @@ beforeEach(() => {
 test.each(['Get Started', 'Close', 'Escape'])('first student visit shows existing content and %s saves only the welcome flag', async close => {
     const user = userEvent.setup(); render(<WelcomeModal userRole="student" userEmail="guide@example.edu" />);
     const dialog = await screen.findByRole('dialog', { name: 'Welcome to Kings Talloc' });
-    expect(dialog).toHaveTextContent('Calendar Color Guide');
+    expect(dialog).toHaveTextContent('Calendar colour guide');
     expect(dialog).toHaveTextContent('All tutoring session bookings must be made through the Calendar tab.');
     if (close === 'Escape') await user.keyboard('{Escape}');
     else await user.click(screen.getByRole('button', { name: close, exact: true }));

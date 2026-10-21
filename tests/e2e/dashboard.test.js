@@ -247,7 +247,7 @@ test('student welcome keeps its content and Get Started saves the existing prefe
     await page.goto('/dashboard');
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('Welcome to Kings Talloc', { exact: true })).toBeVisible();
-    await expect(dialog.getByText('Calendar Color Guide', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Calendar colour guide', { exact: true })).toBeVisible();
     await dialog.getByRole('button', { name: 'Get Started', exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect.poll(async () => (await read('users/student@kings.edu.au')).fields.hasSeenWelcome.booleanValue).toBe(true);

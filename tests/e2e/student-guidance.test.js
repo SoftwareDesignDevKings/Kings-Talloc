@@ -45,7 +45,7 @@ test.describe('Student guidance @studentOnly', () => {
     test('first visits preserve all copy, independent seen flags and manual help reopening', async ({ page }) => {
         await page.goto('/dashboard'); await expect(welcome(page)).toBeVisible(); await expectFits(welcome(page));
         const content = { welcome: await copy(welcome(page)) };
-        await expect(welcome(page).getByText('Calendar Color Guide', { exact: true })).toBeVisible();
+        await expect(welcome(page).getByText('Calendar colour guide', { exact: true })).toBeVisible();
         await welcome(page).getByRole('button', { name: 'Get Started', exact: true }).click();
         await expect(welcome(page)).toHaveCount(0);
         await expect.poll(async () => (await readStudent()).hasSeenWelcome).toEqual({ booleanValue: true });

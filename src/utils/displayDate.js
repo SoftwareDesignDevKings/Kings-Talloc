@@ -25,3 +25,12 @@ export const formatDisplayDate = value => {
 export const formatDisplayDateTime = value => dateTimeFormatter.format(asDate(value));
 
 export const formatDisplayTime = value => timeFormatter.format(asDate(value));
+
+// Drop a repeated am/pm so ranges fit narrow calendar columns: "3:00 – 4:00 pm".
+export const formatCompactTimeRange = (start, end) => {
+    const [from, to] = [formatDisplayTime(start), formatDisplayTime(end)];
+    const period = text => text.match(/\s*([ap]\.?m\.?)$/i);
+    const [fromPeriod, toPeriod] = [period(from), period(to)];
+    return fromPeriod && toPeriod && fromPeriod[1] === toPeriod[1]
+        ? `${from.slice(0, fromPeriod.index)} – ${to}` : `${from} – ${to}`;
+};
