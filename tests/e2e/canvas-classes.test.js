@@ -94,7 +94,7 @@ test.describe('Canvas Classes baseline @teacherAdmin @teacherOnly @tutorAdmin', 
         await row(page, 'Mathematics Year 10').getByRole('button').click();
         const search = page.getByRole('textbox');
         await expect(search).toHaveAccessibleName('Search Canvas classes');
-        await expect(search).toHaveCSS('padding-left', '40px');
+        await expect(search).toHaveCSS('padding-left', '36px');
         for (const query of ['mAtHeMaTiCs', '  math10  ']) {
             await search.fill(query);
             await expect(row(page, 'Mathematics Year 10')).toBeVisible();
@@ -110,7 +110,10 @@ test.describe('Canvas Classes baseline @teacherAdmin @teacherOnly @tutorAdmin', 
         await search.fill('   ');
         for (const [, course] of courses) await expect(row(page, course.name)).toBeVisible();
         await search.fill('no matching class');
-        await expect(page.getByText('No Canvas classes synced yet.')).toBeVisible();
+        await expect(page.getByText('No classes match “no matching class”.')).toBeVisible();
+        await page.getByRole('button', { name: 'Clear search', exact: true }).click();
+        await expect(search).toHaveValue('');
+        await search.fill('no matching class');
         await expect(page.getByRole('button', { name: /^(Show|Hide) students in / })).toHaveCount(0);
     });
 

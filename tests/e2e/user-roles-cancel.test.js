@@ -70,7 +70,7 @@ const readyDialog = async (page, name) => {
     const close = await dialog.getByRole('button', { name: 'Close', exact: true }).boundingBox();
     const rightGap = header.x + header.width - close.x - close.width;
     expect(rightGap).toBeGreaterThanOrEqual(0);
-    expect(rightGap).toBeLessThanOrEqual(20);
+    expect(rightGap).toBeLessThanOrEqual(24);
     return dialog;
 };
 

@@ -140,17 +140,18 @@ test.describe('Sidebar role switching @teacherAdmin @tutorAdmin', () => {
         await expect(sidebar(page).getByRole('link')).toHaveText(menus[defaultRole.toLowerCase() + '-tests']);
         await sidebar(page).getByRole('link', { name: 'Calendar', exact: true }).click();
         await expect(page).toHaveURL('/calendar');
-        await expect(page.getByRole('heading', { name: `${defaultRole} Dashboard`, exact: true })).toBeVisible();
+        // Other pages are titled by route, so the sidebar links show the active role there.
+        await expect(page.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
         await sidebar(page).getByRole('button', { name: 'View as Admin', exact: true }).focus();
         await page.keyboard.press('Space');
-        await expect(page.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeVisible();
         await expect(sidebar(page).getByRole('link')).toHaveText(menus[testInfo.project.name]);
+        await expect(page.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
         await expect(page).toHaveURL('/calendar');
         await sidebar(page).getByRole('button', { name: `View as ${defaultRole}`, exact: true }).click();
-        await expect(page.getByRole('heading', { name: `${defaultRole} Dashboard`, exact: true })).toBeVisible();
+        await expect(sidebar(page).getByRole('link')).toHaveText(menus[defaultRole.toLowerCase() + '-tests']);
         await page.reload();
         // Main's current auth initialization returns to Admin on a full reload.
         // Keep that behavior; role persistence changes are outside this UI port.
-        await expect(page.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeVisible();
+        await expect(sidebar(page).getByRole('link')).toHaveText(menus[testInfo.project.name]);
     });
 });
