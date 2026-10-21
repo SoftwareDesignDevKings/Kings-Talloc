@@ -2,6 +2,7 @@ import { db } from '@/firestore/firestoreClient';
 import { collection, doc, getDoc, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { DateTime } from 'luxon';
 import { SYDNEY_ZONE } from '@/lib/scheduling/eventRules';
+import { recordSnapshotReads } from '@/lib/telemetry/clientReads';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 // ---------------------------------------------------------------------------
@@ -62,7 +63,7 @@ export const firestoreFetchOneOffShifts = (setOneOffShifts, calendarDateRange, s
     );
 
     return onSnapshot(q,
-        (snapshot) => setOneOffShifts(snapshot.docs.map(deserializeShift)),
+        (snapshot) => { recordSnapshotReads('shifts:one-off', snapshot); setOneOffShifts(snapshot.docs.map(deserializeShift)); },
         (error) => { console.error('Firestore Shifts (one-off) Error:', error); setOneOffShifts([]); }
     );
 };
@@ -109,13 +110,13 @@ export const firestoreFetchRecurringShifts = (setRecurringBaseShifts, strategyFb
 
     const unsubOpenEnded = onSnapshot(
         openEndedQuery,
-        (snapshot) => { openEndedShifts = snapshot.docs.map(deserializeShift); merge(); },
+        (snapshot) => { recordSnapshotReads('shifts:recurring-open', snapshot); openEndedShifts = snapshot.docs.map(deserializeShift); merge(); },
         (error) => console.error('Firestore Recurring Shifts (open-ended) Error:', error)
     );
 
     const unsubActive = onSnapshot(
         activeQuery,
-        (snapshot) => { activeShifts = snapshot.docs.map(deserializeShift); merge(); },
+        (snapshot) => { recordSnapshotReads('shifts:recurring-active', snapshot); activeShifts = snapshot.docs.map(deserializeShift); merge(); },
         (error) => console.error('Firestore Recurring Shifts (active) Error:', error)
     );
 
@@ -140,6 +141,7 @@ export const firestoreFetchAvailabilities = (setCalendarAvailabilities, calendar
     );
 
     return onSnapshot(q, (snapshot) => {
+        recordSnapshotReads('tutorAvailabilities', snapshot);
         const availabilities = snapshot.docs.map((doc) => {
             const data = doc.data();
             return {
@@ -175,6 +177,7 @@ export const firestoreFetchStudentRequests = (setCalendarStudentRequests, calend
     );
 
     return onSnapshot(q, (snapshot) => {
+        recordSnapshotReads('studentEventRequests', snapshot);
         const requests = snapshot.docs.map((doc) => {
             const data = doc.data();
             return {
