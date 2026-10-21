@@ -1,5 +1,7 @@
 /** @jest-environment node */
 jest.mock('server-only', () => ({}), { virtual: true });
+// Stand-in for Firestore OR filters, evaluated by the fake query below.
+jest.mock('firebase-admin/firestore', () => ({ Filter: { or: (...filters) => ({ or: filters }), where: (field, op, value) => ({ field, op, value }) } }));
 const { readAvailability } = require('@/lib/scheduling/readAvailability');
 const { readSchedule } = require('@/lib/scheduling/readSchedule');
 const { bookableIntervals } = require('@/lib/scheduling/eventRules');
@@ -11,11 +13,12 @@ let records, reads, db;
 beforeEach(() => {
     records = { users: [{ id: tutor, email: tutor, defaultRole: 'tutor' }], shifts: [], tutorAvailabilities: [] }; reads = [];
     const query = (name, filters = [], ceiling = Infinity) => ({
-        where: (field, op, value) => query(name, [...filters, [field, op, value]], ceiling),
+        where: (field, op, value) => query(name, [...filters, field?.or ? ['or', 'or', field.or] : [field, op, value]], ceiling),
         orderBy: () => query(name, filters, ceiling), select: () => query(name, filters, ceiling),
         limit: value => query(name, filters, value),
         get: async () => {
-            const found = records[name].filter(record => filters.every(([field, op, value]) => {
+            const matches = (record, [field, op, value]) => {
+                if (op === 'or') return value.some(filter => matches(record, [filter.field, filter.op, filter.value]));
                 const actual = record[field];
                 if (op === '==') return actual === value;
                 if (op === 'in') return value.includes(actual);
@@ -24,7 +27,8 @@ beforeEach(() => {
                 if (op === '>') return actual > value;
                 if (op === '>=') return actual >= value;
                 throw new Error(op);
-            })).slice(0, ceiling);
+            };
+            const found = records[name].filter(record => filters.every(filter => matches(record, filter))).slice(0, ceiling);
             reads.push({ name, filters, ceiling, ids: found.map(record => record.id) });
             return { docs: found.map(record => ({ id: record.id, data: () => record })) };
         },
@@ -98,5 +102,29 @@ test('a supplied cache serves repeat reads without touching Firestore', async ()
     const second = await readAvailability(db, start, end, null, [], { cache });
     expect(reads).toHaveLength(firestoreReads);
     expect(second).toEqual(first);
-    expect(cache.mock.calls.map(([key]) => key)).toEqual(expect.arrayContaining(['availability:tutors', `availability:records:${+start}:${+end}`]));
+    const weekStart = DateTime.fromJSDate(start, { zone: 'Australia/Sydney' }).startOf('week').toJSDate();
+    expect([...new Set(cache.mock.calls.map(([key]) => key))]).toEqual(['availability:tutors', 'availability:recurring', `availability:week:${+weekStart}`]);
+});
+test('different ranges in the same week share cached reads; a longer range adds only its new weeks', async () => {
+    records.shifts = [{ id: 'work', ...shift() }];
+    records.tutorAvailabilities = [{ id: 'availability', tutor, start, end }];
+    const store = new Map();
+    const cache = jest.fn(async (key, ttl, load) => { if (!store.has(key)) store.set(key, await load()); return store.get(key); });
+    // A calendar week view, then a booking form for one hour of that week.
+    const week = DateTime.fromJSDate(start, { zone: 'Australia/Sydney' }).startOf('week');
+    await readAvailability(db, week.toJSDate(), week.plus({ weeks: 1 }).toJSDate(), null, [], { cache });
+    const afterWeek = reads.length;
+    const booking = await readAvailability(db, new Date(+start + 3600000), new Date(+start + 7200000), null, [], { cache });
+    expect(reads).toHaveLength(afterWeek);
+    expect(booking.availability.map(event => event.id)).toEqual(['availability']);
+    // Two weeks reads just the second week's shifts and availability.
+    await readAvailability(db, week.toJSDate(), week.plus({ weeks: 2 }).toJSDate(), null, [], { cache });
+    expect(reads.slice(afterWeek).map(read => read.name).sort()).toEqual(['shifts', 'tutorAvailabilities']);
+    expect([...store.keys()].filter(key => key.startsWith('availability:week:'))).toHaveLength(2);
+});
+test('tutors are read with one query and recurring series are read once for any range', async () => {
+    records.users.push({ id: 'legacy', email: 'legacy@school.test', role: 'tutor' }, { id: 'secondary', email: 'secondary@school.test', defaultRole: 'coach', userRoles: ['tutor'] });
+    await readAvailability(db, start, end);
+    expect(reads.filter(read => read.name === 'users')).toHaveLength(1);
+    expect(reads.filter(read => read.name === 'shifts' && read.filters.some(([field]) => field === 'recurring'))).toHaveLength(1);
 });
