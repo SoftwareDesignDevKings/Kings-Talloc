@@ -10,12 +10,12 @@ export const documentEvent = doc => {
 
 // Resolve cached class rosters without rewriting historical documents. Unknown
 // or empty rosters stay conservatively occupied and retain the review warning.
-export const resolveClassParticipants = async (db, event, transaction) => {
+// `rosterCache` (a Map) shares each class roster between events in one read, so
+// several class-only bookings of the same class read its enrolments once.
+export const resolveClassParticipants = async (db, event, transaction, rosterCache) => {
     if (!event.classes?.length || event.studentParticipantsResolved || event.students?.length || event.additionalStudents?.length) return event;
     const read = query => transaction ? transaction.get(query) : query.get();
-    const rosters = await Promise.all(event.classes.map(async item => {
-        const courseId = String(item.value || item.id || item);
-        if (!courseId || courseId.includes('/')) return [];
+    const readRoster = async courseId => {
         const [enrollments, legacy] = await Promise.all([
             read(db.collection('canvasEnrollments').where('courseId', '==', courseId)),
             read(db.collection('classes').doc(courseId)),
@@ -23,6 +23,13 @@ export const resolveClassParticipants = async (db, event, transaction) => {
         return [...enrollments.docs.map(doc => ({ value: emailOf(doc.data().email || doc.data().emailLower), label: doc.data().userName })),
             ...(legacy.data()?.students || []).map(student => ({ value: emailOf(student), label: student.label || student.name }))]
             .filter(student => student.value.includes('@'));
+    };
+    const rosters = await Promise.all(event.classes.map(item => {
+        const courseId = String(item.value || item.id || item);
+        if (!courseId || courseId.includes('/')) return [];
+        if (!rosterCache) return readRoster(courseId);
+        if (!rosterCache.has(courseId)) rosterCache.set(courseId, readRoster(courseId));
+        return rosterCache.get(courseId);
     }));
     if (rosters.some(roster => !roster.length)) return event;
     const students = [...new Map(rosters.flat().map(student => [student.value, { value: student.value, label: student.label || student.value }])).values()];
@@ -40,7 +47,8 @@ export const readSchedule = async (db, start, end, transaction, { includeFuture 
         recurringQuery = recurringQuery.where('start', '<', end);
     }
     const [current, recurring] = await Promise.all([read(currentQuery), read(recurringQuery)]);
-    const bases = await Promise.all([...new Map([...current.docs, ...recurring.docs].map(doc => [doc.id, documentEvent(doc)])).values()].map(event => resolveClassParticipants(db, event, transaction)));
+    const rosterCache = new Map();
+    const bases = await Promise.all([...new Map([...current.docs, ...recurring.docs].map(doc => [doc.id, documentEvent(doc)])).values()].map(event => resolveClassParticipants(db, event, transaction, rosterCache)));
     // An edit to a legacy open-ended series must check every already stored future
     // commitment, even if it is more than a year away.
     if (includeFuture) end = new Date(Math.max(+end, ...bases.map(event => {

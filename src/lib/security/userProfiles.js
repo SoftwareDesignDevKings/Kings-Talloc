@@ -1,20 +1,35 @@
 import 'server-only';
-import { FieldPath } from 'firebase-admin/firestore';
+import { cached } from '@/lib/cache/sharedCache';
+
+const duplicateProfiles = () => new Error('Multiple profiles have this email; contact an administrator.');
+
+// The app only creates lowercase profile IDs, so other spellings come from legacy
+// profiles. Their IDs are kept in the shared cache by lowercase spelling (one
+// ID-only read of users a day) instead of scanning users by first letter on every
+// miss, which cost up to ~2,000 reads per new sign-in or legacy tutor booking.
+const LEGACY_ALIASES_TTL_SECONDS = 86400;
+const readLegacyAliases = async db => {
+    const snapshot = await db.collection('users').select().get();
+    const aliases = {};
+    for (const doc of snapshot.docs) {
+        const canonical = doc.id.toLowerCase();
+        if (doc.id !== canonical) (aliases[canonical] ||= []).push(doc.id);
+    }
+    return aliases;
+};
+export const legacyProfileAliases = db => cached('accounts:legacy-aliases', LEGACY_ALIASES_TTL_SECONDS, () => readLegacyAliases(db));
 
 // Exact IDs stay intact for existing profiles. New profiles use lowercase IDs.
-// Only a missing exact/canonical ID needs this bounded legacy lookup. Prefix
-// queries cover both cases of the first character without scanning every user.
-export async function findUserProfile(db, email, read = ref => ref.get()) {
+// Every profile read goes through `read`, so transactions still lock what they use.
+export async function findUserProfile(db, email, read = ref => ref.get(), { aliases = legacyProfileAliases } = {}) {
     if (typeof email !== 'string' || !/^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(email) || email.length > 254) return null;
     const canonical = email.toLowerCase();
     const direct = (await Promise.all([...new Set([email, canonical])].map(id => read(db.collection('users').doc(id))))).filter(doc => doc.exists);
-    if (direct.length > 1) throw new Error('Multiple profiles have this email; contact an administrator.');
+    if (direct.length > 1) throw duplicateProfiles();
     if (direct.length) return direct[0];
-    const prefixes = [...new Set([canonical[0], canonical[0].toUpperCase()])];
-    const snapshots = await Promise.all(prefixes.map(prefix => read(db.collection('users')
-        .orderBy(FieldPath.documentId()).startAt(prefix).endAt(prefix + '\uf8ff').limit(1001))));
-    if (snapshots.some(snapshot => snapshot.size > 1000)) throw new Error('Account lookup is too large; contact an administrator.');
-    const matches = snapshots.flatMap(snapshot => snapshot.docs).filter(doc => doc.id.toLowerCase() === canonical);
-    if (matches.length > 1) throw new Error('Multiple profiles have this email; contact an administrator.');
+    // A stale alias for a deleted profile just reads a missing document.
+    const legacyIds = ((await aliases(db))[canonical] || []).filter(id => id !== email && id !== canonical);
+    const matches = (await Promise.all(legacyIds.map(id => read(db.collection('users').doc(id))))).filter(doc => doc.exists);
+    if (matches.length > 1) throw duplicateProfiles();
     return matches[0] || null;
 }

@@ -241,3 +241,9 @@ test('only admins can list accounts, and the list never includes auth versions',
     mockSession.user = { email: student, defaultRole: 'student', userRoles: [], authVersion: 'secret-version' };
     expect((await listAccounts()).status).toBe(403);
 });
+test('a calendar feed request with the wrong secret is rejected before any profile lookup', async () => {
+    mockQueries.length = 0;
+    const unknown = 'nobody@school.test';
+    expect((await calendarFeed(new Request(`http://localhost/api/calendar/feed?uid=${unknown}&token=${'b'.repeat(64)}`))).status).toBe(401);
+    expect(mockQueries.filter(query => query.collection === 'users')).toEqual([]);
+});
