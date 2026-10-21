@@ -16,7 +16,7 @@ const routes = {
 const sidebar = page => page.locator('[style*="--sidebar-w"]');
 const readyDashboard = async page => {
     await expect(sidebar(page)).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Events for Today', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^(Events for Today|Today's Sessions)$/ })).toBeVisible();
 };
 const readyDestination = async (page, label) => {
     if (label === 'Dashboard') return readyDashboard(page);

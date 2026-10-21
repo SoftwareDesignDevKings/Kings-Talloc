@@ -30,7 +30,7 @@
 .listTitle { margin: 0; flex: 1; min-width: 0; font-size: 1rem; line-height: 1.5; font-weight: 600; color: var(--uui-color-text-primary); }
 .eventItem { display: flex; min-width: 0; border-bottom: 1px solid var(--uui-color-border-secondary); }
 .eventItem:last-child { border-bottom: 0; }
-.eventTime { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex: 0 0 90px; gap: 2px; padding: 16px 12px; font-size: .75rem; color: var(--uui-color-text-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eventTime { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex: 0 0 auto; min-width: 90px; gap: 2px; padding: 16px 12px; font-size: .75rem; color: var(--uui-color-text-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .eventContent { flex: 1; min-width: 0; padding: 16px 20px 16px 8px; }
 .eventTitleRow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .eventTitle { font-size: .875rem; font-weight: 600; color: var(--uui-color-text-primary); overflow-wrap: anywhere; }

@@ -101,7 +101,7 @@ test.describe('Dashboard roles @teacherAdmin @tutorAdmin @teacherOnly @tutorOnly
         await expect(page.getByText('Coaching', { exact: true }).first()).toBeVisible();
         if (['admin-tests', 'tutorAdmin-tests', 'teacher-tests', 'student-tests'].includes(info.project.name)) await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
         else await expect(page.getByText('Approved', { exact: true })).toHaveCount(0);
-        await expect(page.getByRole('heading', { name: 'Events for Today', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /^(Events for Today|Today's Sessions)$/ })).toBeVisible();
         if (['admin-tests', 'tutorAdmin-tests'].includes(info.project.name)) {
             await expect(page.getByRole('button', { name: 'Email Shift Notifications', exact: true })).toBeVisible();
         } else await expect(page.getByRole('button', { name: /Email Shift Notifications/ })).toHaveCount(0);

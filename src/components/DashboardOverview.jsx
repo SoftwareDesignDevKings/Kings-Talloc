@@ -20,6 +20,7 @@ import styles from '@/styles/dashboard.module.css';
 const DashboardOverview = () => {
     const { session, userRole, userRoles } = useAuthSession();
     const isAdmin = userRole === 'admin' || userRoles?.includes('admin');
+    const isStudent = userRole === 'student';
     const { addAlert } = useAlert();
     const [needsReauth, setNeedsReauth] = useState(false);
     const [isSendingEmails, setIsSendingEmails] = useState(false);
@@ -40,6 +41,7 @@ const DashboardOverview = () => {
         calendarShifts,
         calendarStudentRequests,
         calendarAvailabilities,
+        calendarDataLoading,
         watchCalendarData,
     } = useAppData();
 
@@ -87,6 +89,9 @@ const DashboardOverview = () => {
         // If we need ALL pending requests globally, we might need a separate fetch or adjust the provider.
         // For now, we use what's in the current week view which covers most immediate concerns.
         const pendingRequestsData = calendarStudentRequests.filter(req => req.approvalStatus === 'pending');
+        const studentPending = userRole === 'student' ? pendingRequestsData : [];
+        const studentPendingToday = studentPending.filter(req => new Date(req.start) >= startOfToday && new Date(req.start) <= endOfToday);
+        const studentPendingUpcoming = studentPending.filter(req => new Date(req.start) > now);
 
         calendarShifts.forEach(event => {
             const start = new Date(event.start);
@@ -186,6 +191,10 @@ const DashboardOverview = () => {
         const completedCoachingHours = completed.tutors.reduce((sum, tutor) => sum + tutor.coachingMs / 3600000, 0);
         return {
             todayEvents: todayEvents.sort((a, b) => new Date(a.start) - new Date(b.start)),
+            // Students also see their own pending requests in the lists, marked Pending.
+            todayListEvents: [...todayEvents, ...studentPendingToday].sort((a, b) => new Date(a.start) - new Date(b.start)),
+            upcomingListEvents: [...upcomingEvents, ...studentPendingUpcoming].sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 5),
+            upcomingListCount: upcomingEvents.length + studentPendingUpcoming.length,
             upcomingEvents: upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 5),
             upcomingEventsCount: upcomingEvents.length,
             upcomingPeriod: `Through ${formatDisplayDate(nextWeekEnd)}`,
@@ -216,7 +225,7 @@ const DashboardOverview = () => {
             },
         };
 
-    }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, teacherClasses]);
+    }, [calendarShifts, calendarStudentRequests, calendarAvailabilities, session?.user?.email, teacherClasses, userRole]);
 
 
     const handleSendEmailNotifications = async () => {
@@ -255,7 +264,7 @@ const DashboardOverview = () => {
             <BookingNotices />
             {/* Stats Cards */}
             {/* We don't need onUpdate anymore because the AppDataProvider updates automatically via listeners */}
-            <DashboardStatsCards userRole={userRole} data={dashboardData} />
+            <DashboardStatsCards userRole={userRole} data={dashboardData} isLoading={calendarDataLoading} />
 
             <ReLoginModal
                 show={needsReauth}
@@ -278,21 +287,23 @@ const DashboardOverview = () => {
 
             {/* Today's Events */}
             <EventsList
-                events={dashboardData.todayEvents}
-                title="Events for Today"
-                emptyMessage="No events scheduled for today"
+                events={dashboardData.todayListEvents}
+                title={isStudent ? "Today's Sessions" : 'Events for Today'}
+                emptyMessage={isStudent ? 'No sessions today' : 'No events scheduled for today'}
                 userRole={userRole}
                 isToday={true}
+                isLoading={calendarDataLoading}
             />
 
             {/* Upcoming Events */}
             <EventsList
-                events={dashboardData.upcomingEvents}
-                totalCount={dashboardData.upcomingEventsCount}
-                title="Upcoming Events"
-                emptyMessage="No upcoming events scheduled"
+                events={dashboardData.upcomingListEvents}
+                totalCount={dashboardData.upcomingListCount}
+                title={isStudent ? 'Upcoming Sessions' : 'Upcoming Events'}
+                emptyMessage={isStudent ? 'No upcoming sessions. Book one from the Calendar.' : 'No upcoming events scheduled'}
                 userRole={userRole}
                 isToday={false}
+                isLoading={calendarDataLoading}
             />
         </div>
     );

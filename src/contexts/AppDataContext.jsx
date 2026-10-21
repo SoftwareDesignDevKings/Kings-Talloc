@@ -62,6 +62,9 @@ export const AppDataContextProvider = ({ children }) => {
     const [appShifts, setAppShifts] = useState([]);
     const [appAvailabilities, setAppAvailabilities] = useState([]);
     const [appStudentRequests, setAppStudentRequests] = useState([]);
+    // Set once the first shift snapshot arrives so views can show loading states
+    // instead of empty ones; later week navigation keeps showing the previous data.
+    const [calendarDataLoaded, setCalendarDataLoaded] = useState(false);
 
     const [subjects, setSubjects] = useState([]);
     const [tutors, setTutors] = useState([]);
@@ -136,7 +139,8 @@ export const AppDataContextProvider = ({ children }) => {
         if (!calendarDataWanted || !userEmail || !calendarStrategy.firestoreConstraints) return;
         const { firestoreConstraints } = calendarStrategy;
 
-        const unsubOneOff = firestoreFetchOneOffShifts(setOneOffShifts, debouncedDateRange, firestoreConstraints.shifts());
+        const unsubOneOff = firestoreFetchOneOffShifts(shifts => { setOneOffShifts(shifts); setCalendarDataLoaded(true); },
+            debouncedDateRange, firestoreConstraints.shifts());
         const unsubAvail = firestoreFetchAvailabilities(setAppAvailabilities, debouncedDateRange, firestoreConstraints.availabilities());
         const unsubRequests = firestoreFetchStudentRequests(setAppStudentRequests, debouncedDateRange, firestoreConstraints.studentRequests());
 
@@ -185,6 +189,7 @@ export const AppDataContextProvider = ({ children }) => {
         setCalendarAvailabilities: setAppAvailabilities,
         calendarStudentRequests: appStudentRequests,
         setCalendarStudentRequests: setAppStudentRequests,
+        calendarDataLoading: !calendarDataLoaded,
 
         // reference data (one-time fetch)
         classes,
@@ -202,6 +207,7 @@ export const AppDataContextProvider = ({ children }) => {
         appShifts,
         appAvailabilities,
         appStudentRequests,
+        calendarDataLoaded,
         classes,
         subjects,
         tutors,
