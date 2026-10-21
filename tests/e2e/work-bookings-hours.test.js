@@ -507,7 +507,7 @@ test('segmented date drafts cannot save stale values and nested popups fit a pho
     await dialog.getByRole('button', { name: 'Close', exact: true }).click();
     await page.setViewportSize({ width: 320, height: 568 }); await open();
     await dialog.getByRole('button', { name: /^Choose end date and time/ }).click();
-    const popup = page.getByRole('dialog', { name: 'End Time picker', exact: true });
+    const popup = page.getByRole('dialog', { name: 'End time picker', exact: true });
     await expect(popup).toBeVisible();
     const bounds = await popup.boundingBox();
     expect(bounds.x).toBeGreaterThanOrEqual(0); expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
