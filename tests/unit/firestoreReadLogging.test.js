@@ -78,10 +78,19 @@ describe('browser read report endpoint', () => {
         expect(logs).toEqual(['[firestore-reads] source=browser reads=3 user=unknown role=unknown path=/calendar detail=shifts:3']);
     });
 
-    test('ignores reports from other sites or without reads', async () => {
+    test('rejects reports from other sites, without reads or with bad bodies, and says why', async () => {
+        const warnings = []; jest.spyOn(console, 'warn').mockImplementation(line => warnings.push(line));
         token = { email: 'teacher@school.test' };
         await post({ path: '/calendar', reads: { shifts: 3 } }, 'cross-site');
         await post({ path: '/calendar', reads: {} });
+        await require('@/app/api/telemetry/reads/route').POST(new Request('http://localhost/api/telemetry/reads', { method: 'POST', headers: { 'sec-fetch-site': 'same-origin' }, body: '' }));
+        await require('@/app/api/telemetry/reads/route').POST(new Request('http://localhost/api/telemetry/reads', { method: 'POST', headers: { 'sec-fetch-site': 'same-origin' }, body: 'not json' }));
         expect(logs).toEqual([]);
+        expect(warnings).toEqual([
+            '[firestore-reads] source=browser rejected reason=site-cross-site',
+            '[firestore-reads] source=browser rejected reason=no-reads',
+            '[firestore-reads] source=browser rejected reason=empty-body',
+            '[firestore-reads] source=browser rejected reason=invalid-SyntaxError',
+        ]);
     });
 });
