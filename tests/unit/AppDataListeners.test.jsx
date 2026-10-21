@@ -10,7 +10,6 @@ jest.mock('@/firestore/firestoreFetch', () => ({
     fetchCacheTutors: jest.fn(async () => []),
     fetchCacheClasses: jest.fn(async () => []),
     fetchCacheSubjects: jest.fn(async () => []),
-    fetchCacheStudents: jest.fn(async () => []),
     fetchStudentTutorEligibility: jest.fn(async () => ({})),
 }));
 jest.mock('@/hooks/useAuthSession', () => () => ({ session: { user: { email: 'teacher@school.test' } }, userRole: 'teacher' }));

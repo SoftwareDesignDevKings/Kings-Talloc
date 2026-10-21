@@ -4,11 +4,11 @@ import { useAppData } from '@/contexts/AppDataContext';
 
 /**
  * Derives event form options from data already loaded in AppDataProvider.
- * No Firestore reads — tutors, classes, students, and availabilities are
- * fetched/cached globally; this hook just reshapes them for the form selects.
+ * No Firestore reads — tutors, classes and availabilities are fetched/cached
+ * globally; students are searched on demand (useStudentSearch).
  */
 export const useEventFormData = (newEvent) => {
-    const { tutors, classes, students, calendarAvailabilities, calendarShifts = [] } = useAppData();
+    const { tutors, classes, calendarAvailabilities, calendarShifts = [] } = useAppData();
 
     // Academic options use the same combined Work/availability coverage as bookings.
     // Teachers may still arrange sessions outside that coverage.
@@ -50,12 +50,7 @@ export const useEventFormData = (newEvent) => {
         [classes]
     );
 
-    const studentOptions = useMemo(() =>
-        students.map((student) => ({ value: student.email, label: student.name })),
-        [students]
-    );
+    const isLoading = !tutors.length && !classes.length;
 
-    const isLoading = !tutors.length && !classes.length && !students.length;
-
-    return { staffOptions, classOptions, studentOptions, isLoading };
+    return { staffOptions, classOptions, isLoading };
 };

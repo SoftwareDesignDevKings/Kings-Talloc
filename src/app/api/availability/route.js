@@ -2,6 +2,7 @@ import { getRequiredSession } from '@/lib/security/serverAuth';
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { readAvailability } from '@/lib/scheduling/readAvailability';
 import { availabilityCache } from '@/lib/scheduling/availabilityCache';
+import { readStudentEligibility } from '@/lib/canvas/canvasReference';
 import { checkAvailabilityRateLimit } from '@/lib/security/availabilityRateLimit';
 import { bookableIntervals, emailOf } from '@/lib/scheduling/eventRules';
 
@@ -21,9 +22,9 @@ export async function GET(request) {
         if (group.length > 30) return Response.json({ message: 'A group booking can include up to 30 students.' }, { status: 400 });
         const limited = await checkAvailabilityRateLimit(session.user.email);
         if (limited) return limited;
-        const eligibility = student ? await Promise.all(group.map(email => adminDb.collection('studentTutorEligibility').doc(email).get())) : [];
-        const eligibleEmails = student ? new Set((eligibility[0].data()?.eligibleTutorEmails || []).map(emailOf)
-            .filter(email => eligibility.every(doc => (doc.data()?.eligibleTutorEmails || []).map(emailOf).includes(email)))) : null;
+        const eligibility = student ? await Promise.all(group.map(readStudentEligibility)) : [];
+        const eligibleEmails = student ? new Set(eligibility[0].eligibleTutorEmails.map(emailOf)
+            .filter(email => eligibility.every(entry => entry.eligibleTutorEmails.map(emailOf).includes(email)))) : null;
         if (eligibleEmails?.size === 0) return Response.json({ slots: [] }, { headers: { 'Cache-Control': 'no-store' } });
         const { tutors, shifts, availability } = await readAvailability(adminDb, start, end, eligibleEmails, student ? group : [], { cache: availabilityCache });
         const slots = tutors.flatMap(email => bookableIntervals(email, availability, shifts, { students: student ? group : [] }))

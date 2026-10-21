@@ -1,5 +1,5 @@
 import { db } from '@/firestore/firestoreClient';
-import { collection, doc, getDoc, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { DateTime } from 'luxon';
 import { SYDNEY_ZONE } from '@/lib/scheduling/eventRules';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
@@ -193,112 +193,27 @@ export const firestoreFetchStudentRequests = (setCalendarStudentRequests, calend
     });
 };
 
+// Reference data comes from server routes backed by the shared Redis cache, so
+// staff tabs no longer each read whole users and Canvas collections.
+const fetchReference = async (path, field) => {
+    const response = await fetch(path, { cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || `Unable to load ${field}.`);
+    return data[field];
+};
+
 export const fetchCacheTutors = () =>
-    getCachedOrFetch('tutors', async () => {
-        const [roleSnapshot, defaultRoleSnapshot, userRolesSnapshot] = await Promise.all([
-            getDocs(query(collection(db, 'users'), where('role', 'in', ['tutor', 'coach']))),
-            getDocs(query(collection(db, 'users'), where('defaultRole', 'in', ['tutor', 'coach']))),
-            getDocs(query(collection(db, 'users'), where('userRoles', 'array-contains-any', ['tutor', 'coach']))),
-        ]);
-
-        const usersMap = new Map();
-        [...roleSnapshot.docs, ...defaultRoleSnapshot.docs, ...userRolesSnapshot.docs].forEach((doc) => {
-            if (doc.data().disabled === true) return;
-            const { email, name, defaultRole, role, userRoles } = doc.data();
-            if (!usersMap.has(email)) {
-                const roles = [defaultRole || role, ...(userRoles || [])].filter(Boolean);
-                usersMap.set(email, { name, roles });
-            }
-        });
-
-        return [...usersMap.entries()].map(([email, { name, roles }]) => ({ email, name, roles }));
-    });
+    getCachedOrFetch('tutors', () => fetchReference('/api/reference/tutors', 'tutors'));
 
 export const fetchCacheSubjects = () =>
     getCachedOrFetch('subjects', async () => []);
 
 export const fetchCacheClasses = () =>
-    getCachedOrFetch('classes', async () => {
-        const [coursesSnapshot, enrollmentsSnapshot] = await Promise.all([
-            getDocs(collection(db, 'canvasCourses')),
-            getDocs(collection(db, 'canvasEnrollments')),
-        ]);
-
-        const studentsByCourse = new Map();
-        enrollmentsSnapshot.docs.forEach((docSnap) => {
-            const data = docSnap.data();
-            const courseId = String(data.courseId || '');
-            if (!courseId) return;
-            const students = studentsByCourse.get(courseId) || [];
-            students.push({
-                id: data.userId,
-                canvasUserId: data.userId,
-                enrollmentId: docSnap.id,
-                email: data.email || data.emailLower || '',
-                name: data.userName || data.email || data.emailLower || '',
-                sortableName: data.sortableName || '',
-                enrollmentState: data.enrollmentState || '',
-                lastActivityAt: data.lastActivityAt || null,
-                currentScore: data.currentScore ?? null,
-                currentGrade: data.currentGrade || null,
-                finalScore: data.finalScore ?? null,
-                finalGrade: data.finalGrade || null,
-            });
-            studentsByCourse.set(courseId, students);
-        });
-
-        return coursesSnapshot.docs.map((docSnap) => {
-            const data = docSnap.data();
-            return {
-                id: docSnap.id,
-                name: data.name || '',
-                courseCode: data.courseCode || '',
-                workflowState: data.workflowState || '',
-                termId: data.termId ?? null,
-                termName: data.termName || '',
-                termStartAt: data.termStartAt || null,
-                termEndAt: data.termEndAt || null,
-                syncedAt: data.syncedAt || null,
-                rosterSyncedAt: data.rosterSyncedAt || null,
-                blueprintCourseId: data.blueprintCourseId || null,
-                blueprintCourseName: data.blueprintCourseName || null,
-                blueprintCourseCode: data.blueprintCourseCode || null,
-                students: studentsByCourse.get(docSnap.id) || [],
-            };
-        });
-    });
-
-export const fetchCacheStudents = () =>
-    getCachedOrFetch('students', async () => {
-        const snapshot = await getDocs(collection(db, 'canvasUsers'));
-        return snapshot.docs.map((doc) => {
-            const { email, name, sortableName, sisId } = doc.data();
-            return {
-                id: doc.id,
-                canvasUserId: doc.id,
-                email,
-                name: name || email,
-                sortableName,
-                sisId,
-            };
-        });
-    });
+    getCachedOrFetch('classes', () => fetchReference('/api/reference/classes', 'classes'));
 
 export const fetchStudentTutorEligibility = async (studentEmail) => {
     if (!studentEmail) {
         return { coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] };
     }
-
-    const snapshot = await getDoc(doc(db, 'studentTutorEligibility', studentEmail.toLowerCase()));
-    if (!snapshot.exists()) {
-        return { coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] };
-    }
-
-    const data = snapshot.data();
-    return {
-        coverageKeys: data.coverageKeys || [],
-        eligibleTutorEmails: data.eligibleTutorEmails || [],
-        eligibleTutors: data.eligibleTutors || [],
-        updatedAt: data.updatedAt || null,
-    };
+    return fetchReference('/api/reference/eligibility', 'eligibility');
 };
