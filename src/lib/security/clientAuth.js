@@ -1,6 +1,7 @@
 import { signIn, signOut as nextAuthSignOut } from 'next-auth/react';
 import { signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth as clientAuth} from '@/firestore/firestoreClient';
+import { terminate, clearIndexedDbPersistence } from 'firebase/firestore';
+import { auth as clientAuth, db } from '@/firestore/firestoreClient';
 
 
 /**
@@ -27,6 +28,9 @@ export const AppLogin = (provider = 'azure-ad') => {
 export const AppLogout = async () => {
     try {
         await firebaseSignOut(clientAuth);
+        // Don't leave cached calendar data on shared school computers.
+        // Clearing fails while another tab still uses the cache; that's fine.
+        await terminate(db).then(() => clearIndexedDbPersistence(db)).catch(() => {});
         await nextAuthSignOut({ callbackUrl: '/login' });
     } catch (error) {
         console.error("Firebase Logout Error:", error);

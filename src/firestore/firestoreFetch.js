@@ -1,5 +1,7 @@
 import { db } from '@/firestore/firestoreClient';
 import { collection, doc, getDoc, getDocs, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { DateTime } from 'luxon';
+import { SYDNEY_ZONE } from '@/lib/scheduling/eventRules';
 import { CalendarEntityType } from '@lib/patterns/calendarStrategy';
 
 // ---------------------------------------------------------------------------
@@ -10,14 +12,17 @@ const STATIC_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const staticCache = new Map(); 
 // key → { data, fetchedAt }
 
-const getCachedOrFetch = async (key, fetchFn) => {
+// Callers share one in-flight read, so concurrent cold loads (e.g. the app data and
+// the teacher dashboard) don't each read the collection. Failed reads are not kept.
+const getCachedOrFetch = (key, fetchFn) => {
     const entry = staticCache.get(key);
     if (entry && Date.now() - entry.fetchedAt < STATIC_CACHE_TTL_MS) {
-        return entry.data;
+        return entry.promise;
     }
-    const data = await fetchFn();
-    staticCache.set(key, { data, fetchedAt: Date.now() });
-    return data;
+    const promise = fetchFn();
+    staticCache.set(key, { promise, fetchedAt: Date.now() });
+    promise.catch(() => { if (staticCache.get(key)?.promise === promise) staticCache.delete(key); });
+    return promise;
 };
 
 const deserializeShift = (doc) => {
@@ -76,7 +81,9 @@ export const firestoreFetchRecurringShifts = (setRecurringBaseShifts, strategyFb
         return () => {};
     }
 
-    const now = Timestamp.now();
+    // Start of today rather than now: the query stays identical all day, so a
+    // re-subscription can resume from the local cache instead of re-reading.
+    const now = Timestamp.fromDate(DateTime.now().setZone(SYDNEY_ZONE).startOf('day').toJSDate());
     const accessFilters = buildAccessFilters(strategyFbFilters);
 
     // Open-ended recurring shifts (no until date)

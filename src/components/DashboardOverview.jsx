@@ -40,7 +40,7 @@ const DashboardOverview = () => {
         calendarShifts,
         calendarStudentRequests,
         calendarAvailabilities,
-        setCalendarDateRange,
+        watchCalendarData,
     } = useAppData();
 
     const [teacherClasses, setTeacherClasses] = useState([]);
@@ -50,14 +50,15 @@ const DashboardOverview = () => {
         fetchCacheClasses().then(setTeacherClasses);
     }, [userRole, session.user.email]);
 
-    // Ensure we are viewing through the end of next week so dashboard cards can include next-week stats.
+    // View through the end of next week so dashboard cards can include next-week stats.
+    // Passing the range when starting the listeners avoids a first one-week subscription.
     useEffect(() => {
         const now = new Date();
-        setCalendarDateRange({
+        watchCalendarData?.({
             start: startOfWeek(now, { weekStartsOn: 1 }),
             end: endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 }),
         });
-    }, [setCalendarDateRange]);
+    }, [watchCalendarData]);
 
     // Compute Dashboard Statistics from AppData (Client-Side)
     const dashboardData = useMemo(() => {

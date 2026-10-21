@@ -1,7 +1,6 @@
 import { Figtree, Chivo } from 'next/font/google';
 import './globals.css';
 import { AppSessionContextProvider } from '@/contexts/AppSessionContext';
-import { AppDataContextProvider } from '@/contexts/AppDataContext';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
@@ -68,11 +67,9 @@ export default async function RootLayout({ children }) {
                 <VersionGuard />
 
                 <AppSessionContextProvider>
-                    <AppDataContextProvider>
-                        <Suspense fallback={<LoadingPage />}>
-                            {children}
-                        </Suspense>
-                    </AppDataContextProvider>
+                    <Suspense fallback={<LoadingPage />}>
+                        {children}
+                    </Suspense>
                 </AppSessionContextProvider>
                 <Script
                     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"

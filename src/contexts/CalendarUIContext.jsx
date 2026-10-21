@@ -55,8 +55,10 @@ export const CalendarUIContextProvider = ({ children }) => {
         calendarStudentRequests,
         bookableAvailability,
         watchBookableAvailability,
+        watchCalendarData,
     } = useAppData();
     useEffect(() => watchBookableAvailability?.(), [watchBookableAvailability]);
+    useEffect(() => { watchCalendarData?.(); }, [watchCalendarData]);
 
     // cal strategy for filters and scope
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
