@@ -10,7 +10,14 @@ on:
 permissions:
     contents: read
 
+# A new push to a pull request supersedes its earlier run. Other runs get a
+# group of their own, so main runs are never queued behind or cancelled by each other.
+concurrency:
+    group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
+    cancel-in-progress: true
+
 jobs:
+    # Fast checks run alongside the browser suites instead of before them.
     test-lint-firebase:
         runs-on: ubuntu-latest
         steps:
@@ -35,9 +42,6 @@ jobs:
             - name: Audit production dependencies
               run: npm audit --omit=dev --audit-level=high
 
-            - name: Install Playwright browsers
-              run: npx playwright install --with-deps chromium
-
             - name: Run linter
               run: npm run lint
 
@@ -47,9 +51,50 @@ jobs:
             - name: Run Firebase emulator tests
               run: npm run test:firebase
 
+    # The browser suite runs one test at a time against shared emulator data,
+    # so it is split across parallel jobs, each with its own emulators and server.
+    e2e:
+        name: e2e (${{ matrix.shard }}/4)
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4]
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  cache: 'npm'
+
+            - name: Setup Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: 'temurin'
+                  java-version: '21'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps chromium
+
+            # The dev server compiles each route on first visit; reuse its cache.
+            - name: Cache Next.js compilation
+              uses: actions/cache@v4
+              with:
+                  path: .next/cache
+                  key: next-dev-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.mjs') }}
+                  restore-keys: next-dev-${{ hashFiles('package-lock.json') }}-
+
             - name: Run Playwright e2e tests
               run: xvfb-run --auto-servernum npm run test:e2e
               env:
+                PLAYWRIGHT_SHARD: ${{ matrix.shard }}/4
                 NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyDUMMY_DUMMY_DUMMY_DUMMY_DUMMY
                 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: demo-talloc.firebaseapp.com
                 NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-talloc
@@ -59,12 +104,53 @@ jobs:
                 NEXTAUTH_SECRET: Dummy-Secret
                 NEXTAUTH_URL: http://localhost:3000
 
+            - name: Upload Playwright results
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-results-${{ matrix.shard }}
+                  path: test-results
+                  retention-days: 7
+
+    work-hours:
+        name: Work bookings and weekly timesheets
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  cache: 'npm'
+
+            - name: Setup Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: 'temurin'
+                  java-version: '21'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps chromium
+
+            - name: Cache Next.js compilation
+              uses: actions/cache@v4
+              with:
+                  path: .next/cache
+                  key: next-dev-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.mjs') }}
+                  restore-keys: next-dev-${{ hashFiles('package-lock.json') }}-
+
             - name: Verify Work bookings and weekly timesheets
               run: xvfb-run --auto-servernum npm run test:e2e:work-hours
 
     deploy-firestore-rules:
         name: Deploy production Firestore rules
-        needs: test-lint-firebase
+        needs: [test-lint-firebase, e2e, work-hours]
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         runs-on: ubuntu-latest
         timeout-minutes: 20
