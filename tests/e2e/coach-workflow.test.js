@@ -18,7 +18,7 @@ test.describe('Coach Workflow @coachOnly', () => {
         await page.getByRole('button', { name: 'Add Availability' }).click();
 
         const availabilityButton = page
-            .getByRole('button', { name: /\d+:\d+\s?(AM|PM).*–.*\d+:\d+\s?(AM|PM)/ })
+            .getByRole('button', { name: /\d+:\d+(\s?[ap]m)? – \d+:\d+\s?[ap]m/i })
             .first();
         await expect(availabilityButton).toBeVisible();
 
@@ -89,7 +89,7 @@ test.describe('Coach Workflow @coachOnly', () => {
         await page.getByRole('button', { name: 'Add Availability' }).click();
 
         const availabilityButton = page
-            .getByRole('button', { name: /\d+:\d+\s?(AM|PM).*–.*\d+:\d+\s?(AM|PM)/ })
+            .getByRole('button', { name: /\d+:\d+(\s?[ap]m)? – \d+:\d+\s?[ap]m/i })
             .first();
         await expect(availabilityButton).toBeVisible();
 
