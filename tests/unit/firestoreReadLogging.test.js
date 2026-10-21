@@ -64,7 +64,7 @@ describe('browser read report endpoint', () => {
         jest.doMock('next-auth/jwt', () => ({ getToken: async () => token }));
     });
     afterEach(() => jest.restoreAllMocks());
-    const post = body => require('@/app/api/telemetry/reads/route').POST(new Request('http://localhost/api/telemetry/reads', { method: 'POST', body: JSON.stringify(body) }));
+    const post = (body, site = 'same-origin') => require('@/app/api/telemetry/reads/route').POST(new Request('http://localhost/api/telemetry/reads', { method: 'POST', headers: { 'sec-fetch-site': site }, body: JSON.stringify(body) }));
 
     test('logs a signed-in report with totals and the largest sources first', async () => {
         token = { email: 'teacher@school.test', defaultRole: 'teacher' };
@@ -72,10 +72,15 @@ describe('browser read report endpoint', () => {
         expect(logs).toEqual(['[firestore-reads] source=browser reads=34 user=teacher@school.test role=teacher path=/calendar detail=tutorAvailabilities:30,shifts:one-off:4']);
     });
 
-    test('ignores reports without a session or without reads', async () => {
+    test('still logs reports when the session cookie cannot be read', async () => {
         token = null;
         await post({ path: '/calendar', reads: { shifts: 3 } });
+        expect(logs).toEqual(['[firestore-reads] source=browser reads=3 user=unknown role=unknown path=/calendar detail=shifts:3']);
+    });
+
+    test('ignores reports from other sites or without reads', async () => {
         token = { email: 'teacher@school.test' };
+        await post({ path: '/calendar', reads: { shifts: 3 } }, 'cross-site');
         await post({ path: '/calendar', reads: {} });
         expect(logs).toEqual([]);
     });
