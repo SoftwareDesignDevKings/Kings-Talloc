@@ -61,3 +61,10 @@
 }
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .metricCard { animation: none; } }
+/* Booking updates use the same card header as the event lists. */
+.notices { flex-shrink: 0; }
+.noticeList { list-style: none; margin: 0; padding: 0; max-height: 16rem; overflow-y: auto; }
+.noticeItem { padding: 12px 20px; border-bottom: 1px solid var(--uui-color-border-secondary); font-size: .875rem; color: var(--uui-color-text-secondary); overflow-wrap: anywhere; }
+.noticeItem:last-child { border-bottom: 0; }
+.noticeItem a { font-weight: 600; color: var(--uui-color-text-brand-secondary); }
+.noticeError { padding: 12px 20px 0; font-size: .875rem; color: var(--uui-color-text-tertiary); }
