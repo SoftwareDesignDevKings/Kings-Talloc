@@ -6,6 +6,7 @@ beforeEach(() => {
     visible = true;
     jest.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visible ? 'visible' : 'hidden');
     jest.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    jest.spyOn(document, 'hasFocus').mockReturnValue(true);
     global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ slots: [] }) });
 });
 afterEach(() => { jest.restoreAllMocks(); jest.useRealTimers(); delete global.fetch; });
@@ -67,4 +68,19 @@ test('callers can poll less often', async () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     await act(async () => jest.advanceTimersByTimeAsync(30000));
     expect(fetch).toHaveBeenCalledTimes(2);
+});
+test('an unfocused window skips timed refreshes and refreshes again when focused', async () => {
+    jest.useFakeTimers();
+    let focused = false;
+    jest.spyOn(document, 'hasFocus').mockImplementation(() => focused);
+    renderHook(() => useBookableAvailability('student@school.test', true, range, { pollMs: 60000 }));
+    await act(async () => jest.advanceTimersByTimeAsync(0));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => jest.advanceTimersByTimeAsync(5 * 60000));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    focused = true;
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await act(async () => jest.advanceTimersByTimeAsync(60000));
+    expect(fetch).toHaveBeenCalledTimes(3);
 });
