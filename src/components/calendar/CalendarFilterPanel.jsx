@@ -24,9 +24,10 @@ const CalendarFilterPanel = () => {
             label: tutor.name || tutor.email,
         });
 
-        return userRole === 'student'
+        const options = userRole === 'student'
             ? buildEligibleTutorOptions(tutors ?? [], studentTutorEligibility)
             : (tutors ?? []).map(mapTutorToOption);
+        return options.sort((a, b) => a.label.localeCompare(b.label));
     }, [tutors, userRole, studentTutorEligibility]);
 
     useEffect(() => {
@@ -87,7 +88,7 @@ const CalendarFilterPanel = () => {
                         <div className="mb-3">
                             <CalendarMultiSelect
                                 isMulti
-                                placeholder={userRole === 'student' ? "Select tutors to view availabilities" : "Select tutors"}
+                                placeholder="Select tutors"
                                 options={tutorOptions}
                                 value={filters.filterByTutor}
                                 onChange={actions.setFilterByTutor}
