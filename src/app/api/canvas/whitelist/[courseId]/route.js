@@ -1,5 +1,6 @@
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { getRequiredAdminSession } from '@/lib/security/serverAuth';
+import { invalidateCanvas } from '@/lib/canvas/canvasCache';
 
 export async function DELETE(_req, { params }) {
     const { error } = await getRequiredAdminSession();
@@ -27,6 +28,7 @@ export async function DELETE(_req, { params }) {
         writes.slice(i, i + 400).forEach(({ ref }) => batch.delete(ref));
         await batch.commit();
     }
+    await invalidateCanvas();
 
     return Response.json({ message: `Course ${courseId} removed from whitelist and Firestore.` });
 }

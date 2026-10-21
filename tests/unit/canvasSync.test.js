@@ -39,6 +39,8 @@ const adminDb = {
 };
 
 jest.mock('@/firestore/firestoreAdmin', () => ({ adminDb }));
+const mockInvalidateCanvas = jest.fn();
+jest.mock('@/lib/canvas/canvasCache', () => ({ invalidateCanvas: mockInvalidateCanvas, canvasCache: (key, load) => load() }));
 jest.mock('@/lib/canvas/canvasClient', () => ({
     createCanvasClient: jest.fn(() => ({
         listCourses: jest.fn(() => Promise.resolve([])),
@@ -129,5 +131,20 @@ describe('canvasSync locking', () => {
             }),
             { merge: true },
         );
+        // Cached classes, directory and eligibility are refreshed after the sync.
+        expect(mockInvalidateCanvas).toHaveBeenCalled();
+    });
+
+    test('a failed sync still refreshes cached Canvas data', async () => {
+        await expect(runFullCanvasSync({
+            client: { listCourses: jest.fn(() => Promise.reject(new Error('Canvas down'))) },
+        })).rejects.toThrow('Canvas down');
+        expect(mockInvalidateCanvas).toHaveBeenCalled();
+    });
+
+    test('a rejected lock does not touch the cache', async () => {
+        syncStateData = { isRunning: true, updatedAt: new Date() };
+        await expect(runFullCanvasSync({ client: { listCourses: jest.fn() } })).rejects.toBeInstanceOf(CanvasSyncAlreadyRunningError);
+        expect(mockInvalidateCanvas).not.toHaveBeenCalled();
     });
 });

@@ -45,7 +45,7 @@ const choose = (name, value) => {
 };
 beforeEach(() => {
     jest.clearAllMocks();
-    useAppData.mockReturnValue({ calendarShifts: [], tutors: [{ email: staff.value, name: staff.label, roles: staff.roles }, { email: coach.value, name: coach.label, roles: coach.roles }], classes: [{ id: 'class', name: 'Math', courseCode: 'MATH' }], students: [{ email: 'student@example.edu', name: 'Student' }], calendarAvailabilities: [], setCalendarShifts: jest.fn(), setCalendarAvailabilities: jest.fn(), setCalendarStudentRequests: jest.fn() });
+    useAppData.mockReturnValue({ calendarShifts: [], tutors: [{ email: staff.value, name: staff.label, roles: staff.roles }, { email: coach.value, name: coach.label, roles: coach.roles }], classes: [{ id: 'class', name: 'Math', courseCode: 'MATH' }], calendarAvailabilities: [], setCalendarShifts: jest.fn(), setCalendarAvailabilities: jest.fn(), setCalendarStudentRequests: jest.fn() });
     createScheduledEventInFirestore.mockResolvedValue({ id: 'created' }); mockReject.mockResolvedValue(true);
     updateEventInFirestore.mockResolvedValue(); updateWorkStatusInFirestore.mockResolvedValue(); queueEmailNotification.mockResolvedValue(); calendarEventHandleDelete.mockResolvedValue(); detachRecurringInstance.mockResolvedValue('detached'); mockApprove.mockResolvedValue(true);
 });
@@ -53,7 +53,13 @@ test('create keeps fields, participant chips, settings and exact persistence pay
     render(<Harness />);
     fireEvent.change(screen.getByLabelText('Event title'), { target: { value: 'Changed' } });
     fireEvent.change(screen.getByLabelText('Event description'), { target: { value: 'Changed notes' } });
-    section('Participants'); choose('Assign classes to event', 'Math (MATH)'); choose('Assign students to event', 'Student');
+    section('Participants'); choose('Assign classes to event', 'Math (MATH)');
+    // Students are searched on the server rather than preloaded.
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ students: [{ email: 'student@example.edu', name: 'Student' }] }) }));
+    fireEvent.click(screen.getByRole('button', { name: /Assign students to event/ }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search Assign students to event' }), { target: { value: 'stu' } });
+    fireEvent.click(await screen.findByRole('option', { name: 'Student', exact: true }));
+    expect(global.fetch).toHaveBeenCalledWith('/api/students?q=stu', expect.objectContaining({ cache: 'no-store' }));
     section('Settings & Status');
     choose('Event work type', 'Work'); choose('Event work status', "Student Didn't Attend");
     submit();

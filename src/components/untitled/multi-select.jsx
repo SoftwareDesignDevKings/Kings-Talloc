@@ -15,8 +15,11 @@ import styles from './multi-select.module.css';
 
 export function MultiSelect({ items, groups, selectedItems, onSelectionChange, isMulti = true, isDisabled, isClearable,
     placeholder, id, name, 'aria-label': label, portalContainer, isOpen, onOpenChange, renderOption, shouldFlip = true,
-    emptyMessage = 'No options' }) {
-    const [search, setSearch] = useState('');
+    emptyMessage = 'No options', onSearchChange }) {
+    const [search, setSearchText] = useState('');
+    // With onSearchChange the caller loads matching items itself (e.g. a server search),
+    // so items are shown as given rather than filtered by their labels here.
+    const setSearch = value => { setSearchText(value); onSearchChange?.(value); };
     const controlRef = useRef(null);
     const { contains } = useFilter({ sensitivity: 'base' });
     const selectedKeys = new Set(selectedItems.map(item => item.value));
@@ -59,7 +62,7 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
                                 // Autocomplete normally clears search on Escape; Calendar menus dismiss first.
                                 if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); changeOpen(false); }
                             }}>
-                            <Autocomplete filter={contains} inputValue={search} onInputChange={setSearch}>
+                            <Autocomplete filter={onSearchChange ? undefined : contains} inputValue={search} onInputChange={setSearch}>
                                 <SearchField aria-label={`Search ${label}`} value={search} onChange={setSearch} autoFocus className={styles.search}>
                                     <SearchLg aria-hidden="true" />
                                     <Input placeholder={placeholder} className={styles.searchInput} />

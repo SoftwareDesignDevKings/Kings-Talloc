@@ -2,6 +2,7 @@ import 'server-only';
 
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { getCanvasCoverageKey, hasTutorAccess, parseBlueprintCourseCode } from './canvasCoverage';
+import { invalidateCanvas } from './canvasCache';
 
 const BATCH_LIMIT = 400;
 
@@ -115,6 +116,8 @@ export const rebuildStudentTutorEligibility = async ({ updatedAt = new Date() } 
     });
 
     await chunkedCommit(writes);
+    // Cached eligibility and class data must reflect the rebuilt documents.
+    await invalidateCanvas();
 
     return {
         studentCount: eligibilityDocs.length,

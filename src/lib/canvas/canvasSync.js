@@ -10,6 +10,7 @@ import {
 } from './canvasMappers';
 import { getStaleEnrollmentIdsForDeletion } from './canvasSyncPlanning';
 import { rebuildStudentTutorEligibility } from './tutorEligibility';
+import { invalidateCanvas } from './canvasCache';
 
 const SYNC_STATE_REF = adminDb.collection('canvasSyncState').doc('main');
 const BATCH_LIMIT = 400;
@@ -276,6 +277,9 @@ export const runFullCanvasSync = async ({ client = createCanvasClient() } = {}) 
             completedAt,
         });
         throw error;
+    } finally {
+        // Writes are progressive, so even a failed sync may have changed Canvas data.
+        if (lockAcquired) await invalidateCanvas();
     }
 };
 

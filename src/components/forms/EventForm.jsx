@@ -11,6 +11,7 @@ import ParticipantsSection from './EventFormSections/ParticipantsSection.jsx';
 import SettingsSection from './EventFormSections/SettingsSection.jsx';
 import StudentRequestSection from './EventFormSections/StudentRequestSection.jsx';
 import { useEventFormData } from './useEventFormData';
+import useStudentSearch from '@/hooks/useStudentSearch';
 import { useAppData } from '@/contexts/AppDataContext';
 import {
     calendarEventHandleDelete,
@@ -68,7 +69,8 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
     const { handleApprove, handleReject } = useApprovalHandlers();
 
     // fetch form data using custom hook
-    const { staffOptions, classOptions, studentOptions } = useEventFormData(newEvent);
+    const { staffOptions, classOptions } = useEventFormData(newEvent);
+    const studentSearch = useStudentSearch();
 
     // memoided handlers to prevent unnecessary re-renders
     const handleInputChange = useCallback((e) => {
@@ -433,7 +435,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                         classOptions={classOptions}
                         selectedStudents={selectedStudents}
                         handleStudentSelectChange={handleStudentSelectChange}
-                        studentOptions={studentOptions}
+                        studentOptions={studentSearch.options}
+                        onStudentSearch={studentSearch.search}
+                        studentNoOptionsMessage={studentSearch.noOptionsMessage}
                         readOnly={isView}
                     >
                         {newEvent.classes?.length > 0 && !newEvent.students?.length && !newEvent.additionalStudents?.length && !newEvent.studentParticipantsResolved && (

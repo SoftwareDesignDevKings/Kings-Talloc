@@ -12,7 +12,6 @@ import {
     fetchCacheTutors,
     fetchCacheClasses,
     fetchCacheSubjects,
-    fetchCacheStudents,
     fetchStudentTutorEligibility,
 } from '@/firestore/firestoreFetch';
 import useAuthSession from '@/hooks/useAuthSession';
@@ -65,7 +64,6 @@ export const AppDataContextProvider = ({ children }) => {
     const [appStudentRequests, setAppStudentRequests] = useState([]);
 
     const [subjects, setSubjects] = useState([]);
-    const [students, setStudents] = useState([]);
     const [tutors, setTutors] = useState([]);
     const [classes, setClasses] = useState([]);
     const [studentTutorEligibility, setStudentTutorEligibility] = useState({
@@ -165,14 +163,6 @@ export const AppDataContextProvider = ({ children }) => {
             setClasses(classList);
             setSubjects(subjectList);
 
-            // Canvas users include roster data and are only needed by staff who manage classes.
-            if (canReadCanvasReferenceData) {
-                const studentList = await fetchReferenceDataSafely('students', fetchCacheStudents, []);
-                setStudents(studentList);
-            } else {
-                setStudents([]);
-            }
-
             if (userRole === 'student') {
                 const eligibility = await fetchReferenceDataSafely(
                     'student tutor eligibility',
@@ -200,7 +190,6 @@ export const AppDataContextProvider = ({ children }) => {
         classes,
         subjects,
         tutors,
-        students,
         studentTutorEligibility,
         bookableAvailability,
         watchBookableAvailability,
@@ -216,7 +205,6 @@ export const AppDataContextProvider = ({ children }) => {
         classes,
         subjects,
         tutors,
-        students,
         studentTutorEligibility,
         bookableAvailability,
         appDateRange,
