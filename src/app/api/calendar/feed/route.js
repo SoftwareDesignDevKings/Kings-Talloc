@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/firestore/firestoreAdmin";
-import { getCurrentAccount, validAccountEmail } from "@/lib/security/accountState";
+import { getCachedCurrentAccount, validAccountEmail } from "@/lib/security/accountState";
 import { emailOf } from '@/lib/scheduling/eventRules';
 import { timingSafeEqual } from "crypto";
 
@@ -29,12 +29,15 @@ export async function GET(request) {
     if (!validAccountEmail(uid) || !/^[a-f0-9]{64}$/.test(token)) {
         return NextResponse.json({ error: 'Invalid calendar link' }, { status: 401 });
     }
-    const [account, secret] = await Promise.all([
-        getCurrentAccount(uid), adminDb.collection('calendarFeedSecrets').doc(uid).get(),
-    ]);
-    const data = secret.data();
-    if (!account || data?.authVersion !== account.authVersion || typeof data.token !== 'string'
-        || !/^[a-f0-9]{64}$/.test(data.token) || !timingSafeEqual(Buffer.from(data.token), Buffer.from(token))) {
+    // Check the link's secret (one read) before any account lookup, so a guessed
+    // uid/token pair can't trigger profile reads.
+    const data = (await adminDb.collection('calendarFeedSecrets').doc(uid).get()).data();
+    if (typeof data?.token !== 'string' || !/^[a-f0-9]{64}$/.test(data.token)
+        || !timingSafeEqual(Buffer.from(data.token), Buffer.from(token))) {
+        return NextResponse.json({ error: 'Invalid calendar link' }, { status: 401 });
+    }
+    const account = await getCachedCurrentAccount(uid);
+    if (!account || data.authVersion !== account.authVersion) {
         return NextResponse.json({ error: 'Invalid calendar link' }, { status: 401 });
     }
 
