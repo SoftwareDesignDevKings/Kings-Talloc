@@ -1,7 +1,7 @@
 // firestoreClient.js
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
@@ -46,8 +46,20 @@ const auth = getAuth(app);
 
 /**
  * CLIENT SIDE - Firebase Firestore instance
+ * In production browsers, listeners keep their results in IndexedDB (shared across
+ * tabs), so a reload or new tab resumes them and is billed only for changed
+ * documents instead of re-reading everything. AppLogout clears this cache.
  */
-const db = getFirestore(app);
+const createDb = () => {
+    if (typeof window === 'undefined' || process.env.NODE_ENV !== 'production') return getFirestore(app);
+    try {
+        return initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+    } catch {
+        // Already initialised (hot reload) or IndexedDB unavailable: use the existing/memory cache.
+        return getFirestore(app);
+    }
+};
+const db = createDb();
 
 /**
  * CLIENT SIDE - Firebase Storage instance

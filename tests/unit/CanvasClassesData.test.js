@@ -60,4 +60,12 @@ describe('Canvas Classes reference data', () => {
             .mockResolvedValueOnce(snapshot([]));
         await expect(fetchClasses()).resolves.toEqual([expect.objectContaining({ name: 'Recovered class', students: [] })]);
     });
+
+    test('concurrent cold loads share one read of each collection', async () => {
+        getDocs.mockResolvedValue(snapshot([]));
+        await Promise.all([fetchClasses(), fetchClasses()]);
+        expect(getDocs).toHaveBeenCalledTimes(2);
+        await fetchClasses();
+        expect(getDocs).toHaveBeenCalledTimes(2);
+    });
 });

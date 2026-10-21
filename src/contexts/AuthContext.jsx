@@ -7,6 +7,7 @@ import LoadingPage from '@/components/LoadingPage.jsx';
 import Login from '@/components/Login.jsx';
 import AppLayout from '@/components/AppLayout';
 import { RequestNotificationsProvider } from './RequestNotificationsContext';
+import { AppDataContextProvider } from './AppDataContext';
 import { syncNextFbAuth, startTokenRefresh, stopTokenRefresh } from '@/lib/security/clientAuth';
 
 export const AuthContext = createContext();
@@ -35,6 +36,9 @@ export const AuthContextProvider = ({ children }) => {
 
     // sync Firebase Auth with NextAuth session
     useEffect(() => {
+        // The 50-minute refresh (update()) reports 'loading' while keeping the session.
+        // Showing the loading page then would unmount the app and re-read every listener.
+        if (status === 'loading' && session?.user) return;
         syncNextFbAuth(session, status).then(({ isLoading, userRole, userRoles }) => {
             setIsLoading(isLoading);
             if (userRoles) setUserRoles(userRoles);
@@ -118,9 +122,12 @@ export const AuthContextProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={authCtxValues}>
             <RequestNotificationsProvider email={session?.user?.email} profileId={session?.user?.profileId || session?.user?.email} availableRoles={availableRoles}>
-                <AppLayout session={session} userRole={userRole}>
-                    {children}
-                </AppLayout>
+                {/* Outside AppLayout's per-route key, so navigation keeps the data listeners. */}
+                <AppDataContextProvider>
+                    <AppLayout session={session} userRole={userRole}>
+                        {children}
+                    </AppLayout>
+                </AppDataContextProvider>
             </RequestNotificationsProvider>
         </AuthContext.Provider>
     );

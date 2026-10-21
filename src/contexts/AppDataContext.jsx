@@ -90,6 +90,19 @@ export const AppDataContextProvider = ({ children }) => {
 
     // Debounce the date range so rapid week navigation doesn't fire multiple subscriptions
     const [debouncedDateRange, setDebouncedDateRange] = useState(appDateRange);
+
+    // Calendar listeners start when a view that shows them (calendar, dashboard) first
+    // mounts, then stay attached: re-subscribing re-reads every matching document.
+    // Pages such as Classes or Tutor Hours never start them.
+    const [calendarDataWanted, setCalendarDataWanted] = useState(false);
+    const watchCalendarData = useCallback((initialRange) => {
+        if (initialRange) {
+            // Subscribe with the viewer's range straight away rather than the default week.
+            setAppDateRange(initialRange);
+            setDebouncedDateRange(initialRange);
+        }
+        setCalendarDataWanted(true);
+    }, []);
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedDateRange(appDateRange), 300);
         return () => clearTimeout(timer);
@@ -110,19 +123,19 @@ export const AppDataContextProvider = ({ children }) => {
     // Effect 1: Persistent recurring shifts listener.
     // Only re-subscribes when user/role changes, not on week navigation.
     useEffect(() => {
-        if (!userEmail || !calendarStrategy.firestoreConstraints) return;
+        if (!calendarDataWanted || !userEmail || !calendarStrategy.firestoreConstraints) return;
         const unsub = firestoreFetchRecurringShifts(
             setRecurringBaseShifts,
             calendarStrategy.firestoreConstraints.shifts()
         );
         return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userEmail, userRole]);
+    }, [calendarDataWanted, userEmail, userRole]);
 
     // Effect 2: Date-range listeners — re-subscribes on week navigation (debounced).
     // Also loads static reference data on user/role change.
     useEffect(() => {
-        if (!userEmail || !calendarStrategy.firestoreConstraints) return;
+        if (!calendarDataWanted || !userEmail || !calendarStrategy.firestoreConstraints) return;
         const { firestoreConstraints } = calendarStrategy;
 
         const unsubOneOff = firestoreFetchOneOffShifts(setOneOffShifts, debouncedDateRange, firestoreConstraints.shifts());
@@ -135,7 +148,7 @@ export const AppDataContextProvider = ({ children }) => {
             unsubRequests();
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedDateRange, userEmail, userRole]);
+    }, [calendarDataWanted, debouncedDateRange, userEmail, userRole]);
 
     // Effect 3: Static reference data — only re-fetches when user/role changes.
     useEffect(() => {
@@ -191,6 +204,7 @@ export const AppDataContextProvider = ({ children }) => {
         studentTutorEligibility,
         bookableAvailability,
         watchBookableAvailability,
+        watchCalendarData,
 
         // date range
         calendarDateRange: appDateRange,
