@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('sidebar active state, keyboard focus, and controls remain clear at desktop and narrow mobile sizes @teacherAdmin @tutorAdmin', async ({ page }) => {
     await page.goto('/userRoles');
-    await expect(page.getByRole('heading', { name: 'Manage User Roles', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Manage Users', exact: true })).toBeVisible();
     const sidebar = page.getByRole('complementary');
     const menu = sidebar.getByRole('navigation', { name: 'Menu', exact: true });
     const active = menu.getByRole('link', { name: 'Manage Users', exact: true });

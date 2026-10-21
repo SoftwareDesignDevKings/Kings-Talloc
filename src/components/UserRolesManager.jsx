@@ -260,20 +260,15 @@ const UserRolesManager = () => {
     };
 
     return (
-        <section className={styles.section} aria-labelledby="manageUsersHeading">
-            <header className={styles.sectionHeader}>
-                <div>
-                    <h2 id="manageUsersHeading" className={styles.sectionTitle}>Manage User Roles</h2>
-                    <p className={styles.sectionDescription}>Manage user access and tutor timesheets.</p>
-                </div>
-            </header>
+        <section className={styles.section} aria-label="Manage user roles">
+            <p className={styles.sectionDescription}>Manage user access and tutor timesheets.</p>
 
             <TableCard.Root size="sm" className={styles.tableCard}>
             <div className={styles.toolbar}>
                 <div className={styles.searchWrapper}>
                     <Input
                         type="text"
-                        size="md"
+                        size="sm"
                         icon={SearchLg}
                         aria-label="Search users"
                         placeholder="Search users..."
@@ -444,7 +439,7 @@ const UserRolesManager = () => {
                                                 label="Email Address"
                                                 hideRequiredIndicator
                                                 type="email"
-                                                size="md"
+                                                size="sm"
                                                 id="userEmail"
                                                 value={email}
                                                 onChange={setEmail}
@@ -458,7 +453,7 @@ const UserRolesManager = () => {
                                                 label="Full Name"
                                                 hideRequiredIndicator
                                                 type="text"
-                                                size="md"
+                                                size="sm"
                                                 id="userName"
                                                 value={name}
                                                 onChange={setName}

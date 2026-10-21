@@ -244,10 +244,7 @@ const TutorHoursSummary = () => {
     ];
 
     return (
-        <section className={styles.section} aria-labelledby="tutorHoursHeading">
-            <header className={styles.header}>
-                <h2 id="tutorHoursHeading">Tutor Hours Summary</h2>
-            </header>
+        <section className={styles.section} aria-label="Tutor hours summary">
             <div className={styles.filters}>
                 {dateFields.map(field => <div key={field.key} className={styles.dateField}>
                     <DatePicker id={`hours-${field.key}`} label={field.label} value={field.value} onChange={field.set}

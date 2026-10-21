@@ -127,7 +127,7 @@ test('teacher creates Work with no acceptance controls and can mark it completed
     expect((await db.collection('shifts').doc('work').get()).data().workStatus).toBe('completed');
     await expect(page.getByRole('link', { name: 'Tutor Hours', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Tutor Hours', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Tutor Hours Summary' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tutor Hours', exact: true })).toBeVisible();
 });
 
 test('actual Mondays export separately and short shifts warn without blocking download', async ({ page }) => {

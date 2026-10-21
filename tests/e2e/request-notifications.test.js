@@ -37,7 +37,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await expect(page).toHaveURL(/\/calendar/);
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         await page.getByRole('link', { name: 'Manage Users', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'Manage User Roles', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Manage Users', exact: true })).toBeVisible();
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
         await expect(page).toHaveURL(/\/dashboard/);

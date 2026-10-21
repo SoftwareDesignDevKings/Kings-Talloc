@@ -44,9 +44,9 @@ const AppLayout = ({ session, userRole, children }) => {
             <div className="grow d-flex flex-column overflow-hidden bg-white">
                 <div className="app-main d-flex flex-column grow overflow-hidden">
                     {/* Header section: responsive alignment */}
-                    <div className="ps-1 text-center text-md-start">
-                        <h1 className="dashboard-title ps-1">{pageTitle}</h1>
-                        <p className="ps-1 mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
+                    <div className="text-center text-md-start">
+                        <h1 className="dashboard-title">{pageTitle}</h1>
+                        <p className="mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
                     </div>
 
                     {/* divider */}

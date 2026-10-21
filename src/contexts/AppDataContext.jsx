@@ -65,6 +65,7 @@ export const AppDataContextProvider = ({ children }) => {
     // Set once the first shift snapshot arrives so views can show loading states
     // instead of empty ones; later week navigation keeps showing the previous data.
     const [calendarDataLoaded, setCalendarDataLoaded] = useState(false);
+    const [referenceDataLoaded, setReferenceDataLoaded] = useState(false);
 
     const [subjects, setSubjects] = useState([]);
     const [tutors, setTutors] = useState([]);
@@ -166,6 +167,7 @@ export const AppDataContextProvider = ({ children }) => {
             setTutors(tutorList);
             setClasses(classList);
             setSubjects(subjectList);
+            setReferenceDataLoaded(true);
 
             if (userRole === 'student') {
                 const eligibility = await fetchReferenceDataSafely(
@@ -178,7 +180,9 @@ export const AppDataContextProvider = ({ children }) => {
                 setStudentTutorEligibility({ coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] });
             }
         };
-        loadReferenceData().catch((error) => console.error('Error loading reference data:', error));
+        loadReferenceData()
+            .catch((error) => console.error('Error loading reference data:', error))
+            .finally(() => setReferenceDataLoaded(true));
     }, [userEmail, userRole, canReadCanvasReferenceData]);
 
     const contextValues = useMemo(() => ({
@@ -193,6 +197,7 @@ export const AppDataContextProvider = ({ children }) => {
 
         // reference data (one-time fetch)
         classes,
+        classesLoading: !referenceDataLoaded,
         subjects,
         tutors,
         studentTutorEligibility,
@@ -208,6 +213,7 @@ export const AppDataContextProvider = ({ children }) => {
         appAvailabilities,
         appStudentRequests,
         calendarDataLoaded,
+        referenceDataLoaded,
         classes,
         subjects,
         tutors,

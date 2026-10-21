@@ -6,11 +6,9 @@
     min-width: 0;
     height: 100%;
     gap: 20px;
-    padding: 24px;
     color: var(--uui-color-text-secondary);
     container-type: inline-size;
 }
-.header h2 { margin: 0 0 6px; font-size: 1.5rem; font-weight: 600; color: var(--uui-color-text-primary); }
 .header p { margin: 0; color: var(--uui-color-text-tertiary); font-size: .875rem; }
 .syncCard {
     display: flex;

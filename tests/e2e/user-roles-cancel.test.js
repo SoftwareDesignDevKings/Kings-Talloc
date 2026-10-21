@@ -553,7 +553,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         const actions = edit.locator('..');
         const before = await readUsers(); const writes = monitorWrites(page);
         await row.scrollIntoViewIfNeeded();
-        await page.getByRole('heading', { name: 'Manage User Roles', exact: true }).hover();
+        await page.getByRole('heading', { name: 'Manage Users', exact: true }).hover();
         await expect(actions).toHaveCSS('opacity', '0');
         for (const name of ['Upload', 'Edit user', 'Delete user']) {
             const button = row.getByRole('button', { name, exact: true });
@@ -563,7 +563,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             const bounds = await button.boundingBox(); expect(bounds.width).toBe(32); expect(bounds.height).toBe(32);
         }
         await row.hover(); await expect(actions).toHaveCSS('opacity', '1');
-        await page.getByRole('heading', { name: 'Manage User Roles', exact: true }).hover();
+        await page.getByRole('heading', { name: 'Manage Users', exact: true }).hover();
         await expect(actions).toHaveCSS('opacity', '0');
         await edit.focus(); await expect(actions).toHaveCSS('opacity', '1');
         await page.keyboard.press('Tab');

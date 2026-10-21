@@ -22,7 +22,7 @@ const readyDestination = async (page, label) => {
     if (label === 'Dashboard') return readyDashboard(page);
     if (label === 'Calendar') return expect(page.locator('.rbc-calendar')).toBeVisible();
     if (label === 'Tutor Hours') return expect(page.getByRole('textbox', { name: 'Start Date', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: label === 'Manage Users' ? 'Manage User Roles' : label, exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
 };
 let onboarding;
 const studentDocument = () => {

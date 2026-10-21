@@ -7,18 +7,9 @@
     flex-direction: column;
     gap: 16px;
 }
-.sectionHeader {
-    flex-shrink: 0;
-}
-.sectionTitle {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--uui-color-text-primary);
-}
 .sectionDescription {
-    margin: 4px 0 0;
+    margin: 0;
+    flex-shrink: 0;
     font-size: 0.875rem;
     color: var(--uui-color-text-tertiary);
 }
@@ -39,10 +30,11 @@
     flex-shrink: 0;
 }
 .searchWrapper {
-    flex: 1 1 220px;
-    min-width: min(250px, 100%);
+    flex: 0 1 340px;
+    min-width: 0;
 }
 .toolbarActions {
+    margin-left: auto;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
