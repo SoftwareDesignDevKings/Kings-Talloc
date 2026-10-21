@@ -2,6 +2,7 @@
 const mockDocuments = new Map(), mockAuthUsers = new Map();
 const mockDeletedField = Symbol('deleted');
 let mockSession, mockFailReads = false;
+const mockQueries = [];
 const mockToken = jest.fn(), mockRevoke = jest.fn(), mockRebuild = jest.fn();
 const mockWrite = (ref, data, merge = false) => {
     const next = merge ? { ...mockDocuments.get(ref.path), ...data } : { ...data };
@@ -25,15 +26,19 @@ jest.mock('@/firestore/firestoreAdmin', () => ({
     adminDb: {
         collection: collection => {
             let first = '', last = '\uffff', count = Infinity;
+            const filters = [];
             const query = {
                 doc: id => mockReference(collection, id),
+                where: (field, op, value) => { filters.push({ field, op, value }); return query; },
                 orderBy: () => query, startAt: value => { first = value; return query; },
                 endAt: value => { last = value; return query; }, limit: value => { count = value; return query; },
                 get: async () => {
                     if (mockFailReads) throw new Error('Database unavailable');
                     const ids = [...mockDocuments.keys()].filter(key => key.startsWith(`${collection}/`)).map(key => key.slice(collection.length + 1))
                         .filter(id => id >= first && id <= last).sort().slice(0, count);
-                    const docs = await Promise.all(ids.map(id => mockReference(collection, id).get()));
+                    const docs = (await Promise.all(ids.map(id => mockReference(collection, id).get())))
+                        .filter(doc => filters.every(({ field, op, value }) => op === 'array-contains-any' && (doc.data()[field] || []).some(item => value.includes(item))));
+                    mockQueries.push({ collection, filters: [...filters], ids: docs.map(doc => doc.id) });
                     return { docs, size: docs.length, forEach: callback => docs.forEach(callback) };
                 },
             };
@@ -172,6 +177,18 @@ test('calendar links store only a new private key, reuse it safely and reject ex
     expect((await calendarFeed(new Request(httpsUrl))).status).toBe(200);
     mockDocuments.get(`users/${student}`).authVersion = 'changed';
     expect((await calendarFeed(new Request(httpsUrl))).status).toBe(401);
+});
+test('calendar feeds read only the subscriber\'s shifts', async () => {
+    mockSession.user = { email: student, defaultRole: 'student', userRoles: [] };
+    const { httpsUrl } = await (await calendarLink()).json();
+    const shift = (title, emailsList) => ({ title, start: new Date('2027-04-06T05:00Z'), end: new Date('2027-04-06T06:00Z'), staff: emailsList, students: [], emailsList });
+    mockDocuments.set('shifts/mine', shift('Mine', [student]));
+    mockDocuments.set('shifts/other', shift('Other', ['tutor@school.test']));
+    mockQueries.length = 0;
+    const body = await (await calendarFeed(new Request(httpsUrl))).text();
+    expect(body).toContain('SUMMARY:Mine'); expect(body).not.toContain('SUMMARY:Other');
+    const shiftReads = mockQueries.filter(query => query.collection === 'shifts');
+    expect(shiftReads).toEqual([{ collection: 'shifts', filters: [{ field: 'emailsList', op: 'array-contains-any', value: [student] }], ids: ['mine'] }]);
 });
 test('session responses never contain old calendar credentials', async () => {
     const token = await authOptions.callbacks.jwt({ token: { email: student, calendarFeedToken: 'legacy' } });
