@@ -112,7 +112,7 @@ const StudentEventForm = ({
 
     // transform provider data into react-select format
     useEffect(() => {
-        setTutorOptions(buildEligibleTutorOptions(tutors, studentTutorEligibility));
+        setTutorOptions(buildEligibleTutorOptions(tutors, studentTutorEligibility).sort((a, b) => a.label.localeCompare(b.label)));
     }, [tutors, studentTutorEligibility]);
 
     useEffect(() => {

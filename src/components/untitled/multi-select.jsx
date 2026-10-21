@@ -39,7 +39,7 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
         onSelectionChange(values.map(key => options.get(key)).filter(Boolean));
         changeOpen(false);
     };
-    return <SelectContext.Provider value={{ size: 'sm' }}>
+    return <SelectContext.Provider value={{ size: 'md' }}>
         <div data-untitled-control data-untitled-multi-select data-disabled={isDisabled || undefined} className={styles.root}>
             <div ref={controlRef} className={styles.control} data-open={isOpen || undefined} onClick={event => {
                 if (!isDisabled && event.currentTarget.contains(event.target) && !event.target.closest('button')) changeOpen(true);

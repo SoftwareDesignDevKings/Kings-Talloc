@@ -1,5 +1,5 @@
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.dateInput { min-width: 0; padding-right: 40px; min-height: 40px; white-space: nowrap; }
+.dateInput { min-width: 0; padding-right: 40px; white-space: nowrap; }
 .trigger[data-untitled-button] { position: absolute; right: 4px; padding: 6px; }
 .popover { z-index: 1080; width: min(328px, calc(100vw - 32px)); max-height: var(--available-height); border: 1px solid var(--uui-color-border-secondary); border-radius: 12px; background: var(--uui-color-bg-primary); box-shadow: var(--uui-shadow-xl); }
 .dialog { outline: none; display: flex; flex-direction: column; max-height: inherit; overflow: hidden; border-radius: inherit; }
