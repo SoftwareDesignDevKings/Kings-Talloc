@@ -62,7 +62,9 @@ test.describe('Request notifications @teacherAdmin', () => {
         await expect(page.getByRole('heading', { name: 'Teacher dashboard', exact: true })).toBeVisible();
         const second = await context.newPage();
         await second.goto('/calendar');
-        await expect(second.getByRole('heading', { name: 'Admin dashboard', exact: true })).toBeVisible();
+        // Pages are titled by route, so the sidebar's role switch shows the new tab opened as Admin.
+        await expect(second.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
+        await expect(second.getByRole('button', { name: 'View as Teacher', exact: true })).toBeVisible();
         await expect(second.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         const away = await context.newPage();
         await away.goto('about:blank');
