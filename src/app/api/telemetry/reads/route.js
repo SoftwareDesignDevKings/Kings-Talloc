@@ -24,21 +24,29 @@ const readSession = async request => {
  * Reports are logged even when the session can't be read (user=unknown), but
  * only when the browser says they came from this site. Logging never reads Firestore.
  */
+// Rejections are logged too, so a report that never shows up can be explained.
+const reject = reason => {
+    console.warn(`[firestore-reads] source=browser rejected reason=${reason}`);
+    return new Response(null, { status: 204 });
+};
+
 export async function POST(request) {
     const site = request.headers.get('sec-fetch-site');
-    if (site && site !== 'same-origin') return new Response(null, { status: 204 });
+    if (site && site !== 'same-origin') return reject(`site-${clean(site)}`);
     try {
-        const { path, reads } = await request.json();
+        const text = await request.text();
+        if (!text) return reject('empty-body');
+        const { path, reads } = JSON.parse(text);
         const entries = Object.entries(reads || {})
             .filter(([, count]) => Number.isInteger(count) && count > 0 && count < 1000000)
             .slice(0, MAX_LABELS);
-        if (!entries.length) return new Response(null, { status: 204 });
+        if (!entries.length) return reject('no-reads');
         const token = await readSession(request);
         const total = entries.reduce((sum, [, count]) => sum + count, 0);
         const detail = entries.sort((a, b) => b[1] - a[1]).map(([label, count]) => `${clean(label)}:${count}`).join(',');
         console.log(`[firestore-reads] source=browser reads=${total} user=${clean(token?.email || 'unknown')} role=${clean(token?.defaultRole || 'unknown')} path=${clean(path || 'unknown')} detail=${detail}`);
-    } catch {
-        // Malformed reports are ignored.
+    } catch (error) {
+        return reject(`invalid-${clean(error?.name || 'error')}`);
     }
     return new Response(null, { status: 204 });
 }

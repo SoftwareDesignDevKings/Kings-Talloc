@@ -10,9 +10,11 @@ const flush = () => {
     if (!counts.size) return;
     const body = JSON.stringify({ path: window.location.pathname, reads: Object.fromEntries(counts) });
     counts.clear();
+    // fetch with keepalive survives page unloads like sendBeacon, but sends a
+    // normal JSON request like the rest of the app (beacon bodies were not
+    // reaching the route in production).
     try {
-        const sent = navigator.sendBeacon?.('/api/telemetry/reads', new Blob([body], { type: 'application/json' }));
-        if (!sent) fetch('/api/telemetry/reads', { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => {});
+        fetch('/api/telemetry/reads', { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true, credentials: 'same-origin' }).catch(() => {});
     } catch {
         // Telemetry must never affect the app.
     }
