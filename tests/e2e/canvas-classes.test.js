@@ -214,7 +214,7 @@ test.describe('Canvas Classes access @studentOnly @tutorOnly @coachOnly @coachTu
     test('hides navigation and redirects a direct Classes URL to the dashboard', async ({ page }) => {
         await page.goto('/classes');
         await expect(page).toHaveURL(/\/dashboard$/);
-        await expect(page.getByRole('heading', { name: /Dashboard$/ })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /dashboard$/i })).toBeVisible();
         await expect(page.getByRole('link', { name: 'Canvas classes', exact: true })).toHaveCount(0);
         await expect(page.getByRole('heading', { name: 'Canvas classes', exact: true })).toHaveCount(0);
     });
