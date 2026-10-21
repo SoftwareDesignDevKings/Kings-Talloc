@@ -1,7 +1,7 @@
 'use client';
 import useBookableAvailability from '@/hooks/useBookableAvailability';
 
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
 import {
@@ -79,7 +79,14 @@ export const AppDataContextProvider = ({ children }) => {
         end: endOfWeek(new Date(), { weekStartsOn: 1 }),
     });
 
-    const bookableAvailability = useBookableAvailability(userEmail, userRole === 'student', appDateRange);
+    // Only views that show bookable slots (the calendar) poll for them; other pages
+    // would otherwise re-read every tutor's schedule for each open student tab.
+    const [availabilityViewers, setAvailabilityViewers] = useState(0);
+    const watchBookableAvailability = useCallback(() => {
+        setAvailabilityViewers(count => count + 1);
+        return () => setAvailabilityViewers(count => count - 1);
+    }, []);
+    const bookableAvailability = useBookableAvailability(userEmail, userRole === 'student' && availabilityViewers > 0, appDateRange, { pollMs: 60000 });
 
     // Debounce the date range so rapid week navigation doesn't fire multiple subscriptions
     const [debouncedDateRange, setDebouncedDateRange] = useState(appDateRange);
@@ -183,6 +190,7 @@ export const AppDataContextProvider = ({ children }) => {
         students,
         studentTutorEligibility,
         bookableAvailability,
+        watchBookableAvailability,
 
         // date range
         calendarDateRange: appDateRange,

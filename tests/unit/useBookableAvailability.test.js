@@ -60,3 +60,11 @@ test('a stalled fetch times out so later refreshes can recover', async () => {
     await act(async () => window.dispatchEvent(new Event('focus')));
     expect(result.current.ready).toBe(true);
 });
+test('callers can poll less often', async () => {
+    jest.useFakeTimers();
+    renderHook(() => useBookableAvailability('student@school.test', true, range, { pollMs: 60000 }));
+    await act(async () => jest.advanceTimersByTimeAsync(30000));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => jest.advanceTimersByTimeAsync(30000));
+    expect(fetch).toHaveBeenCalledTimes(2);
+});

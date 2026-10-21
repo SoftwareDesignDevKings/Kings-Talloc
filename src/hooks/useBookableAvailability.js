@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 
-export default function useBookableAvailability(email, enabled, range) {
+export default function useBookableAvailability(email, enabled, range, { pollMs = 30000 } = {}) {
     const [state, setState] = useState({ slots: [], ready: false, error: null });
     const [revision, setRevision] = useState(0);
     const refresh = useCallback(() => setRevision(value => value + 1), []);
@@ -34,7 +34,7 @@ export default function useBookableAvailability(email, enabled, range) {
             }
         };
         load();
-        const timer = setInterval(load, 30000);
+        const timer = setInterval(load, pollMs);
         const resume = () => { if (document.visibilityState === 'visible') load(); };
         document.addEventListener('visibilitychange', resume);
         window.addEventListener('focus', resume);
@@ -44,6 +44,6 @@ export default function useBookableAvailability(email, enabled, range) {
         const changed = () => { if (inFlight) refreshQueued = true; else load(); };
         window.addEventListener('talloc:schedule-changed', changed);
         return () => { cancelled = true; controller?.abort(); clearInterval(timer); document.removeEventListener('visibilitychange', resume); window.removeEventListener('focus', resume); window.removeEventListener('online', resume); window.removeEventListener('offline', offline); window.removeEventListener('talloc:schedule-changed', changed); };
-    }, [email, enabled, start, end, students, requestKey, revision]);
+    }, [email, enabled, start, end, students, requestKey, revision, pollMs]);
     return { ...state, ready: state.ready && state.requestKey === requestKey, refresh };
 }
