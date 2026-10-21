@@ -1,6 +1,7 @@
 import { getRequiredSession } from '@/lib/security/serverAuth';
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { readAvailability } from '@/lib/scheduling/readAvailability';
+import { availabilityCache } from '@/lib/scheduling/availabilityCache';
 import { checkAvailabilityRateLimit } from '@/lib/security/availabilityRateLimit';
 import { bookableIntervals, emailOf } from '@/lib/scheduling/eventRules';
 
@@ -24,7 +25,7 @@ export async function GET(request) {
         const eligibleEmails = student ? new Set((eligibility[0].data()?.eligibleTutorEmails || []).map(emailOf)
             .filter(email => eligibility.every(doc => (doc.data()?.eligibleTutorEmails || []).map(emailOf).includes(email)))) : null;
         if (eligibleEmails?.size === 0) return Response.json({ slots: [] }, { headers: { 'Cache-Control': 'no-store' } });
-        const { tutors, shifts, availability } = await readAvailability(adminDb, start, end, eligibleEmails, student ? group : []);
+        const { tutors, shifts, availability } = await readAvailability(adminDb, start, end, eligibleEmails, student ? group : [], { cache: availabilityCache });
         const slots = tutors.flatMap(email => bookableIntervals(email, availability, shifts, { students: student ? group : [] }))
             .filter(slot => slot.end > start && slot.start < end).map(slot => ({ id: slot.id, tutor: slot.tutor, start: new Date(Math.max(+slot.start, +start)), end: new Date(Math.min(+slot.end, +end)), locationType: slot.locationType }));
         return Response.json({ slots }, { headers: { 'Cache-Control': 'no-store' } });

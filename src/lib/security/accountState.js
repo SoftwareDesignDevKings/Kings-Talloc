@@ -1,6 +1,7 @@
 import 'server-only';
 import { adminDb, adminDbAuth } from '@/firestore/firestoreAdmin';
 import { findUserProfile } from './userProfiles';
+import { cached, invalidateCached } from '@/lib/cache/sharedCache';
 
 export const accountVersion = data => data?.authVersion || '';
 export const validAccountEmail = email => typeof email === 'string' && email.length <= 254 && /^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(email);
@@ -13,8 +14,8 @@ export const accountRoles = data => ({
 // Preserve legacy mixed-case document IDs while using normalised revocation keys.
 export const findAccountProfile = (email, reader) => findUserProfile(adminDb, email, reader);
 
-export async function getCurrentAccount(email, expectedVersion) {
-    if (!validAccountEmail(email)) return null;
+// Reads only; the caller applies the session's version check.
+async function loadCurrentAccount(email) {
     const [profile, revoked, authUser] = await Promise.all([
         findAccountProfile(email),
         adminDb.collection('revokedAccounts').doc(email.toLowerCase()).get(),
@@ -25,6 +26,23 @@ export async function getCurrentAccount(email, expectedVersion) {
     ]);
     if (!profile || revoked.exists || !authUser || authUser.disabled) return null;
     const data = profile.data();
-    if (data.disabled === true || (expectedVersion !== undefined && accountVersion(data) !== expectedVersion)) return null;
+    if (data.disabled === true) return null;
     return { ...data, ...accountRoles(data), email: profile.id, profileId: profile.id, authVersion: accountVersion(data) };
 }
+const checkVersion = (account, expectedVersion) =>
+    account && (expectedVersion === undefined || account.authVersion === expectedVersion) ? account : null;
+
+export async function getCurrentAccount(email, expectedVersion) {
+    if (!validAccountEmail(email)) return null;
+    return checkVersion(await loadCurrentAccount(email), expectedVersion);
+}
+
+// Session checks run on every API call and session refresh. Account changes made
+// through /api/users invalidate this immediately; the TTL bounds console edits.
+const ACCOUNT_CACHE_SECONDS = 60;
+const accountKey = email => `account:${email.toLowerCase()}`;
+export async function getCachedCurrentAccount(email, expectedVersion) {
+    if (!validAccountEmail(email)) return null;
+    return checkVersion(await cached(accountKey(email), ACCOUNT_CACHE_SECONDS, () => loadCurrentAccount(email)), expectedVersion);
+}
+export const invalidateCurrentAccount = email => validAccountEmail(email) ? invalidateCached(accountKey(email)) : undefined;

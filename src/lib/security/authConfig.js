@@ -2,7 +2,7 @@ import AzureAD from 'next-auth/providers/azure-ad';
 import Credentials from 'next-auth/providers/credentials';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
-import { findAccountProfile, getCurrentAccount, accountVersion, accountRoles, validAccountEmail } from './accountState';
+import { findAccountProfile, getCachedCurrentAccount, invalidateCurrentAccount, accountVersion, accountRoles, validAccountEmail } from './accountState';
 import { adminDb, adminDbAuth } from '@/firestore/firestoreAdmin';
 import { TEST_USERS as DEV_USERS } from '@/lib/security/testUsers';
 
@@ -90,6 +90,8 @@ async function authFbVerifyUserRecords({ user }) {
             if (error.code !== 'auth/user-not-found') throw error;
             await adminDbAuth.createUser({ uid: userUid, email: user.email, displayName: user.name || user.email });
         }
+        // A new or restored account must not inherit a cached "no account" result.
+        await invalidateCurrentAccount(userUid);
         return true;
     } catch (error) {
         console.error('Account verification failed:', error);
@@ -134,7 +136,7 @@ async function handleJwt({ token, user, account, profile }) {
     delete token.calendarFeedToken;
     let revoked = false;
     try {
-        const account = await getCurrentAccount(token.email, token.authVersion || '');
+        const account = await getCachedCurrentAccount(token.email, token.authVersion || '');
         if (!account) { revoked = true; throw new Error('Account access was revoked'); }
         token.defaultRole = account.defaultRole;
         token.userRoles = account.userRoles;

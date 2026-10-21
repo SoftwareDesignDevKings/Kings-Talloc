@@ -2,7 +2,7 @@ import 'server-only';
 
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/security/authConfig';
-import { getCurrentAccount } from './accountState';
+import { getCachedCurrentAccount } from './accountState';
 
 export const getRequiredSession = async () => {
     const session = await getServerSession(authOptions);
@@ -10,7 +10,7 @@ export const getRequiredSession = async () => {
         return { error: Response.json({ message: 'Unauthorised' }, { status: 401 }) };
     }
     try {
-        const account = await getCurrentAccount(session.user.email, session.user.authVersion || '');
+        const account = await getCachedCurrentAccount(session.user.email, session.user.authVersion || '');
         if (!account) return { error: Response.json({ message: 'Account access was revoked. Please sign in again.' }, { status: 401 }) };
         return { session: { ...session, user: { ...session.user, email: account.email, role: account.defaultRole,
             defaultRole: account.defaultRole, userRoles: account.userRoles, profileId: account.profileId, authVersion: account.authVersion } } };

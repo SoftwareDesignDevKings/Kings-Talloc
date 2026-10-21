@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb, adminDbAuth } from '@/firestore/firestoreAdmin';
 import { getRequiredAdminSession } from '@/lib/security/serverAuth';
-import { accountRoles, accountVersion, findAccountProfile, validAccountEmail } from '@/lib/security/accountState';
+import { accountRoles, accountVersion, findAccountProfile, invalidateCurrentAccount, validAccountEmail } from '@/lib/security/accountState';
+import { invalidateAvailability } from '@/lib/scheduling/availabilityCache';
 import { rebuildStudentTutorEligibility } from '@/lib/canvas/tutorEligibility';
 
 const roles = new Set(['admin', 'teacher', 'tutor', 'coach', 'student']);
@@ -52,6 +53,8 @@ export async function POST(request) {
             if (changed) transaction.delete(adminDb.collection('calendarFeedSecrets').doc(ref.id));
             return changed;
         });
+        // Roles and tutor status feed the cached session check and availability.
+        await Promise.all([invalidateCurrentAccount(ref.id), invalidateAvailability()]);
         let warning;
         try {
             const authUser = await adminDbAuth.getUser(ref.id.toLowerCase()).catch(error => {
@@ -66,6 +69,8 @@ export async function POST(request) {
             // The live profile/version check already invalidates old privileges.
             warning = 'Account saved and old app access invalidated, but Firebase session cleanup needs a retry.';
         }
+        // Re-enabling the Firebase user above changes the cached result again.
+        if (mode === 'create') await invalidateCurrentAccount(ref.id);
         const rebuildWarning = await rebuild();
         warning = warning || rebuildWarning;
         return Response.json({ message: 'Account saved.', warning, requiresReauthentication: securityChanged && session.user.email.toLowerCase() === ref.id.toLowerCase() }, { headers: { 'Cache-Control': 'no-store' } });
@@ -87,6 +92,7 @@ export async function DELETE(request) {
         batch.delete(profile?.ref || adminDb.collection('users').doc(id));
         batch.delete(adminDb.collection('calendarFeedSecrets').doc(id));
         await batch.commit();
+        await Promise.all([invalidateCurrentAccount(email), invalidateCurrentAccount(id), invalidateAvailability()]);
         let warning;
         try {
             const authUser = await adminDbAuth.getUserByEmail(email);

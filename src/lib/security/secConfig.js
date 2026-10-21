@@ -12,7 +12,8 @@ export const rateLimitConfig = new Ratelimit({
     }),
 
     limiter: Ratelimit.slidingWindow(10, "10 s"),
-    analytics: true,
+    // Analytics only feeds the Upstash dashboard and costs extra commands per request.
+    analytics: false,
 });
 
 /**

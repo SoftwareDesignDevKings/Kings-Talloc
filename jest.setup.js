@@ -145,3 +145,7 @@ if (isBrowserEnv) {
             };
         };
 }
+
+// @upstash/redis ships ESM that Jest does not transform. Unit tests never reach
+// a real Redis; suites that exercise it provide their own mock.
+jest.mock('@upstash/redis', () => ({ Redis: jest.fn() }));

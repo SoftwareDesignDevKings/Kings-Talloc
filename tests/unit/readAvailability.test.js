@@ -88,3 +88,15 @@ test('recurring edits retain their deliberate validation against commitments yea
     records.shifts = [{ id: 'current', ...shift() }, { id: 'future', ...shift({ start: new Date('2030-01-01'), end: new Date('2030-01-02') }) }];
     expect((await readSchedule(db, start, end, undefined, { includeFuture: true })).map(event => event.id)).toEqual(['current', 'future']);
 });
+test('a supplied cache serves repeat reads without touching Firestore', async () => {
+    records.shifts = [{ id: 'work', ...shift() }];
+    records.tutorAvailabilities = [{ id: 'availability', tutor, start, end }];
+    const store = new Map();
+    const cache = jest.fn(async (key, ttl, load) => { if (!store.has(key)) store.set(key, await load()); return store.get(key); });
+    const first = await readAvailability(db, start, end, new Set([tutor]), [], { cache });
+    const firestoreReads = reads.length;
+    const second = await readAvailability(db, start, end, null, [], { cache });
+    expect(reads).toHaveLength(firestoreReads);
+    expect(second).toEqual(first);
+    expect(cache.mock.calls.map(([key]) => key)).toEqual(expect.arrayContaining(['availability:tutors', `availability:records:${+start}:${+end}`]));
+});

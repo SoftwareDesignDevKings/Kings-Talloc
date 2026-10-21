@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useMemo, useCallback } from "react";
+import { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
 import useCalendarStrategy from "@/hooks/useCalendarStrategy"
 import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
@@ -54,7 +54,9 @@ export const CalendarUIContextProvider = ({ children }) => {
         calendarAvailabilities,
         calendarStudentRequests,
         bookableAvailability,
+        watchBookableAvailability,
     } = useAppData();
+    useEffect(() => watchBookableAvailability?.(), [watchBookableAvailability]);
 
     // cal strategy for filters and scope
     const calendarStrategy = useCalendarStrategy(userEmail, userRole);
