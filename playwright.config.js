@@ -4,6 +4,10 @@ export default defineConfig({
     testDir: './tests/e2e',
     fullyParallel: false,
     workers: 1,
+    // CI splits the suite across parallel jobs, e.g. PLAYWRIGHT_SHARD=2/4.
+    shard: process.env.PLAYWRIGHT_SHARD
+        ? { current: Number(process.env.PLAYWRIGHT_SHARD.split('/')[0]), total: Number(process.env.PLAYWRIGHT_SHARD.split('/')[1]) }
+        : null,
     retries: process.env.CI ? 3 : 0,
 
     expect: {
