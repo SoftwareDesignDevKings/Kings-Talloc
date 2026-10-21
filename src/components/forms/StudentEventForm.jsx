@@ -3,12 +3,14 @@
 import useBookableAvailability from '@/hooks/useBookableAvailability';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { isAfter } from 'date-fns';
-import AsyncSelect from 'react-select/async';
+import useStudentSearch from '@/hooks/useStudentSearch';
+import useAuthSession from '@/hooks/useAuthSession';
 import { CalendarDateTime } from '@internationalized/date';
 import { StaffEventDialog } from './EventFormSections/EventFormUI';
 import { DateTimePicker } from '@/components/untitled/date-time-picker';
 import { RadioGroup, RadioButton } from '@/components/untitled/radio-buttons';
 import { Label } from '@/components/untitled/label';
+import { Button } from '@/components/untitled/button';
 import CalendarMultiSelect from '@/components/calendar/CalendarMultiSelect';
 import styles from '@/styles/staffEventForm.module.css';
 import bookingStyles from '@/styles/studentBookingForm.module.css';
@@ -47,30 +49,21 @@ const StudentEventForm = ({
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView;
-    const [studentSearchError, setStudentSearchError] = useState(null);
-    const loadStudentOptions = useCallback(async query => {
-        if (query.trim().length < 2) return [];
-        try {
-            const response = await fetch(`/api/students?q=${encodeURIComponent(query.trim())}`, { cache: 'no-store' });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message);
-            setStudentSearchError(null);
-            return data.students.map(student => ({ value: student.email, label: student.name }));
-        } catch {
-            setStudentSearchError('Unable to search students. Please try again.');
-            return [];
-        }
-    }, []);
+    const { session } = useAuthSession() || {};
+    const studentSearch = useStudentSearch();
+    const requesterName = session?.user?.name;
     const selectedStudents = useMemo(() => {
         const selected = new Map((newEvent.students || []).map(student => [emailOf(student), { value: emailOf(student), label: student.label || emailOf(student) }]));
         if (!isView) {
             const email = emailOf(studentEmail);
-            const requester = selected.get(email) || { value: email, label: email };
+            const requester = selected.get(email) || { value: email, label: requesterName || email };
+            // Older requests saved the requester's email as their label.
+            if (requesterName && requester.label === email) requester.label = requesterName;
             selected.delete(email);
             return [{ ...requester, isFixed: true }, ...selected.values()];
         }
         return [...selected.values()];
-    }, [newEvent.students, studentEmail, isView]);
+    }, [newEvent.students, studentEmail, isView, requesterName]);
     const rangeStart = new Date(newEvent.start), rangeEnd = new Date(newEvent.end);
     const bookableAvailability = useBookableAvailability(studentEmail, !isView, {
         students: selectedStudents.map(emailOf),
@@ -285,10 +278,10 @@ const StudentEventForm = ({
         <StaffEventDialog
             show={true}
             onHide={() => { if (!busy.current) setShowStudentModal(false); }}
-            title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
+            title={isView ? 'Request details' : (isEdit ? 'Edit request' : 'Request a session')}
             size="md"
             onSubmit={isView ? undefined : onSubmit}
-            submitText={isEdit ? 'Save Changes' : 'Add Event'}
+            submitText={isEdit ? 'Save changes' : 'Send request'}
             loading={isSubmitting}
             menuOpen={tutorMenuOpen || studentsMenuOpen || dateMenuOpen}
             setPortalContainer={setPortalContainer}
@@ -297,18 +290,18 @@ const StudentEventForm = ({
         >
             <div className={styles.fields}>
             {['start', 'end'].map(name => <DateTimePicker key={name} name={name}
-                label={name === 'start' ? 'Start Time' : 'End Time'} value={name === 'start' ? startValue : endValue}
+                label={name === 'start' ? 'Start time' : 'End time'} value={name === 'start' ? startValue : endValue}
                 isDisabled={isView || isSubmitting} portalContainer={portalContainer} onOpenChange={setDateMenuOpen}
                 onDraftValidityChange={complete => { dateTimeValidity.current[name] = complete; }}
                 onChange={next => setNewEvent(prev => ({ ...prev, [name]: next ? next.toString() : '' }))} />)}
             <fieldset className={styles.field}>
-                <legend className="form-label fs-6">Session focus{!isView && ' (required)'}</legend>
+                <legend className={bookingStyles.legend}>Session focus{!isView && ' (required)'}</legend>
                 {isView ? <div>{sessionFocusLabel(newEvent.preference)}</div> : <>
                     <RadioGroup className={bookingStyles.preferences} aria-label="Session focus" name="preference"
                         value={selectedPreference} onChange={handlePreferenceClick} isDisabled={isSubmitting} isRequired validationBehavior="aria">
                         {SESSION_FOCUS_OPTIONS.map(({ value, label }) => <RadioButton key={value} value={value} label={label} />)}
                     </RadioGroup>
-                    {focusError && <div id="session-focus-error" role="alert" className="text-danger small">{focusError}</div>}
+                    {focusError && <div id="session-focus-error" role="alert" className={bookingStyles.error}>{focusError}</div>}
                 </>}
             </fieldset>
             <div className={styles.field}>
@@ -319,7 +312,7 @@ const StudentEventForm = ({
                 <div id="session-topics-help" className={styles.hint}>Include specific topics, questions or tasks you would like to cover.</div>
             </div>
             <div className={styles.field}>
-                <Label htmlFor="tutor" isRequired={false}>Assign Tutor</Label>
+                <Label htmlFor="tutor" isRequired={false}>Tutor</Label>
                 <CalendarMultiSelect
                     name="tutor"
                     options={filteredTutors}
@@ -331,36 +324,37 @@ const StudentEventForm = ({
                     menuPortalTarget={portalContainer}
                     isDisabled={isView || isSubmitting}
                     noOptionsMessage={() => 'No tutors eligible for everyone in this booking are available at this time'}
-                    aria-label="Assign tutor to event"
+                    placeholder="Select a tutor"
+                    aria-label="Tutor for this session"
                     inputId="tutor"
                 />
             </div>
-            <div className="mb-3">
-                <label htmlFor="students" className="form-label">Students</label>
-                <AsyncSelect
+            <div className={styles.field}>
+                <Label htmlFor="students" isRequired={false}>Students</Label>
+                <CalendarMultiSelect
                     isMulti
+                    isClearable={false}
                     name="students"
-                    menuPortalTarget={portalContainer}
-                    menuPosition="fixed"
-                    onMenuOpen={() => setStudentsMenuOpen(true)}
-                    onMenuClose={() => setStudentsMenuOpen(false)}
-                    cacheOptions
-                    loadOptions={loadStudentOptions}
+                    options={studentSearch.options}
                     value={selectedStudents}
                     onChange={handleStudentsChange}
-                    classNamePrefix="select"
+                    onSearchChange={studentSearch.search}
+                    noOptionsMessage={studentSearch.noOptionsMessage}
+                    onMenuOpen={() => setStudentsMenuOpen(true)}
+                    onMenuClose={() => setStudentsMenuOpen(false)}
+                    menuIsOpen={studentsMenuOpen}
+                    menuPortalTarget={portalContainer}
                     inputId="students"
                     aria-label="Students in this booking"
                     isDisabled={isView || isSubmitting}
-                    isClearable={false}
-                    styles={{ multiValueRemove: (base, state) => state.data.isFixed ? { ...base, display: 'none' } : base }}
-                    noOptionsMessage={({ inputValue }) => inputValue.trim().length < 2 ? 'Type at least 2 letters to find students' : 'No students found'}
                     placeholder="Search students by name or email"
                 />
-                {!isView && <div className="form-text">You are included. Select classmates to request a group session.</div>}
-                {!isView && studentSearchError && <div role="status" className="small text-warning-emphasis">{studentSearchError}</div>}
+                {!isView && <div className={styles.hint}>You are included. Add classmates to request a group session.</div>}
             </div>
-            {!isView && (!bookableAvailability.ready || bookableAvailability.error) && <div role="status" className="small text-warning-emphasis">{bookableAvailability.error || 'Refreshing availability…'} <button type="button" className="btn btn-link btn-sm" onClick={bookableAvailability.refresh}>Retry</button></div>}
+            {!isView && (!bookableAvailability.ready || bookableAvailability.error) && <div role="status" className={bookingStyles.status}>
+                {bookableAvailability.error || 'Refreshing availability…'}
+                <Button size="sm" color="link-gray" onClick={bookableAvailability.refresh}>Retry</Button>
+            </div>}
 
             </div>
         </StaffEventDialog>

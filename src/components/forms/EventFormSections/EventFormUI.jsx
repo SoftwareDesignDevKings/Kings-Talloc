@@ -15,7 +15,7 @@ export function StaffEventDialog({ show = true, onHide, title, children, onSubmi
     const titleId = useId();
     const footer = showFooter && (customFooter || (onSubmit && <>
         {deleteButton && <Button size="sm" color="secondary-destructive" isDisabled={loading} onClick={async () => { if (await deleteButton.onClick() !== false) onHide(); }}>{deleteButton.text}</Button>}
-        <Button size="sm" color={submitVariant === 'danger' ? 'primary-destructive' : 'secondary'} type="submit" isDisabled={loading} isLoading={loading} showTextWhileLoading>{loading ? 'Loading...' : submitText}</Button>
+        <Button size="sm" color={submitVariant === 'danger' ? 'primary-destructive' : 'primary'} type="submit" isDisabled={loading} isLoading={loading} showTextWhileLoading>{loading ? 'Loading...' : submitText}</Button>
     </>));
     return <ModalOverlay isOpen={show} isDismissable={!loading} isKeyboardDismissDisabled={loading || menuOpen}
         onOpenChange={open => { if (!open && !loading) onHide(); }} className={styles.overlay}>

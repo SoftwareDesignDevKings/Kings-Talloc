@@ -201,7 +201,7 @@ const TutorAvailabilityForm = ({
                             <div className={styles.body}>{fields}</div>
                             <footer className={styles.footer}>
                                 {isEdit && <Button size="sm" color="secondary-destructive" isDisabled={isSubmitting} onClick={deleteAvailability}>Delete</Button>}
-                                <Button size="sm" color="secondary" type="submit" isDisabled={isSubmitting} isLoading={isSubmitting} showTextWhileLoading>
+                                <Button size="sm" color="primary" type="submit" isDisabled={isSubmitting} isLoading={isSubmitting} showTextWhileLoading>
                                     {isSubmitting ? 'Loading...' : (isEdit ? 'Save Changes' : 'Add Availability')}
                                 </Button>
                             </footer>

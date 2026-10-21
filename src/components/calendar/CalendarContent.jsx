@@ -105,9 +105,14 @@ const CalendarContent = () => {
 
 
     useEffect(() => {
-        if (device === 'mobile') {                                                                           
-            setCalendarView(Views.DAY);                                                                        
+        if (device === 'mobile') {
+            setCalendarView(Views.DAY);
+            // The day view would otherwise open on the week's Monday; show today when it's in range.
+            const today = new Date();
+            setCalendarDate(current => (+calendarDateRange.start <= +today && +today <= +calendarDateRange.end
+                && !new URLSearchParams(window.location.search).get('date') ? today : current));
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [device]);
 
     /* ----------------------------------------------------------- */

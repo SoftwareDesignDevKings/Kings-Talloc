@@ -191,20 +191,25 @@ html .accordion {
 
 /* ─── Layout ──────────────────────────────────────────────────────────── */
 
+.app-main { padding: 1.5rem; }
+
 .dashboard-title {
     font-size: 1.875rem;
     font-weight: 800;
     line-height: 1.15;
     letter-spacing: -0.02em;
     color: var(--tks-text-primary);
-    margin-top: 1rem;
+    margin: 0.5rem 0 0;
 }
 
-@media (min-width: 768px) {
-    .dashboard-title { margin-top: 0; }
-}
+.signed-in-text  { font-size: 0.875rem; overflow-wrap: anywhere; }
 
-.signed-in-text  { font-size: 0.875rem; }
+/* Phones: keep the page header compact so content starts above the fold. */
+@media (max-width: 767px) {
+    .app-main { padding: 1rem 0.75rem; }
+    .dashboard-title { font-size: 1.5rem; margin-top: 0; }
+    .app-main > hr { margin-top: 0.75rem !important; margin-bottom: 0.75rem !important; }
+}
 
 .divider-offset {
     margin-left: 0.5rem;

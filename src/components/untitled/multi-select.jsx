@@ -48,8 +48,9 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
                     <AriaButton id={id} data-has-selection={selectedItems.length > 0 || undefined} isDisabled={isDisabled} aria-label={label} className={styles.trigger}
                         onKeyDown={event => {
                             if (event.key === 'ArrowDown') { event.preventDefault(); changeOpen(true); }
-                            if (isMulti && ['Backspace', 'Delete'].includes(event.key) && selectedItems.length) {
-                                event.preventDefault(); remove(selectedItems.at(-1).value);
+                            const removable = selectedItems.filter(item => !item.isFixed);
+                            if (isMulti && ['Backspace', 'Delete'].includes(event.key) && removable.length) {
+                                event.preventDefault(); remove(removable.at(-1).value);
                             }
                         }}>
                         {!selectedItems.length && <span className={styles.placeholder}>{placeholder}</span>}
@@ -81,10 +82,11 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
                     </Popover>
                 </DialogTrigger>
                 <div className={styles.values}>
-                    {selectedItems.map(item => isMulti ? <span key={item.value} data-multi-select-chip className={styles.chip}>
+                    {selectedItems.map(item => isMulti ? <span key={item.value} data-multi-select-chip data-fixed={item.isFixed || undefined} className={styles.chip}>
                         <span>{item.label}</span>
-                        <Button size="sm" color="tertiary" iconLeading={XClose} className={styles.remove} isDisabled={isDisabled}
-                            aria-label={`Remove ${item.label}`} onPress={() => remove(item.value)} />
+                        {/* Fixed chips (e.g. the requesting student) can't be removed. */}
+                        {!item.isFixed && <Button size="sm" color="tertiary" iconLeading={XClose} className={styles.remove} isDisabled={isDisabled}
+                            aria-label={`Remove ${item.label}`} onPress={() => remove(item.value)} />}
                     </span> : <span key={item.value} className={styles.single}>{item.label}</span>)}
                 </div>
                 {isClearable && selectedItems.length > 0 && <Button size="sm" color="tertiary" iconLeading={XClose}

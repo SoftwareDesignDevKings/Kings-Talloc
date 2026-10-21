@@ -7,7 +7,9 @@
 .toolbar:global(.rbc-toolbar) button[data-untitled-button]:focus-visible { outline: 2px solid var(--uui-color-border-brand); outline-offset: -2px; z-index: 1; }
 .toolbar:global(.rbc-toolbar) button[data-untitled-button]:first-child { border-radius: 7px 0 0 7px; }
 .toolbar:global(.rbc-toolbar) button[data-untitled-button]:last-child { border-radius: 0 7px 7px 0; }
+.toolbar:global(.rbc-toolbar) button[data-untitled-button]:only-child { border-radius: 7px; }
 .toolbar:global(.rbc-toolbar) button[data-untitled-button] + button[data-untitled-button] { border-left: 1px solid var(--uui-color-border-primary); }
+.toolbarEnd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .toolbar .rangeLabel { padding: 0; flex: 1; min-width: 140px; color: var(--uui-color-text-primary); font-size: 1rem; font-weight: 600; }
 .helpOverlay[data-untitled-modal-overlay] { z-index: 1070; align-items: center; }
 .helpModal { max-width: 800px; }

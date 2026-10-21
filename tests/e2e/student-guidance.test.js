@@ -16,7 +16,7 @@ const patchFlags = async fields => {
     if (!response.ok) throw new Error(`Cannot patch demo guidance flags (${response.status}): ${await response.text()}`);
 };
 const welcome = page => page.getByRole('dialog', { name: 'Welcome to Kings Talloc', exact: true });
-const help = page => page.getByRole('dialog', { name: 'How to Use the Calendar', exact: true });
+const help = page => page.getByRole('dialog', { name: 'How to use the calendar', exact: true });
 const copy = dialog => dialog.evaluate(el => el.textContent.replace(/\s+/g, ''));
 const expectFits = async dialog => {
     await expect(dialog).toHaveCSS('opacity', '1');
@@ -54,7 +54,7 @@ test.describe('Student guidance @studentOnly', () => {
         await expect(welcome(page)).toHaveCount(0);
         await page.goto('/calendar'); await expect(help(page)).toBeVisible(); await expectFits(help(page));
         content.help = await copy(help(page));
-        for (const [label, id] of [['What do the Colours mean?', 'colorsSection'], ['Using the Filter Panel', 'filterPanelSection'], ['Working with Events', 'interactionsSection']]) {
+        for (const [label, id] of [['What do the colours mean?', 'colorsSection'], ['Using the filters', 'filterPanelSection'], ['Working with sessions', 'interactionsSection']]) {
             const button = help(page).getByRole('button', { name: label, exact: true });
             if (await button.getAttribute('aria-expanded') !== 'true') await button.click();
             await expect(button).toHaveAttribute('aria-expanded', 'true');
@@ -64,7 +64,7 @@ test.describe('Student guidance @studentOnly', () => {
         await expect(help(page).getByRole('link', { name: 'mienna@kings.edu.au', exact: true })).toHaveAttribute('href', 'mailto:mienna@kings.edu.au');
         if (process.env.GUIDANCE_COPY_OUTPUT) await writeFile(process.env.GUIDANCE_COPY_OUTPUT, JSON.stringify(content));
         if (process.env.GUIDANCE_COMPARE_COPY) expect(content).toEqual(JSON.parse(await readFile(process.env.GUIDANCE_COMPARE_COPY, 'utf8')));
-        await help(page).getByRole('button', { name: 'Got it!', exact: true }).click(); await expect(help(page)).toHaveCount(0);
+        await help(page).getByRole('button', { name: 'Got it', exact: true }).click(); await expect(help(page)).toHaveCount(0);
         await expect.poll(async () => (await readStudent()).hasSeenCalendarHelp).toEqual({ booleanValue: true });
         await page.reload(); await expect(page.getByRole('button', { name: 'Today', exact: true })).toBeVisible();
         await expect(help(page)).toHaveCount(0);
@@ -78,12 +78,15 @@ test.describe('Student guidance @studentOnly', () => {
         await start.focus(); await expect(start).toBeInViewport({ ratio: 1 }); await page.keyboard.press('Enter');
         await expect(welcome(page)).toHaveCount(0);
         await page.goto('/calendar'); await expect(help(page)).toBeVisible(); await expectFits(help(page));
-        const events = help(page).getByRole('button', { name: 'Working with Events', exact: true });
+        const events = help(page).getByRole('button', { name: 'Working with sessions', exact: true });
         await events.focus(); await page.keyboard.press('Space'); await expect(events).toHaveAttribute('aria-expanded', 'true');
         await help(page).getByRole('button', { name: 'Close', exact: true }).click(); await expect(help(page)).toHaveCount(0);
         await expect.poll(async () => (await readStudent()).hasSeenCalendarHelp).toEqual({ booleanValue: true });
-        // The existing mobile layout hides Filters, including its manual Help trigger.
+        // Phones reach Filters, including its manual Help trigger, from the calendar toolbar.
         await expect(page.getByRole('button', { name: 'Help', exact: true })).toHaveCount(0);
+        await page.getByRole('button', { name: 'Filters', exact: true }).click();
+        await page.getByRole('dialog', { name: 'Filters', exact: true }).getByRole('button', { name: 'Help', exact: true }).click();
+        await expect(help(page)).toBeVisible(); await expectFits(help(page));
     });
 });
 

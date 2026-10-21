@@ -12,6 +12,14 @@ import usePrefetchRoutes from '@/hooks/usePrefetchRoutes';
  * @param {string} userRole - The role of the current user (student, teacher, admin, or tutor)
  * @param {JSX} children - Page content
  */
+const PAGE_TITLES = {
+    '/calendar': 'Calendar',
+    '/tutorHours': 'Tutor Hours',
+    '/userRoles': 'Manage Users',
+    '/classes': 'Canvas Classes',
+    '/admin/canvas': 'Canvas Admin',
+};
+
 const AppLayout = ({ session, userRole, children }) => {
     const pathname = usePathname();
     usePrefetchRoutes(userRole);
@@ -21,10 +29,12 @@ const AppLayout = ({ session, userRole, children }) => {
     } else if (userRole === 'teacher') {
         dashboardTitle = 'Teacher Dashboard';
     } else if (userRole === 'admin') {
-        dashboardTitle = 'Admin Dashboard';    
+        dashboardTitle = 'Admin Dashboard';
     } else {
         dashboardTitle = 'Tutor Dashboard';
     }
+    // Other pages are titled by the page itself rather than the role's dashboard.
+    const pageTitle = Object.entries(PAGE_TITLES).find(([route]) => pathname.startsWith(route))?.[1] || dashboardTitle;
 
     return (
         <div className="d-flex app-shell">
@@ -32,10 +42,10 @@ const AppLayout = ({ session, userRole, children }) => {
 
             {/* main content area */}
             <div className="grow d-flex flex-column overflow-hidden bg-white">
-                <div className="p-4 p-md-4 d-flex flex-column grow overflow-hidden">
+                <div className="app-main d-flex flex-column grow overflow-hidden">
                     {/* Header section: responsive alignment */}
                     <div className="ps-1 text-center text-md-start">
-                        <h1 className="dashboard-title ps-1 mt-2">{dashboardTitle}</h1>
+                        <h1 className="dashboard-title ps-1">{pageTitle}</h1>
                         <p className="ps-1 mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
                     </div>
 

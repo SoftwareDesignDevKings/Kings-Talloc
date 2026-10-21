@@ -127,6 +127,8 @@ export const CalendarUIContextProvider = ({ children }) => {
     const [filterByTutor, setFilterByTutor] = useState(null);
     const [filterByWorkType, setFilterByWorkType] = useState(null);
     const [filterAvailabilityByWorkType, setFilterAvailabilityByWorkType] = useState(null);
+    // Phones show the filter panel as a dialog opened from the calendar toolbar.
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
     // ─────────────────────────────────────
     // Merge all calendar entities
@@ -260,6 +262,7 @@ export const CalendarUIContextProvider = ({ children }) => {
                 showTutoringEvents,
                 showCoachingEvents,
                 showWorkEvents,
+                mobileFiltersOpen,
             },
 
             // Filtered data (ready to use)
@@ -282,6 +285,7 @@ export const CalendarUIContextProvider = ({ children }) => {
                 setShowTutoringEvents: handleShowTutoringEventsChange,
                 setShowCoachingEvents: handleShowCoachingEventsChange,
                 setShowWorkEvents: handleShowWorkEventsChange,
+                setMobileFiltersOpen,
             },
         }),
         [
@@ -296,6 +300,7 @@ export const CalendarUIContextProvider = ({ children }) => {
             showTutoringEvents,
             showCoachingEvents,
             showWorkEvents,
+            mobileFiltersOpen,
             filteredEvents,
             filteredAvailabilities,
             calendarFilters,
