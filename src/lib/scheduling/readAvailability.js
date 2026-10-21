@@ -43,10 +43,12 @@ const readRecords = async (db, start, end) => {
  */
 export async function readAvailability(db, start, end, eligibleEmails, group = [], { cache } = {}) {
     const load = (key, ttlSeconds, loader) => cache ? cache(key, ttlSeconds, loader) : loader();
-    const tutors = (await load('availability:tutors', 300, () => readTutors(db))).filter(email => !eligibleEmails || eligibleEmails.has(email));
+    // Saves through the app bump the cache group, so these TTLs only bound how long
+    // edits made outside the app (e.g. the Firebase console) take to appear.
+    const tutors = (await load('availability:tutors', 1800, () => readTutors(db))).filter(email => !eligibleEmails || eligibleEmails.has(email));
     if (!tutors.length) return { tutors, shifts: [], availability: [] };
     const tutorSet = new Set(tutors);
-    const records = await load(`availability:records:${+start}:${+end}`, 120, () => readRecords(db, start, end));
+    const records = await load(`availability:records:${+start}:${+end}`, 900, () => readRecords(db, start, end));
     const bases = records.bases
         .filter(event => staffEmails(event).some(email => tutorSet.has(email)) || studentEmails(event).some(email => group.includes(email)));
     // Class-only legacy entries already count as occupied; no roster reads are needed.

@@ -34,7 +34,9 @@ export default function useBookableAvailability(email, enabled, range, { pollMs 
             }
         };
         load();
-        const timer = setInterval(load, pollMs);
+        // A visible but unfocused window (e.g. a calendar left open behind other
+        // windows) skips timed refreshes; focusing it refreshes straight away.
+        const timer = setInterval(() => { if (document.hasFocus()) load(); }, pollMs);
         const resume = () => { if (document.visibilityState === 'visible') load(); };
         document.addEventListener('visibilitychange', resume);
         window.addEventListener('focus', resume);
