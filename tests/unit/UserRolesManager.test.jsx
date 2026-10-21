@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import UserRolesManager from '@/components/UserRolesManager';
-import { getDocs } from 'firebase/firestore';
+import { fetchCacheClasses } from '@/firestore/firestoreFetch';
 
 jest.mock('@/firestore/firestoreClient', () => ({ db: {} }));
+jest.mock('@/firestore/firestoreFetch', () => ({ fetchCacheClasses: jest.fn(async () => []) }));
 jest.mock('firebase/firestore', () => ({
     collection: (_db, path) => ({ path }), getDocs: jest.fn(),
     doc: jest.fn(), getDoc: jest.fn(), setDoc: jest.fn(),
@@ -24,28 +25,31 @@ jest.mock('@/components/untitled/checkbox', () => ({ Checkbox: () => null }));
 jest.mock('@/components/untitled/toggle', () => ({ Toggle: () => null }));
 jest.mock('@/components/untitled/modal', () => ({ Dialog: () => null, Modal: () => null, ModalOverlay: () => null }));
 
-const snapshot = { docs: [{ id: 'table@example.edu', data: () => ({ email: 'table@example.edu', name: 'Table Check', role: 'teacher', userRoles: [] }) }] };
+const tableUser = { id: 'table@example.edu', email: 'table@example.edu', name: 'Table Check', role: 'teacher', userRoles: [] };
+const usersResponse = users => ({ ok: true, json: async () => ({ users }) });
 
 afterEach(() => { jest.restoreAllMocks(); jest.clearAllMocks(); });
 
-test('shows loading until the user query finishes, then distinguishes an empty user list', async () => {
+test('shows loading until the user list loads, then distinguishes an empty user list', async () => {
     let resolveUsers;
-    getDocs.mockImplementation(ref => ref.path === 'users'
-        ? new Promise(resolve => { resolveUsers = resolve; }) : Promise.resolve({ docs: [] }));
+    global.fetch = jest.fn(() => new Promise(resolve => { resolveUsers = resolve; }));
     render(<UserRolesManager />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading users…');
     expect(screen.queryByText('No users yet')).not.toBeInTheDocument();
-    await act(async () => { resolveUsers({ docs: [] }); });
+    await act(async () => { resolveUsers(usersResponse([])); });
     expect(screen.getByRole('status')).toHaveTextContent('No users yet');
     expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
     expect(screen.getByText('0 of 0 users')).toBeInTheDocument();
+    // Users come from the cached server list, not a Firestore collection read.
+    expect(global.fetch).toHaveBeenCalledWith('/api/users', { cache: 'no-store' });
 });
 
-test('query failure shows a retry action and recovery loads users without reloading coverage', async () => {
+test('load failure shows a retry action and recovery loads users without reloading coverage', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     let attempts = 0;
-    getDocs.mockImplementation(ref => ref.path !== 'users' ? Promise.resolve({ docs: [] })
-        : ++attempts === 1 ? Promise.reject(new Error('Fixture unavailable')) : Promise.resolve(snapshot));
+    global.fetch = jest.fn(async () => ++attempts === 1
+        ? { ok: false, json: async () => ({ message: 'Fixture unavailable' }) }
+        : usersResponse([tableUser]));
     render(<UserRolesManager />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load users. Please try again.');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -53,5 +57,5 @@ test('query failure shows a retry action and recovery loads users without reload
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByText('1 of 1 users')).toBeInTheDocument();
     expect(attempts).toBe(2);
-    expect(getDocs.mock.calls.filter(([ref]) => ref.path === 'canvasCourses')).toHaveLength(1);
+    expect(fetchCacheClasses).toHaveBeenCalledTimes(1);
 });

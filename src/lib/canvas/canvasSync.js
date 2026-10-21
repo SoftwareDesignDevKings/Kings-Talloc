@@ -286,7 +286,8 @@ export const runFullCanvasSync = async ({ client = createCanvasClient() } = {}) 
 export const getCanvasSyncStatus = async () => {
     const [stateDoc, logsSnapshot] = await Promise.all([
         SYNC_STATE_REF.get(),
-        adminDb.collection('canvasSyncLog').orderBy('startedAt', 'desc').limit(20).get(),
+        // No screen lists sync history; keep a few recent entries for troubleshooting.
+        adminDb.collection('canvasSyncLog').orderBy('startedAt', 'desc').limit(5).get(),
     ]);
 
     return {

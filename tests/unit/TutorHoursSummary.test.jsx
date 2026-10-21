@@ -10,6 +10,7 @@ let mockCsv;
 
 jest.mock('@/firestore/firestoreClient', () => ({ db: {} }));
 jest.mock('@/firestore/firestoreOperations', () => ({}));
+jest.mock('@/firestore/firestoreFetch', () => ({ fetchCacheTutors: jest.fn(async () => mockUsers) }));
 jest.mock('firebase/firestore', () => ({
     collection: (_db, path) => ({ path }), where: (key, op, value) => ({ key, op, value }),
     query: (ref, ...filters) => ({ ...ref, filters }), getDocs: jest.fn(),
@@ -43,10 +44,11 @@ beforeEach(() => {
     jest.clearAllMocks();
     mockCsv = null;
     mockAuth = { userRole: 'admin', userRoles: ['admin'], session: { user: { email: staff } } };
-    mockUsers = [asDoc(staff, { name: 'Current user name', email: staff.toUpperCase() })];
+    // Names come from the cached tutor directory, not a users collection read.
+    mockUsers = [{ name: 'Current user name', email: staff.toUpperCase() }];
     mockShifts = [];
     getDocs.mockImplementation(async ref => {
-        if (ref.path === 'users') return snapshot(mockUsers);
+        if (ref.path === 'users') throw new Error('Tutor Hours must not read the users collection');
         const matching = mockShifts.filter(s => ref.filters.every(({ key, op, value }) => {
             if (op === '==') return s[key] === value;
             if (op === 'in') return value.includes(s[key]);
@@ -111,6 +113,8 @@ test('shows loading until data resolves and distinguishes an empty completed-hou
     render(<TutorHoursSummary />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading hours…');
     expect(screen.getByRole('button', { name:'Export as CSV' })).toBeDisabled();
+    // The first read waits briefly for the date pickers to settle.
+    await waitFor(() => expect(release).toBeDefined());
     await act(async()=>release(snapshot([])));
     expect(screen.getByRole('status')).toHaveTextContent('No completed hours for these dates.');
     expect(screen.getByRole('button', { name:'Export as CSV' })).toBeEnabled();
@@ -130,10 +134,11 @@ test('failed Firestore reads show a retry and recover without leaving stale repo
 
 test('an earlier date-range response cannot overwrite a newer report', async () => {
     const pending=[];
-    getDocs.mockImplementation(ref => ref.path==='users' ? Promise.resolve(snapshot(mockUsers)) : new Promise(resolve=>pending.push({ref,resolve})));
+    getDocs.mockImplementation(ref => new Promise(resolve=>pending.push({ref,resolve})));
     render(<TutorHoursSummary />);
+    await waitFor(() => expect(pending).toHaveLength(2));
     await selectWeek();
-    expect(pending).toHaveLength(4);
+    await waitFor(() => expect(pending).toHaveLength(4));
     await act(async()=>{
         pending[2].resolve(snapshot([asDoc('new',shift('new',3,3))])); pending[3].resolve(snapshot([]));
     });

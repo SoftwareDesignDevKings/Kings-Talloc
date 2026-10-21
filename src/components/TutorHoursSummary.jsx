@@ -15,6 +15,7 @@ import { ownEventsFilter } from '@/lib/patterns/calendarStrategy';
 import { calculateHours, decimalHours, formatDuration } from '@/lib/scheduling/hours';
 import { formatDisplayDate } from '@/utils/displayDate';
 import { recurringCalendarExpand } from '@/utils/calendarRecurringEvents';
+import { fetchCacheTutors } from '@/firestore/firestoreFetch';
 
 const getMonday = (d) => {
     d = new Date(d);
@@ -25,14 +26,15 @@ const getMonday = (d) => {
     return monday;
 };
 
-const buildUserNameMap = (userDocs) => {
+// Names come from the cached tutor directory rather than reading every user;
+// other staff fall back to the name saved on the shift.
+const buildUserNameMap = (tutors) => {
     const namesByEmail = new Map();
 
-    userDocs.forEach((userDoc) => {
-        const data = userDoc.data();
-        const email = (data.email || userDoc.id || '').toLowerCase();
-        if (email && data.name) {
-            namesByEmail.set(email, data.name);
+    tutors.forEach((tutor) => {
+        const email = (tutor.email || '').toLowerCase();
+        if (email && tutor.name) {
+            namesByEmail.set(email, tutor.name);
         }
     });
 
@@ -107,12 +109,12 @@ const TutorHoursSummary = () => {
                 ...accessFilter
             );
 
-            const [nonRecurringSnapshot, recurringSnapshot, usersSnapshot] = await Promise.all([
+            const [nonRecurringSnapshot, recurringSnapshot, tutors] = await Promise.all([
                 getDocs(nonRecurringQuery),
                 getDocs(recurringQuery),
-                getDocs(collection(db, 'users')),
+                fetchCacheTutors().catch(() => []),
             ]);
-            const userNamesByEmail = buildUserNameMap(usersSnapshot.docs);
+            const userNamesByEmail = buildUserNameMap(tutors);
 
             // Process non-recurring shifts
             let shifts = nonRecurringSnapshot.docs.map(doc => {
@@ -170,9 +172,11 @@ const TutorHoursSummary = () => {
         }
     }, [startDate, endDate, userEmail, isAdmin, rangeError]);
 
+    // Wait for the date pickers to settle so picking a start then an end date
+    // reads the shifts once rather than for each intermediate range.
     useEffect(() => {
-        fetchTutorHours();
-        return () => { requestRef.current++; };
+        const timer = setTimeout(fetchTutorHours, 400);
+        return () => { clearTimeout(timer); requestRef.current++; };
     }, [fetchTutorHours]);
 
     const csvData = tutorHours.map((tutor) => ({
