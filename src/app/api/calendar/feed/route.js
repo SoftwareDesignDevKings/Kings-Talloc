@@ -38,8 +38,11 @@ export async function GET(request) {
         return NextResponse.json({ error: 'Invalid calendar link' }, { status: 401 });
     }
 
-    // Fetch shifts where user is a participant (staff or student)
-    const eventsSnapshot = await adminDb.collection("shifts").get();
+    // Fetch shifts where user is a participant (staff or student). Calendar clients
+    // refresh this feed around the clock, so read only the user's shifts through the
+    // same emailsList index the in-app calendar uses, never the whole collection.
+    const aliases = [...new Set([uid.toLowerCase(), account.email])];
+    const eventsSnapshot = await adminDb.collection("shifts").where("emailsList", "array-contains-any", aliases).get();
     const events = [];
 
     eventsSnapshot.forEach((doc) => {

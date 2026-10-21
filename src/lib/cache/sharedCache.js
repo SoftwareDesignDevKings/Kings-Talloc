@@ -13,7 +13,9 @@ let redis;
 let warned = false;
 
 // Unit tests read fresh data unless a test opts in to exercise the cache itself.
-const disabled = () => process.env.NODE_ENV === 'test' && process.env.TALLOC_CACHE_TESTS !== '1';
+// Browser tests seed the emulator and assert at once, so they turn caching off.
+const disabled = () => process.env.TALLOC_DISABLE_CACHE === '1'
+    || (process.env.NODE_ENV === 'test' && process.env.TALLOC_CACHE_TESTS !== '1');
 const client = () => {
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return null;
     redis ||= new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN, automaticDeserialization: false });
@@ -92,6 +94,22 @@ export async function bumpCacheGroup(group) {
     const redisClient = client();
     if (!redisClient) return;
     try { await redisClient.incr(`${PREFIX}version:${group}`); } catch (error) { warn(error); }
+}
+
+/** Live Redis round trip, so admins can confirm the shared cache works in production. */
+export async function checkCacheHealth() {
+    const redisClient = client();
+    if (!redisClient) return { configured: false, ok: false, error: 'KV_REST_API_URL / KV_REST_API_TOKEN are not set.' };
+    const key = `${PREFIX}health:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    const started = Date.now();
+    try {
+        await redisClient.set(key, 'ok', { ex: 60 });
+        const value = await redisClient.get(key);
+        await redisClient.del(key);
+        return { configured: true, ok: value === 'ok', latencyMs: Date.now() - started, ...(value !== 'ok' && { error: 'Read back a different value.' }) };
+    } catch (error) {
+        return { configured: true, ok: false, latencyMs: Date.now() - started, error: error?.message || String(error) };
+    }
 }
 
 /** Drop one entry, on all instances. */
