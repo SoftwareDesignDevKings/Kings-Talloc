@@ -20,7 +20,7 @@ const ClassRow = ({
             <tr>
                 <td>{cls.name}</td>
                 <td>{cls.courseCode || 'No code'}</td>
-                <td>{studentCount}</td>
+                <td data-unit={studentCount === 1 ? ' student' : ' students'}>{studentCount}</td>
                 <td className={t.actionCol} style={{ textAlign: 'right' }}>
                     <div className={t.actionGroup} style={{ justifyContent: 'flex-end' }}>
                         <Button

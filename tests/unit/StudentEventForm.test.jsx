@@ -30,9 +30,17 @@ jest.mock('@/components/forms/EventFormSections/EventFormUI', () => ({
     ),
 }));
 
+jest.mock('@/hooks/useStudentSearch', () => () => ({ options: [], search: jest.fn(), noOptionsMessage: () => 'No students found' }));
+
 jest.mock('@/components/calendar/CalendarMultiSelect', () => ({
     __esModule: true,
-    default: ({ options = [], value, onChange, onMenuOpen, inputId, 'aria-label': ariaLabel }) => (
+    default: ({ options = [], value, onChange, onMenuOpen, inputId, isMulti, isDisabled, 'aria-label': ariaLabel }) => isMulti ? (
+        <div>
+            <span data-testid="group-students">{value.map(student => student.value).join(',')}</span>
+            <button type="button" disabled={isDisabled} onClick={() => onChange([...value, { value: 'peer@example.edu', label: 'Casey Example' }])}>Select Casey</button>
+            <button type="button" disabled={isDisabled} onClick={() => onChange([])}>Clear group</button>
+        </div>
+    ) : (
         <select
             id={inputId}
             aria-label={ariaLabel}
@@ -48,15 +56,6 @@ jest.mock('@/components/calendar/CalendarMultiSelect', () => ({
             ))}
         </select>
     ),
-}));
-
-jest.mock('react-select/async', () => ({
-    __esModule: true,
-    default: ({ value, onChange, isDisabled }) => <div>
-        <span data-testid="group-students">{value.map(student => student.value).join(',')}</span>
-        <button type="button" disabled={isDisabled} onClick={() => onChange([...value, { value: 'peer@example.edu', label: 'Casey Example' }])}>Select Casey</button>
-        <button type="button" disabled={isDisabled} onClick={() => onChange([])}>Clear group</button>
-    </div>,
 }));
 
 describe('StudentEventForm', () => {
@@ -172,11 +171,11 @@ describe('StudentEventForm', () => {
 
         createEventInFirestore.mockResolvedValue('request-1');
 
-        fireEvent.focus(screen.getByLabelText('Assign tutor to event'));
+        fireEvent.focus(screen.getByLabelText('Tutor for this session'));
         await waitFor(() => {
-            expect(screen.getByLabelText('Assign tutor to event')).toHaveTextContent('Tutor One (SEN)');
+            expect(screen.getByLabelText('Tutor for this session')).toHaveTextContent('Tutor One (SEN)');
         });
-        fireEvent.change(screen.getByLabelText('Assign tutor to event'), { target: { value: 'tutor@example.edu' } });
+        fireEvent.change(screen.getByLabelText('Tutor for this session'), { target: { value: 'tutor@example.edu' } });
         fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => {

@@ -20,8 +20,8 @@ test('landing copy and Get Started navigation remain usable at desktop and phone
     for (const width of [1280, 390, 320]) {
         await page.setViewportSize({ width, height: 740 }); await page.goto('/', { waitUntil: 'domcontentloaded' });
         await expect(page.getByRole('heading', { name: 'Kings-Talloc', exact: true })).toBeVisible();
-        for (const name of ['Schedule Sessions', 'Assign Tutors', 'Tutor Availability', 'Manage Classes']) await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
-        const start = page.getByRole('link', { name: 'Get Started', exact: true });
+        for (const name of ['Schedule sessions', 'Assign tutors', 'Tutor availability', 'Manage classes']) await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+        const start = page.getByRole('link', { name: 'Get started', exact: true });
         await start.focus(); await expect(start).toBeInViewport({ ratio: 1 });
         expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
         await page.screenshot({ path: `/tmp/landing-${width}.png`, fullPage: true, animations: 'disabled' });

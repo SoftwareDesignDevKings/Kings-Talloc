@@ -72,3 +72,10 @@
 @media (prefers-reduced-motion: reduce) {
     .filterPanelContainer, .toggleButton[data-untitled-button], .toggleButton > svg, .filterViewport, .closed .filterViewport { transition: none; }
 }
+.filterHeaderActions { display: flex; align-items: center; gap: 4px; }
+/* Phones: the same content in a dialog opened from the calendar toolbar. */
+.mobileOverlay[data-untitled-modal-overlay] { z-index: 1060; }
+.mobileModal { max-width: 420px; }
+.mobileDialog { display: flex; flex-direction: column; }
+.mobileDialog .filterContent { width: 100%; height: auto; border-left: 0; overflow: visible; }
+.mobileDialog .legendSection { margin-top: 12px; }

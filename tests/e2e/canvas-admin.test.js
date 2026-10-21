@@ -68,7 +68,7 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         const state = await installApi(page);
         await page.goto('/admin/canvas');
         await expect(courseRow(page, math.name)).toContainText('Mathematics Blueprint');
-        await tab(page, /^All Canvas Courses/).click();
+        await tab(page, /^All Canvas courses/).click();
         const search = page.getByPlaceholder('Search by name, code, or term', { exact: true });
         for (const query of ['  sCi11  ', '2026 term 3', 'science with a long']) {
             await search.fill(query);
@@ -104,7 +104,7 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         await remove.focus(); await page.keyboard.press('Space');
         await expect(courseRow(page, math.name)).toHaveCount(0);
         expect(state.deletes).toEqual(['101', '101']);
-        await tab(page, /^All Canvas Courses/).click();
+        await tab(page, /^All Canvas courses/).click();
         await expect(search).toHaveValue('');
         await expect(courseRow(page, math.name).getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
         expect(state.triggers).toBe(0); expect(state.unexpected).toEqual([]);
@@ -113,7 +113,7 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
     test('completed sync disables duplicate triggers and refreshes status and the whitelist', async ({ page }) => {
         const state = await installApi(page); state.pauseSync = true;
         await page.goto('/admin/canvas');
-        const run = page.getByRole('button', { name: 'Run Sync', exact: true });
+        const run = page.getByRole('button', { name: 'Run sync', exact: true });
         await expect(run).toBeEnabled(); await run.click();
         await expect.poll(() => !!state.releaseSync).toBe(true);
         await expect(page.getByRole('button', { name: 'Running…', exact: true })).toBeDisabled();
@@ -126,21 +126,21 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
     test('already-running sync polls progress and stops after a failure', async ({ page }) => {
         await page.clock.install();
         const state = await installApi(page); state.trigger = 'already_running';
-        await page.goto('/admin/canvas'); await page.getByRole('button', { name: 'Run Sync', exact: true }).click();
+        await page.goto('/admin/canvas'); await page.getByRole('button', { name: 'Run sync', exact: true }).click();
         await expect(page.getByText('A sync is already in progress.', { exact: true })).toBeVisible();
         await page.clock.fastForward(3100);
         await expect(page.getByText(/Syncing: Enrollments/)).toBeVisible();
         state.status = { is_running: false, last_status: 'failed', last_error: 'Fixture sync failed' };
         await page.clock.fastForward(3100);
         await expect(page.getByText('Sync failed: Fixture sync failed', { exact: true })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Run Sync', exact: true })).toBeEnabled();
+        await expect(page.getByRole('button', { name: 'Run sync', exact: true })).toBeEnabled();
         const reads = state.statusReads; await page.clock.fastForward(10000);
         expect(state.statusReads).toBe(reads); expect(state.unexpected).toEqual([]);
     });
 
     test('trigger failure reports an error and lets the user retry', async ({ page }) => {
         const state = await installApi(page); state.trigger = 'error';
-        await page.goto('/admin/canvas'); const run = page.getByRole('button', { name: 'Run Sync', exact: true });
+        await page.goto('/admin/canvas'); const run = page.getByRole('button', { name: 'Run sync', exact: true });
         await expect(run).toBeEnabled(); await run.click();
         await expect(page.getByText('Sync error: Fixture trigger failed', { exact: true })).toBeVisible();
         await expect(run).toBeEnabled(); expect(state.triggers).toBe(1); expect(state.unexpected).toEqual([]);
@@ -161,7 +161,7 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         state.whitelist[0].name = 'Updated by background sync';
         await page.clock.fastForward(3100);
         await expect(courseRow(page, 'Updated by background sync')).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Run Sync', exact: true })).toBeEnabled();
+        await expect(page.getByRole('button', { name: 'Run sync', exact: true })).toBeEnabled();
         const reads = state.statusReads; await page.clock.fastForward(10000);
         expect(state.statusReads).toBe(reads); expect(state.triggers).toBe(0); expect(state.unexpected).toEqual([]);
     });
@@ -171,10 +171,10 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         state.listFailures = 1; state.availableFailures = 1; state.statusFailures = 1;
         await page.goto('/admin/canvas');
         await expect(page.getByText('Could not load whitelisted courses.', { exact: true })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Run Sync', exact: true })).toBeDisabled();
+        await expect(page.getByRole('button', { name: 'Run sync', exact: true })).toBeDisabled();
         await page.getByRole('button', { name: 'Retry status', exact: true }).click();
-        await expect(page.getByRole('button', { name: 'Run Sync', exact: true })).toBeEnabled();
-        await tab(page, /^All Canvas Courses/).click();
+        await expect(page.getByRole('button', { name: 'Run sync', exact: true })).toBeEnabled();
+        await tab(page, /^All Canvas courses/).click();
         await expect(page.getByText('Could not load Canvas courses.', { exact: true })).toBeVisible();
         await page.getByRole('button', { name: 'Retry courses', exact: true }).click();
         await expect(courseRow(page, science.name).getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
@@ -190,7 +190,7 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         await page.setViewportSize({ width: 320, height: 900 });
         const state = await installApi(page); state.whitelist = []; state.pauseAvailable = true;
         await page.goto('/admin/canvas');
-        await expect(page.getByText('No courses whitelisted yet. Add some from the All Canvas Courses tab.', { exact: true })).toBeVisible();
+        await expect(page.getByText('No courses whitelisted yet. Add some from the All Canvas courses tab.', { exact: true })).toBeVisible();
         await expect(tab(page, /^Whitelisted/)).toContainText('0');
         await expect.poll(() => page.getByRole('region', { name: 'Whitelisted courses table' }).evaluate(el => {
             const section = el.closest('[class*="canvasAdmin_container"]');
@@ -202,9 +202,9 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         state.releaseAvailable(); state.pauseAvailable = false;
         const search = page.getByRole('textbox', { name: 'Search Canvas courses', exact: true });
         await search.fill('SCI11');
-        await tab(page, /^All Canvas Courses/).focus(); await page.keyboard.press('ArrowLeft');
+        await tab(page, /^All Canvas courses/).focus(); await page.keyboard.press('ArrowLeft');
         await expect(tab(page, /^Whitelisted/)).toBeFocused();
-        await expect(tab(page, /^All Canvas Courses/)).toHaveAttribute('aria-selected', 'true');
+        await expect(tab(page, /^All Canvas courses/)).toHaveAttribute('aria-selected', 'true');
         await page.keyboard.press('Enter');
         await expect(tab(page, /^Whitelisted/)).toHaveAttribute('aria-selected', 'true');
         await page.keyboard.press('ArrowRight'); await page.keyboard.press('Space');
@@ -246,7 +246,7 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
                 const button = el.getBoundingClientRect(); const row = el.closest('tr').getBoundingClientRect();
                 return Math.max(button.bottom - row.bottom, button.right - row.right);
             })).toBeLessThanOrEqual(1);
-            await tab(page, /^All Canvas Courses/).click();
+            await tab(page, /^All Canvas courses/).click();
             const allRegion = page.getByRole('region', { name: 'All Canvas courses table' });
             await expect.poll(() => allRegion.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
             await expect.poll(() => allRegion.evaluate(el => {
@@ -270,7 +270,7 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         await page.goto('/admin/canvas');
         await expect(courseRow(page, math.name)).toBeVisible();
         state.listFailures = 1;
-        await page.getByRole('button', { name: 'Run Sync', exact: true }).click();
+        await page.getByRole('button', { name: 'Run sync', exact: true }).click();
         await expect(page.getByText('Canvas sync completed, but the whitelisted list could not refresh.', { exact: true })).toBeVisible();
         await expect(page.getByText('Could not load whitelisted courses.', { exact: true })).toBeVisible();
         await page.getByRole('button', { name: 'Retry courses', exact: true }).click();
@@ -282,14 +282,14 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         const state = await installApi(page);
         state.available = Array.from({ length: 40 }, (_, i) => ({ ...math, id: 1000 + i, name: `Canvas course ${i + 1}` }));
         await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/admin/canvas'); await tab(page, /^All Canvas Courses/).click();
+        await page.goto('/admin/canvas'); await tab(page, /^All Canvas courses/).click();
         const region = page.getByRole('region', { name: 'All Canvas courses table' });
         await expect(courseRow(page, 'Canvas course 1')).toBeVisible();
         await region.focus(); await page.keyboard.press('End');
         await expect.poll(() => region.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
         const lastAdd = courseRow(page, 'Canvas course 40').getByRole('button', { name: 'Add', exact: true });
         await lastAdd.focus(); await expect(lastAdd).toBeInViewport();
-        const header = page.getByRole('columnheader', { name: 'Course Name', exact: true });
+        const header = page.getByRole('columnheader', { name: 'Course name', exact: true });
         await expect(header).toBeInViewport();
         await expect.poll(async () => {
             const a = await header.boundingBox(); const b = await region.boundingBox();

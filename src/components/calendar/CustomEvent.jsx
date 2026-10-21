@@ -73,7 +73,7 @@ const getEventTimeLabel = (event) => {
         return '';
     }
 
-    return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
+    return `${format(start, 'h:mm aaa')} – ${format(end, 'h:mm aaa')}`;
 };
 
 const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors, dayInitials }) => {
@@ -103,7 +103,7 @@ const CustomEvent = ({ event, canDuplicate, onDuplicate, tutors, dayInitials }) 
     ].filter(Boolean).join('\n');
 
     return (
-        <div className={`rbc-event-content ${styles.eventContainer}`} title={hoverTitle}>
+        <div className={`rbc-event-content ${styles.eventContainer} ${canDuplicate ? styles.hasDuplicate : ''}`} title={hoverTitle}>
             <div className={styles.eventTitle}>{event.title}</div>
             {staffInitials && (
                 <div className={styles.staffInitials}>({staffInitials})</div>

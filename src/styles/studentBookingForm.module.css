@@ -1,1 +1,5 @@
 .preferences { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Match the Untitled field labels used by the other booking fields. */
+.legend { float: none; width: auto; margin: 0 0 6px; padding: 0; font-size: .875rem; font-weight: 500; line-height: 1.43; color: var(--uui-color-text-secondary); }
+.error { color: var(--uui-color-text-error-primary); font-size: .875rem; }
+.status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--uui-color-text-tertiary); font-size: .875rem; }

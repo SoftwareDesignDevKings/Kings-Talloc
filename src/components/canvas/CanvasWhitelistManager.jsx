@@ -64,7 +64,7 @@ const SyncStatusBar = ({ status, error, onRetry, onTrigger, syncing }) => {
                 {error && <Button color="secondary" size="sm" onPress={onRetry}>Retry status</Button>}
                 <Button color="secondary" size="sm" iconLeading={RefreshCw01} onPress={onTrigger}
                     isDisabled={!status || !!error || running} isLoading={running} showTextWhileLoading>
-                    {running ? 'Running…' : 'Run Sync'}
+                    {running ? 'Running…' : 'Run sync'}
                 </Button>
             </div>
         </section>
@@ -285,7 +285,6 @@ const CanvasWhitelistManager = () => {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h2>Canvas Admin</h2>
                 <p>Choose which Canvas courses are included in the sync.</p>
             </header>
             <SyncStatusBar status={syncStatus} error={statusError} onRetry={retrySyncStatus}
@@ -293,7 +292,7 @@ const CanvasWhitelistManager = () => {
             <Tabs selectedKey={activeTab} onSelectionChange={setActiveTab} className={styles.tabs}>
                 <Tabs.List type="underline" size="sm" aria-label="Canvas courses" className={styles.tabList}>
                     <Tabs.Item id="whitelisted" badge={whitelisted?.length} className={styles.tab}>Whitelisted</Tabs.Item>
-                    <Tabs.Item id="available" badge={available?.length} className={styles.tab}>All Canvas Courses</Tabs.Item>
+                    <Tabs.Item id="available" badge={available?.length} className={styles.tab}>All Canvas courses</Tabs.Item>
                 </Tabs.List>
                 {['whitelisted', 'available'].map(key => (
                     <Tabs.Panel key={key} id={key} className={styles.panel}>
@@ -304,23 +303,23 @@ const CanvasWhitelistManager = () => {
                                     <p className={styles.hint}>{isWhitelist ? 'These courses are included when you run a sync.' : 'Search current-year courses and add them to the whitelist.'}</p>
                                 </div>
                                 {!isWhitelist && <div className={styles.search}>
-                                    <Input size="md" icon={SearchLg} aria-label="Search Canvas courses"
+                                    <Input size="sm" icon={SearchLg} aria-label="Search Canvas courses"
                                         placeholder="Search by name, code, or term" value={search} onChange={setSearch} />
                                 </div>}
                             </div>
                             <div className={styles.tableRegion} role="region" aria-label={isWhitelist ? 'Whitelisted courses table' : 'All Canvas courses table'} tabIndex={0}>
                                 <table className={styles.table} aria-label={isWhitelist ? 'Whitelisted courses' : 'All Canvas courses'}>
                                     <thead><tr>
-                                        <th scope="col">Course Name</th><th scope="col">Code</th>
+                                        <th scope="col">Course name</th><th scope="col">Code</th>
                                         <th scope="col">{isWhitelist ? 'Blueprint' : 'Term'}</th>
-                                        <th scope="col">{isWhitelist ? 'Last Synced' : 'State'}</th>
+                                        <th scope="col">{isWhitelist ? 'Last synced' : 'State'}</th>
                                         <th scope="col" className={styles.actionHeading}>Actions</th>
                                     </tr></thead>
                                     <tbody>
                                         {loading || error || rows.length === 0 ? (
                                             <ListState loading={loading} error={error} onRetry={isWhitelist ? refreshWhitelistedCourses : refreshAvailableCourses}>
                                                 {isWhitelist ? <>
-                                                    <span>No courses whitelisted yet. Add some from the All Canvas Courses tab.</span>
+                                                    <span>No courses whitelisted yet. Add some from the All Canvas courses tab.</span>
                                                     <Button color="secondary" size="sm" onPress={() => setActiveTab('available')}>Browse Canvas courses</Button>
                                                 </> : <>
                                                     <span>No courses found.</span>
@@ -332,7 +331,7 @@ const CanvasWhitelistManager = () => {
                                             const added = whitelistedIds.has(id);
                                             const termDates = formatTermDateRange(c.term_start_at, c.term_end_at);
                                             return <tr key={id}>
-                                                <Cell label="Course Name" className={styles.courseName}>{c.name || '—'}</Cell>
+                                                <Cell label="Course name" className={styles.courseName}>{c.name || '—'}</Cell>
                                                 <Cell label="Code">{c.courseCode || c.course_code || '—'}</Cell>
                                                 <Cell label={isWhitelist ? 'Blueprint' : 'Term'}>
                                                     {isWhitelist ? c.blueprint_course_name ? (
@@ -342,7 +341,7 @@ const CanvasWhitelistManager = () => {
                                                         {termDates && <small className={styles.termDates}>{termDates}</small>}
                                                     </>}
                                                 </Cell>
-                                                <Cell label={isWhitelist ? 'Last Synced' : 'State'}>
+                                                <Cell label={isWhitelist ? 'Last synced' : 'State'}>
                                                     {isWhitelist ? formatDateTime(c.last_synced) : <Badge color={c.workflow_state === 'available' ? 'success' : 'gray'}>{c.workflow_state || '—'}</Badge>}
                                                 </Cell>
                                                 <Cell label="Actions"><div className={styles.rowActions}>

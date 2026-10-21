@@ -260,20 +260,15 @@ const UserRolesManager = () => {
     };
 
     return (
-        <section className={styles.section} aria-labelledby="manageUsersHeading">
-            <header className={styles.sectionHeader}>
-                <div>
-                    <h2 id="manageUsersHeading" className={styles.sectionTitle}>Manage User Roles</h2>
-                    <p className={styles.sectionDescription}>Manage user access and tutor timesheets.</p>
-                </div>
-            </header>
+        <section className={styles.section} aria-label="Manage user roles">
+            <p className={styles.sectionDescription}>Manage user access and tutor timesheets.</p>
 
             <TableCard.Root size="sm" className={styles.tableCard}>
             <div className={styles.toolbar}>
                 <div className={styles.searchWrapper}>
                     <Input
                         type="text"
-                        size="md"
+                        size="sm"
                         icon={SearchLg}
                         aria-label="Search users"
                         placeholder="Search users..."
@@ -288,7 +283,7 @@ const UserRolesManager = () => {
                     color="secondary"
                     size="sm"
                     className={styles.templateButton}
-                >Timesheet Template</Button>
+                >Timesheet template</Button>
                 <Button
                     color="primary"
                     size="sm"
@@ -303,7 +298,7 @@ const UserRolesManager = () => {
                         setTutorCoverage([]);
                     }}
                 >
-                    Add User Role
+                    Add user role
                 </Button>
                 </div>
             </div>
@@ -424,7 +419,7 @@ const UserRolesManager = () => {
                         <Dialog ref={setCoveragePortal} aria-labelledby="userRoleModalLabel" className={styles.modalDialog}>
                             <div className={`modal-header border-bottom-0 ${styles.modalHeader}`}>
                                 <h5 className="modal-title fw-bold" id="userRoleModalLabel">
-                                    {isEditing ? 'Edit User' : 'Add New User'}
+                                    {isEditing ? 'Edit user' : 'Add new user'}
                                 </h5>
                                 <Button
                                     type="button"
@@ -441,7 +436,7 @@ const UserRolesManager = () => {
                                     <div className={styles.modalSection}>
                                         <div className="mb-3">
                                             <Input
-                                                label="Email Address"
+                                                label="Email address"
                                                 hideRequiredIndicator
                                                 type="email"
                                                 size="md"
@@ -455,7 +450,7 @@ const UserRolesManager = () => {
                                         </div>
                                         <div className="mb-0">
                                             <Input
-                                                label="Full Name"
+                                                label="Full name"
                                                 hideRequiredIndicator
                                                 type="text"
                                                 size="md"
@@ -502,10 +497,10 @@ const UserRolesManager = () => {
                                     {userHasTutorAccess && (
                                         <div className={styles.modalSection}>
                                             <label htmlFor="tutorCoverage" className={styles.sectionLabel}>
-                                                Tutor Class Coverage
+                                                Tutor class coverage
                                             </label>
                                             <MultiSelect
-                                                id="tutorCoverage" aria-label="Tutor Class Coverage" placeholder="Select..."
+                                                id="tutorCoverage" aria-label="Tutor class coverage" placeholder="Select..."
                                                 items={tutorCoverageOptions} groups={tutorCoverageOptionGroups}
                                                 selectedItems={tutorCoverage} onSelectionChange={setTutorCoverage}
                                                 isMulti isClearable shouldFlip={false} portalContainer={coveragePortal}
@@ -519,13 +514,13 @@ const UserRolesManager = () => {
                                     <Button
                                         type="button"
                                         color="secondary"
-                                        size="sm"
+                                        size="md"
                                         onPress={handleCloseModal}
                                     >
                                         Cancel
                                     </Button>
-                                    <Button type="submit" color="primary" size="sm" isDisabled={!role}>
-                                        {isEditing ? 'Save Changes' : 'Create User'}
+                                    <Button type="submit" color="primary" size="md" isDisabled={!role}>
+                                        {isEditing ? 'Save changes' : 'Create user'}
                                     </Button>
                                 </div>
                             </form>

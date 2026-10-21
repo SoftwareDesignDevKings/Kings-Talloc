@@ -139,3 +139,8 @@
         transition: none;
     }
 }
+
+/* Phones: the expanded menu slides over the page instead of squeezing it. */
+.sidebarOverlay { position: fixed; top: 0; bottom: 0; left: 0; z-index: 1040; height: 100dvh; box-shadow: 0 20px 24px -4px rgb(10 13 18 / 8%), 0 8px 8px -4px rgb(10 13 18 / 3%); }
+.overlaySpacer { flex-shrink: 0; width: 5rem; }
+.overlayScrim { position: fixed; inset: 0; z-index: 1039; background: rgb(10 13 18 / 40%); }

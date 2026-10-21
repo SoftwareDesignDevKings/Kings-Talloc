@@ -1,28 +1,28 @@
 import { test, expect } from '@playwright/test';
 
 const menus = {
-    'admin-tests': ['Dashboard', 'Calendar', 'Tutor Hours', 'Manage Users', 'Canvas Classes', 'Canvas Admin'],
-    'tutorAdmin-tests': ['Dashboard', 'Calendar', 'Tutor Hours', 'Manage Users', 'Canvas Classes', 'Canvas Admin'],
-    'teacher-tests': ['Dashboard', 'Calendar', 'Tutor Hours', 'Canvas Classes'],
-    'tutor-tests': ['Dashboard', 'Calendar', 'Tutor Hours'],
-    'coach-tests': ['Dashboard', 'Calendar', 'Tutor Hours'],
-    'coachTutor-tests': ['Dashboard', 'Calendar', 'Tutor Hours'],
+    'admin-tests': ['Dashboard', 'Calendar', 'Tutor hours', 'Manage users', 'Canvas classes', 'Canvas admin'],
+    'tutorAdmin-tests': ['Dashboard', 'Calendar', 'Tutor hours', 'Manage users', 'Canvas classes', 'Canvas admin'],
+    'teacher-tests': ['Dashboard', 'Calendar', 'Tutor hours', 'Canvas classes'],
+    'tutor-tests': ['Dashboard', 'Calendar', 'Tutor hours'],
+    'coach-tests': ['Dashboard', 'Calendar', 'Tutor hours'],
+    'coachTutor-tests': ['Dashboard', 'Calendar', 'Tutor hours'],
     'student-tests': ['Dashboard', 'Calendar'],
 };
 const routes = {
-    Dashboard: '/dashboard', Calendar: '/calendar', 'Tutor Hours': '/tutorHours',
-    'Manage Users': '/userRoles', 'Canvas Classes': '/classes', 'Canvas Admin': '/admin/canvas',
+    Dashboard: '/dashboard', Calendar: '/calendar', 'Tutor hours': '/tutorHours',
+    'Manage users': '/userRoles', 'Canvas classes': '/classes', 'Canvas admin': '/admin/canvas',
 };
 const sidebar = page => page.locator('[style*="--sidebar-w"]');
 const readyDashboard = async page => {
     await expect(sidebar(page)).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Events for Today', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^(Events for today|Today's sessions)$/ })).toBeVisible();
 };
 const readyDestination = async (page, label) => {
     if (label === 'Dashboard') return readyDashboard(page);
     if (label === 'Calendar') return expect(page.locator('.rbc-calendar')).toBeVisible();
-    if (label === 'Tutor Hours') return expect(page.getByRole('textbox', { name: 'Start Date', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: label === 'Manage Users' ? 'Manage User Roles' : label, exact: true })).toBeVisible();
+    if (label === 'Tutor hours') return expect(page.getByRole('textbox', { name: 'Start date', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
 };
 let onboarding;
 const studentDocument = () => {
@@ -108,7 +108,7 @@ test.describe('Sidebar @teacherAdmin @tutorAdmin @teacherOnly @tutorOnly @coachO
                 await link.focus();
                 await expect(link).toBeInViewport({ ratio: 1 });
             }
-            const logout = menu.getByRole('button', { name: 'Logout', exact: true });
+            const logout = menu.getByRole('button', { name: 'Log out', exact: true });
             await logout.focus();
             await expect(logout).toBeInViewport({ ratio: 1 });
             await expect.poll(() => menu.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
@@ -122,7 +122,7 @@ test.describe('Sidebar @teacherAdmin @tutorAdmin @teacherOnly @tutorOnly @coachO
     test('Logout ends the current session and returns to login', async ({ page }) => {
         await page.goto('/dashboard');
         await readyDashboard(page);
-        await sidebar(page).getByRole('button', { name: 'Logout', exact: true }).focus();
+        await sidebar(page).getByRole('button', { name: 'Log out', exact: true }).focus();
         await page.keyboard.press('Enter');
         await expect(page).toHaveURL('/login');
         await expect(page.getByRole('button', { name: 'Teacher + Admin', exact: true })).toBeVisible();
@@ -136,21 +136,22 @@ test.describe('Sidebar role switching @teacherAdmin @tutorAdmin', () => {
         const defaultRole = testInfo.project.name === 'admin-tests' ? 'Teacher' : 'Tutor';
         await page.goto('/dashboard');
         await sidebar(page).getByRole('button', { name: `View as ${defaultRole}`, exact: true }).click();
-        await expect(page.getByRole('heading', { name: `${defaultRole} Dashboard`, exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: `${defaultRole} dashboard`, exact: true })).toBeVisible();
         await expect(sidebar(page).getByRole('link')).toHaveText(menus[defaultRole.toLowerCase() + '-tests']);
         await sidebar(page).getByRole('link', { name: 'Calendar', exact: true }).click();
         await expect(page).toHaveURL('/calendar');
-        await expect(page.getByRole('heading', { name: `${defaultRole} Dashboard`, exact: true })).toBeVisible();
+        // Other pages are titled by route, so the sidebar links show the active role there.
+        await expect(page.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
         await sidebar(page).getByRole('button', { name: 'View as Admin', exact: true }).focus();
         await page.keyboard.press('Space');
-        await expect(page.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeVisible();
         await expect(sidebar(page).getByRole('link')).toHaveText(menus[testInfo.project.name]);
+        await expect(page.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
         await expect(page).toHaveURL('/calendar');
         await sidebar(page).getByRole('button', { name: `View as ${defaultRole}`, exact: true }).click();
-        await expect(page.getByRole('heading', { name: `${defaultRole} Dashboard`, exact: true })).toBeVisible();
+        await expect(sidebar(page).getByRole('link')).toHaveText(menus[defaultRole.toLowerCase() + '-tests']);
         await page.reload();
         // Main's current auth initialization returns to Admin on a full reload.
         // Keep that behavior; role persistence changes are outside this UI port.
-        await expect(page.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeVisible();
+        await expect(sidebar(page).getByRole('link')).toHaveText(menus[testInfo.project.name]);
     });
 });

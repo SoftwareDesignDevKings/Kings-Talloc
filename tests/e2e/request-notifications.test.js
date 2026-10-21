@@ -25,26 +25,26 @@ test.describe('Request notifications @teacherAdmin', () => {
         await seedStudentRequestInEmulator('past', request('Missed session', -1));
         await page.goto('/dashboard');
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
-        await page.getByRole('button', { name: 'Pending Approvals 2', exact: true }).click();
-        const dropdown = page.getByRole('dialog', { name: 'Pending Approvals', exact: true }).getByRole('list');
+        await page.getByRole('button', { name: 'Pending approvals 2', exact: true }).click();
+        const dropdown = page.getByRole('dialog', { name: 'Pending approvals', exact: true }).getByRole('list');
         await expect(dropdown.getByText('A session tomorrow', { exact: true })).toBeVisible();
         await expect(dropdown.getByRole('listitem').first()).toContainText('A session tomorrow');
         await expect(dropdown.getByText('A session in four weeks', { exact: true })).toBeVisible();
         await expect(dropdown.getByText('Missed session', { exact: true })).toHaveCount(0);
         await page.keyboard.press('Escape');
-        await expect(page.getByRole('dialog', { name: 'Pending Approvals', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('dialog', { name: 'Pending approvals', exact: true })).toHaveCount(0);
         await page.getByRole('link', { name: 'Calendar', exact: true }).click();
         await expect(page).toHaveURL(/\/calendar/);
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
-        await page.getByRole('link', { name: 'Manage Users', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'Manage User Roles', exact: true })).toBeVisible();
+        await page.getByRole('link', { name: 'Manage users', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Manage users', exact: true })).toBeVisible();
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
         await expect(page).toHaveURL(/\/dashboard/);
-        await page.getByRole('button', { name: 'Pending Approvals 2', exact: true }).click();
+        await page.getByRole('button', { name: 'Pending approvals 2', exact: true }).click();
         await expect(dropdown).toBeVisible();
         await confirmAction(page, /Reject this request\?/, () => dropdown.getByRole('listitem').first().getByRole('button', { name: 'Reject', exact: true }).click());
-        await expect(page.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Pending approvals 1', exact: true })).toBeVisible();
         const meetingResponse = page.waitForResponse(response => response.url().includes('/api/microsoft') && response.request().method() === 'POST');
         await dropdown.getByRole('button', { name: 'Approve', exact: true }).click();
         await expect(page.getByText('Request approved successfully', { exact: true })).toBeVisible();
@@ -57,12 +57,14 @@ test.describe('Request notifications @teacherAdmin', () => {
         await seedStudentRequestInEmulator('old-a', request('Old A', 2));
         await seedStudentRequestInEmulator('old-b', request('Old B', 28));
         await page.goto('/dashboard');
-        await expect(page.getByRole('button', { name: 'Pending Approvals 2', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Pending approvals 2', exact: true })).toBeVisible();
         await page.getByRole('button', { name: 'View as Teacher', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'Teacher Dashboard', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Teacher dashboard', exact: true })).toBeVisible();
         const second = await context.newPage();
         await second.goto('/calendar');
-        await expect(second.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeVisible();
+        // Pages are titled by route, so the sidebar's role switch shows the new tab opened as Admin.
+        await expect(second.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
+        await expect(second.getByRole('button', { name: 'View as Teacher', exact: true })).toBeVisible();
         await expect(second.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         const away = await context.newPage();
         await away.goto('about:blank');
@@ -82,7 +84,7 @@ test.describe('Request notifications @teacherAdmin', () => {
         await expect(second).toHaveTitle('Kings-Talloc');
         await expect(page).toHaveTitle('Kings-Talloc');
         await second.getByRole('link', { name: 'Dashboard', exact: true }).click();
-        await expect(second.getByRole('button', { name: 'Pending Approvals 5', exact: true })).toBeVisible();
+        await expect(second.getByRole('button', { name: 'Pending approvals 5', exact: true })).toBeVisible();
         await away.close();
         await second.close();
     });
@@ -100,21 +102,21 @@ test.describe('Request notifications @teacherAdmin', () => {
         try {
             const otherPage = await otherContext.newPage();
             await otherPage.goto('/dashboard');
-            await expect(otherPage.getByRole('button', { name: 'Pending Approvals 0', exact: true })).toBeVisible();
+            await expect(otherPage.getByRole('button', { name: 'Pending approvals 0', exact: true })).toBeVisible();
             const otherSession = await otherContext.newCDPSession(otherPage);
             await otherSession.send('Emulation.setFocusEmulationEnabled', { enabled: false });
             const away = await otherContext.newPage();
             await away.goto('about:blank');
             await away.bringToFront();
             await seedStudentRequestInEmulator('before-opt-in', request('Existing before opt-in', 2));
-            await expect(otherPage.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
+            await expect(otherPage.getByRole('button', { name: 'Pending approvals 1', exact: true })).toBeVisible();
             await expect(otherPage).toHaveTitle('Kings-Talloc');
 
             await page.getByRole('row').filter({ hasText: 'computing@kings.edu.au' }).getByRole('button', { name: 'Edit user', exact: true }).click();
             await expect(setting).not.toBeChecked();
             await setting.locator('xpath=ancestor::label[1]').click();
             await expect(setting).toBeChecked();
-            await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+            await page.getByRole('button', { name: 'Save changes', exact: true }).click();
             await expect(setting).toHaveCount(0);
             // Reopen to verify persistence and let the live preference listener receive the save.
             await page.getByRole('row').filter({ hasText: 'computing@kings.edu.au' }).getByRole('button', { name: 'Edit user', exact: true }).click();
@@ -124,7 +126,7 @@ test.describe('Request notifications @teacherAdmin', () => {
             await expect(otherPage).toHaveTitle('(1) Kings-Talloc');
             await setting.locator('xpath=ancestor::label[1]').click();
             await expect(setting).not.toBeChecked();
-            await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+            await page.getByRole('button', { name: 'Save changes', exact: true }).click();
             await expect(otherPage).toHaveTitle('Kings-Talloc');
         } finally {
             await otherContext.close();
@@ -134,23 +136,23 @@ test.describe('Request notifications @teacherAdmin', () => {
     test('Michael’s teacher view can approve and switching back preserves the queue', async ({ page }) => {
         await seedStudentRequestInEmulator('baseline', request('Baseline', 28));
         await page.goto('/dashboard');
-        await expect(page.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Pending approvals 1', exact: true })).toBeVisible();
         await page.getByRole('button', { name: 'View as Teacher', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'Teacher Dashboard', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Teacher dashboard', exact: true })).toBeVisible();
         await page.getByRole('link', { name: 'Calendar', exact: true }).click();
         await expect(page.getByRole('link', { name: /requests? awaiting approval/ })).toHaveCount(0);
         await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
-        await page.getByRole('button', { name: 'Pending Approvals 1', exact: true }).click();
-        const dropdown = page.getByRole('dialog', { name: 'Pending Approvals', exact: true }).getByRole('list');
+        await page.getByRole('button', { name: 'Pending approvals 1', exact: true }).click();
+        const dropdown = page.getByRole('dialog', { name: 'Pending approvals', exact: true }).getByRole('list');
         await expect(dropdown.getByText('Baseline', { exact: true })).toBeVisible();
         await expect(dropdown.getByRole('button', { name: 'Approve', exact: true })).toBeVisible();
         await seedStudentRequestInEmulator('new', request('New in teacher view', 3));
-        await expect(page.getByRole('button', { name: 'Pending Approvals 2', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Pending approvals 2', exact: true })).toBeVisible();
         await expect(page).toHaveTitle('Kings-Talloc');
         await page.keyboard.press('Escape');
-        await expect(page.getByRole('dialog', { name: 'Pending Approvals', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('dialog', { name: 'Pending approvals', exact: true })).toHaveCount(0);
         await page.getByRole('button', { name: 'View as Admin', exact: true }).click();
-        await expect(page.getByRole('button', { name: 'Pending Approvals 2', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Pending approvals 2', exact: true })).toBeVisible();
     });
 
     test('teachers without admin access can opt in; admins without teacher access cannot', async ({ page, browser }) => {
@@ -166,7 +168,7 @@ test.describe('Request notifications @teacherAdmin', () => {
             const admin = await adminContext.newPage();
             for (const tab of [teacher, admin]) {
                 await tab.goto('/dashboard');
-                await expect(tab.getByRole('button', { name: 'Pending Approvals 0', exact: true })).toBeVisible();
+                await expect(tab.getByRole('button', { name: 'Pending approvals 0', exact: true })).toBeVisible();
                 const session = await tab.context().newCDPSession(tab);
                 await session.send('Emulation.setFocusEmulationEnabled', { enabled: false });
                 const away = await tab.context().newPage();
@@ -175,7 +177,7 @@ test.describe('Request notifications @teacherAdmin', () => {
             }
             await seedStudentRequestInEmulator('new', request('Teacher notification', 28));
             await expect(teacher).toHaveTitle('(1) Kings-Talloc');
-            await expect(admin.getByRole('button', { name: 'Pending Approvals 1', exact: true })).toBeVisible();
+            await expect(admin.getByRole('button', { name: 'Pending approvals 1', exact: true })).toBeVisible();
             await expect(admin).toHaveTitle('Kings-Talloc');
         } finally {
             await teacherContext.close();

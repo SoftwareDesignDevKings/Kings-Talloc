@@ -53,7 +53,7 @@ test.each(['admin', 'teacher', 'tutor', 'coach', 'student'])('%s retains role-sp
     expect(screen.queryByLabelText('Hide denied student requests') !== null).toBe(['admin', 'teacher'].includes(role));
     expect(screen.queryByLabelText('Hide my own availabilities') !== null).toBe(['tutor', 'coach'].includes(role));
     expect(screen.queryByTitle('How to use the calendar') !== null).toBe(role === 'student');
-    expect(screen.getByText('Calendar Legend')).toBeInTheDocument();
+    expect(screen.getByText('Calendar legend')).toBeInTheDocument();
     expect(screen.queryByText('Availability block') !== null).toBe(['tutor', 'coach'].includes(role));
     expect(screen.queryByText('Pending', { exact: true }) !== null).toBe(!['tutor', 'coach'].includes(role));
 });
@@ -79,10 +79,10 @@ test('availability master disables Hide mine without losing its state', () => {
     fireEvent.click(screen.getByLabelText('Hide my own availabilities'));
     expect(screen.getByLabelText('Visible availability')).not.toHaveTextContent(email);
     expect(screen.getByLabelText('Visible availability')).toHaveTextContent(other.email);
-    fireEvent.click(screen.getByLabelText('Show tutor availabilities'));
+    fireEvent.click(screen.getByLabelText('Show tutor availability'));
     expect(screen.getByLabelText('Hide my own availabilities')).toBeDisabled();
     expect(screen.getByLabelText('Visible availability')).toBeEmptyDOMElement();
-    fireEvent.click(screen.getByLabelText('Show tutor availabilities'));
+    fireEvent.click(screen.getByLabelText('Show tutor availability'));
     expect(screen.getByLabelText('Hide my own availabilities')).toBeChecked();
     fireEvent.click(screen.getByLabelText('Hide my own availabilities'));
     expect(screen.getByLabelText('Visible availability')).toHaveTextContent(email);
@@ -118,9 +118,9 @@ test('student help auto-shows on first visit and closing persists only the seen 
     getDoc.mockResolvedValue({ exists: () => true, data: () => ({ hasSeenCalendarHelp: false }) });
     const hide = jest.fn();
     render(<CalendarHowToModal show={false} onHide={hide} autoShow />);
-    const dialog = await screen.findByRole('dialog', { name: 'How to Use the Calendar' });
-    expect(within(dialog).getByText('Working with Events')).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Got it!' }));
+    const dialog = await screen.findByRole('dialog', { name: 'How to use the calendar' });
+    expect(within(dialog).getByText('Working with sessions')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Got it' }));
     await waitFor(() => expect(updateDoc).toHaveBeenCalledWith(undefined, { hasSeenCalendarHelp: true }));
     expect(hide).toHaveBeenCalledTimes(1);
 });

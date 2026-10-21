@@ -6,9 +6,6 @@ const mockResult = jest.fn(), mockSetAvailability = jest.fn();
 jest.mock('@/hooks/useAlert', () => () => ({ addAlert: jest.fn() }));
 jest.mock('@/contexts/AppDataContext', () => ({ useAppData: () => ({ calendarAvailabilities: [{ id: 'availability' }], setCalendarAvailabilities: mockSetAvailability }) }));
 jest.mock('@/firestore/firestoreOperations', () => ({ deleteEventFromFirestore: jest.fn() }));
-jest.mock('@/components/modals/BaseModal', () => function MockModal({ deleteButton, loading }) {
-    return <button disabled={loading} onClick={async () => mockResult(await deleteButton.onClick())}>Delete</button>;
-});
 beforeEach(() => { jest.clearAllMocks(); jest.spyOn(window, 'confirm').mockReturnValue(false); deleteEventFromFirestore.mockResolvedValue(); });
 test.each([false, true])('availability deletion requires confirmation: %s', async confirmed => {
     window.confirm.mockReturnValue(confirmed);

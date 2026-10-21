@@ -62,6 +62,10 @@ export const AppDataContextProvider = ({ children }) => {
     const [appShifts, setAppShifts] = useState([]);
     const [appAvailabilities, setAppAvailabilities] = useState([]);
     const [appStudentRequests, setAppStudentRequests] = useState([]);
+    // Set once the first shift snapshot arrives so views can show loading states
+    // instead of empty ones; later week navigation keeps showing the previous data.
+    const [calendarDataLoaded, setCalendarDataLoaded] = useState(false);
+    const [referenceDataLoaded, setReferenceDataLoaded] = useState(false);
 
     const [subjects, setSubjects] = useState([]);
     const [tutors, setTutors] = useState([]);
@@ -136,7 +140,8 @@ export const AppDataContextProvider = ({ children }) => {
         if (!calendarDataWanted || !userEmail || !calendarStrategy.firestoreConstraints) return;
         const { firestoreConstraints } = calendarStrategy;
 
-        const unsubOneOff = firestoreFetchOneOffShifts(setOneOffShifts, debouncedDateRange, firestoreConstraints.shifts());
+        const unsubOneOff = firestoreFetchOneOffShifts(shifts => { setOneOffShifts(shifts); setCalendarDataLoaded(true); },
+            debouncedDateRange, firestoreConstraints.shifts());
         const unsubAvail = firestoreFetchAvailabilities(setAppAvailabilities, debouncedDateRange, firestoreConstraints.availabilities());
         const unsubRequests = firestoreFetchStudentRequests(setAppStudentRequests, debouncedDateRange, firestoreConstraints.studentRequests());
 
@@ -162,6 +167,7 @@ export const AppDataContextProvider = ({ children }) => {
             setTutors(tutorList);
             setClasses(classList);
             setSubjects(subjectList);
+            setReferenceDataLoaded(true);
 
             if (userRole === 'student') {
                 const eligibility = await fetchReferenceDataSafely(
@@ -174,7 +180,9 @@ export const AppDataContextProvider = ({ children }) => {
                 setStudentTutorEligibility({ coverageKeys: [], eligibleTutorEmails: [], eligibleTutors: [] });
             }
         };
-        loadReferenceData().catch((error) => console.error('Error loading reference data:', error));
+        loadReferenceData()
+            .catch((error) => console.error('Error loading reference data:', error))
+            .finally(() => setReferenceDataLoaded(true));
     }, [userEmail, userRole, canReadCanvasReferenceData]);
 
     const contextValues = useMemo(() => ({
@@ -185,9 +193,11 @@ export const AppDataContextProvider = ({ children }) => {
         setCalendarAvailabilities: setAppAvailabilities,
         calendarStudentRequests: appStudentRequests,
         setCalendarStudentRequests: setAppStudentRequests,
+        calendarDataLoading: !calendarDataLoaded,
 
         // reference data (one-time fetch)
         classes,
+        classesLoading: !referenceDataLoaded,
         subjects,
         tutors,
         studentTutorEligibility,
@@ -202,6 +212,8 @@ export const AppDataContextProvider = ({ children }) => {
         appShifts,
         appAvailabilities,
         appStudentRequests,
+        calendarDataLoaded,
+        referenceDataLoaded,
         classes,
         subjects,
         tutors,

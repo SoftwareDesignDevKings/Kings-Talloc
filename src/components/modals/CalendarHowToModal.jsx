@@ -77,7 +77,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
             <Modal className={styles.helpModal}>
                 <Dialog aria-labelledby={titleId} className={styles.helpDialog}>
                     <header className={styles.helpHeader}>
-                        <h5 id={titleId} className={styles.helpTitle}>How to Use the Calendar</h5>
+                        <h5 id={titleId} className={styles.helpTitle}>How to use the calendar</h5>
                         <Button size="sm" color="tertiary" iconLeading={XClose} aria-label="Close" onClick={handleClose} />
                     </header>
                     <div className={styles.helpBody}>
@@ -94,13 +94,13 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                     <div className={styles.helpSection}>
                         <h2>
                             <Button size="sm" color="tertiary" className={styles.helpAccordionButton} iconLeading={Flag02} iconTrailing={ChevronDown} aria-expanded={openSection === 'colorsSection'} aria-controls="colorsSection" onClick={() => setOpenSection(current => current === 'colorsSection' ? null : 'colorsSection')}>
-                                <span>What do the Colours mean?</span>
+                                <span>What do the colours mean?</span>
                             </Button>
                         </h2>
                         <div id="colorsSection" hidden={openSection !== 'colorsSection'}>
                             <div className={styles.helpAccordionBody}>
                                 <p className={guidance.spacedParagraph}>
-                                    The calendar uses different colors to show different information:
+                                    The calendar uses different colours to show different information:
                                 </p>
                                 <CalendarColourGuide userRole={userRole} descriptions />
                             </div>
@@ -111,17 +111,17 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                     <div className={styles.helpSection}>
                         <h2>
                             <Button size="sm" color="tertiary" className={styles.helpAccordionButton} iconLeading={Settings01} iconTrailing={ChevronDown} aria-expanded={openSection === 'filterPanelSection'} aria-controls="filterPanelSection" onClick={() => setOpenSection(current => current === 'filterPanelSection' ? null : 'filterPanelSection')}>
-                                <span>Using the Filter Panel</span>
+                                <span>Using the filters</span>
                             </Button>
                         </h2>
                         <div id="filterPanelSection" hidden={openSection !== 'filterPanelSection'}>
                             <div className={styles.helpAccordionBody}>
                                 <ol className={guidance.steps}>
                                     <li className={guidance.listItem}>
-                                        <strong>Select a subject</strong> from the first dropdown (e.g. Software, IB CompSci)
+                                        <strong>Open the filters</strong> on the right of the calendar (on a phone, tap <strong>Filters</strong> above the calendar)
                                     </li>
                                     <li className={guidance.listItem}>
-                                        <strong>Choose tutors</strong> from the second dropdown to see only their availabilities
+                                        <strong>Choose tutors</strong> from the dropdown to see only their availability
                                     </li>
                                     <li className={guidance.paragraph}>
                                         The calendar will update to show only the selected tutors&apos; available times
@@ -135,7 +135,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                     <div className={styles.helpSection}>
                         <h2>
                             <Button size="sm" color="tertiary" className={styles.helpAccordionButton} iconLeading={Calendar} iconTrailing={ChevronDown} aria-expanded={openSection === 'interactionsSection'} aria-controls="interactionsSection" onClick={() => setOpenSection(current => current === 'interactionsSection' ? null : 'interactionsSection')}>
-                                <span>Working with Events</span>
+                                <span>Working with sessions</span>
                             </Button>
                         </h2>
                         <div id="interactionsSection" hidden={openSection !== 'interactionsSection'}>
@@ -150,7 +150,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
                                 </div>
                                 <div className={guidance.paragraph}>
                                     <strong>Check the legend</strong>
-                                    <p className={guidance.smallParagraph}>Look at the small legend in the bottom-right corner for a quick reminder of what each color means.</p>
+                                    <p className={guidance.smallParagraph}>The legend at the bottom of the filters is a quick reminder of what each colour means.</p>
                                 </div>
                             </div>
                         </div>
@@ -180,7 +180,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
             </div>
                     </div>
                     <footer className={styles.helpFooter}>
-                        <Button size="sm" color="secondary" onClick={handleClose}>Got it!</Button>
+                        <Button size="md" color="primary" onClick={handleClose}>Got it</Button>
                     </footer>
                 </Dialog>
             </Modal>

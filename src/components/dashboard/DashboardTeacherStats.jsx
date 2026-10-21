@@ -12,14 +12,14 @@ const DashboardTeacherStats = ({ data }) => (
         <BaseStatsCard
             icon={Calendar}
             color="brand"
-            title="Student Tutor Sessions"
+            title="Student tutor sessions"
             value={data.teacherStats.studentSessions}
             delay={150}
         />
         <BaseStatsCard
             icon={AlertCircle}
             color="warning"
-            title="Uncompleted Tutor Sessions"
+            title="Uncompleted tutor sessions"
             value={data.teacherStats.uncompletedShifts}
             delay={250}
         />
