@@ -92,6 +92,8 @@ export default defineConfig({
         command: 'npm run dev',
         port: 3000,
         reuseExistingServer: !process.env.CI,
-        timeout: 120000
+        timeout: 120000,
+        // Tests seed the emulator and assert at once; server caching would serve stale data.
+        env: { TALLOC_DISABLE_CACHE: '1' },
     }
 })

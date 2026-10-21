@@ -76,3 +76,21 @@ test('load errors are not cached', async () => {
     await expect(cache.cached('key', 60, async () => { throw new Error('RESOURCE_EXHAUSTED'); })).rejects.toThrow('RESOURCE_EXHAUSTED');
     expect(await cache.cached('key', 60, async () => 'recovered')).toBe('recovered');
 });
+test('the health check reports a working Redis round trip', async () => {
+    const health = await instance().checkCacheHealth();
+    expect(health).toEqual(expect.objectContaining({ configured: true, ok: true }));
+    expect([...mockStore.keys()].some(key => key.includes('health'))).toBe(false);
+});
+test('the health check explains missing settings and Redis errors', async () => {
+    mockRedis.set.mockRejectedValueOnce(new Error('WRONGPASS'));
+    expect(await instance().checkCacheHealth()).toEqual(expect.objectContaining({ configured: true, ok: false, error: 'WRONGPASS' }));
+    delete process.env.KV_REST_API_TOKEN;
+    expect(await instance().checkCacheHealth()).toEqual(expect.objectContaining({ configured: false, ok: false }));
+});
+test('browser tests can turn caching off', async () => {
+    process.env.TALLOC_DISABLE_CACHE = '1';
+    const load = jest.fn(async () => 'fresh');
+    const cache = instance();
+    await cache.cached('key', 60, load); await cache.cached('key', 60, load);
+    expect(load).toHaveBeenCalledTimes(2); expect(mockRedis.get).not.toHaveBeenCalled();
+});
