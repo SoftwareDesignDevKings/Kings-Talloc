@@ -74,7 +74,10 @@ const getClientIp = (req) => {
 const isRateLimitExemptPath = (pathname) =>
     pathname === '/api/auth' || pathname.startsWith('/api/auth/')
     // Availability applies its own generous per-account limit in the route.
-    || pathname === '/api/availability';
+    || pathname === '/api/availability'
+    // Read telemetry is a once-a-minute log line per tab; it must not use up a
+    // school network's shared per-IP allowance.
+    || pathname === '/api/telemetry/reads';
 
 /**
  * Build CSP string with nonce

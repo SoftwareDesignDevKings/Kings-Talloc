@@ -9,6 +9,7 @@ import guidance from '@/styles/studentGuidance.module.css';
 import styles from '@/styles/calendarControls.module.css';
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { recordGetReads } from '@/lib/telemetry/clientReads';
 import useAuthSession from '@/hooks/useAuthSession';
 import CalendarColourGuide from '@/components/calendar/CalendarColourGuide';
 
@@ -31,6 +32,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
             try {
                 const userRef = doc(db, 'users', session.user.email);
                 const userDoc = await getDoc(userRef);
+                recordGetReads('users:calendar-help-flag', userDoc);
 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();

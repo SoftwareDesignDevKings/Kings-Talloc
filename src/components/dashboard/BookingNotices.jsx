@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { collection, doc, onSnapshot, query, where, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
+import { recordSnapshotReads } from '@/lib/telemetry/clientReads';
 import useAuthSession from '@/hooks/useAuthSession';
 import { formatDisplayDateTime } from '@/utils/displayDate';
 
@@ -17,10 +18,11 @@ export default function BookingNotices() {
         if (!email) return;
         const fail = () => { setReady(false); setError('Unable to refresh booking updates.'); };
         const unsubscribe = onSnapshot(query(collection(db, 'bookingNotifications'), where('recipientEmail', '==', email)), snapshot => {
+            recordSnapshotReads('bookingNotifications', snapshot);
             setNotices(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(notice => notice.kind !== 'assigned').sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
             setReady(!snapshot.metadata.fromCache); setError(null);
         }, fail);
-        const unsubscribeAck = onSnapshot(doc(db, 'bookingNotificationState', email), snapshot => setAck(snapshot.data()?.acknowledgedAt || null), fail);
+        const unsubscribeAck = onSnapshot(doc(db, 'bookingNotificationState', email), snapshot => { recordSnapshotReads('bookingNotificationState', snapshot); setAck(snapshot.data()?.acknowledgedAt || null); }, fail);
         return () => { unsubscribe(); unsubscribeAck(); };
     }, [email]);
     const unseen = ack ? notices.filter(notice => notice.createdAt.toMillis() > ack.toMillis()) : notices;

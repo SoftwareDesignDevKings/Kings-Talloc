@@ -10,6 +10,7 @@ import { TableCard } from '@/components/untitled/table-card';
 import { HomeLine, Calendar, InfoCircle } from '@untitledui/icons';
 import { db } from '@/firestore/firestoreClient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { recordGetReads } from '@/lib/telemetry/clientReads';
 import CalendarColourGuide from '@/components/calendar/CalendarColourGuide';
 
 /**
@@ -28,6 +29,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
             try {
                 const userRef = doc(db, 'users', userEmail);
                 const userDoc = await getDoc(userRef);
+                recordGetReads('users:welcome-flag', userDoc);
 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();

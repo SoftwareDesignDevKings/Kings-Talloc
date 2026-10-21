@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname } from 'next/navigation';
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/firestore/firestoreClient';
+import { recordSnapshotReads } from '@/lib/telemetry/clientReads';
 import {
     getRequestNotificationPreference, REQUEST_ACK_STORAGE_PREFIX,
     timestampValue, compareTimestamps, latestRequestTimestamp, futurePendingRequests, countNewRequests,
@@ -116,6 +117,7 @@ const RequestSubscriptions = ({ email, profileId, notificationEligible, children
         setPreferenceReady(false);
         setPreferenceError(null);
         return onSnapshot(doc(db, 'users', profileId), { includeMetadataChanges: true }, (snapshot) => {
+            recordSnapshotReads('users:own-notification-settings', snapshot);
             const fresh = !snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites && navigator.onLine;
             // A missing/cached preference is unknown, not an opt-out: it must not consume unseen requests.
             if (!fresh) {
@@ -144,6 +146,7 @@ const RequestSubscriptions = ({ email, profileId, notificationEligible, children
         setReady(false);
         const pendingQuery = query(collection(db, 'studentEventRequests'), where('approvalStatus', '==', 'pending'));
         return onSnapshot(pendingQuery, { includeMetadataChanges: true }, (snapshot) => {
+            recordSnapshotReads('studentEventRequests:pending', snapshot);
             const fresh = !snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites && navigator.onLine;
             // Keep the last server result during reconnects rather than replacing it with an incomplete cache.
             if (fresh || currentSnapshot.current === null) {

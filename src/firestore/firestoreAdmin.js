@@ -1,6 +1,10 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { enableFirestoreReadLogging } from '@/lib/telemetry/firestoreReadLog';
+
+// Every server read is logged so quota use can be traced to a route.
+enableFirestoreReadLogging();
 
 // Connect to emulators in development mode (must be set BEFORE initializing)
 if (process.env.NODE_ENV === 'development') {
