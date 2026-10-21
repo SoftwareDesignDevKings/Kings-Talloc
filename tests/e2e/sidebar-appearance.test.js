@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test';
 
 test('sidebar active state, keyboard focus, and controls remain clear at desktop and narrow mobile sizes @teacherAdmin @tutorAdmin', async ({ page }) => {
     await page.goto('/userRoles');
-    await expect(page.getByRole('heading', { name: 'Manage Users', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Manage users', exact: true })).toBeVisible();
     const sidebar = page.getByRole('complementary');
     const menu = sidebar.getByRole('navigation', { name: 'Menu', exact: true });
-    const active = menu.getByRole('link', { name: 'Manage Users', exact: true });
+    const active = menu.getByRole('link', { name: 'Manage users', exact: true });
     await expect(active).toHaveAttribute('aria-current', 'page');
     await expect(menu.locator('[aria-current="page"]')).toHaveCount(1);
     await expect(active).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
@@ -36,8 +36,8 @@ test('sidebar active state, keyboard focus, and controls remain clear at desktop
         await expect(sidebar).toHaveCSS('--sidebar-w', '5rem');
         await expect.poll(() => sidebar.evaluate(el => Math.abs(el.getBoundingClientRect().width - 5 * parseFloat(getComputedStyle(document.documentElement).fontSize)))).toBeLessThan(0.5);
         for (const control of await sidebar.locator('a, button').all()) await expect(control).toBeInViewport({ ratio: 1 });
-        await expect(active).toHaveAccessibleName('Manage Users');
-        await expect(sidebar.getByRole('button', { name: 'Logout', exact: true })).toBeVisible();
+        await expect(active).toHaveAccessibleName('Manage users');
+        await expect(sidebar.getByRole('button', { name: 'Log out', exact: true })).toBeVisible();
         await expect.poll(() => sidebar.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
     }
 });

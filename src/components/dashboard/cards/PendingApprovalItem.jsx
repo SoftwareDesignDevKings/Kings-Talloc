@@ -8,7 +8,7 @@ const PendingApprovalItem = ({ request, onApprove, onReject, onDelete, readOnly,
         <div className={styles.requestContent}>
             <div>
                 <div className={styles.requestTitle}>
-                    {request.title || 'Untitled Request'}
+                    {request.title || 'Untitled request'}
                 </div>
                 <div className={styles.requestDetails}>
                     {request.students && request.students.length > 0 && (

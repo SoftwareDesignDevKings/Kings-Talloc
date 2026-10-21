@@ -180,7 +180,7 @@ const CalendarHowToModal = ({ show, onHide, autoShow = false }) => {
             </div>
                     </div>
                     <footer className={styles.helpFooter}>
-                        <Button size="sm" color="primary" onClick={handleClose}>Got it</Button>
+                        <Button size="md" color="primary" onClick={handleClose}>Got it</Button>
                     </footer>
                 </Dialog>
             </Modal>

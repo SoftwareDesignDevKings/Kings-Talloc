@@ -72,11 +72,11 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                 <div className={styles.footerActions}>
                     <Button
                         type="button"
-                        size="sm"
+                        size="md"
                         color="primary"
                         onClick={handleClose}
                     >
-                        Get Started
+                        Get started
                     </Button>
                 </div>
             }

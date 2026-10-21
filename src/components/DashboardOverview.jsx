@@ -84,7 +84,7 @@ const DashboardOverview = () => {
         const uniqueTutorEmailsToday = new Set();
         const classCounts = new Map();
 
-        // Pending Requests
+        // Pending requests
         // Note: AppDataProvider only fetches requests for the current view range. 
         // If we need ALL pending requests globally, we might need a separate fetch or adjust the provider.
         // For now, we use what's in the current week view which covers most immediate concerns.
@@ -92,6 +92,8 @@ const DashboardOverview = () => {
         const studentPending = userRole === 'student' ? pendingRequestsData : [];
         const studentPendingToday = studentPending.filter(req => new Date(req.start) >= startOfToday && new Date(req.start) <= endOfToday);
         const studentPendingUpcoming = studentPending.filter(req => new Date(req.start) > now);
+        // Today's events already have their own list, so the Upcoming list starts tomorrow.
+        const afterToday = event => new Date(event.start) > endOfToday;
 
         calendarShifts.forEach(event => {
             const start = new Date(event.start);
@@ -193,8 +195,8 @@ const DashboardOverview = () => {
             todayEvents: todayEvents.sort((a, b) => new Date(a.start) - new Date(b.start)),
             // Students also see their own pending requests in the lists, marked Pending.
             todayListEvents: [...todayEvents, ...studentPendingToday].sort((a, b) => new Date(a.start) - new Date(b.start)),
-            upcomingListEvents: [...upcomingEvents, ...studentPendingUpcoming].sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 5),
-            upcomingListCount: upcomingEvents.length + studentPendingUpcoming.length,
+            upcomingListEvents: [...upcomingEvents, ...studentPendingUpcoming].filter(afterToday).sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 5),
+            upcomingListCount: [...upcomingEvents, ...studentPendingUpcoming].filter(afterToday).length,
             upcomingEvents: upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 5),
             upcomingEventsCount: upcomingEvents.length,
             upcomingPeriod: `Through ${formatDisplayDate(nextWeekEnd)}`,
@@ -275,7 +277,7 @@ const DashboardOverview = () => {
                 <div ref={notificationActionsRef} className={styles.notificationActions}>
                     <Button size="sm" color="secondary" onClick={handleSendEmailNotifications}
                         isDisabled={isSendingEmails} aria-busy={isSendingEmails}>
-                        {isSendingEmails ? 'Sending Shift Notifications...' : 'Email Shift Notifications'}
+                        {isSendingEmails ? 'Sending shift notifications...' : 'Email shift notifications'}
                     </Button>
                 </div>
             )}
@@ -288,7 +290,7 @@ const DashboardOverview = () => {
             {/* Today's Events */}
             <EventsList
                 events={dashboardData.todayListEvents}
-                title={isStudent ? "Today's Sessions" : 'Events for Today'}
+                title={isStudent ? "Today's sessions" : 'Events for today'}
                 emptyMessage={isStudent ? 'No sessions today' : 'No events scheduled for today'}
                 userRole={userRole}
                 isToday={true}
@@ -299,7 +301,7 @@ const DashboardOverview = () => {
             <EventsList
                 events={dashboardData.upcomingListEvents}
                 totalCount={dashboardData.upcomingListCount}
-                title={isStudent ? 'Upcoming Sessions' : 'Upcoming Events'}
+                title={isStudent ? 'Upcoming sessions' : 'Upcoming events'}
                 emptyMessage={isStudent ? 'No upcoming sessions. Book one from the Calendar.' : 'No upcoming events scheduled'}
                 userRole={userRole}
                 isToday={false}

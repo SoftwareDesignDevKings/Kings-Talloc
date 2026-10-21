@@ -2,9 +2,6 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal';
 import PendingApprovalItem from '@/components/dashboard/cards/PendingApprovalItem';
-jest.mock('@/components/modals/BaseModal', () => function MockModal({ show, title, children, customFooter }) {
-    return show ? <div role="dialog" aria-label={title}>{children}{customFooter}</div> : null;
-});
 test('deleting a request warns about lost rejection visibility and requires explicit red confirmation', () => {
     const confirm = jest.fn(), cancel = jest.fn();
     render(<DeleteConfirmationModal show onConfirm={confirm} onHide={cancel} isStudentRequest />);

@@ -48,7 +48,7 @@ const ClassList = () => {
                     <table className={styles.table} aria-busy={classesLoading}>
                         <thead>
                             <tr>
-                                <th scope="col">Class Name</th>
+                                <th scope="col">Class name</th>
                                 <th scope="col">Code</th>
                                 <th scope="col">Students</th>
                                 <th scope="col" className={styles.actions}><span className="visually-hidden">Actions</span></th>
@@ -79,7 +79,6 @@ const ClassList = () => {
                         </tbody>
                     </table>
                 </div>
-                <p className={styles.scrollHint}>Scroll sideways to see all columns.</p>
             </TableCard.Root>
         </div>
     );

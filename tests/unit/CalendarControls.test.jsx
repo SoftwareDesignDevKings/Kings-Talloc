@@ -53,7 +53,7 @@ test.each(['admin', 'teacher', 'tutor', 'coach', 'student'])('%s retains role-sp
     expect(screen.queryByLabelText('Hide denied student requests') !== null).toBe(['admin', 'teacher'].includes(role));
     expect(screen.queryByLabelText('Hide my own availabilities') !== null).toBe(['tutor', 'coach'].includes(role));
     expect(screen.queryByTitle('How to use the calendar') !== null).toBe(role === 'student');
-    expect(screen.getByText('Calendar Legend')).toBeInTheDocument();
+    expect(screen.getByText('Calendar legend')).toBeInTheDocument();
     expect(screen.queryByText('Availability block') !== null).toBe(['tutor', 'coach'].includes(role));
     expect(screen.queryByText('Pending', { exact: true }) !== null).toBe(!['tutor', 'coach'].includes(role));
 });

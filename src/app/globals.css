@@ -129,20 +129,6 @@ html .form-select:focus {
     box-shadow: 0 0 0 2px var(--tks-primary-subtle);
 }
 
-/* ─── react-select ────────────────────────────────────────────────────── */
-/* Bootstrap doesn't compete with .select__ classes so no !important needed */
-
-.select__control {
-    background-color: var(--bs-tertiary-bg);
-    border: none;
-    padding: 2px;
-    border-radius: 4px;
-}
-
-.select__control--is-focused {
-    box-shadow: 0 0 0 2px var(--tks-primary-subtle);
-}
-
 /* ─── Accordion ───────────────────────────────────────────────────────── */
 /* Override Bootstrap's accordion CSS variables at higher specificity.    */
 /* Bootstrap defines these on .accordion (0,1,0); we win at (0,1,1).      */

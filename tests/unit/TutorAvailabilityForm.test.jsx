@@ -76,12 +76,12 @@ test.each(['2026-10-15T08:00', '2026-10-15T09:00', ''])('invalid end %s prevents
 });
 test('view mode has disabled fields and no save/delete controls', () => {
     render(<Harness mode="view" />);
-    expect(screen.getByRole('dialog', { name: 'Availability Details' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Availability details' })).toBeInTheDocument();
     expectDateDisabled('start');
     expectDateDisabled('end');
     expect(screen.queryByRole('form', { name: 'Availability form' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save Changes' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
 });
 test('close discards edits without any write', () => {
     render(<Harness mode="edit" />);

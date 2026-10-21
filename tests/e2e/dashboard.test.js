@@ -8,12 +8,12 @@ const ids = ['ui-dashboard-approve', 'ui-dashboard-reject', 'ui-dashboard-delete
 const eventTitle = prefix + 'event with details';
 let eventData;
 const roles = {
-    'admin-tests': ['Upcoming Events', 'Pending Approvals', 'Tutors In Today', 'Total Allocated Hours', 'Completed Hours', 'Allocated Hours (Next Week)'],
-    'tutorAdmin-tests': ['Upcoming Events', 'Pending Approvals', 'Tutors In Today', 'Total Allocated Hours', 'Completed Hours', 'Allocated Hours (Next Week)'],
-    'teacher-tests': ['Pending Approvals', 'Student Tutor Sessions', 'Uncompleted Tutor Sessions', 'Tutors on My Students'],
-    'tutor-tests': ['Upcoming Sessions', 'Scheduled Hours', 'Uncompleted Shifts', 'Students Helped'],
-    'student-tests': ['Upcoming Sessions', 'Scheduled Hours', 'Pending Requests', 'Approved Requests'],
-    'coach-tests': ['Upcoming Sessions', 'Scheduled Hours', 'Uncompleted Shifts', 'Students Helped'], 'coachTutor-tests': ['Upcoming Sessions', 'Scheduled Hours', 'Uncompleted Shifts', 'Students Helped'],
+    'admin-tests': ['Upcoming events', 'Pending approvals', 'Tutors in today', 'Total allocated hours', 'Completed hours', 'Allocated hours (next week)'],
+    'tutorAdmin-tests': ['Upcoming events', 'Pending approvals', 'Tutors in today', 'Total allocated hours', 'Completed hours', 'Allocated hours (next week)'],
+    'teacher-tests': ['Pending approvals', 'Student tutor sessions', 'Uncompleted tutor sessions', 'Tutors on My Students'],
+    'tutor-tests': ['Upcoming sessions', 'Scheduled hours', 'Uncompleted shifts', 'Students helped'],
+    'student-tests': ['Upcoming sessions', 'Scheduled hours', 'Pending requests', 'Approved requests'],
+    'coach-tests': ['Upcoming sessions', 'Scheduled hours', 'Uncompleted shifts', 'Students helped'], 'coachTutor-tests': ['Upcoming sessions', 'Scheduled hours', 'Uncompleted shifts', 'Students helped'],
 };
 const documents = () => {
     const project = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -85,7 +85,7 @@ test.afterEach(async ({}, info) => {
     }
     if (info.project.name === 'student-tests') await patchWelcome(originalWelcome ? { hasSeenWelcome: originalWelcome } : {});
 });
-const queueButton = page => page.getByRole('button', { name: /^Pending Approvals (?:\d+|…)$/ });
+const queueButton = page => page.getByRole('button', { name: /^Pending approvals (?:\d+|…)$/ });
 const openQueue = async page => {
     const trigger = queueButton(page);
     await expect(trigger).toBeVisible();
@@ -101,10 +101,10 @@ test.describe('Dashboard roles @teacherAdmin @tutorAdmin @teacherOnly @tutorOnly
         await expect(page.getByText('Coaching', { exact: true }).first()).toBeVisible();
         if (['admin-tests', 'tutorAdmin-tests', 'teacher-tests', 'student-tests'].includes(info.project.name)) await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
         else await expect(page.getByText('Approved', { exact: true })).toHaveCount(0);
-        await expect(page.getByRole('heading', { name: /^(Events for Today|Today's Sessions)$/ })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /^(Events for today|Today's sessions)$/ })).toBeVisible();
         if (['admin-tests', 'tutorAdmin-tests'].includes(info.project.name)) {
-            await expect(page.getByRole('button', { name: 'Email Shift Notifications', exact: true })).toBeVisible();
-        } else await expect(page.getByRole('button', { name: /Email Shift Notifications/ })).toHaveCount(0);
+            await expect(page.getByRole('button', { name: 'Email shift notifications', exact: true })).toBeVisible();
+        } else await expect(page.getByRole('button', { name: /Email shift notifications/ })).toHaveCount(0);
         if (info.project.name === 'teacher-tests') {
             await openQueue(page);
             await expect(page.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(ids.length);
@@ -131,7 +131,7 @@ test.describe('Dashboard admin actions @teacherAdmin @tutorAdmin', () => {
             const trigger = queueButton(page);
             await trigger.focus();
             await page.keyboard.press('Enter');
-            const dialog = page.getByRole('dialog', { name: 'Pending Approvals', exact: true });
+            const dialog = page.getByRole('dialog', { name: 'Pending approvals', exact: true });
             await expect(dialog).toBeVisible();
             await expect.poll(() => dialog.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
             const box = await dialog.boundingBox();
@@ -148,9 +148,9 @@ test.describe('Dashboard admin actions @teacherAdmin @tutorAdmin', () => {
             await expect(trigger).toBeFocused();
         }
         await page.route('**/api/send-emails', route => route.fulfill({ status: 401, json: { error: 'REAUTH_REQUIRED' } }));
-        const email = page.getByRole('button', { name: 'Email Shift Notifications', exact: true });
+        const email = page.getByRole('button', { name: 'Email shift notifications', exact: true });
         await email.click();
-        const reauth = page.getByRole('dialog', { name: 'Microsoft Session Expired', exact: true });
+        const reauth = page.getByRole('dialog', { name: 'Microsoft session expired', exact: true });
         await expect(reauth).toBeVisible();
         await expect.poll(() => reauth.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
         await page.keyboard.press('Escape');
@@ -166,9 +166,9 @@ test.describe('Dashboard admin actions @teacherAdmin @tutorAdmin', () => {
         await page.goto('/dashboard');
         await openQueue(page);
         await page.keyboard.press('Escape');
-        for (const destination of ['Canvas Classes', 'Dashboard', 'Manage Users', 'Dashboard', 'Canvas Classes', 'Dashboard']) {
+        for (const destination of ['Canvas classes', 'Dashboard', 'Manage users', 'Dashboard', 'Canvas classes', 'Dashboard']) {
             await page.getByRole('link', { name: destination, exact: true }).click();
-            await expect(page).toHaveURL(destination === 'Dashboard' ? '/dashboard' : destination === 'Manage Users' ? '/userRoles' : '/classes');
+            await expect(page).toHaveURL(destination === 'Dashboard' ? '/dashboard' : destination === 'Manage users' ? '/userRoles' : '/classes');
         }
         await expect(page.getByText(eventTitle, { exact: true }).first()).toBeVisible();
         expect(errors).toEqual([]);
@@ -210,8 +210,8 @@ test.describe('Dashboard admin actions @teacherAdmin @tutorAdmin', () => {
             await route.fulfill({ status: 500, json: { message: 'Dashboard fixture notification warning' } });
         });
         await page.goto('/dashboard');
-        await page.getByRole('button', { name: 'Email Shift Notifications', exact: true }).click();
-        const pending = page.getByRole('button', { name: 'Sending Shift Notifications...', exact: true });
+        await page.getByRole('button', { name: 'Email shift notifications', exact: true }).click();
+        const pending = page.getByRole('button', { name: 'Sending shift notifications...', exact: true });
         await expect(pending).toBeDisabled();
         await expect.poll(() => calls).toBe(1);
         await page.keyboard.press('Enter');
@@ -219,12 +219,12 @@ test.describe('Dashboard admin actions @teacherAdmin @tutorAdmin', () => {
         finish();
         await expect(page.getByText('Dashboard fixture notification warning', { exact: true })).toBeVisible();
         await page.route('**/api/send-emails', route => route.fulfill({ status: 401, json: { error: 'REAUTH_REQUIRED' } }));
-        await page.getByRole('button', { name: 'Email Shift Notifications', exact: true }).click();
+        await page.getByRole('button', { name: 'Email shift notifications', exact: true }).click();
         const dialog = page.getByRole('dialog');
-        await expect(dialog.getByText('Microsoft Session Expired', { exact: true })).toBeVisible();
+        await expect(dialog.getByText('Microsoft session expired', { exact: true })).toBeVisible();
         await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
         await expect(dialog).toHaveCount(0);
-        await page.getByRole('button', { name: 'Email Shift Notifications', exact: true }).click();
+        await page.getByRole('button', { name: 'Email shift notifications', exact: true }).click();
         await dialog.getByRole('button', { name: 'Sign in again', exact: true }).click();
         await expect(page).toHaveURL('/login');
     });
@@ -248,7 +248,7 @@ test('student welcome keeps its content and Get Started saves the existing prefe
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('Welcome to Kings Talloc', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Calendar colour guide', { exact: true })).toBeVisible();
-    await dialog.getByRole('button', { name: 'Get Started', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Get started', exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect.poll(async () => (await read('users/student@kings.edu.au')).fields.hasSeenWelcome.booleanValue).toBe(true);
 });
@@ -260,7 +260,7 @@ test('student welcome remains scrollable and its footer works by keyboard on a n
     const dialog = page.getByRole('dialog', { name: 'Welcome to Kings Talloc', exact: true });
     await expect(dialog).toBeVisible();
     await expect.poll(() => dialog.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
-    const start = dialog.getByRole('button', { name: 'Get Started', exact: true });
+    const start = dialog.getByRole('button', { name: 'Get started', exact: true });
     await start.focus();
     await expect(start).toBeInViewport({ ratio: 1 });
     await page.keyboard.press('Enter');

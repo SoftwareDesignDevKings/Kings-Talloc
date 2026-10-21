@@ -12,7 +12,7 @@ beforeEach(() => {
     updateDoc.mockResolvedValue();
 });
 
-test.each(['Get Started', 'Close', 'Escape'])('first student visit shows existing content and %s saves only the welcome flag', async close => {
+test.each(['Get started', 'Close', 'Escape'])('first student visit shows existing content and %s saves only the welcome flag', async close => {
     const user = userEvent.setup(); render(<WelcomeModal userRole="student" userEmail="guide@example.edu" />);
     const dialog = await screen.findByRole('dialog', { name: 'Welcome to Kings Talloc' });
     expect(dialog).toHaveTextContent('Calendar colour guide');

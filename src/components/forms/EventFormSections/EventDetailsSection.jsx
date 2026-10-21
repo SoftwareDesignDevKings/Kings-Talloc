@@ -61,22 +61,22 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
         }));
     }, [setNewEvent]);
 
-    return <EventSection id="eventDetails" title="General Information" defaultExpanded={!(newEvent.createdByStudent && newEvent.approvalStatus === 'pending')} icon={MdEventNote}
-        trailing={newEvent.createTeamsMeeting && <SiMicrosoftTeams size={18} title="Teams Meeting Enabled" />}>
+    return <EventSection id="eventDetails" title="General information" defaultExpanded={!(newEvent.createdByStudent && newEvent.approvalStatus === 'pending')} icon={MdEventNote}
+        trailing={newEvent.createTeamsMeeting && <SiMicrosoftTeams size={18} title="Teams meeting enabled" />}>
         <div className={styles.fields}>
             <div className={styles.field}>
-                <Label htmlFor="title" isRequired={false}>Event Title</Label>
+                <Label htmlFor="title" isRequired={false}>Event title</Label>
                 <InputBase type="text" name="title" id="title" placeholder="e.g. Weekly Math Tutoring" value={newEvent.title || ''}
                     onChange={handleInputChange} isDisabled={disabled} disabled={disabled} aria-label="Event title" aria-required="true" />
             </div>
             <div className={styles.field}>
-                <Label htmlFor="description" isRequired={false}>Description (Optional)</Label>
+                <Label htmlFor="description" isRequired={false}>Description (optional)</Label>
                 <TextAreaBase rows={2} name="description" id="description" placeholder="Add any notes or context..." value={newEvent.description || ''}
                     onChange={handleInputChange} disabled={disabled} aria-label="Event description" />
             </div>
             <div className={styles.grid}>
                 {['start', 'end'].map(name => {
-                    return <DateTimePicker key={name} name={name} label={name === 'start' ? 'Start Time' : 'End Time'} value={name === 'start' ? startValue : endValue}
+                    return <DateTimePicker key={name} name={name} label={name === 'start' ? 'Start time' : 'End time'} value={name === 'start' ? startValue : endValue}
                         isDisabled={disabled} portalContainer={portalContainer} onOpenChange={setMenuOpen}
                         onDraftValidityChange={complete => { if (dateTimeValidity) dateTimeValidity.current[name] = complete; }}
                         onChange={next => setNewEvent(prev => ({ ...prev, [name]: next ? next.toString() : '' }))} />;
@@ -86,9 +86,9 @@ const EventDetailsSection = ({ newEvent, setNewEvent, handleInputChange, readOnl
                 {!readOnly && <Button size="sm" color={newEvent.createTeamsMeeting ? 'secondary-destructive' : 'secondary'} isDisabled={busy}
                     onClick={handleTeamsMeetingToggle} aria-pressed={!!newEvent.createTeamsMeeting}
                     aria-label={`${newEvent.createTeamsMeeting ? 'Remove' : 'Add'} online Teams meeting`}>
-                    <SiMicrosoftTeams size={20} aria-hidden="true" />{newEvent.createTeamsMeeting ? 'Remove Teams Meeting' : 'Add Teams Meeting'}
+                    <SiMicrosoftTeams size={20} aria-hidden="true" />{newEvent.createTeamsMeeting ? 'Remove Teams meeting' : 'Add Teams meeting'}
                 </Button>}
-                {newEvent.teamsJoinUrl && <Button size="sm" color="secondary" href={newEvent.teamsJoinUrl} target="_blank" rel="noopener noreferrer"><SiMicrosoftTeams size={18} />Join Now</Button>}
+                {newEvent.teamsJoinUrl && <Button size="sm" color="secondary" href={newEvent.teamsJoinUrl} target="_blank" rel="noopener noreferrer"><SiMicrosoftTeams size={18} />Join now</Button>}
                 {!readOnly && <div className={styles.recurrence}>
                     <span id="recurring-label">Recurrence:</span>
                     <div className={styles.buttonGroup} role="group" aria-labelledby="recurring-label">

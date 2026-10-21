@@ -14,8 +14,8 @@ test.describe('Coach Workflow @coachOnly', () => {
 
         await page.locator('.rbc-events-container').nth(3).click();
 
-        await expect(page.getByRole('button', {name: 'Add Availability' })).toBeVisible();
-        await page.getByRole('button', { name: 'Add Availability' }).click();
+        await expect(page.getByRole('button', {name: 'Add availability' })).toBeVisible();
+        await page.getByRole('button', { name: 'Add availability' }).click();
 
         const availabilityButton = page
             .getByRole('button', { name: /\d+:\d+(\s?[ap]m)? – \d+:\d+\s?[ap]m/i })
@@ -60,19 +60,19 @@ test.describe('Coach Workflow @coachOnly', () => {
         await expect(page.getByRole('button', { name: /Coach Workflow Shift/ })).toBeVisible();
         await page.getByRole('button', { name: /Coach Workflow Shift/ }).first().click();
 
-        await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-        await page.getByRole('button', { name: 'Settings & Status' }).click();
+        await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+        await page.getByRole('button', { name: 'Settings & status' }).click();
         await page.getByRole('button', { name: /Event work status/ }).click();
         await page.getByRole('option', { name: 'Completed', exact: true }).click();
 
-        await expect(page.getByRole('button', {name : 'Save Status' })).toBeVisible();
-        await page.getByRole('button', { name: 'Save Status' }).click();
+        await expect(page.getByRole('button', {name : 'Save status' })).toBeVisible();
+        await page.getByRole('button', { name: 'Save status' }).click();
 
         await expect(page.getByRole('button', { name: /Coach Workflow Shift/ })).toBeVisible();
         await page.getByRole('button', { name: /Coach Workflow Shift/ }).first().click();
 
-        await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-        await page.getByRole('button', { name: 'Settings & Status' }).click();
+        await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+        await page.getByRole('button', { name: 'Settings & status' }).click();
         await expect(page.getByRole('button', { name: /Event work status/ })).toBeVisible();
     });
 
@@ -85,8 +85,8 @@ test.describe('Coach Workflow @coachOnly', () => {
 
         await page.locator('.rbc-events-container').nth(4).click();
 
-        await expect(page.getByRole('button', {name: 'Add Availability' })).toBeVisible();
-        await page.getByRole('button', { name: 'Add Availability' }).click();
+        await expect(page.getByRole('button', {name: 'Add availability' })).toBeVisible();
+        await page.getByRole('button', { name: 'Add availability' }).click();
 
         const availabilityButton = page
             .getByRole('button', { name: /\d+:\d+(\s?[ap]m)? – \d+:\d+\s?[ap]m/i })

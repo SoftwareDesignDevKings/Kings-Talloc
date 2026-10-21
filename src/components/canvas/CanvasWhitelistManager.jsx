@@ -64,7 +64,7 @@ const SyncStatusBar = ({ status, error, onRetry, onTrigger, syncing }) => {
                 {error && <Button color="secondary" size="sm" onPress={onRetry}>Retry status</Button>}
                 <Button color="secondary" size="sm" iconLeading={RefreshCw01} onPress={onTrigger}
                     isDisabled={!status || !!error || running} isLoading={running} showTextWhileLoading>
-                    {running ? 'Running…' : 'Run Sync'}
+                    {running ? 'Running…' : 'Run sync'}
                 </Button>
             </div>
         </section>
@@ -310,9 +310,9 @@ const CanvasWhitelistManager = () => {
                             <div className={styles.tableRegion} role="region" aria-label={isWhitelist ? 'Whitelisted courses table' : 'All Canvas courses table'} tabIndex={0}>
                                 <table className={styles.table} aria-label={isWhitelist ? 'Whitelisted courses' : 'All Canvas courses'}>
                                     <thead><tr>
-                                        <th scope="col">Course Name</th><th scope="col">Code</th>
+                                        <th scope="col">Course name</th><th scope="col">Code</th>
                                         <th scope="col">{isWhitelist ? 'Blueprint' : 'Term'}</th>
-                                        <th scope="col">{isWhitelist ? 'Last Synced' : 'State'}</th>
+                                        <th scope="col">{isWhitelist ? 'Last synced' : 'State'}</th>
                                         <th scope="col" className={styles.actionHeading}>Actions</th>
                                     </tr></thead>
                                     <tbody>
@@ -331,7 +331,7 @@ const CanvasWhitelistManager = () => {
                                             const added = whitelistedIds.has(id);
                                             const termDates = formatTermDateRange(c.term_start_at, c.term_end_at);
                                             return <tr key={id}>
-                                                <Cell label="Course Name" className={styles.courseName}>{c.name || '—'}</Cell>
+                                                <Cell label="Course name" className={styles.courseName}>{c.name || '—'}</Cell>
                                                 <Cell label="Code">{c.courseCode || c.course_code || '—'}</Cell>
                                                 <Cell label={isWhitelist ? 'Blueprint' : 'Term'}>
                                                     {isWhitelist ? c.blueprint_course_name ? (
@@ -341,7 +341,7 @@ const CanvasWhitelistManager = () => {
                                                         {termDates && <small className={styles.termDates}>{termDates}</small>}
                                                     </>}
                                                 </Cell>
-                                                <Cell label={isWhitelist ? 'Last Synced' : 'State'}>
+                                                <Cell label={isWhitelist ? 'Last synced' : 'State'}>
                                                     {isWhitelist ? formatDateTime(c.last_synced) : <Badge color={c.workflow_state === 'available' ? 'success' : 'gray'}>{c.workflow_state || '—'}</Badge>}
                                                 </Cell>
                                                 <Cell label="Actions"><div className={styles.rowActions}>

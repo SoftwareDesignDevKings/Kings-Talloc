@@ -14,10 +14,10 @@ import usePrefetchRoutes from '@/hooks/usePrefetchRoutes';
  */
 const PAGE_TITLES = {
     '/calendar': 'Calendar',
-    '/tutorHours': 'Tutor Hours',
-    '/userRoles': 'Manage Users',
-    '/classes': 'Canvas Classes',
-    '/admin/canvas': 'Canvas Admin',
+    '/tutorHours': 'Tutor hours',
+    '/userRoles': 'Manage users',
+    '/classes': 'Canvas classes',
+    '/admin/canvas': 'Canvas admin',
 };
 
 const AppLayout = ({ session, userRole, children }) => {
@@ -25,13 +25,13 @@ const AppLayout = ({ session, userRole, children }) => {
     usePrefetchRoutes(userRole);
     let dashboardTitle;
     if (userRole === 'student') {
-        dashboardTitle = 'Student Dashboard';
+        dashboardTitle = 'Student dashboard';
     } else if (userRole === 'teacher') {
-        dashboardTitle = 'Teacher Dashboard';
+        dashboardTitle = 'Teacher dashboard';
     } else if (userRole === 'admin') {
-        dashboardTitle = 'Admin Dashboard';
+        dashboardTitle = 'Admin dashboard';
     } else {
-        dashboardTitle = 'Tutor Dashboard';
+        dashboardTitle = 'Tutor dashboard';
     }
     // Other pages are titled by the page itself rather than the role's dashboard.
     const pageTitle = Object.entries(PAGE_TITLES).find(([route]) => pathname.startsWith(route))?.[1] || dashboardTitle;

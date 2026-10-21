@@ -18,7 +18,7 @@ const searchParticipants = async (page, query) => {
 };
 const openEventEditor = async (page, title) => {
     const event = page.locator('.rbc-calendar .rbc-event').filter({ has: page.getByText(title, { exact: true }) });
-    const editor = page.getByRole('dialog', { name: 'Edit Event', exact: true });
+    const editor = page.getByRole('dialog', { name: 'Edit event', exact: true });
     // Firestore snapshots can replace an event between mouse-down and mouse-up.
     // Retry only opening the editor; all scheduling writes below are still performed once.
     await expect(async () => {
@@ -90,7 +90,7 @@ test('student books during Work, names a group, and teacher approves through the
     const teacherContext = await browser.newContext(); const teacher = await teacherContext.newPage();
     try {
         await signIn(teacher, 'Teacher');
-        await teacher.getByRole('button', { name: /Pending Approvals/ }).click();
+        await teacher.getByRole('button', { name: /Pending approvals/ }).click();
         await expect(teacher.getByText(/John Doe, Casey Example/)).toBeVisible();
         await expect(teacher.getByText('Session focus: Exam preparation', { exact: true })).toBeVisible();
         await teacher.getByText('Topics to cover', { exact: true }).click();
@@ -101,33 +101,33 @@ test('student books during Work, names a group, and teacher approves through the
         const session = (await db.collection('shifts').doc(`approved-${pending.docs[0].id}`).get()).data();
         expect(session.preference).toBe('Exam Help'); expect(session.sessionTopics).toBe('Quadratic equations, questions 4–8.');
         await page.goto('/dashboard'); await expect(page.getByText('Your tutoring request was approved.')).toBeVisible();
-        const approvedCard = page.locator('[data-untitled-card]').filter({ has: page.getByRole('heading', { name: 'Approved Requests', exact: true }) });
+        const approvedCard = page.locator('[data-untitled-card]').filter({ has: page.getByRole('heading', { name: 'Approved requests', exact: true }) });
         await expect(approvedCard.getByRole('heading', { level: 3 })).toHaveText('1');
     } finally { await teacherContext.close(); }
 });
 
 test('tutor availability has no type selector and saves through the server', async ({ page }) => {
     await signIn(page, 'Tutor'); await page.goto('/calendar'); await page.locator('.rbc-events-container').nth(2).click();
-    await expect(page.getByRole('button', { name: 'Add Availability', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add availability', exact: true })).toBeVisible();
     await expect(page.getByText('Assignment Type', { exact: true })).toHaveCount(0);
     const saved = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Add Availability', exact: true }).click(); expect((await saved).status()).toBe(200);
+    await page.getByRole('button', { name: 'Add availability', exact: true }).click(); expect((await saved).status()).toBe(200);
 });
 
 test('teacher creates Work with no acceptance controls and can mark it completed', async ({ page }) => {
     await db.collection('shifts').doc('work').set(data());
     await signIn(page, 'Teacher'); await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
     await openEventEditor(page, 'General Work');
-    await page.getByRole('button', { name: 'Settings & Status', exact: true }).click();
+    await page.getByRole('button', { name: 'Settings & status', exact: true }).click();
     await page.getByRole('button', { name: /Event work type/ }).click(); await expect(page.getByRole('option', { name: 'Tutoring', exact: true })).toHaveCount(0); await page.getByRole('option', { name: 'Work', exact: true }).click();
     await expect(page.getByText('Required for confirmation', { exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: /Event work status/ }).click(); await page.getByRole('option', { name: 'Completed', exact: true }).click();
     const saved = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Save Changes', exact: true }).click(); expect((await saved).status()).toBe(200);
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click(); expect((await saved).status()).toBe(200);
     expect((await db.collection('shifts').doc('work').get()).data().workStatus).toBe('completed');
-    await expect(page.getByRole('link', { name: 'Tutor Hours', exact: true })).toBeVisible();
-    await page.getByRole('link', { name: 'Tutor Hours', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Tutor Hours', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Tutor hours', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Tutor hours', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Tutor hours', exact: true })).toBeVisible();
 });
 
 test('actual Mondays export separately and short shifts warn without blocking download', async ({ page }) => {
@@ -165,7 +165,7 @@ test('two tabs acknowledge only new requests and returning preserves outstanding
     await expect(page).toHaveTitle('(3) Kings-Talloc'); await expect(second).toHaveTitle('(3) Kings-Talloc');
     await setActive(second, true); await expect(second).toHaveTitle('Kings-Talloc'); await expect(page).toHaveTitle('Kings-Talloc');
     await expect(second.locator('#pending-approvals').getByRole('heading', { level: 3 })).toHaveText('5');
-    await second.getByRole('button', { name: /Pending Approvals/ }).click();
+    await second.getByRole('button', { name: /Pending approvals/ }).click();
     const approved = second.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
     await second.getByRole('button', { name: 'Approve', exact: true }).first().click(); expect((await approved).status()).toBe(200);
     await expect(second.locator('#pending-approvals').getByRole('heading', { level: 3 })).toHaveText('4');
@@ -185,14 +185,14 @@ test('teacher can remove a student temporarily, receives an empty-save error, th
     await expect(emptyMessage).toHaveCount(0);
     let writes = 0;
     page.on('request', request => { if (request.url().endsWith('/api/scheduling') && request.method() === 'POST') writes++; });
-    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
-    await expect(emptyMessage).toBeVisible(); await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+    await expect(emptyMessage).toBeVisible(); await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeVisible();
     expect(writes).toBe(0); expect((await db.collection('shifts').doc('session').get()).data().studentEmails).toEqual([student]);
     await searchParticipants(page, 'Casey'); await page.getByRole('option', { name: 'Casey Example', exact: true }).click();
     await expect(emptyMessage).toHaveCount(0);
     const save = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Save Changes', exact: true }).click(); expect((await save).status()).toBe(200);
-    await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click(); expect((await save).status()).toBe(200);
+    await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toHaveCount(0);
     const saved = (await db.collection('shifts').doc('session').get()).data();
     expect(saved.studentEmails).toEqual([replacement]); expect(saved.approvalStatus).toBe('approved'); expect(saved.createdByStudent).toBe(true);
 });
@@ -204,12 +204,12 @@ test('saved general Work remains Work when a teacher tries to add a student book
     await page.getByRole('button', { name: 'Participants', exact: true }).click();
     // Keep the pointer over the next header, as it may be during keyboard entry.
     // The open dropdown must remain clickable above that hovered header.
-    await page.getByRole('button', { name: 'Settings & Status', exact: true }).hover();
+    await page.getByRole('button', { name: 'Settings & status', exact: true }).hover();
     await searchParticipants(page, 'John');
     await page.getByRole('option', { name: 'John Doe', exact: true }).click();
-    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Create a separate student session' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Save Changes', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeVisible();
     expect((await db.collection('shifts').doc('work').get()).data().students).toEqual([]);
 });
 test('complex completed hours agree across dashboard, summary, CSV and Word; short Coaching still exports', async ({ page }) => {
@@ -225,18 +225,18 @@ test('complex completed hours agree across dashboard, summary, CSV and Word; sho
     ];
     for (const [id, extra] of fixtures) await db.collection('shifts').doc(id).set(data({ workStatus: 'completed', ...extra }));
     await signIn(page, 'Teacher + Admin');
-    const completed = page.locator('[data-untitled-card]').filter({ has: page.getByText('Completed Hours', { exact: true }) });
+    const completed = page.locator('[data-untitled-card]').filter({ has: page.getByText('Completed hours', { exact: true }) });
     await expect(completed.locator('h3')).toHaveText('6h 0m');
     await expect(completed).toContainText('Work: 4h 30m | Coaching: 1h 30m');
-    const allocated = page.locator('[data-untitled-card]').filter({ has: page.getByText('Total Allocated Hours', { exact: true }) });
+    const allocated = page.locator('[data-untitled-card]').filter({ has: page.getByText('Total allocated hours', { exact: true }) });
     await expect(allocated.locator('h3')).toHaveText('8h 30m');
-    await page.getByRole('link', { name: 'Tutor Hours', exact: true }).click();
+    await page.getByRole('link', { name: 'Tutor hours', exact: true }).click();
     const row = page.getByRole('row').filter({ hasText: tutor });
     await expect(row.getByRole('cell', { name: '4h 30m', exact: true })).toBeVisible();
     await expect(row.getByRole('cell', { name: '1h 30m', exact: true })).toBeVisible();
     await expect(row.getByRole('cell', { name: '6h 0m', exact: true })).toBeVisible();
     await expect(row).toContainText('Complex day:'); await expect(row).toContainText('Coaching is under 2 hours');
-    await expect(row.getByRole('button', { name: 'Generate Coach Timesheet', exact: true })).toBeEnabled();
+    await expect(row.getByRole('button', { name: 'Generate coach timesheet', exact: true })).toBeEnabled();
     const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export as CSV', exact: true }).click();
     const csv = readFileSync(await (await downloadPromise).path(), 'utf8');
     expect(csv).toContain('"4.5","1.5","6"'); expect(csv).toContain('Complex day:'); expect(csv).toContain('Coaching is under 2 hours');
@@ -253,7 +253,7 @@ test('Reject retains a visible decision; confirmed calendar Delete removes it an
     const request = data({ title: 'Deletion test session', createdByStudent: true, approvalStatus: 'pending', preference: 'General', students: [{ value: student, label: 'John Doe' }], emailsList: [tutor, student] });
     await db.collection('studentEventRequests').doc('decision-delete').set(request);
     await signIn(page, 'Teacher');
-    await page.getByRole('button', { name: /Pending Approvals/ }).click();
+    await page.getByRole('button', { name: /Pending approvals/ }).click();
     const reject = page.getByRole('button', { name: 'Reject', exact: true });
     await expect(reject).toHaveAttribute('data-color', 'secondary-destructive');
     page.once('dialog', dialog => dialog.dismiss());
@@ -272,12 +272,12 @@ test('Reject retains a visible decision; confirmed calendar Delete removes it an
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
         await expect(page.getByText(/any rejection notice/)).toBeVisible();
         await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'Delete Student Request', exact: true })).toBeHidden();
+        await expect(page.getByRole('heading', { name: 'Delete student request', exact: true })).toBeHidden();
         expect((await db.collection('studentEventRequests').doc('decision-delete').get()).exists).toBe(true);
-        const editor = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Edit Event', exact: true }) });
+        const editor = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Edit event', exact: true }) });
         await editor.getByRole('button', { name: 'Delete', exact: true }).click();
         const removed = page.waitForResponse(response => response.url().endsWith('/api/scheduling') && response.request().method() === 'POST');
-        const confirmation = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Delete Student Request', exact: true }) });
+        const confirmation = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Delete student request', exact: true }) });
         await confirmation.getByRole('button', { name: 'Delete', exact: true }).click();
         expect((await removed).status()).toBe(200);
         expect((await db.collection('studentEventRequests').doc('decision-delete').get()).exists).toBe(false);
@@ -289,7 +289,7 @@ test('Reject retains a visible decision; confirmed calendar Delete removes it an
 test('dashboard Delete warns, cancellation keeps the request, and confirmation removes without rejection', async ({ page }) => {
     await db.collection('studentEventRequests').doc('pending-delete').set(data({ title: 'Pending deletion test', createdByStudent: true, approvalStatus: 'pending', preference: 'General', students: [{ value: student }], emailsList: [tutor, student] }));
     await signIn(page, 'Teacher');
-    await page.getByRole('button', { name: /Pending Approvals/ }).click();
+    await page.getByRole('button', { name: /Pending approvals/ }).click();
     const remove = page.getByRole('button', { name: 'Delete', exact: true });
     await expect(remove).toHaveAttribute('data-color', 'secondary-destructive');
     let message;
@@ -380,21 +380,21 @@ test('admin account screen creates and edits accounts through the secured API', 
     const email = 'new-tutor@kings.edu.au';
     await signIn(page, 'Teacher + Admin');
     await page.goto('/userRoles');
-    await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
-    await page.getByLabel('Email Address', { exact: true }).fill(email);
-    await page.getByLabel('Full Name', { exact: true }).fill('New Test Tutor');
+    await page.getByRole('button', { name: 'Add user role', exact: true }).click();
+    await page.getByLabel('Email address', { exact: true }).fill(email);
+    await page.getByLabel('Full name', { exact: true }).fill('New Test Tutor');
     await page.getByRole('button', { name: 'Roles', exact: true }).click(); await page.getByRole('option', { name: 'Tutor', exact: true }).click();
     let saved = page.waitForResponse(response => response.url().endsWith('/api/users') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Create User', exact: true }).click();
+    await page.getByRole('button', { name: 'Create user', exact: true }).click();
     expect((await saved).status()).toBe(200);
     const row = page.getByRole('row').filter({ hasText: email });
     await expect(row).toContainText('New Test Tutor');
     const first = (await db.collection('users').doc(email).get()).data();
     expect(first.defaultRole).toBe('tutor'); expect(first.authVersion).toBeTruthy();
     await row.getByRole('button', { name: 'Edit user', exact: true }).click();
-    await page.getByLabel('Full Name', { exact: true }).fill('Renamed Test Tutor');
+    await page.getByLabel('Full name', { exact: true }).fill('Renamed Test Tutor');
     saved = page.waitForResponse(response => response.url().endsWith('/api/users') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click();
     expect((await saved).status()).toBe(200);
     await expect(row).toContainText('Renamed Test Tutor');
     expect((await db.collection('users').doc(email).get()).data().authVersion).toBe(first.authVersion);
@@ -493,7 +493,7 @@ test('segmented date drafts cannot save stale values and nested popups fit a pho
     await page.goto(`/calendar?date=${encodeURIComponent(slot.toISO())}`);
     const open = () => page.getByRole('button', { name: /General Work/ }).first().getByText('General Work', { exact: true }).click();
     await open();
-    const dialog = page.getByRole('dialog', { name: 'Edit Event', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'Edit event', exact: true });
     const minute = dialog.getByRole('group', { name: /^Event end time/ }).getByRole('spinbutton', { name: /^minute/ });
     await minute.click(); await minute.press('Backspace'); await minute.press('Backspace');
     await expect(minute).toHaveAttribute('data-placeholder', 'true');
@@ -501,7 +501,7 @@ test('segmented date drafts cannot save stale values and nested popups fit a pho
     await expect(minute).toHaveAttribute('data-placeholder', 'true');
     let writes = 0;
     page.on('request', request => { if (request.url().endsWith('/api/scheduling') && request.method() === 'POST') writes++; });
-    await dialog.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'End date must be after the start date.' })).toBeVisible();
     expect(writes).toBe(0); expect((await db.collection('shifts').doc('work').get()).data().description).toBeUndefined();
     await dialog.getByRole('button', { name: 'Close', exact: true }).click();
@@ -519,8 +519,8 @@ test('segmented date drafts cannot save stale values and nested popups fit a pho
 test('report dates keep day-first parsing and preserve invalid drafts without exporting stale hours', async ({ page }) => {
     await db.collection('shifts').doc('work').set(data({ workStatus: 'completed' }));
     await signIn(page, 'Teacher + Admin'); await page.goto('/tutorHours');
-    const start = page.getByRole('textbox', { name: 'Start Date', exact: true });
-    const end = page.getByRole('textbox', { name: 'End Date', exact: true });
+    const start = page.getByRole('textbox', { name: 'Start date', exact: true });
+    const end = page.getByRole('textbox', { name: 'End date', exact: true });
     await start.fill('19/10/2026'); await start.press('Enter');
     await end.fill('25/10/2026'); await end.press('Enter');
     await expect(start).toHaveValue('19/10/2026'); await expect(end).toHaveValue('25/10/2026');

@@ -68,3 +68,4 @@
 .noticeItem:last-child { border-bottom: 0; }
 .noticeItem a { font-weight: 600; color: var(--uui-color-text-brand-secondary); }
 .noticeError { padding: 12px 20px 0; font-size: .875rem; color: var(--uui-color-text-tertiary); }
+.reauthText { margin: 0 0 24px; color: var(--uui-color-text-tertiary); }

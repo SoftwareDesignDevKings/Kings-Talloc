@@ -19,8 +19,8 @@ test.describe('Tutor Workflow @tutorOnly', () => {
         await page.keyboard.press('ArrowDown');
         await page.keyboard.press('Enter');
 
-        await expect(page.getByRole('button', { name: 'Add Availability' })).toBeVisible();
-        await page.getByRole('button', { name: 'Add Availability' }).click();
+        await expect(page.getByRole('button', { name: 'Add availability' })).toBeVisible();
+        await page.getByRole('button', { name: 'Add availability' }).click();
 
         const availabilityButton = page
             .getByRole('button', { name: /\d+:\d+(\s?[ap]m)? – \d+:\d+\s?[ap]m/i })
@@ -51,8 +51,8 @@ test.describe('Tutor Workflow @tutorOnly', () => {
             await expect(adminPage.getByRole('option', { name: /Viraj Patel/i })).toBeVisible();
             await adminPage.getByRole('option', { name: /Viraj Patel/i }).click();
 
-            await expect(adminPage.getByRole('button', { name: 'Add Event' })).toBeVisible();
-            await adminPage.getByRole('button', { name: 'Add Event' }).click();
+            await expect(adminPage.getByRole('button', { name: 'Add event' })).toBeVisible();
+            await adminPage.getByRole('button', { name: 'Add event' }).click();
             await expect(adminPage.getByRole('button', { name: /Tutor Workflow Shift/ })).toBeVisible();
         } finally {
             await adminContext.close();
@@ -66,21 +66,21 @@ test.describe('Tutor Workflow @tutorOnly', () => {
         await expect(page.getByRole('button', { name: /Tutor Workflow Shift/ })).toBeVisible();
         await page.getByRole('button', { name: /Tutor Workflow Shift/ }).first().click();
 
-        await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-        await page.getByRole('button', { name: 'Settings & Status' }).click();
+        await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+        await page.getByRole('button', { name: 'Settings & status' }).click();
         await page.getByRole('button', { name: /Event work status/ }).click();
 
         await expect(page.getByRole('option', { name: 'Completed', exact: true })).toBeVisible();
         await page.getByRole('option', { name: 'Completed', exact: true }).click();
 
-        await expect(page.getByRole('button', {name : 'Save Status' })).toBeVisible();
-        await page.getByRole('button', { name: 'Save Status' }).click();
+        await expect(page.getByRole('button', {name : 'Save status' })).toBeVisible();
+        await page.getByRole('button', { name: 'Save status' }).click();
 
         await expect(page.getByRole('button', { name: /Tutor Workflow Shift/ })).toBeVisible();
         await page.getByRole('button', { name: /Tutor Workflow Shift/ }).first().click();
 
-        await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-        await page.getByRole('button', { name: 'Settings & Status' }).click();
+        await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+        await page.getByRole('button', { name: 'Settings & status' }).click();
         await expect(page.getByRole('button', { name: /Event work status/ })).toBeVisible();
     });
 
@@ -91,8 +91,8 @@ test.describe('Tutor Workflow @tutorOnly', () => {
 
         await page.locator('.rbc-events-container').nth(3).click();
 
-        await expect(page.getByRole('button', {name: 'Add Availability' })).toBeVisible();
-        await page.getByRole('button', { name: 'Add Availability' }).click();
+        await expect(page.getByRole('button', {name: 'Add availability' })).toBeVisible();
+        await page.getByRole('button', { name: 'Add availability' }).click();
 
         const availabilityButton = page
             .getByRole('button', { name: /\d+:\d+(\s?[ap]m)? – \d+:\d+\s?[ap]m/i })

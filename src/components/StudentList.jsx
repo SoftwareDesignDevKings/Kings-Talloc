@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@/components/untitled/button';
 import styles from './StudentList.module.css';
 
 const StudentList = ({ cls, confirmRemoveStudent }) => {
@@ -16,12 +17,9 @@ const StudentList = ({ cls, confirmRemoveStudent }) => {
                                 <div className={styles.email}>{student.email}</div>
                             </div>
                             {confirmRemoveStudent && (
-                                <button
-                                    onClick={() => confirmRemoveStudent(cls, student)}
-                                    className="btn btn-sm btn-outline-danger"
-                                >
+                                <Button size="sm" color="secondary-destructive" onClick={() => confirmRemoveStudent(cls, student)}>
                                     Remove
-                                </button>
+                                </Button>
                             )}
                         </li>
                     ))}

@@ -14,12 +14,12 @@ const StudentRequestSection = ({ newEvent, handleApprovalChange, approvalOptions
         <div className={styles.fields}>
             <div className={styles.grid}>
                 {classLabel ? <div className={styles.field}><Label isRequired={false}>Class</Label><span>{classLabel}</span></div>
-                    : newEvent.subject ? <div className={styles.field}><Label isRequired={false}>Legacy Subject</Label><span>{newEvent.subject.label || newEvent.subject}</span></div> : null}
+                    : newEvent.subject ? <div className={styles.field}><Label isRequired={false}>Legacy subject</Label><span>{newEvent.subject.label || newEvent.subject}</span></div> : null}
                 <div className={styles.field}><Label isRequired={false}>Focus</Label><span>{sessionFocusLabel(newEvent.preference)}</span></div>
             </div>
             {newEvent.sessionTopics?.trim() && <div className={styles.field}><Label isRequired={false}>Topics to cover</Label><div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{newEvent.sessionTopics}</div></div>}
             {!readOnly && <div className={styles.field}>
-                <EventSelect label="Administrative Decision" name="approvalStatus" options={approvalOptions} value={newEvent.approvalStatus}
+                <EventSelect label="Administrative decision" name="approvalStatus" options={approvalOptions} value={newEvent.approvalStatus}
                     onChange={handleApprovalChange} aria-label="Student request approval status" />
                 <small className={styles.hint}>Approving this request will automatically schedule the session and notify the student.</small>
             </div>}

@@ -46,11 +46,11 @@ test.describe('Student guidance @studentOnly', () => {
         await page.goto('/dashboard'); await expect(welcome(page)).toBeVisible(); await expectFits(welcome(page));
         const content = { welcome: await copy(welcome(page)) };
         await expect(welcome(page).getByText('Calendar colour guide', { exact: true })).toBeVisible();
-        await welcome(page).getByRole('button', { name: 'Get Started', exact: true }).click();
+        await welcome(page).getByRole('button', { name: 'Get started', exact: true }).click();
         await expect(welcome(page)).toHaveCount(0);
         await expect.poll(async () => (await readStudent()).hasSeenWelcome).toEqual({ booleanValue: true });
         expect((await readStudent()).hasSeenCalendarHelp).toEqual({ booleanValue: false });
-        await page.reload(); await expect(page.getByRole('heading', { name: 'Student Dashboard', exact: true })).toBeVisible();
+        await page.reload(); await expect(page.getByRole('heading', { name: 'Student dashboard', exact: true })).toBeVisible();
         await expect(welcome(page)).toHaveCount(0);
         await page.goto('/calendar'); await expect(help(page)).toBeVisible(); await expectFits(help(page));
         content.help = await copy(help(page));
@@ -74,7 +74,7 @@ test.describe('Student guidance @studentOnly', () => {
     test('both dialogs fit a small phone and close by keyboard or header without changing other fields', async ({ page }) => {
         await page.setViewportSize({ width: 320, height: 568 });
         await page.goto('/dashboard'); await expect(welcome(page)).toBeVisible(); await expectFits(welcome(page));
-        const start = welcome(page).getByRole('button', { name: 'Get Started', exact: true });
+        const start = welcome(page).getByRole('button', { name: 'Get started', exact: true });
         await start.focus(); await expect(start).toBeInViewport({ ratio: 1 }); await page.keyboard.press('Enter');
         await expect(welcome(page)).toHaveCount(0);
         await page.goto('/calendar'); await expect(help(page)).toBeVisible(); await expectFits(help(page));
@@ -92,7 +92,7 @@ test.describe('Student guidance @studentOnly', () => {
 
 test('staff do not receive student welcome or student-only Calendar Help @teacherAdmin', async ({ page }) => {
     const before = await readStudent();
-    await page.goto('/dashboard'); await expect(page.getByRole('heading', { name: 'Admin Dashboard', exact: true })).toBeVisible();
+    await page.goto('/dashboard'); await expect(page.getByRole('heading', { name: 'Admin dashboard', exact: true })).toBeVisible();
     await expect(welcome(page)).toHaveCount(0);
     await page.goto('/calendar'); await expect(page.getByRole('button', { name: 'Today', exact: true })).toBeVisible();
     await expect(help(page)).toHaveCount(0); await expect(page.getByRole('button', { name: 'Help', exact: true })).toHaveCount(0);

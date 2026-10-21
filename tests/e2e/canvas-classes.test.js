@@ -52,7 +52,7 @@ test.describe('Canvas Classes baseline @teacherAdmin @teacherOnly @tutorAdmin', 
 
     test('loads real course/enrollment data and visibly expands each roster independently', async ({ page }, testInfo) => {
         await page.goto('/dashboard');
-        await page.getByRole('link', { name: 'Canvas Classes', exact: true }).click();
+        await page.getByRole('link', { name: 'Canvas classes', exact: true }).click();
         await expect(page).toHaveURL(/\/classes$/);
         const math = row(page, 'Mathematics Year 10');
         await expect(math.getByRole('cell', { name: 'MATH10', exact: true })).toBeVisible();
@@ -186,26 +186,24 @@ test.describe('Canvas Classes baseline @teacherAdmin @teacherOnly @tutorAdmin', 
         }
     });
 
-    test('keeps mobile columns readable in a contained keyboard-scrollable table', async ({ page }) => {
+    test('stacks each class into a card on phones without sideways scrolling', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await openClasses(page);
         const scrollArea = page.getByRole('region', { name: 'Canvas classes table', exact: true });
-        await expect(page.getByText('Scroll sideways to see all columns.')).toBeVisible();
         await expect(scrollArea).toBeInViewport({ ratio: 1 });
-        const columns = row(page, 'Mathematics Year 10').getByRole('cell');
-        for (let i = 0; i < 3; i++) {
-            const bounds = await columns.nth(i).boundingBox();
-            const next = await columns.nth(i + 1).boundingBox();
-            expect(bounds.x + bounds.width).toBeLessThanOrEqual(next.x + 1);
-        }
+        const cells = row(page, 'Mathematics Year 10').getByRole('cell');
+        // Name, code and student count stack in one column with the toggle beside them.
+        const [name, code, count, actions] = await Promise.all([0, 1, 2, 3].map(index => cells.nth(index).boundingBox()));
+        expect(code.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+        expect(count.y).toBeGreaterThanOrEqual(code.y + code.height - 1);
+        expect(Math.abs(code.x - name.x)).toBeLessThanOrEqual(1);
+        expect(actions.x).toBeGreaterThanOrEqual(name.x + name.width - 1);
+        await expect(cells.nth(2)).toHaveText('2');
         const dimensions = await scrollArea.evaluate(el => ({ width: el.clientWidth, scrollWidth: el.scrollWidth }));
-        expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.width);
+        expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width + 1);
         await scrollArea.focus();
         await expect(scrollArea).toHaveCSS('outline-width', '2px');
-        await page.keyboard.press('ArrowRight');
-        await expect.poll(() => scrollArea.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
         const toggle = row(page, 'Mathematics Year 10').getByRole('button');
-        await toggle.scrollIntoViewIfNeeded();
         await toggle.click();
         await expect(roster(page, 'Mathematics Year 10').getByText('Jane Student', { exact: true })).toBeInViewport({ ratio: 1 });
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
@@ -217,8 +215,8 @@ test.describe('Canvas Classes access @studentOnly @tutorOnly @coachOnly @coachTu
         await page.goto('/classes');
         await expect(page).toHaveURL(/\/dashboard$/);
         await expect(page.getByRole('heading', { name: /Dashboard$/ })).toBeVisible();
-        await expect(page.getByRole('link', { name: 'Canvas Classes', exact: true })).toHaveCount(0);
-        await expect(page.getByRole('heading', { name: 'Canvas Classes', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('link', { name: 'Canvas classes', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('heading', { name: 'Canvas classes', exact: true })).toHaveCount(0);
     });
 });
 
@@ -234,16 +232,15 @@ test.describe('Canvas Classes table layout @teacherAdmin', () => {
         await page.setViewportSize({ width: 1280, height: 720 });
         await openClasses(page);
         const scrollArea = page.getByRole('region', { name: 'Canvas classes table', exact: true });
-        await expect(page.getByText('Scroll sideways to see all columns.')).toBeHidden();
         await expect(scrollArea).toBeInViewport({ ratio: 1 });
         const dimensions = await scrollArea.evaluate(el => ({ height: el.clientHeight, scrollHeight: el.scrollHeight }));
         expect(dimensions.scrollHeight).toBeGreaterThan(dimensions.height);
         const lastRow = row(page, 'Z scroll course 29');
         await lastRow.scrollIntoViewIfNeeded();
         await expect(lastRow).toBeInViewport({ ratio: 1 });
-        await expect(page.getByRole('columnheader', { name: 'Class Name', exact: true })).toBeInViewport({ ratio: 1 });
+        await expect(page.getByRole('columnheader', { name: 'Class name', exact: true })).toBeInViewport({ ratio: 1 });
         const areaBounds = await scrollArea.boundingBox();
-        const headingBounds = await page.getByRole('columnheader', { name: 'Class Name', exact: true }).boundingBox();
+        const headingBounds = await page.getByRole('columnheader', { name: 'Class name', exact: true }).boundingBox();
         expect(Math.abs(headingBounds.y - areaBounds.y)).toBeLessThanOrEqual(2);
     });
 });

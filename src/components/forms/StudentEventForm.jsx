@@ -110,7 +110,7 @@ const StudentEventForm = ({
         setFilteredTutors(getTutorsAvailableForRange(start, end));
     }, [getTutorsAvailableForRange]);
 
-    // transform provider data into react-select format
+    // build the tutor options, sorted by name
     useEffect(() => {
         setTutorOptions(buildEligibleTutorOptions(tutors, studentTutorEligibility).sort((a, b) => a.label.localeCompare(b.label)));
     }, [tutors, studentTutorEligibility]);

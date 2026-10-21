@@ -8,7 +8,7 @@ const ParticipantsSection = ({ selectedStaff, handleStaffSelectChange, staffOpti
     <EventSection id="participants" title="Participants" icon={MdPeople}>
         <div className={styles.fields}>
             <div className={styles.field}>
-                <Label htmlFor="staff" isRequired={false}>Assign Tutors</Label>
+                <Label htmlFor="staff" isRequired={false}>Assign tutors</Label>
                 <EventMultiSelect isMulti name="tutor" options={staffOptions} value={selectedStaff} onChange={handleStaffSelectChange}
                     renderOption={renderStaffOption} isDisabled={readOnly} aria-label="Assign tutors to event" inputId="staff" />
             </div>

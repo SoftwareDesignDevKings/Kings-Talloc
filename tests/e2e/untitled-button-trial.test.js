@@ -49,7 +49,7 @@ test.describe('Untitled button compatibility trial @teacherAdmin', () => {
         const before = { button: await style(row.getByRole('button')), search: await style(page.getByRole('textbox')) };
         await page.goto('/ui-preview/button');
         await expect(page.getByRole('heading', { name: 'Canvas Classes button preview' })).toBeVisible();
-        await page.getByRole('link', { name: 'Open Canvas Classes', exact: true }).click();
+        await page.getByRole('link', { name: 'Open Canvas classes', exact: true }).click();
         await expect(row).toBeVisible();
         expect(await style(row.getByRole('button'))).toEqual(before.button);
         expect(await style(page.getByRole('textbox'))).toEqual(before.search);

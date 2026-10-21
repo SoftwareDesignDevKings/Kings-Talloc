@@ -9,7 +9,7 @@ const DashboardTutorStats = ({ data }) => (
         <BaseStatsCard
             icon={Calendar}
             color="brand"
-            title="Upcoming Sessions"
+            title="Upcoming sessions"
             value={data.upcomingEventsCount}
             subtitle={data.upcomingPeriod}
             delay={50}
@@ -17,7 +17,7 @@ const DashboardTutorStats = ({ data }) => (
         <BaseStatsCard
             icon={Activity}
             color="success"
-            title="Scheduled Hours"
+            title="Scheduled hours"
             value={formatDuration((data.weeklyHours.work + data.weeklyHours.coaching) * 3600000)}
             subtitle={`This week · Work: ${formatDuration(data.weeklyHours.work * 3600000)} | Coaching: ${formatDuration(data.weeklyHours.coaching * 3600000)}`}
             delay={150}
@@ -25,7 +25,7 @@ const DashboardTutorStats = ({ data }) => (
         <BaseStatsCard
             icon={AlertCircle}
             color="warning"
-            title="Uncompleted Shifts"
+            title="Uncompleted shifts"
             value={data.uncompletedShifts}
             subtitle={`${formatDisplayDate(startOfWeek(new Date(), { weekStartsOn: 1 }))} - ${formatDisplayDate(endOfWeek(new Date(), { weekStartsOn: 1 }))}`}
             delay={250}
@@ -33,7 +33,7 @@ const DashboardTutorStats = ({ data }) => (
         <BaseStatsCard
             icon={Users01}
             color="brand"
-            title="Students Helped"
+            title="Students helped"
             value={data.uniqueStudents}
             delay={350}
         />
