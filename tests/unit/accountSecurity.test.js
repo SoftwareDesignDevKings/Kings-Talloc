@@ -24,16 +24,18 @@ jest.mock('@/lib/canvas/tutorEligibility', () => ({ rebuildStudentTutorEligibili
 jest.mock('@/firestore/firestoreAdmin', () => ({
     adminDb: {
         collection: collection => {
-            let first = '', last = '\uffff', count = Infinity;
+            let first = '', last = '\uffff', count = Infinity, fields = null;
             const query = {
                 doc: id => mockReference(collection, id),
-                orderBy: () => query, startAt: value => { first = value; return query; },
+                orderBy: () => query, select: (...selected) => { fields = selected; return query; }, startAt: value => { first = value; return query; },
                 endAt: value => { last = value; return query; }, limit: value => { count = value; return query; },
                 get: async () => {
                     if (mockFailReads) throw new Error('Database unavailable');
                     const ids = [...mockDocuments.keys()].filter(key => key.startsWith(`${collection}/`)).map(key => key.slice(collection.length + 1))
                         .filter(id => id >= first && id <= last).sort().slice(0, count);
-                    const docs = await Promise.all(ids.map(id => mockReference(collection, id).get()));
+                    const read = await Promise.all(ids.map(id => mockReference(collection, id).get()));
+                    // Like Firestore, select() returns only the requested fields.
+                    const docs = fields ? read.map(doc => ({ ...doc, data: () => Object.fromEntries(fields.filter(field => field in doc.data()).map(field => [field, doc.data()[field]])) })) : read;
                     return { docs, size: docs.length, forEach: callback => docs.forEach(callback) };
                 },
             };
@@ -59,7 +61,7 @@ jest.mock('@/firestore/firestoreAdmin', () => ({
 const { authOptions } = require('@/lib/security/authConfig');
 const { getCurrentAccount } = require('@/lib/security/accountState');
 const { getRequiredSession, getRequiredAdminSession } = require('@/lib/security/serverAuth');
-const { POST: saveAccount, DELETE: deleteAccount } = require('@/app/api/users/route');
+const { GET: listAccounts, POST: saveAccount, DELETE: deleteAccount } = require('@/app/api/users/route');
 const { GET: calendarLink } = require('@/app/api/calendar/route');
 const { GET: calendarFeed } = require('@/app/api/calendar/feed/route');
 const admin = 'admin@school.test', student = 'student@school.test';
@@ -210,4 +212,15 @@ test('ambiguous legacy spellings fail closed rather than choosing a privileged p
     const error = jest.spyOn(console, 'error').mockImplementation(() => {});
     expect(await authOptions.callbacks.signIn({ user: { email: student } })).toBe(false);
     expect(mockDocuments.has(`users/${student}`)).toBe(false); error.mockRestore();
+});
+test('only admins can list accounts, and the list never includes auth versions', async () => {
+    mockDocuments.set(`users/${student}`, { ...profile(student, 'student', 'secret-version'), tutorCoverageKeys: [] });
+    const response = await listAccounts();
+    expect(response.status).toBe(200);
+    const { users } = await response.json();
+    expect(users.map(user => user.id).sort()).toEqual([admin, student].sort());
+    expect(JSON.stringify(users)).not.toContain('secret-version');
+    expect(users.find(user => user.id === student)).toEqual({ id: student, email: student, name: student, defaultRole: 'student', userRoles: [], tutorCoverageKeys: [] });
+    mockSession.user = { email: student, defaultRole: 'student', userRoles: [], authVersion: 'secret-version' };
+    expect((await listAccounts()).status).toBe(403);
 });

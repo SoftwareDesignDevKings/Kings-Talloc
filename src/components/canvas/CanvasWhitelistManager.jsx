@@ -11,7 +11,8 @@ import { Tabs } from '@/components/untitled/tabs';
 import styles from '@/styles/canvasAdmin.module.css';
 import { formatDisplayDate, formatDisplayDateTime } from '@/utils/displayDate';
 
-const POLL_INTERVAL_MS = 3000;
+// Each status check reads Firestore; a sync takes minutes, so 5s is responsive enough.
+const POLL_INTERVAL_MS = 5000;
 
 const formatDateTime = (value) => {
     if (!value) return 'Never';

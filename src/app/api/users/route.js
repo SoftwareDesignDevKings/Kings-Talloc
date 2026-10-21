@@ -5,6 +5,7 @@ import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 import { accountRoles, accountVersion, findAccountProfile, invalidateCurrentAccount, validAccountEmail } from '@/lib/security/accountState';
 import { invalidateAvailability } from '@/lib/scheduling/availabilityCache';
 import { rebuildStudentTutorEligibility } from '@/lib/canvas/tutorEligibility';
+import { invalidateAccountDirectory, readAccountDirectory } from '@/lib/security/accountDirectory';
 
 const roles = new Set(['admin', 'teacher', 'tutor', 'coach', 'student']);
 const sameOrigin = request => !request.headers.get('origin') || request.headers.get('origin') === new URL(request.url).origin;
@@ -14,6 +15,17 @@ const fail = (condition, message, status) => { if (condition) throw Object.assig
 async function rebuild() {
     try { await rebuildStudentTutorEligibility(); return undefined; }
     catch { return 'Account saved, but student tutor eligibility could not be refreshed. Please retry the Canvas eligibility rebuild.'; }
+}
+
+export async function GET() {
+    const { error } = await getRequiredAdminSession();
+    if (error) return error;
+    try {
+        return Response.json({ users: await readAccountDirectory() }, { headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+        console.error('Account list failed', error);
+        return Response.json({ message: 'Could not load users. Please try again.' }, { status: 503 });
+    }
 }
 
 export async function POST(request) {
@@ -54,7 +66,7 @@ export async function POST(request) {
             return changed;
         });
         // Roles and tutor status feed the cached session check and availability.
-        await Promise.all([invalidateCurrentAccount(ref.id), invalidateAvailability()]);
+        await Promise.all([invalidateCurrentAccount(ref.id), invalidateAvailability(), invalidateAccountDirectory()]);
         let warning;
         try {
             const authUser = await adminDbAuth.getUser(ref.id.toLowerCase()).catch(error => {
@@ -92,7 +104,7 @@ export async function DELETE(request) {
         batch.delete(profile?.ref || adminDb.collection('users').doc(id));
         batch.delete(adminDb.collection('calendarFeedSecrets').doc(id));
         await batch.commit();
-        await Promise.all([invalidateCurrentAccount(email), invalidateCurrentAccount(id), invalidateAvailability()]);
+        await Promise.all([invalidateCurrentAccount(email), invalidateCurrentAccount(id), invalidateAvailability(), invalidateAccountDirectory()]);
         let warning;
         try {
             const authUser = await adminDbAuth.getUserByEmail(email);

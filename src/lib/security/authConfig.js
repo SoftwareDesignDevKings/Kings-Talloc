@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { findAccountProfile, getCachedCurrentAccount, invalidateCurrentAccount, accountVersion, accountRoles, validAccountEmail } from './accountState';
 import { adminDb, adminDbAuth } from '@/firestore/firestoreAdmin';
 import { TEST_USERS as DEV_USERS } from '@/lib/security/testUsers';
+import { invalidateAccountDirectory } from './accountDirectory';
 
 /**
  * ==========================================
@@ -71,6 +72,8 @@ async function authFbVerifyUserRecords({ user }) {
                 if (blocked.exists) throw new Error('Account access was revoked');
                 if (!existing.exists) transaction.create(ref, newUser);
             });
+            // A first sign-in adds an account to the admin user list.
+            await invalidateAccountDirectory();
             profile = await findAccountProfile(user.email);
         }
         const data = profile.data();

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { MultiSelect } from '@/components/untitled/multi-select';
 import { db } from '@/firestore/firestoreClient';
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { setDoc, doc } from 'firebase/firestore';
+import { fetchCacheClasses } from '@/firestore/firestoreFetch';
 import useAlert from '@/hooks/useAlert';
 import { AppLogout } from '@/lib/security/clientAuth';
 import styles from '@/styles/userRoles.module.css';
@@ -71,10 +72,12 @@ const UserRolesManager = () => {
         setUsersLoading(true);
         setUsersError('');
         try {
-            const querySnapshot = await getDocs(collection(db, 'users'));
-            const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            // Served from the cached server list, which account changes refresh.
+            const response = await fetch('/api/users', { cache: 'no-store' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
 
-            const sortedUsers = sortUsers(usersList);
+            const sortedUsers = sortUsers(result.users);
             setUsers(sortedUsers);
             setFilteredUsers(sortedUsers);
         } catch (error) {
@@ -88,12 +91,8 @@ const UserRolesManager = () => {
     useEffect(() => {
         loadUsers();
 
-        const fetchCanvasCourses = async () => {
-            const querySnapshot = await getDocs(collection(db, 'canvasCourses'));
-            setCanvasCourses(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-        };
-
-        fetchCanvasCourses().catch((error) => {
+        // Coverage options use the same cached course list as the Classes page.
+        fetchCacheClasses().then(setCanvasCourses).catch((error) => {
             console.error('Error loading Canvas coverage options:', error);
             setCanvasCourses([]);
         });
@@ -142,11 +141,16 @@ const UserRolesManager = () => {
 
             handleCloseModal();
 
-            const querySnapshot = await getDocs(collection(db, 'users'));
-            const usersList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            const sortedUsers = sortUsers(usersList);
-            setUsers(sortedUsers);
-            setFilteredUsers(sortedUsers);
+            // Show the saved account straight away instead of re-reading every user.
+            const key = email.trim().toLowerCase();
+            const saved = { email: email.trim(), name: name.trim(), role, defaultRole: role, userRoles: [...new Set(userRoles)],
+                requestNotificationsEnabled: userHasTeacherAccess && (requestNotificationsEnabled ?? getRequestNotificationPreference(email)),
+                tutorCoverage: coverage, tutorCoverageKeys: coverage.map(item => item.key) };
+            setUsers(previous => {
+                const existing = previous.find(user => (user.email || user.id || '').toLowerCase() === key);
+                const others = previous.filter(user => user !== existing);
+                return sortUsers([...others, { ...existing, ...saved, id: existing?.id || key, email: existing?.email || saved.email }]);
+            });
         } catch (error) {
             console.error('Error adding/updating user:', error);
             if (error.code === 'permission-denied') {
