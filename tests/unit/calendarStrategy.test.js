@@ -42,3 +42,23 @@ test.each([studentCalendarStrategy, tutorCalendarStrategy])('own calendar querie
     expect(constraints).toEqual([{ fbField: 'emailsList', fbOperation: 'array-contains-any', fbValue: ['student@example.edu', 'StuDent@Example.edu'] }]);
     expect(factory('student@example.edu').firestoreConstraints.shifts()).toEqual([{ fbField: 'emailsList', fbOperation: 'array-contains', fbValue: 'student@example.edu' }]);
 });
+
+test('students never subscribe to raw tutor availability; every staff role still does', () => {
+    const { adminCalendarStrategy, teacherCalendarStrategy, coachCalendarStrategy } = require('@/lib/patterns/calendarStrategy');
+    // Students are shown bookable slots from the server instead.
+    expect(studentCalendarStrategy('student@example.edu').firestoreConstraints.availabilities()).toBeNull();
+    for (const factory of [tutorCalendarStrategy, coachCalendarStrategy, teacherCalendarStrategy, adminCalendarStrategy]) {
+        expect(factory('staff@example.edu').firestoreConstraints.availabilities()).toEqual(expect.any(Array));
+    }
+});
+
+test('a skipped collection opens no Firestore listener and clears its data', () => {
+    const { onSnapshot } = require('firebase/firestore');
+    const { firestoreFetchAvailabilities } = require('@/firestore/firestoreFetch');
+    const setAvailabilities = jest.fn();
+    onSnapshot.mockClear();
+    const unsubscribe = firestoreFetchAvailabilities(setAvailabilities, { start: new Date(), end: new Date() }, null);
+    expect(onSnapshot).not.toHaveBeenCalled();
+    expect(setAvailabilities).toHaveBeenCalledWith([]);
+    expect(() => unsubscribe()).not.toThrow();
+});

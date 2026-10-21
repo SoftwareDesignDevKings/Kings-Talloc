@@ -158,7 +158,9 @@ export const studentCalendarStrategy = (userEmail) => ({
     firestoreConstraints: {
         shifts:          () => ownEventsFilter(userEmail),
         studentRequests: () => ownEventsFilter(userEmail),
-        availabilities:  () => [],  // fetch all (for overlay initials)
+        // Students see bookable slots from /api/availability (cached server-side), never
+        // raw tutor availability, so a live listener on every tutor's week only cost reads.
+        availabilities:  () => null,
     },
 
     permissions: {
