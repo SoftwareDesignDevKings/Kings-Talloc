@@ -50,9 +50,10 @@ const HoursCell = ({ label, children, className }) => (
  */
 const TutorHoursSummary = () => {
     const { addAlert } = useAlert();
-    const { userRole, userRoles, session } = useAuthSession();
+    const { userRole, session } = useAuthSession();
     const userEmail = session?.user?.email;
-    const isAdmin = userRole === 'admin' || userRoles?.includes('admin') || userRole === 'teacher' || userRoles?.includes('teacher');
+    // Gate on the active role so "View as Tutor" hides other staff for admin/teacher accounts.
+    const isAdmin = userRole === 'admin' || userRole === 'teacher';
 
     const [startDate, setStartDate] = useState(getMonday(new Date()));
     const [endDate, setEndDate] = useState(() => {

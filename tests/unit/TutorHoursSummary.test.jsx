@@ -106,6 +106,22 @@ test.each(['tutor','coach'])('%s sees only their own report and has no timesheet
     expect(shiftQueries.every(ref=>ref.filters.some(f=>f.key==='emailsList'&&f.op==='array-contains'&&f.value===staff))).toBe(true);
 });
 
+test.each(['admin','teacher'])('an account with an extra %s role viewing as tutor sees only their own report', async extraRole => {
+    mockAuth = { ...mockAuth, userRole:'tutor', userRoles:[extraRole] };
+    mockShifts = [shift('both',3,3,{ staff:[staff,other],emailsList:[staff,other] }),shift('other',4,6,{staff:[other],emailsList:[other]})];
+    render(<TutorHoursSummary />); await selectWeek();
+    await waitFor(()=>expect(mockCsv.data).toHaveLength(1));
+    expect(mockCsv.data[0].Email).toBe(staff);
+    expect(screen.queryByRole('button',{name:/Generate.*Timesheet/})).not.toBeInTheDocument();
+});
+
+test('a teacher sees every staff report', async () => {
+    mockAuth = { ...mockAuth, userRole:'teacher', userRoles:[] };
+    mockShifts = [shift('mine',3,3),shift('other',4,6,{staff:[other],emailsList:[other]})];
+    render(<TutorHoursSummary />); await selectWeek();
+    await waitFor(()=>expect(mockCsv.data).toHaveLength(2));
+});
+
 test('shows loading until data resolves and distinguishes an empty completed-hours report', async () => {
     let release;
     const implementation = getDocs.getMockImplementation();
