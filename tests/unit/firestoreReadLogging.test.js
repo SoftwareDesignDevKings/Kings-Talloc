@@ -15,7 +15,7 @@ describe('server read logging', () => {
     beforeEach(() => {
         env = process.env.NODE_ENV;
         logs = [];
-        jest.spyOn(console, 'log').mockImplementation(line => logs.push(line));
+        jest.spyOn(console, 'info').mockImplementation(line => logs.push(line));
         delete globalThis[Symbol.for('talloc.firestoreReadLogging')];
         jest.resetModules();
         makeClasses();
@@ -60,7 +60,7 @@ describe('browser read report endpoint', () => {
     beforeEach(() => {
         jest.resetModules();
         logs = [];
-        jest.spyOn(console, 'log').mockImplementation(line => logs.push(line));
+        jest.spyOn(console, 'info').mockImplementation(line => logs.push(line));
         jest.doMock('next-auth/jwt', () => ({ getToken: async () => token }));
     });
     afterEach(() => jest.restoreAllMocks());

@@ -36,8 +36,9 @@ const nextConfig = {
     },
     reactStrictMode: false,
     compiler: {
+        // console.info is kept for deliberate operational logs (Firestore read tracking).
         removeConsole:
-            process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+            process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn', 'info'] } : false,
     },
     async headers() {
         return [
