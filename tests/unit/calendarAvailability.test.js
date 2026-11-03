@@ -184,3 +184,26 @@ describe('management availability preserves academic and Coaching coverage', () 
         expect(slots.filter(slot => slot.workType.includes('coaching')).map(slot => slot.tutor)).toEqual([coach.tutor]);
     });
 });
+
+describe('removeBusyTimes', () => {
+    const { removeBusyTimes } = require('@/utils/calendarAvailability');
+    const at = hour => new Date(`2026-11-04T${String(hour).padStart(2, '0')}:00:00Z`);
+    const slots = [
+        { id: 'a', tutor: 'one@example.edu', start: at(1), end: at(5) },
+        { id: 'b', tutor: 'two@example.edu', start: at(2), end: at(3) },
+    ];
+
+    it('cuts a pending request out of every tutor’s slots and leaves others untouched', () => {
+        const result = removeBusyTimes(slots, [{ start: at(2), end: at(3) }]);
+        expect(result.map(slot => [slot.id, slot.start.getUTCHours(), slot.end.getUTCHours()])).toEqual([
+            [`a:${+at(1)}`, 1, 2],
+            [`a:${+at(3)}`, 3, 5],
+        ]);
+        expect(result.every(slot => slot.originalAvailabilityId === 'a')).toBe(true);
+    });
+
+    it('keeps slots and ids unchanged when nothing overlaps', () => {
+        expect(removeBusyTimes(slots, [{ start: at(6), end: at(7) }]).map(slot => slot.id)).toEqual(['a', 'b']);
+        expect(removeBusyTimes(slots, [])).toBe(slots);
+    });
+});
