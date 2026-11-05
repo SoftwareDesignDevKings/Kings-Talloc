@@ -35,8 +35,8 @@ const shift = (id, day, hours, extra = {}) => ({ id, start: new Date(`2032-05-${
 const snapshot = docs => ({ docs });
 const row = email => screen.getByRole('row', { name: new RegExp(email) });
 const selectWeek = async () => {
-    fireEvent.change(screen.getByRole('textbox', { name: 'Start Date' }), { target: { value: '2032-05-05' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'End Date' }), { target: { value: '2032-05-09' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Start date' }), { target: { value: '2032-05-05' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'End date' }), { target: { value: '2032-05-09' } });
     await waitFor(() => expect(mockCsv?.filename).toContain('2032'));
 };
 
@@ -153,7 +153,7 @@ test('an earlier date-range response cannot overwrite a newer report', async () 
 test('a reversed date range stops reads and disables exporting the previous period', async () => {
     render(<TutorHoursSummary />); await selectWeek();
     const calls=getDocs.mock.calls.length;
-    fireEvent.change(screen.getByRole('textbox',{name:'End Date'}),{target:{value:'2032-05-01'}});
+    fireEvent.change(screen.getByRole('textbox',{name:'End date'}),{target:{value:'2032-05-01'}});
     expect(screen.getByRole('alert')).toHaveTextContent('End date must be on or after the start date.');
     expect(screen.getByRole('button',{name:'Export as CSV'})).toBeDisabled();
     expect(getDocs).toHaveBeenCalledTimes(calls);

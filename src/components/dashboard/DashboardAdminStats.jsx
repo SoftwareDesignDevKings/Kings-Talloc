@@ -10,7 +10,7 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
         <BaseStatsCard
             icon={Calendar}
             color="brand"
-            title="Upcoming Events"
+            title="Upcoming events"
             value={data.upcomingEventsCount}
             subtitle={data.upcomingPeriod}
             delay={50}
@@ -25,7 +25,7 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
         <BaseStatsCard
             icon={Users01}
             color="brand"
-            title="Tutors In Today"
+            title="Tutors in today"
             value={data.tutorsScheduledToday}
             delay={200}
             colClass={ADMIN_COL}
@@ -33,7 +33,7 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
         <BaseStatsCard
             icon={Activity}
             color="success"
-            title="Total Allocated Hours"
+            title="Total allocated hours"
             value={formatDuration((data.weeklyHours.work + data.weeklyHours.coaching) * 3600000)}
             subtitle={`Work: ${formatDuration(data.weeklyHours.work * 3600000)} | Coaching: ${formatDuration(data.weeklyHours.coaching * 3600000)}`}
             delay={250}
@@ -42,7 +42,7 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
         <BaseStatsCard
             icon={CheckCircle}
             color="success"
-            title="Completed Hours"
+            title="Completed hours"
             value={formatDuration((data.completedHours.work + data.completedHours.coaching) * 3600000)}
             subtitle={`Work: ${formatDuration(data.completedHours.work * 3600000)} | Coaching: ${formatDuration(data.completedHours.coaching * 3600000)}`}
             delay={350}
@@ -51,7 +51,7 @@ const DashboardAdminStats = ({ data, onUpdate }) => (
         <BaseStatsCard
             icon={Clock}
             color="warning"
-            title="Allocated Hours (Next Week)"
+            title="Allocated hours (next week)"
             value={formatDuration((data.nextWeekHours.work + data.nextWeekHours.coaching) * 3600000)}
             subtitle={`Work: ${formatDuration(data.nextWeekHours.work * 3600000)} | Coaching: ${formatDuration(data.nextWeekHours.coaching * 3600000)}`}
             delay={400}

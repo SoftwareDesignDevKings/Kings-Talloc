@@ -3,7 +3,7 @@ import { fillEventDateTime } from './dateTimePickerHelpers';
 
 test.setTimeout(60000);
 const message = 'Alert UI check ';
-const action = page => page.getByRole('button', { name: 'Email Shift Notifications', exact: true });
+const action = page => page.getByRole('button', { name: 'Email shift notifications', exact: true });
 const alerts = page => page.getByRole('alert').filter({ has: page.getByText(new RegExp('^' + message)) });
 const clock = async page => {
     await page.clock.install();
@@ -89,11 +89,11 @@ test('calendar validation alerts stay readable and dismissible above an open dia
     const slot = page.locator('.rbc-day-slot .rbc-time-slot').nth(24);
     await slot.scrollIntoViewIfNeeded(); const box = await slot.boundingBox();
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    const dialog = page.getByRole('dialog', { name: 'Add New Event', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'Add new event', exact: true });
     await expect(dialog).toBeVisible();
     await fillEventDateTime(page, 'start', '2026-10-16T17:00');
     await fillEventDateTime(page, 'end', '2026-10-16T16:00');
-    await dialog.getByRole('button', { name: 'Add Event', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Add event', exact: true }).click();
     const alert = page.getByRole('alert').filter({ hasText: 'End date must be after the start date.' });
     await expect(alert).toBeVisible();
     await expect(dialog).toBeVisible();

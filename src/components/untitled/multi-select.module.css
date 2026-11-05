@@ -1,29 +1,32 @@
-.root { min-width: 0; width: 100%; font-size: 14px; }
-.control { position: relative; display: flex; align-items: center; min-height: 40px; padding: 6px 54px 6px 8px; border-radius: 8px; background: var(--uui-color-bg-primary); box-shadow: 0 0 0 1px var(--uui-color-border-primary) inset, 0 1px 2px rgb(10 13 18 / 5%); }
+/* Sizes match Select md: 16px text, 12px side padding, quaternary chevron 12px from the edge. */
+.root { min-width: 0; width: 100%; font-size: 1rem; }
+.control { position: relative; display: flex; align-items: center; min-height: 40px; padding: 6px 58px 6px 12px; border-radius: 8px; background: var(--uui-color-bg-primary); box-shadow: 0 0 0 1px var(--uui-color-border-primary) inset, 0 1px 2px rgb(10 13 18 / 5%); }
 .control:focus-within, .control[data-open] { box-shadow: 0 0 0 2px var(--uui-color-border-brand) inset; }
 .root[data-disabled] { opacity: .5; }
-.trigger { position: absolute; inset: 0; width: 100%; border-radius: inherit; outline: none; cursor: pointer; text-align: left; padding: 8px 32px 8px 8px; color: var(--uui-color-text-primary); }
-.trigger[data-has-selection] { left: auto; width: 26px; padding: 0; }
+.trigger { position: absolute; inset: 0; width: 100%; border-radius: inherit; outline: none; cursor: pointer; text-align: left; padding: 8px 36px 8px 12px; color: var(--uui-color-text-primary); }
+.trigger[data-has-selection] { left: auto; width: 32px; padding: 0; }
 .trigger:disabled { cursor: not-allowed; }
-.placeholder { color: var(--uui-color-text-placeholder); display: block; line-height: 20px; }
-.chevron { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--uui-color-text-tertiary); }
+.placeholder { color: var(--uui-color-text-placeholder); display: block; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chevron { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke-width: 2.25px; color: var(--uui-color-fg-quaternary); }
 .values { display: flex; flex: 1; flex-wrap: wrap; gap: 4px; min-width: 0; pointer-events: none; }
 .chip { position: relative; z-index: 1; display: inline-flex; align-items: center; max-width: 100%; min-width: 0; padding-left: 6px; border: 1px solid var(--uui-color-border-primary); border-radius: 6px; background: var(--uui-color-bg-primary_hover); font-size: 12px; color: var(--uui-color-text-secondary); }
 .chip > span { overflow-wrap: anywhere; min-width: 0; }
+.chip[data-fixed] { padding: 0 6px; line-height: 18px; }
 .remove[data-untitled-button] { pointer-events: auto; flex-shrink: 0; padding: 2px; border-radius: 0 5px 5px 0; }
 .remove[data-untitled-button] svg { width: 14px; height: 14px; }
-.clear[data-untitled-button] { position: absolute; right: 27px; top: 50%; transform: translateY(-50%); padding: 2px; }
+.clear[data-untitled-button] { position: absolute; right: 32px; top: 50%; transform: translateY(-50%); padding: 2px; }
 .clear[data-untitled-button] svg { width: 14px; height: 14px; }
-.single { overflow-wrap: anywhere; line-height: 28px; color: var(--uui-color-text-primary); }
+.single { overflow-wrap: anywhere; line-height: 28px; font-weight: 500; color: var(--uui-color-text-primary); }
 .popover { max-width: calc(100vw - 16px); overflow: hidden; padding: 0; }
-.dialog { display: flex; flex-direction: column; max-height: min(280px, var(--available-height, 280px)); outline: none; }
-/* Let React Aria's inline available-space limit constrain the list below the field. */
+/* Match the 16rem popover cap in styles/input.css so the list's last option isn't clipped. */
+.dialog { display: flex; flex-direction: column; max-height: min(16rem, var(--available-height, 16rem)); outline: none; }
 .popover[data-untitled-fixed-bottom] { max-height: 280px; }
 .popover[data-untitled-fixed-bottom] .dialog { max-height: inherit; }
 .body { display: flex; flex-direction: column; min-height: 0; }
 .search { display: flex; gap: 8px; align-items: center; flex-shrink: 0; padding: 8px 12px; border-bottom: 1px solid var(--uui-color-border-secondary); }
 .search > svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--uui-color-text-tertiary); }
-.searchInput { width: 100%; min-width: 0; outline: none; background: transparent; color: var(--uui-color-text-primary); font: inherit; }
+.searchInput { width: 100%; min-width: 0; outline: none; background: transparent; color: var(--uui-color-text-primary); font: inherit; text-overflow: ellipsis; }
+.searchInput::placeholder { color: var(--uui-color-text-placeholder); }
 .list { min-height: 0; overflow-y: auto; padding: 4px 0; outline: none; }
 .list [slot=label] { white-space: normal; overflow-wrap: anywhere; }
 .empty { padding: 8px 12px; color: var(--uui-color-text-tertiary); }

@@ -82,10 +82,12 @@ test.describe(`Calendar controls ${tags}`, () => {
         expect(errors).toEqual([]);
     });
     test('role controls actually hide and restore events, and collapsing keeps filter state', async ({ page }, info) => {
+        // Students know their work sessions as tutoring.
+        const workLabel = info.project.name === 'student-tests' ? 'Show tutoring sessions' : 'Show work shifts';
         await ready(page);
         await toolbar(page).getByRole('button', { name: 'Today', exact: true }).click();
         await expect(event(page, 'Calendar controls tutoring')).toBeVisible();
-        await page.getByLabel('Show work shifts', { exact: true }).locator('xpath=ancestor::label[1]').click();
+        await page.getByLabel(workLabel, { exact: true }).locator('xpath=ancestor::label[1]').click();
         await expect(event(page, 'Calendar controls tutoring')).toHaveCount(0);
         await expect(event(page, 'Calendar controls coaching')).toBeVisible();
         const collapse = page.locator('button[aria-controls="filterPanelCollapse"]');
@@ -93,8 +95,8 @@ test.describe(`Calendar controls ${tags}`, () => {
         await expect(collapse).toHaveAttribute('aria-expanded', 'false');
         await expect(page.getByRole('heading', { name: 'Filters', exact: true })).not.toBeVisible();
         await collapse.click();
-        await expect(page.getByLabel('Show work shifts', { exact: true })).not.toBeChecked();
-        await page.getByLabel('Show work shifts', { exact: true }).locator('xpath=ancestor::label[1]').click();
+        await expect(page.getByLabel(workLabel, { exact: true })).not.toBeChecked();
+        await page.getByLabel(workLabel, { exact: true }).locator('xpath=ancestor::label[1]').click();
         await expect(event(page, 'Calendar controls tutoring')).toBeVisible();
         if (['admin-tests', 'tutorAdmin-tests', 'teacher-tests'].includes(info.project.name)) {
             await expect(event(page, 'Calendar controls denied')).toBeVisible();
@@ -104,9 +106,9 @@ test.describe(`Calendar controls ${tags}`, () => {
             await expect(event(page, 'Calendar controls denied')).toBeVisible();
         }
         if (['tutor-tests', 'coach-tests', 'coachTutor-tests'].includes(info.project.name)) {
-            await page.getByLabel('Show tutor availabilities', { exact: true }).locator('xpath=ancestor::label[1]').click();
+            await page.getByLabel('Show tutor availability', { exact: true }).locator('xpath=ancestor::label[1]').click();
             await expect(page.getByLabel('Hide my own availabilities', { exact: true })).toBeDisabled();
-            await page.getByLabel('Show tutor availabilities', { exact: true }).locator('xpath=ancestor::label[1]').click();
+            await page.getByLabel('Show tutor availability', { exact: true }).locator('xpath=ancestor::label[1]').click();
             await expect(page.getByLabel('Hide my own availabilities', { exact: true })).toBeEnabled();
         }
     });
@@ -117,31 +119,31 @@ test('student Help opens each existing accordion and closes with Got it @student
     test.setTimeout(60000);
     await ready(page);
     await page.getByTitle('How to use the calendar').click();
-    await expect(page.getByRole('heading', { name: 'How to Use the Calendar', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Using the Filter Panel', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'How to use the calendar', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Using the filters', exact: true }).click();
     await expect(page.getByText('Choose tutors', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Working with Events', exact: true }).click();
+    await page.getByRole('button', { name: 'Working with sessions', exact: true }).click();
     await expect(page.getByText('Click an event', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Got it!', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'How to Use the Calendar', exact: true })).not.toBeVisible();
+    await page.getByRole('button', { name: 'Got it', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'How to use the calendar', exact: true })).not.toBeVisible();
     const help = page.getByRole('button', { name: 'Help', exact: true });
     await expect(help).toBeFocused();
     await help.click();
-    await expect(page.getByRole('dialog', { name: 'How to Use the Calendar' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'How to use the calendar' })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'How to Use the Calendar' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'How to use the calendar' })).toHaveCount(0);
     await expect(help).toBeFocused();
     await help.click();
     await page.locator('[data-untitled-modal-overlay]').click({ position: { x: 5, y: 5 } });
-    await expect(page.getByRole('dialog', { name: 'How to Use the Calendar' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'How to use the calendar' })).toHaveCount(0);
     await help.click();
     await page.setViewportSize({ width: 320, height: 568 });
-    const dialog = page.getByRole('dialog', { name: 'How to Use the Calendar' });
+    const dialog = page.getByRole('dialog', { name: 'How to use the calendar' });
     await expect(dialog).toBeInViewport({ ratio: 1 });
-    await expect(dialog.getByRole('button', { name: 'Got it!', exact: true })).toBeInViewport({ ratio: 1 });
+    await expect(dialog.getByRole('button', { name: 'Got it', exact: true })).toBeInViewport({ ratio: 1 });
     await expect.poll(() => dialog.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: '/tmp/calendar-help-mobile.png' });
-    await dialog.getByRole('button', { name: 'Got it!', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Got it', exact: true }).click();
     await expect(dialog).toHaveCount(0);
 });
 

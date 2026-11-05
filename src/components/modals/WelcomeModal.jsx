@@ -72,11 +72,11 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                 <div className={styles.footerActions}>
                     <Button
                         type="button"
-                        size="sm"
+                        size="md"
                         color="primary"
                         onClick={handleClose}
                     >
-                        Get Started
+                        Get started
                     </Button>
                 </div>
             }
@@ -123,7 +123,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
 
                 {/* Calendar Legend */}
                 <TableCard.Root className={styles.legendCard}>
-                    <h6 className={styles.legendTitle}>Calendar Color Guide</h6>
+                    <h6 className={styles.legendTitle}>Calendar colour guide</h6>
                     <CalendarColourGuide userRole={userRole} descriptions />
                 </TableCard.Root>
 
@@ -131,7 +131,7 @@ const WelcomeModal = ({ userEmail, userRole }) => {
                 <TableCard.Root className={styles.notice}>
                     <InfoCircle width={20} height={20} aria-hidden="true" className={styles.noticeIcon} />
                     <div className={styles.noticeText}>
-                        <strong>Important:</strong> All tutoring session bookings must be made through the Calendar tab. Navigate to Calendar to book, view, or cancel your sessions.
+                        <strong>Important:</strong> All tutoring session bookings must be made through the Calendar tab. Go to the Calendar to book sessions and view or change your pending requests.
                     </div>
                 </TableCard.Root>
             </div>

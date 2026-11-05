@@ -18,7 +18,8 @@ const EventItem = ({ event, userRole, isToday }) => {
     const showApprovalStatus = ['teacher', 'admin', 'student'].includes(userRole);
     const isPending = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'pending';
     const isApproved = showApprovalStatus && event.createdByStudent && event.approvalStatus === 'approved';
-    const workTypeBadge = WORK_TYPE_BADGE[event.workType];
+    // Students know work sessions (their tutoring requests) as tutoring.
+    const workTypeBadge = WORK_TYPE_BADGE[userRole === 'student' && event.workType === 'work' ? 'tutoring' : event.workType];
     return (
         <li className={styles.eventItem}>
             <div className={styles.eventTime}>

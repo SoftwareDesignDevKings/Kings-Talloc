@@ -70,7 +70,7 @@ const readyDialog = async (page, name) => {
     const close = await dialog.getByRole('button', { name: 'Close', exact: true }).boundingBox();
     const rightGap = header.x + header.width - close.x - close.width;
     expect(rightGap).toBeGreaterThanOrEqual(0);
-    expect(rightGap).toBeLessThanOrEqual(20);
+    expect(rightGap).toBeLessThanOrEqual(24);
     return dialog;
 };
 
@@ -97,38 +97,38 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await page.goto('/userRoles');
         const userRow = page.getByRole('row').filter({ hasText: fixtureEmail });
         await expect(userRow).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Add User Role', exact: true })).toHaveCSS('border-radius', '8px');
+        await expect(page.getByRole('button', { name: 'Add user role', exact: true })).toHaveCSS('border-radius', '8px');
         await expect(userRow.getByRole('button', { name: 'Edit user', exact: true })).toHaveCSS('border-radius', '8px');
         const before = await readUsers();
         const writes = monitorWrites(page);
-        await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
-        let dialog = await readyDialog(page, 'Add New User');
+        await page.getByRole('button', { name: 'Add user role', exact: true }).click();
+        let dialog = await readyDialog(page, 'Add new user');
         await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toHaveCSS('border-radius', '8px');
         await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toHaveAttribute('type', 'button');
-        await dialog.getByLabel('Email Address', { exact: true }).fill('unsaved@example.edu');
-        await dialog.getByLabel('Full Name', { exact: true }).fill('Unsaved create');
+        await dialog.getByLabel('Email address', { exact: true }).fill('unsaved@example.edu');
+        await dialog.getByLabel('Full name', { exact: true }).fill('Unsaved create');
         await selectRole(page, dialog, 'teacher');
         await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
         await expectClosed(page);
 
-        await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
-        dialog = await readyDialog(page, 'Add New User');
-        await expect(dialog.getByLabel('Email Address', { exact: true })).toHaveValue('');
-        await expect(dialog.getByLabel('Full Name', { exact: true })).toHaveValue('');
+        await page.getByRole('button', { name: 'Add user role', exact: true }).click();
+        dialog = await readyDialog(page, 'Add new user');
+        await expect(dialog.getByLabel('Email address', { exact: true })).toHaveValue('');
+        await expect(dialog.getByLabel('Full name', { exact: true })).toHaveValue('');
         await expect(rolesField(dialog)).toContainText('Student');
         await dialog.getByRole('button', { name: 'Close', exact: true }).click();
         await expectClosed(page);
 
         await userRow.getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
-        await expect(dialog.getByLabel('Email Address', { exact: true })).toBeDisabled();
-        await dialog.getByLabel('Full Name', { exact: true }).fill('Unsaved edit');
+        dialog = await readyDialog(page, 'Edit user');
+        await expect(dialog.getByLabel('Email address', { exact: true })).toBeDisabled();
+        await dialog.getByLabel('Full name', { exact: true }).fill('Unsaved edit');
         await selectRole(page, dialog, 'coach');
         await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
         await expectClosed(page);
         await userRow.getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
-        await expect(dialog.getByLabel('Full Name', { exact: true })).toHaveValue(fixture.name);
+        dialog = await readyDialog(page, 'Edit user');
+        await expect(dialog.getByLabel('Full name', { exact: true })).toHaveValue(fixture.name);
         await expect(rolesField(dialog)).toContainText('Teacher');
         await expect(dialog.getByRole('switch', { name: 'Tutoring request notifications', exact: true })).not.toBeChecked();
         await dialog.getByRole('button', { name: 'Close', exact: true }).click();
@@ -145,7 +145,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             await expect(userRow).toBeVisible();
             const before = await readUsers();
             const writes = monitorWrites(page);
-            const add = page.getByRole('button', { name: 'Add User Role', exact: true });
+            const add = page.getByRole('button', { name: 'Add user role', exact: true });
             await add.focus();
             await page.keyboard.press('Tab');
             await page.keyboard.press('Shift+Tab');
@@ -153,8 +153,8 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             await expect(add).toHaveCSS('outline-width', '2px');
             await expect(add).toBeInViewport({ ratio: 1 });
             await page.keyboard.press(key);
-            let opened = await readyDialog(page, 'Add New User');
-            await opened.getByLabel('Full Name', { exact: true }).fill('Unsaved close draft');
+            let opened = await readyDialog(page, 'Add new user');
+            await opened.getByLabel('Full name', { exact: true }).fill('Unsaved close draft');
             await opened.getByRole('button', { name: 'Close', exact: true }).focus();
             await page.keyboard.press(key);
             await expectClosed(page);
@@ -162,20 +162,20 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             const edit = userRow.getByRole('button', { name: 'Edit user', exact: true });
             await edit.focus();
             await page.keyboard.press(key);
-            opened = await readyDialog(page, 'Edit User');
-            await expect(opened.getByLabel('Full Name', { exact: true })).toHaveValue(fixture.name);
-            await expect(opened.getByLabel('Email Address', { exact: true })).toHaveValue(fixtureEmail);
-            await expect(opened.getByLabel('Email Address', { exact: true })).toBeDisabled();
-            await opened.getByLabel('Full Name', { exact: true }).fill('Unsaved close edit');
+            opened = await readyDialog(page, 'Edit user');
+            await expect(opened.getByLabel('Full name', { exact: true })).toHaveValue(fixture.name);
+            await expect(opened.getByLabel('Email address', { exact: true })).toHaveValue(fixtureEmail);
+            await expect(opened.getByLabel('Email address', { exact: true })).toBeDisabled();
+            await opened.getByLabel('Full name', { exact: true }).fill('Unsaved close edit');
             await opened.getByRole('button', { name: 'Close', exact: true }).focus();
             await page.keyboard.press(key);
             await expectClosed(page);
 
             await add.click();
-            const dialog = await readyDialog(page, 'Add New User');
-            await expect(dialog.getByLabel('Full Name', { exact: true })).toHaveValue('');
+            const dialog = await readyDialog(page, 'Add new user');
+            await expect(dialog.getByLabel('Full name', { exact: true })).toHaveValue('');
             const cancel = dialog.getByRole('button', { name: 'Cancel', exact: true });
-            await dialog.getByRole('button', { name: 'Create User', exact: true }).focus();
+            await dialog.getByRole('button', { name: 'Create user', exact: true }).focus();
             await page.keyboard.press('Shift+Tab');
             await expect(cancel).toBeFocused();
             await expect(cancel).toHaveCSS('outline-width', '2px');
@@ -202,7 +202,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await expect(extra).toBeVisible();
         const before = await readUsers(); const writes = monitorWrites(page);
         await extra.getByRole('button', { name: 'Edit user', exact: true }).click();
-        let dialog = await readyDialog(page, 'Edit User');
+        let dialog = await readyDialog(page, 'Edit user');
         await expect(rolesField(dialog)).toContainText('Tutor');
         await expect(rolesField(dialog)).toContainText('Coach');
         await expect(rolesField(dialog)).toContainText('Admin');
@@ -212,7 +212,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await expect(roleControl(dialog)).toBeFocused();
         await expect(dialog.getByText('Saved UI Coverage', { exact: true })).toBeVisible();
         await dialog.getByRole('button', { name: 'Remove Tutor', exact: true }).click();
-        await expect(dialog.getByLabel('Tutor Class Coverage', { exact: true })).toHaveCount(0);
+        await expect(dialog.getByLabel('Tutor class coverage', { exact: true })).toHaveCount(0);
         await selectRole(page, dialog, 'tutor');
         await expect(dialog.getByText('Saved UI Coverage', { exact: true })).toHaveCount(0);
         await expect(rolesField(dialog)).toContainText('Coach');
@@ -231,7 +231,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         }
         await dialog.getByRole('button', { name: 'Cancel', exact: true }).click(); await expectClosed(page);
         await page.getByRole('row').filter({ hasText: fixtureEmail }).getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
+        dialog = await readyDialog(page, 'Edit user');
         await expect(rolesField(dialog)).toContainText('Admin'); await expect(rolesField(dialog)).toContainText('Teacher');
         await selectRole(page, dialog, 'tutor');
         await expect(dialog.getByRole('button', { name: 'Remove Teacher', exact: true })).toHaveCount(0);
@@ -246,31 +246,31 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await page.goto('/userRoles');
         const row = page.getByRole('row').filter({ hasText: extraRoleFixture.email });
         await row.getByRole('button', { name: 'Edit user', exact: true }).click();
-        let dialog = await readyDialog(page, 'Edit User');
+        let dialog = await readyDialog(page, 'Edit user');
         // Adding Coach must retain the Tutor main view and existing Admin access.
         await selectRole(page, dialog, 'coach');
-        await dialog.getByRole('button', { name: 'Save Changes', exact: true }).click(); await expectClosed(page);
+        await dialog.getByRole('button', { name: 'Save changes', exact: true }).click(); await expectClosed(page);
         let saved = (await readUsers()).find(user => user.name.endsWith(`/${extraRoleFixture.email}`)).fields;
         expect(saved.defaultRole.stringValue).toBe('tutor'); expect(saved.role.stringValue).toBe('tutor');
         expect(saved.userRoles.arrayValue.values.map(value => value.stringValue)).toEqual(['admin', 'coach']);
         await page.reload(); await row.getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
+        dialog = await readyDialog(page, 'Edit user');
         await expect(rolesField(dialog)).toContainText('Coach');
         await dialog.getByRole('button', { name: 'Remove Tutor', exact: true }).click();
-        await dialog.getByRole('button', { name: 'Save Changes', exact: true }).click(); await expectClosed(page);
+        await dialog.getByRole('button', { name: 'Save changes', exact: true }).click(); await expectClosed(page);
         saved = (await readUsers()).find(user => user.name.endsWith(`/${extraRoleFixture.email}`)).fields;
         expect(saved.defaultRole.stringValue).toBe('coach'); expect(saved.userRoles.arrayValue.values.map(value => value.stringValue)).toEqual(['admin']);
         // The modal closes before the asynchronous table refresh; reopen the updated row.
         await expect(row.getByText('TUTOR', { exact: true })).toHaveCount(0);
-        await row.getByRole('button', { name: 'Edit user', exact: true }).click(); dialog = await readyDialog(page, 'Edit User');
+        await row.getByRole('button', { name: 'Edit user', exact: true }).click(); dialog = await readyDialog(page, 'Edit user');
         await dialog.getByRole('button', { name: 'Remove Coach', exact: true }).click();
         await dialog.getByRole('button', { name: 'Remove Admin', exact: true }).click();
-        await expect(dialog.getByRole('button', { name: 'Save Changes', exact: true })).toBeDisabled();
+        await expect(dialog.getByRole('button', { name: 'Save changes', exact: true })).toBeDisabled();
         const before = await readUsers();
-        await dialog.getByLabel('Full Name', { exact: true }).press('Enter'); await expect(dialog).toBeVisible();
+        await dialog.getByLabel('Full name', { exact: true }).press('Enter'); await expect(dialog).toBeVisible();
         expect(await readUsers()).toEqual(before);
         await selectRole(page, dialog, 'student');
-        await expect(dialog.getByRole('button', { name: 'Save Changes', exact: true })).toBeEnabled();
+        await expect(dialog.getByRole('button', { name: 'Save changes', exact: true })).toBeEnabled();
         await dialog.getByRole('button', { name: 'Cancel', exact: true }).click(); expect(await readUsers()).toEqual(before);
     });
 
@@ -279,19 +279,19 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await expect(page.getByRole('row').filter({ hasText: fixtureEmail })).toBeVisible();
         const before = await readUsers();
         const writes = monitorWrites(page);
-        const add = page.getByRole('button', { name: 'Add User Role', exact: true });
+        const add = page.getByRole('button', { name: 'Add user role', exact: true });
         await add.click();
-        let dialog = await readyDialog(page, 'Add New User');
-        await dialog.getByLabel('Full Name', { exact: true }).fill('Unsaved escape draft');
+        let dialog = await readyDialog(page, 'Add new user');
+        await dialog.getByLabel('Full name', { exact: true }).fill('Unsaved escape draft');
         await page.mouse.click(1, 1);
         await expect(dialog).toBeVisible();
-        await dialog.getByLabel('Full Name', { exact: true }).focus();
+        await dialog.getByLabel('Full name', { exact: true }).focus();
         await page.keyboard.press('Escape');
         await expectClosed(page);
         await expect(add).toBeFocused();
         await page.keyboard.press('Enter');
-        dialog = await readyDialog(page, 'Add New User');
-        await expect(dialog.getByLabel('Full Name', { exact: true })).toHaveValue('');
+        dialog = await readyDialog(page, 'Add new user');
+        await expect(dialog.getByLabel('Full name', { exact: true })).toHaveValue('');
         await dialog.getByRole('button', { name: 'Close', exact: true }).click();
         await expectClosed(page);
         expect(writes).toEqual([]);
@@ -308,7 +308,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         const row = page.getByRole('row').filter({ hasText: extraRoleFixture.email });
         await expect(row).toBeVisible();
         await row.getByRole('button', { name: 'Edit user', exact: true }).click();
-        let dialog = await readyDialog(page, 'Edit User');
+        let dialog = await readyDialog(page, 'Edit user');
         let role = roleControl(dialog);
         await role.focus();
         await page.keyboard.press('Space');
@@ -323,12 +323,12 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await notification.focus();
         await page.keyboard.press('Space');
         expect(await notification.isChecked()).toBe(!originalNotification);
-        await dialog.getByRole('button', { name: 'Save Changes', exact: true }).click();
+        await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
         await expectClosed(page);
         const teacherSaved = (await readUsers()).find(user => user.name.endsWith(`/${extraRoleFixture.email}`)).fields;
         expect(teacherSaved.requestNotificationsEnabled.booleanValue).toBe(!originalNotification);
         await row.getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
+        dialog = await readyDialog(page, 'Edit user');
         role = roleControl(dialog);
         expect(await dialog.getByRole('switch', { name: 'Tutoring request notifications', exact: true }).isChecked()).toBe(!originalNotification);
         await selectRole(page, dialog, 'coach');
@@ -336,9 +336,9 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await page.getByRole('searchbox', { name: 'Search Roles', exact: true }).fill('Tutor');
         await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
         await expect(rolesField(dialog)).toContainText('Tutor');
-        const coverage = dialog.getByRole('button', { name: 'Tutor Class Coverage', exact: true });
+        const coverage = dialog.getByRole('button', { name: 'Tutor class coverage', exact: true });
         await coverage.click();
-        const coverageSearch = page.getByRole('searchbox', { name: 'Search Tutor Class Coverage', exact: true });
+        const coverageSearch = page.getByRole('searchbox', { name: 'Search Tutor class coverage', exact: true });
         await coverageSearch.fill('no-such-course');
         await expect(page.getByText('No matching Canvas courses', { exact: true })).toBeVisible();
         await page.keyboard.press('Escape');
@@ -353,7 +353,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         }
         await expect(dialog.getByText('UI Coverage One (UI-ONE)', { exact: true })).toBeVisible();
         await expect(dialog.getByText('UI Coverage Two (UI-TWO)', { exact: true })).toBeVisible();
-        const save = dialog.getByRole('button', { name: 'Save Changes', exact: true });
+        const save = dialog.getByRole('button', { name: 'Save changes', exact: true });
         await expect(save).toBeInViewport({ ratio: 1 });
         await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeInViewport({ ratio: 1 });
         await save.click();
@@ -363,12 +363,12 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         expect(saved.userRoles.arrayValue.values.map(value => value.stringValue)).toEqual(['admin', 'tutor']);
         expect(saved.tutorCoverageKeys.arrayValue.values.map(value => value.stringValue)).toEqual(['course:ui-coverage-one', 'course:ui-coverage-two']);
         await row.getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
+        dialog = await readyDialog(page, 'Edit user');
         await expect(dialog.getByText('UI Coverage Two (UI-TWO)', { exact: true })).toBeVisible();
         await dialog.getByRole('button', { name: 'Remove Tutor', exact: true }).click();
         await expect(dialog.getByRole('button', { name: 'Remove Tutor', exact: true })).toHaveCount(0);
-        await expect(dialog.getByRole('button', { name: 'Tutor Class Coverage', exact: true })).toHaveCount(0);
-        await dialog.getByRole('button', { name: 'Save Changes', exact: true }).click();
+        await expect(dialog.getByRole('button', { name: 'Tutor class coverage', exact: true })).toHaveCount(0);
+        await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
         await expectClosed(page);
         saved = (await readUsers()).find(user => user.name.endsWith(`/${extraRoleFixture.email}`)).fields;
         expect(saved.tutorCoverageKeys.arrayValue.values || []).toEqual([]);
@@ -381,10 +381,10 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await expect(row).toBeVisible();
         const before = await readUsers();
         const writes = monitorWrites(page);
-        await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
-        let dialog = await readyDialog(page, 'Add New User');
-        const email = dialog.getByLabel('Email Address', { exact: true });
-        const name = dialog.getByLabel('Full Name', { exact: true });
+        await page.getByRole('button', { name: 'Add user role', exact: true }).click();
+        let dialog = await readyDialog(page, 'Add new user');
+        const email = dialog.getByLabel('Email address', { exact: true });
+        const name = dialog.getByLabel('Full name', { exact: true });
         await expect(email).toHaveAttribute('type', 'email');
         for (const field of [email, name]) {
             await expect(field).toHaveAttribute('required', '');
@@ -392,17 +392,17 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             expect(await field.evaluate(el => el.validity.valueMissing)).toBe(true);
             await expect(field.locator('..')).toHaveCSS('border-radius', '8px');
         }
-        await dialog.getByText('Email Address', { exact: true }).click();
+        await dialog.getByText('Email address', { exact: true }).click();
         await expect(email).toBeFocused();
         await email.fill('invalid-email');
         await name.fill('Validation Check');
         expect(await email.evaluate(el => el.validity.typeMismatch)).toBe(true);
-        await dialog.getByRole('button', { name: 'Create User', exact: true }).click();
+        await dialog.getByRole('button', { name: 'Create user', exact: true }).click();
         await expect(dialog).toBeVisible();
         await expect(email).toBeFocused();
         await email.fill('valid@example.edu');
         await name.fill('');
-        await dialog.getByRole('button', { name: 'Create User', exact: true }).click();
+        await dialog.getByRole('button', { name: 'Create user', exact: true }).click();
         await expect(name).toBeFocused();
         await expect(dialog).toBeVisible();
         for (const width of [390, 320]) {
@@ -413,13 +413,13 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
         await expectClosed(page);
         await row.getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
-        await expect(dialog.getByLabel('Email Address', { exact: true })).toBeDisabled();
-        await expect(dialog.getByLabel('Email Address', { exact: true })).toHaveValue(fixtureEmail);
-        await expect(dialog.getByLabel('Full Name', { exact: true })).toHaveValue(fixture.name);
+        dialog = await readyDialog(page, 'Edit user');
+        await expect(dialog.getByLabel('Email address', { exact: true })).toBeDisabled();
+        await expect(dialog.getByLabel('Email address', { exact: true })).toHaveValue(fixtureEmail);
+        await expect(dialog.getByLabel('Full name', { exact: true })).toHaveValue(fixture.name);
         await dialog.getByRole('button', { name: 'Close', exact: true }).focus();
         await page.keyboard.press('Tab');
-        await expect(dialog.getByLabel('Full Name', { exact: true })).toBeFocused();
+        await expect(dialog.getByLabel('Full name', { exact: true })).toBeFocused();
         await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
         await expectClosed(page);
         expect(writes).toEqual([]);
@@ -446,17 +446,17 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         const first = page.getByRole('row').filter({ hasText: fixtureEmail });
         await expect(first).toBeVisible();
         const before = await readUsers();
-        await page.getByRole('button', { name: 'Add User Role', exact: true }).click();
-        let dialog = await readyDialog(page, 'Add New User');
-        const create = dialog.getByRole('button', { name: 'Create User', exact: true });
+        await page.getByRole('button', { name: 'Add user role', exact: true }).click();
+        let dialog = await readyDialog(page, 'Add new user');
+        const create = dialog.getByRole('button', { name: 'Create user', exact: true });
         await expect(create).toHaveAttribute('type', 'submit');
         await expect(create).toHaveCSS('border-radius', '8px');
         await create.click();
         await expect(dialog).toBeVisible();
         expect(await readUsers()).toEqual(before);
         expect(rebuilds).toBe(0);
-        await dialog.getByLabel('Email Address', { exact: true }).fill(createdEmail);
-        await dialog.getByLabel('Full Name', { exact: true }).fill('Created UI Check');
+        await dialog.getByLabel('Email address', { exact: true }).fill(createdEmail);
+        await dialog.getByLabel('Full name', { exact: true }).fill('Created UI Check');
         await create.focus();
         await page.keyboard.press('Enter');
         await expectClosed(page);
@@ -465,9 +465,9 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         expect(rebuilds).toBe(0);
 
         await first.getByRole('button', { name: 'Edit user', exact: true }).click();
-        dialog = await readyDialog(page, 'Edit User');
-        await dialog.getByLabel('Full Name', { exact: true }).fill('Saved UI Edit');
-        await dialog.getByRole('button', { name: 'Save Changes', exact: true }).focus();
+        dialog = await readyDialog(page, 'Edit user');
+        await dialog.getByLabel('Full name', { exact: true }).fill('Saved UI Edit');
+        await dialog.getByRole('button', { name: 'Save changes', exact: true }).focus();
         await page.keyboard.press('Space');
         await expectClosed(page);
         await expect(first).toContainText('Saved UI Edit');
@@ -553,7 +553,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         const actions = edit.locator('..');
         const before = await readUsers(); const writes = monitorWrites(page);
         await row.scrollIntoViewIfNeeded();
-        await page.getByRole('heading', { name: 'Manage User Roles', exact: true }).hover();
+        await page.getByRole('heading', { name: 'Manage users', exact: true }).hover();
         await expect(actions).toHaveCSS('opacity', '0');
         for (const name of ['Upload', 'Edit user', 'Delete user']) {
             const button = row.getByRole('button', { name, exact: true });
@@ -563,7 +563,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             const bounds = await button.boundingBox(); expect(bounds.width).toBe(32); expect(bounds.height).toBe(32);
         }
         await row.hover(); await expect(actions).toHaveCSS('opacity', '1');
-        await page.getByRole('heading', { name: 'Manage User Roles', exact: true }).hover();
+        await page.getByRole('heading', { name: 'Manage users', exact: true }).hover();
         await expect(actions).toHaveCSS('opacity', '0');
         await edit.focus(); await expect(actions).toHaveCSS('opacity', '1');
         await page.keyboard.press('Tab');
@@ -581,7 +581,7 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             const touchPage = await touch.newPage(); await touchPage.goto('/userRoles');
             const touchEdit = touchPage.getByRole('row').filter({ hasText: extraRoleFixture.email }).getByRole('button', { name: 'Edit user', exact: true });
             await expect(touchEdit.locator('..')).toHaveCSS('opacity', '1');
-            await touchEdit.tap(); const dialog = await readyDialog(touchPage, 'Edit User');
+            await touchEdit.tap(); const dialog = await readyDialog(touchPage, 'Edit user');
             await dialog.getByRole('button', { name: 'Cancel', exact: true }).tap(); await expectClosed(touchPage);
         } finally { await touch.close(); }
         expect(writes).toEqual([]); expect(await readUsers()).toEqual(before);
@@ -674,11 +674,11 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
         expect(await page.getByRole('row').allTextContents()).toEqual(rowsBefore);
         await search.focus();
         await page.keyboard.press('Tab');
-        await expect(page.getByRole('link', { name: 'Timesheet Template', exact: true })).toBeFocused();
+        await expect(page.getByRole('link', { name: 'Timesheet template', exact: true })).toBeFocused();
         await page.keyboard.press('Tab');
-        await expect(page.getByRole('button', { name: 'Add User Role', exact: true })).toBeFocused();
+        await expect(page.getByRole('button', { name: 'Add user role', exact: true })).toBeFocused();
 
-        const template = page.getByRole('link', { name: 'Timesheet Template', exact: true });
+        const template = page.getByRole('link', { name: 'Timesheet template', exact: true });
         await expect(template).toHaveAttribute('href', '/api/download-template');
         await expect(template).toHaveAttribute('download', 'Timesheet_Template.docx');
         await expect(template).toHaveCSS('text-decoration-line', 'none');

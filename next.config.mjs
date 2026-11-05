@@ -26,7 +26,6 @@ const nextConfig = {
         optimizePackageImports: [
             '@untitledui/icons',
             'react-big-calendar',
-            'react-select',
             'react-icons',
             'date-fns',
             'luxon',

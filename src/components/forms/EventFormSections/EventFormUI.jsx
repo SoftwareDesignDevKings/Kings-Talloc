@@ -14,8 +14,8 @@ export const EventFormUIContext = createContext({});
 export function StaffEventDialog({ show = true, onHide, title, children, onSubmit, submitText, submitVariant, loading = false, size = 'lg', deleteButton, customFooter, showFooter = true, menuOpen = false, setPortalContainer }) {
     const titleId = useId();
     const footer = showFooter && (customFooter || (onSubmit && <>
-        {deleteButton && <Button size="sm" color="secondary-destructive" isDisabled={loading} onClick={async () => { if (await deleteButton.onClick() !== false) onHide(); }}>{deleteButton.text}</Button>}
-        <Button size="sm" color={submitVariant === 'danger' ? 'primary-destructive' : 'secondary'} type="submit" isDisabled={loading} isLoading={loading} showTextWhileLoading>{loading ? 'Loading...' : submitText}</Button>
+        {deleteButton && <Button size="md" color="secondary-destructive" isDisabled={loading} onClick={async () => { if (await deleteButton.onClick() !== false) onHide(); }}>{deleteButton.text}</Button>}
+        <Button size="md" color={submitVariant === 'danger' ? 'primary-destructive' : 'primary'} type="submit" isDisabled={loading} isLoading={loading} showTextWhileLoading>{loading ? 'Loading...' : submitText}</Button>
     </>));
     return <ModalOverlay isOpen={show} isDismissable={!loading} isKeyboardDismissDisabled={loading || menuOpen}
         onOpenChange={open => { if (!open && !loading) onHide(); }} className={styles.overlay}>

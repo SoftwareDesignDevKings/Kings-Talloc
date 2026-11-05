@@ -366,9 +366,9 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
     ];
 
     const workStatusOptions = [
-        { value: 'notCompleted', label: 'Not Completed' },
+        { value: 'notCompleted', label: 'Not completed' },
         { value: 'completed', label: 'Completed' },
-        { value: 'notAttended', label: "Student Didn't Attend" },
+        { value: 'notAttended', label: "Student didn't attend" },
     ];
 
     const workTypeOptions = [
@@ -396,11 +396,11 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
             <StaffEventDialog
                 show={!showDeleteConfirm}
                 onHide={() => { if (!busyRef.current) setShowModal(false); }}
-                title={isView ? 'Event Details' : (isEdit ? 'Edit Event' : 'Add New Event')}
+                title={isView ? 'Event details' : (isEdit ? 'Edit event' : 'Add new event')}
                 setPortalContainer={setPortalContainer}
                 menuOpen={menuOpen}
                 onSubmit={(isView && !isTutorPartialEdit) ? undefined : onSubmit}
-                submitText={isRejectingRequest ? 'Reject Request' : isTutorPartialEdit ? 'Save Status' : (isEdit ? 'Save Changes' : 'Add Event')}
+                submitText={isRejectingRequest ? 'Reject request' : isTutorPartialEdit ? 'Save status' : (isEdit ? 'Save changes' : 'Add event')}
                 submitVariant={isRejectingRequest || removesPaidTime || removesMeeting ? 'danger' : 'outline-primary'}
                 loading={isSubmitting}
                 deleteButton={
@@ -414,7 +414,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                 }
                 showFooter={!isView || isTutorPartialEdit}
             >
-                {participantError && <div className="alert alert-danger" role="alert">{participantError}</div>}
+                {participantError && <div className={styles.warning} role="alert">{participantError}</div>}
                 <EventFormUIContext.Provider value={{ portalContainer, setMenuOpen, dateTimeValidity, busy: isSubmitting, activeSection, setActiveSection }}>
                 <div className={styles.sections}>
                     <EventDetailsSection

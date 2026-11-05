@@ -22,8 +22,8 @@ const decode = value => {
     return value.stringValue ?? value.booleanValue ?? value.integerValue ?? value.nullValue;
 };
 const userData = record => Object.fromEntries(Object.entries(record.fields).map(([key, value]) => [key, decode(value)]));
-const dialog = page => page.getByRole('dialog', { name: 'Edit User', exact: true });
-const trigger = page => page.getByRole('button', { name: 'Tutor Class Coverage', exact: true });
+const dialog = page => page.getByRole('dialog', { name: 'Edit user', exact: true });
+const trigger = page => page.getByRole('button', { name: 'Tutor class coverage', exact: true });
 const expectChipAlignment = async page => {
     for (const id of ['userRole', 'tutorCoverage']) {
         const spacingDifference = await page.locator(`#${id}`).evaluate(el => {
@@ -36,7 +36,7 @@ const expectChipAlignment = async page => {
 };
 const expectFooterGap = async page => {
     const cancel = await dialog(page).getByRole('button', { name: 'Cancel', exact: true }).boundingBox();
-    const save = await dialog(page).getByRole('button', { name: 'Save Changes', exact: true }).boundingBox();
+    const save = await dialog(page).getByRole('button', { name: 'Save changes', exact: true }).boundingBox();
     expect(save.x - cancel.x - cancel.width).toBeGreaterThanOrEqual(8);
 };
 const expectMenuBelow = async page => {
@@ -51,9 +51,9 @@ const expectMenuBelow = async page => {
 const search = async (page, query) => {
     if (await trigger(page).count()) {
         await trigger(page).click();
-        await page.getByRole('searchbox', { name: 'Search Tutor Class Coverage', exact: true }).fill(query);
+        await page.getByRole('searchbox', { name: 'Search Tutor class coverage', exact: true }).fill(query);
     } else {
-        const input = page.getByRole('combobox', { name: 'Tutor Class Coverage', exact: true });
+        const input = page.getByRole('combobox', { name: 'Tutor class coverage', exact: true });
         await input.click(); if (query) await input.fill(query);
     }
 };
@@ -63,7 +63,7 @@ const edit = async page => {
     await expect(dialog(page)).toBeVisible(); await expect(dialog(page)).toHaveCSS('opacity', '1');
 };
 test.setTimeout(90000);
-test.describe('Tutor Class Coverage @teacherAdmin @tutorAdmin', () => {
+test.describe('Tutor class coverage @teacherAdmin @tutorAdmin', () => {
     test.beforeEach(async ({ page }) => {
         const base = documents(); const prefix = new URL(base).pathname.replace('/v1/', '');
         const records = [[`users/${email}`, { email, name: 'Coverage Migration Check', defaultRole: 'tutor', role: 'tutor', userRoles: [], tutorCoverage: [archived], tutorCoverageKeys: [archived.key] }], ...courses.map(course => [`canvasCourses/${course.id}`, course])];
@@ -92,7 +92,7 @@ test.describe('Tutor Class Coverage @teacherAdmin @tutorAdmin', () => {
         await expect(dialog(page).getByText('Archived Coverage', { exact: true })).toBeVisible();
         await select(page, 'Coverage Robotics', 'Coverage Robotics (CRO)');
         await expectChipAlignment(page);
-        await dialog(page).getByRole('button', { name: 'Save Changes', exact: true }).click();
+        await dialog(page).getByRole('button', { name: 'Save changes', exact: true }).click();
         await expect(dialog(page)).toHaveCount(0);
         const saved = await read(`users/${email}`); const data = userData(saved);
         expect(data.tutorCoverage).toEqual([archived,
@@ -113,23 +113,23 @@ test.describe('Tutor Class Coverage @teacherAdmin @tutorAdmin', () => {
         await page.setViewportSize({ width: 320, height: 568 });
         await expectFooterGap(page);
         await search(page, ''); await expectMenuBelow(page);
-        await page.getByRole('searchbox', { name: 'Search Tutor Class Coverage', exact: true }).fill('Coverage Robotics');
+        await page.getByRole('searchbox', { name: 'Search Tutor class coverage', exact: true }).fill('Coverage Robotics');
         const option = page.getByRole('option', { name: 'Coverage Robotics (CRO)', exact: true });
         await expect(option).toBeInViewport({ ratio: 1 });
         expect(await option.evaluate(el => !!el.closest('[data-untitled-modal-overlay]'))).toBe(true);
         await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
         await expect(dialog(page).getByText('Coverage Robotics (CRO)', { exact: true })).toBeVisible();
         await expectChipAlignment(page);
-        if (await trigger(page).count()) await dialog(page).getByRole('button', { name: 'Clear Tutor Class Coverage', exact: true }).click();
+        if (await trigger(page).count()) await dialog(page).getByRole('button', { name: 'Clear Tutor class coverage', exact: true }).click();
         else await page.locator('.select__clear-indicator').click();
         await expect(dialog(page).getByText('Archived Coverage', { exact: true })).toHaveCount(0);
         await dialog(page).getByRole('button', { name: 'Cancel', exact: true }).click(); expect(await read(`users/${email}`)).toEqual(before);
         await edit(page); await expect(dialog(page).getByText('Archived Coverage', { exact: true })).toBeVisible();
         await dialog(page).getByRole('button', { name: 'Roles', exact: true }).click(); await page.getByRole('option', { name: 'Coach', exact: true }).click();
-        await expect(dialog(page).getByLabel('Tutor Class Coverage', { exact: true })).toBeVisible();
+        await expect(dialog(page).getByLabel('Tutor class coverage', { exact: true })).toBeVisible();
         await dialog(page).getByRole('button', { name: 'Remove Tutor', exact: true }).click();
-        await expect(page.getByLabel('Tutor Class Coverage', { exact: true })).toHaveCount(0);
-        await dialog(page).getByRole('button', { name: 'Save Changes', exact: true }).click(); await expect(dialog(page)).toHaveCount(0);
+        await expect(page.getByLabel('Tutor class coverage', { exact: true })).toHaveCount(0);
+        await dialog(page).getByRole('button', { name: 'Save changes', exact: true }).click(); await expect(dialog(page)).toHaveCount(0);
         const saved = userData(await read(`users/${email}`)); expect(saved.tutorCoverage).toEqual([]); expect(saved.tutorCoverageKeys).toEqual([]);
     });
 });

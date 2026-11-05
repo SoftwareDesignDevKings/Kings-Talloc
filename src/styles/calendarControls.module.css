@@ -7,15 +7,17 @@
 .toolbar:global(.rbc-toolbar) button[data-untitled-button]:focus-visible { outline: 2px solid var(--uui-color-border-brand); outline-offset: -2px; z-index: 1; }
 .toolbar:global(.rbc-toolbar) button[data-untitled-button]:first-child { border-radius: 7px 0 0 7px; }
 .toolbar:global(.rbc-toolbar) button[data-untitled-button]:last-child { border-radius: 0 7px 7px 0; }
+.toolbar:global(.rbc-toolbar) button[data-untitled-button]:only-child { border-radius: 7px; }
 .toolbar:global(.rbc-toolbar) button[data-untitled-button] + button[data-untitled-button] { border-left: 1px solid var(--uui-color-border-primary); }
+.toolbarEnd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .toolbar .rangeLabel { padding: 0; flex: 1; min-width: 140px; color: var(--uui-color-text-primary); font-size: 1rem; font-weight: 600; }
 .helpOverlay[data-untitled-modal-overlay] { z-index: 1070; align-items: center; }
 .helpModal { max-width: 800px; }
 .helpModal .helpDialog { display: flex; flex-direction: column; overflow: hidden; }
-.helpHeader { display: flex; align-items: center; gap: 16px; padding: 20px 20px 0; flex-shrink: 0; }
+.helpHeader { display: flex; align-items: center; gap: 16px; padding: 20px 24px 0; flex-shrink: 0; }
 .helpTitle { flex: 1; margin: 0; color: var(--uui-color-text-primary); font-size: 1.125rem; font-weight: 600; }
-.helpBody { padding: 20px; overflow-y: auto; min-height: 0; font-size: .875rem; line-height: 1.5; color: var(--uui-color-text-secondary); }
-.helpFooter { padding: 16px 20px; border-top: 1px solid var(--uui-color-border-secondary); flex-shrink: 0; display: flex; justify-content: center; }
+.helpBody { padding: 20px 24px; overflow-y: auto; min-height: 0; font-size: .875rem; line-height: 1.5; color: var(--uui-color-text-secondary); }
+.helpFooter { padding: 16px 24px; border-top: 1px solid var(--uui-color-border-secondary); flex-shrink: 0; display: flex; justify-content: center; }
 .helpAccordion { border: 1px solid var(--uui-color-border-secondary); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
 .helpSection + .helpSection { border-top: 1px solid var(--uui-color-border-secondary); }
 .helpSection h2 { margin: 0; }

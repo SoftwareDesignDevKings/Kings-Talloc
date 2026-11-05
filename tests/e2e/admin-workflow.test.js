@@ -13,20 +13,20 @@ test.describe('Admin Workflow @teacherAdmin', () => {
     // ==========================================
     test.describe('System Setup', () => {
         test('should show Canvas admin controls', async ({ page }) => {
-            await expect(page.getByRole('link', { name: 'Canvas Admin' })).toBeVisible();
-            await page.getByRole('link', { name: 'Canvas Admin' }).click();
+            await expect(page.getByRole('link', { name: 'Canvas admin' })).toBeVisible();
+            await page.getByRole('link', { name: 'Canvas admin' }).click();
 
-            await expect(page.getByRole('heading', { name: 'Canvas Admin' })).toBeVisible();
-            await expect(page.getByRole('button', { name: /Run Sync/i })).toBeVisible();
+            await expect(page.getByRole('heading', { name: 'Canvas admin' })).toBeVisible();
+            await expect(page.getByRole('button', { name: /Run sync/i })).toBeVisible();
             await expect(page.getByRole('tab', { name: /Whitelisted/i })).toBeVisible();
             await expect(page.getByRole('tab', { name: /All Canvas Courses/i })).toBeVisible();
         });
 
         test('should show read-only Canvas classes', async ({ page }) => {
-            await expect(page.getByRole('link', { name: 'Canvas Classes' })).toBeVisible();
-            await page.getByRole('link', { name: 'Canvas Classes' }).click();
+            await expect(page.getByRole('link', { name: 'Canvas classes' })).toBeVisible();
+            await page.getByRole('link', { name: 'Canvas classes' }).click();
 
-            await expect(page.getByRole('heading', { name: 'Canvas Classes' })).toBeVisible();
+            await expect(page.getByRole('heading', { name: 'Canvas classes' })).toBeVisible();
             await expect(page.getByPlaceholder('Search by Canvas class or code')).toBeVisible();
             await expect(page.getByRole('button', { name: 'Add Class' })).toBeHidden();
         });
@@ -51,22 +51,22 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await page.getByRole('button', { name: 'Assign tutors to event', exact: true }).click();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
 
-            await expect(page.getByRole('button', {name: 'General Information' })).toBeVisible();
-            await page.getByRole('button', { name: 'General Information' }).click();
+            await expect(page.getByRole('button', {name: 'General information' })).toBeVisible();
+            await page.getByRole('button', { name: 'General information' }).click();
 
             await expect(page.getByRole('button', { name: 'Add online Teams meeting' })).toBeVisible();
             await page.getByRole('button', { name: 'Add online Teams meeting' }).click();
 
-            await expect(page.getByRole('button', {name: 'Add Event' })).toBeVisible();
-            await page.getByRole('button', { name: 'Add Event' }).click();
+            await expect(page.getByRole('button', {name: 'Add event' })).toBeVisible();
+            await page.getByRole('button', { name: 'Add event' }).click();
 
             await expect(page.getByText('Teams meeting created')).toBeVisible();
 
             await expect(page.getByRole('button', { name: /Software \(VP\)/ })).toBeVisible();
             await page.getByRole('button', { name: /Software \(VP\)/ }).click();
 
-            await expect(page.getByRole('link', { name: /Join Now/i })).toBeVisible();
-            await expect(page.getByRole('link', { name: /Join Now/i })).toHaveAttribute(
+            await expect(page.getByRole('link', { name: /Join now/i })).toBeVisible();
+            await expect(page.getByRole('link', { name: /Join now/i })).toHaveAttribute(
                 'href',
                 'https://teams.microsoft.com/l/meetup-join/dev-mock-meeting',
             );
@@ -113,29 +113,29 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('option', { name: /Viraj Patel/i })).toBeVisible();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
 
-            await expect(page.getByRole('button', { name: 'Add Event' })).toBeVisible();
-            await page.getByRole('button', { name: 'Add Event' }).click();
+            await expect(page.getByRole('button', { name: 'Add event' })).toBeVisible();
+            await page.getByRole('button', { name: 'Add event' }).click();
 
             // Work remains the academic type
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeVisible();
             await page.getByRole('button', { name: /Software Lesson/ }).first().click();
 
-            await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+            await page.getByRole('button', { name: 'Settings & status' }).click();
             await page.getByRole('button', { name: /Event work type/ }).click();
 
             await expect(page.getByRole('option', { name: 'Tutoring' })).toHaveCount(0);
             await page.getByRole('option', { name: 'Work', exact: true }).click();
 
-            await expect(page.getByRole('button', { name: 'Save Changes' })).toBeVisible();
-            await page.getByRole('button', { name: 'Save Changes' }).click();
+            await expect(page.getByRole('button', { name: 'Save changes' })).toBeVisible();
+            await page.getByRole('button', { name: 'Save changes' }).click();
 
             // Re-open and verify Work Type persisted
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeVisible();
             await page.getByRole('button', { name: /Software Lesson/ }).first().click();
 
-            await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+            await page.getByRole('button', { name: 'Settings & status' }).click();
 
             await expect(page.getByRole('button', { name: /Event work type/ })).toContainText('Work');
 
@@ -145,21 +145,21 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('option', { name: 'Completed', exact: true })).toBeVisible();
             await page.getByRole('option', { name: 'Completed', exact: true }).click();
 
-            await expect(page.getByRole('button', {name : 'Save Changes' })).toBeVisible();
-            await page.getByRole('button', { name: 'Save Changes' }).click();
+            await expect(page.getByRole('button', {name : 'Save changes' })).toBeVisible();
+            await page.getByRole('button', { name: 'Save changes' }).click();
 
             // Re-open and verify Status persisted
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeVisible();
             await page.getByRole('button', { name: /Software Lesson/ }).first().click();
 
-            await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+            await page.getByRole('button', { name: 'Settings & status' }).click();
             await expect(page.getByRole('button', { name: /Event work status/ })).toBeVisible();
 
             // Delete
             await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
             await page.getByRole('button', { name: 'Delete', exact: true }).click();
-            const confirmation = page.getByRole('dialog', { name: 'Delete Event', exact: true });
+            const confirmation = page.getByRole('dialog', { name: 'Delete event', exact: true });
             await expect(confirmation).toContainText('This cannot be undone.');
             await confirmation.getByRole('button', { name: 'Delete', exact: true }).click();
             await expect(page.getByRole('button', { name: /Software Lesson/ })).toBeHidden();
@@ -187,29 +187,29 @@ test.describe('Admin Workflow @teacherAdmin', () => {
             await expect(page.getByRole('option', { name: /Viraj Patel/i })).toBeVisible();
             await page.getByRole('option', { name: /Viraj Patel/i }).click();
 
-            await expect(page.getByRole('button', { name: 'Add Event' })).toBeVisible();
-            await page.getByRole('button', { name: 'Add Event' }).click();
+            await expect(page.getByRole('button', { name: 'Add event' })).toBeVisible();
+            await page.getByRole('button', { name: 'Add event' }).click();
 
             await expect(page.getByRole('button', { name: /Reporting Shift/ })).toBeVisible();
 
             await expect(page.getByRole('button', { name: /Reporting Shift/ })).toBeVisible();
             await page.getByRole('button', { name: /Reporting Shift/ }).first().click();
 
-            await expect(page.getByRole('button', { name: 'Settings & Status' })).toBeVisible();
-            await page.getByRole('button', { name: 'Settings & Status' }).click();
+            await expect(page.getByRole('button', { name: 'Settings & status' })).toBeVisible();
+            await page.getByRole('button', { name: 'Settings & status' }).click();
 
             await page.getByRole('button', { name: /Event work status/ }).click();
 
             await expect(page.getByRole('option', { name: 'Completed', exact: true })).toBeVisible();
             await page.getByRole('option', { name: 'Completed', exact: true }).click();
 
-            await expect(page.getByRole('button', {name : 'Save Changes' })).toBeVisible();
-            await page.getByRole('button', { name: 'Save Changes' }).click();
+            await expect(page.getByRole('button', {name : 'Save changes' })).toBeVisible();
+            await page.getByRole('button', { name: 'Save changes' }).click();
         });
 
         test('should calculate and display correct tutor hours', async ({ page }) => {
-            await expect(page.getByRole('link', { name: 'Tutor Hours' })).toBeVisible();
-            await page.getByRole('link', { name: 'Tutor Hours' }).click();
+            await expect(page.getByRole('link', { name: 'Tutor hours' })).toBeVisible();
+            await page.getByRole('link', { name: 'Tutor hours' }).click();
 
             await expect(page.getByRole('cell', { name: 'Viraj Patel' })).toBeVisible();
             await page.getByRole('cell', { name: 'Viraj Patel' }).click();

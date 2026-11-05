@@ -60,8 +60,8 @@ test('create keeps fields, participant chips, settings and exact persistence pay
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search Assign students to event' }), { target: { value: 'stu' } });
     fireEvent.click(await screen.findByRole('option', { name: 'Student', exact: true }));
     expect(global.fetch).toHaveBeenCalledWith('/api/students?q=stu', expect.objectContaining({ cache: 'no-store' }));
-    section('Settings & Status');
-    choose('Event work type', 'Work'); choose('Event work status', "Student Didn't Attend");
+    section('Settings & status');
+    choose('Event work type', 'Work'); choose('Event work status', "Student didn't attend");
     submit();
     await waitFor(() => expect(createScheduledEventInFirestore).toHaveBeenCalledWith(expect.objectContaining({ title: 'Changed', description: 'Changed notes', start: original.start, end: original.end, staff: [staff], classes: [{ value: 'class', label: 'Math (MATH)' }], students: [{ value: 'student@example.edu', label: 'Student' }], workType: 'work', workStatus: 'notAttended', recurring: null, createTeamsMeeting: false })));
     expect(queueEmailNotification).toHaveBeenCalledWith(expect.objectContaining({ id: 'created' }), 'allocated', 'admin@example.edu');
@@ -110,14 +110,14 @@ test('editing an instance detaches it through the existing series helper', async
 });
 test.each(['teacher', 'student'])('%s view is fully read only without save or delete', role => {
     render(<Harness mode="view" role={role} />); expect(screen.getByLabelText('Event title')).toBeDisabled();
-    section('Settings & Status');
+    section('Settings & status');
     const control = screen.queryByRole('combobox', { name: 'Event work status', exact: true });
     if (control) expect(control).toBeDisabled(); else expect(screen.getByRole('button', { name: /Event work status/ })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Save Status' })).not.toBeInTheDocument(); expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save status' })).not.toBeInTheDocument(); expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
 });
 test.each(['tutor', 'coach'])('%s view saves only workStatus even with otherwise invalid fields', async role => {
     render(<Harness mode="view" role={role} draft={{ ...original, title: '', end: original.start, recurring: 'weekly' }} />);
-    section('Settings & Status'); choose('Event work status', 'Completed'); submit();
+    section('Settings & status'); choose('Event work status', 'Completed'); submit();
     await waitFor(() => expect(updateWorkStatusInFirestore).toHaveBeenCalledWith('owned', 'completed', 0));
     expect(updateEventInFirestore).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
 });
@@ -169,7 +169,7 @@ test('failed recurring deletion restores the event dialog and draft', async () =
     render(<Harness mode="edit" event={{ ...original, isRecurringInstance: true }} />);
     fireEvent.change(screen.getByLabelText('Event title'), { target: { value: 'Unsaved draft' } });
     fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true })); fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }));
-    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Edit Event' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Edit event' })).toBeInTheDocument());
     expect(screen.getByLabelText('Event title')).toHaveValue('Unsaved draft'); expect(close).not.toHaveBeenCalled(); expect(mockAlert).toHaveBeenCalledWith('error', 'Failed to delete event'); log.mockRestore();
 });
 test('single-field status failure leaves view open for retry', async () => {

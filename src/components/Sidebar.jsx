@@ -19,10 +19,10 @@ const ROLE_LABELS = {
 const NAVIGATION_ITEMS = [
     { label: 'Dashboard', href: '/dashboard', icon: HomeLine },
     { label: 'Calendar', href: '/calendar', icon: Calendar },
-    { label: 'Tutor Hours', href: '/tutorHours', icon: Clock, roles: ['admin', 'teacher', 'tutor', 'coach'] },
-    { label: 'Manage Users', href: '/userRoles', icon: Users01, roles: ['admin'], management: true },
-    { label: 'Canvas Classes', href: '/classes', icon: BookOpen01, roles: ['admin', 'teacher'], management: true },
-    { label: 'Canvas Admin', href: '/admin/canvas', icon: Settings01, roles: ['admin'], management: true },
+    { label: 'Tutor hours', href: '/tutorHours', icon: Clock, roles: ['admin', 'teacher', 'tutor', 'coach'] },
+    { label: 'Manage users', href: '/userRoles', icon: Users01, roles: ['admin'], management: true },
+    { label: 'Canvas classes', href: '/classes', icon: BookOpen01, roles: ['admin', 'teacher'], management: true },
+    { label: 'Canvas admin', href: '/admin/canvas', icon: Settings01, roles: ['admin'], management: true },
 ];
 
 const Sidebar = ({ user, userRole }) => {
@@ -40,19 +40,45 @@ const Sidebar = ({ user, userRole }) => {
         switchRole(isCurrentlyAdmin ? originalRole || 'student' : 'admin');
     };
 
+    const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
+        let lastWidth = null;
         const checkMobile = () => {
-            if (window.innerWidth < 768) setIsCollapsed(true);
+            const width = window.innerWidth;
+            setIsMobile(width < 768);
+            // Height-only resizes (e.g. a phone keyboard opening) keep the chosen state.
+            if (width < 768 && width !== lastWidth) setIsCollapsed(true);
+            lastWidth = width;
         };
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    // On phones the expanded menu overlays the page, so close it after navigating.
+    useEffect(() => {
+        if (isMobile) setIsCollapsed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname]);
+
+    const isOverlay = isMobile && !isCollapsed;
+    useEffect(() => {
+        if (!isOverlay) return;
+        const closeOnEscape = event => { if (event.key === 'Escape') setIsCollapsed(true); };
+        window.addEventListener('keydown', closeOnEscape);
+        return () => window.removeEventListener('keydown', closeOnEscape);
+    }, [isOverlay]);
+
     return (
+        <>
+        {isOverlay && <>
+            {/* Keeps the collapsed sidebar's space so the page doesn't shift under the overlay. */}
+            <div className={styles.overlaySpacer} aria-hidden="true" />
+            <div className={styles.overlayScrim} aria-hidden="true" onClick={() => setIsCollapsed(true)} />
+        </>}
         <SidebarNavigation
             style={{ '--sidebar-w': isCollapsed ? '5rem' : '16rem' }}
-            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : ''}`}
+            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : ''} ${isOverlay ? styles.sidebarOverlay : ''}`}
         >
             <div>
                 <div className={styles.header}>
@@ -103,11 +129,12 @@ const Sidebar = ({ user, userRole }) => {
                     </Button>
                 )}
                 <Button size="sm" color="secondary-destructive" iconLeading={LogOut01}
-                    onClick={AppLogout} title="Logout" aria-label="Logout" className={styles.footerButton}>
-                    Logout
+                    onClick={AppLogout} title="Log out" aria-label="Log out" className={styles.footerButton}>
+                    Log out
                 </Button>
             </div>
         </SidebarNavigation>
+        </>
     );
 };
 
