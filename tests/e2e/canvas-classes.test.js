@@ -183,24 +183,18 @@ test.describe('Canvas Classes baseline @teacherAdmin @teacherOnly @tutorAdmin', 
         }
     });
 
-    test('keeps mobile columns readable in a contained keyboard-scrollable table', async ({ page }) => {
+    test('shows each class as a card on phones, with no sideways scrolling', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await openClasses(page);
         const scrollArea = page.getByRole('region', { name: 'Canvas classes table', exact: true });
-        await expect(page.getByText('Scroll sideways to see all columns.')).toBeVisible();
         await expect(scrollArea).toBeInViewport({ ratio: 1 });
-        const columns = row(page, 'Mathematics Year 10').getByRole('cell');
-        for (let i = 0; i < 3; i++) {
-            const bounds = await columns.nth(i).boundingBox();
-            const next = await columns.nth(i + 1).boundingBox();
-            expect(bounds.x + bounds.width).toBeLessThanOrEqual(next.x + 1);
-        }
+        const cells = row(page, 'Mathematics Year 10').getByRole('cell');
+        for (let i = 0; i < 4; i++) await expect(cells.nth(i)).toBeInViewport({ ratio: 1 });
+        await expect(cells.nth(1)).toHaveText('MATH10');
         const dimensions = await scrollArea.evaluate(el => ({ width: el.clientWidth, scrollWidth: el.scrollWidth }));
-        expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.width);
+        expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width + 1);
         await scrollArea.focus();
         await expect(scrollArea).toHaveCSS('outline-width', '2px');
-        await page.keyboard.press('ArrowRight');
-        await expect.poll(() => scrollArea.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
         const toggle = row(page, 'Mathematics Year 10').getByRole('button');
         await toggle.scrollIntoViewIfNeeded();
         await toggle.click();

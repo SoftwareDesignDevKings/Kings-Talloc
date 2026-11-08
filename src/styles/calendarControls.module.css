@@ -28,3 +28,14 @@
 @container calendar-toolbar (max-width: 640px) { .toolbar .rangeLabel { order: -1; flex-basis: 100%; min-width: 0; text-align: center; } }
 @container calendar-toolbar (max-width: 340px) { .buttonGroup { justify-content: center; margin-inline: auto; } .toolbar:global(.rbc-toolbar) button[data-untitled-button] { padding: 6px 8px; } }
 @media (max-width: 767px) { .toolbar:global(.rbc-toolbar) { flex-direction: column; gap: 8px; } .toolbar .rangeLabel { min-width: 0; width: 100%; flex-basis: auto; } .toolbar:global(.rbc-toolbar) button[data-untitled-button] { padding: 6px 8px; } .buttonGroup { justify-content: center; } }
+/* Phone toolbar: date + Filters on one row, navigation + views on the next. */
+.toolbar.compact:global(.rbc-toolbar) { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label filters" "nav views"; align-items: center; gap: 8px; margin-bottom: 8px; }
+.toolbar.compact .rangeLabel { grid-area: label; order: 0; min-width: 0; width: auto; text-align: left; font-size: .9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toolbar.compact .navGroup { grid-area: nav; }
+.toolbar.compact .viewGroup { grid-area: views; justify-self: end; }
+.toolbar.compact .filtersButton { grid-area: filters; justify-self: end; }
+.toolbar.compact:global(.rbc-toolbar) button[data-untitled-button] { min-height: 40px; padding: 8px 10px; }
+.toolbar.compact:global(.rbc-toolbar) .filtersButton[data-untitled-button] { border: 1px solid var(--uui-color-border-primary); border-radius: 8px; box-shadow: 0 1px 2px rgb(10 13 18 / 5%); }
+@media (max-width: 359px) { .toolbar.compact:global(.rbc-toolbar) button[data-untitled-button] { padding: 8px 7px; font-size: .8125rem; } }
+/* Phone: floating create button above the tab bar (New booking / Add availability / Request session). */
+.createButton[data-untitled-button] { position: absolute; right: 16px; bottom: 16px; z-index: 20; min-height: 48px; border-radius: 9999px; padding-inline: 18px; box-shadow: 0 6px 16px rgb(10 13 18 / 18%), 0 2px 4px rgb(10 13 18 / 10%); }

@@ -65,3 +65,6 @@
     .tableCard { flex: 1 0 auto; }
     .tableRegion { max-height: 65vh; }
 }
+
+/* Phones: the app shell already pads the page. */
+@media (max-width: 767px) { .section { padding: 0; } }

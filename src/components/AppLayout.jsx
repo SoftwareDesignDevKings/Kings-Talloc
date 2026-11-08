@@ -1,13 +1,15 @@
 'use client';
 
 import Sidebar from '@/components/Sidebar';
+import MobileNav from '@/components/MobileNav';
 import { usePathname } from 'next/navigation';
 import usePrefetchRoutes from '@/hooks/usePrefetchRoutes';
+import { currentNavigationItem } from '@/constants/navigation';
 
 /**
  * Main application layout for authenticated users
- * - Gradient background with sidebar and white card container
- * - Dashboard title and user email display
+ * - Desktop: sidebar, dashboard title and user email
+ * - Phone (<768px): slim page-name bar on top and a bottom tab bar instead of the sidebar
  * @param {Object} session - NextAuth session object
  * @param {string} userRole - The role of the current user (student, teacher, admin, or tutor)
  * @param {JSX} children - Page content
@@ -21,10 +23,11 @@ const AppLayout = ({ session, userRole, children }) => {
     } else if (userRole === 'teacher') {
         dashboardTitle = 'Teacher Dashboard';
     } else if (userRole === 'admin') {
-        dashboardTitle = 'Admin Dashboard';    
+        dashboardTitle = 'Admin Dashboard';
     } else {
         dashboardTitle = 'Tutor Dashboard';
     }
+    const pageTitle = currentNavigationItem(pathname)?.label || 'Dashboard';
 
     return (
         <div className="d-flex app-shell">
@@ -32,15 +35,19 @@ const AppLayout = ({ session, userRole, children }) => {
 
             {/* main content area */}
             <div className="grow d-flex flex-column overflow-hidden bg-white">
-                <div className="p-4 p-md-4 d-flex flex-column grow overflow-hidden">
+                <header className="mobile-only mobile-page-bar">
+                    <h1 className="mobile-page-title">{pageTitle}</h1>
+                </header>
+
+                <div className="p-4 p-md-4 d-flex flex-column grow overflow-hidden app-content">
                     {/* Header section: responsive alignment */}
-                    <div className="ps-1 text-center text-md-start">
+                    <div className="ps-1 text-center text-md-start desktop-only">
                         <h1 className="dashboard-title ps-1 mt-2">{dashboardTitle}</h1>
                         <p className="ps-1 mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
                     </div>
 
                     {/* divider */}
-                    <hr className="my-4 divider-offset"/>
+                    <hr className="my-4 divider-offset desktop-only"/>
 
                     {/* content area with scroll */}
                     <div className={`grow overflow-hidden content-scroll-area${pathname === '/calendar' ? ' calendar-content-area' : ''}`}>
@@ -49,6 +56,8 @@ const AppLayout = ({ session, userRole, children }) => {
                         </div>
                     </div>
                 </div>
+
+                <MobileNav user={session.user} userRole={userRole} />
             </div>
         </div>
     );

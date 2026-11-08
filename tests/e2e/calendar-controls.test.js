@@ -77,7 +77,14 @@ test.describe(`Calendar controls ${tags}`, () => {
             await page.setViewportSize({ width, height: 740 });
             await expect(toolbar(page).getByRole('button', { name: 'Month', exact: true })).toHaveCount(0);
             await expect(toolbar(page).getByRole('button', { name: 'Day', exact: true })).toHaveClass(/rbc-active/);
-            for (const label of ['Today', 'Back', 'Next', 'Day', 'Week']) await expect(toolbar(page).getByRole('button', { name: label, exact: true })).toBeInViewport({ ratio: 1 });
+            await expect(toolbar(page).getByRole('button', { name: 'Week', exact: true })).toHaveCount(0);
+            for (const label of ['Today', 'Back', 'Next', 'Day', '3 Days', 'List', 'Filters']) await expect(toolbar(page).getByRole('button', { name: label, exact: true })).toBeInViewport({ ratio: 1 });
+            await toolbar(page).getByRole('button', { name: '3 Days', exact: true }).click();
+            await expect(page.locator('.rbc-time-view .rbc-day-slot')).toHaveCount(3);
+            await toolbar(page).getByRole('button', { name: 'List', exact: true }).click();
+            await expect(page.locator('.rbc-agenda-view')).toBeVisible();
+            await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+            await toolbar(page).getByRole('button', { name: 'Day', exact: true }).click();
         }
         expect(errors).toEqual([]);
     });
@@ -179,9 +186,14 @@ test('searchable tutor dropdown keeps keyboard selection, removal and event filt
         }).toBeLessThanOrEqual(1);
         await page.keyboard.press('Escape'); await expect(menu).toHaveCount(0);
     }
-    // The existing mobile Calendar hides Filters; dialog dropdowns are tested separately at 320px.
+    // Phones keep Filters in a sheet opened from the toolbar.
     for (const width of [390, 320]) {
         await page.setViewportSize({ width, height: 740 });
         await expect(trigger).not.toBeVisible();
+        await toolbar(page).getByRole('button', { name: 'Filters', exact: true }).click();
+        const sheet = page.getByRole('dialog', { name: 'Filters', exact: true });
+        await expect(sheet.getByRole('button', { name: 'Select tutors', exact: true })).toBeInViewport();
+        await sheet.getByRole('button', { name: 'Close filters', exact: true }).click();
+        await expect(sheet).toHaveCount(0);
     }
 });

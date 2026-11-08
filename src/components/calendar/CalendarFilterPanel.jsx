@@ -2,7 +2,8 @@ import React, { useMemo, useEffect, useState } from 'react';
 import CalendarMultiSelect from './CalendarMultiSelect';
 import { Button } from '@/components/untitled/button';
 import { Toggle } from '@/components/untitled/toggle';
-import { ChevronRight, InfoCircle } from '@untitledui/icons';
+import { ChevronRight, InfoCircle, XClose } from '@untitledui/icons';
+import { Dialog, Modal, ModalOverlay } from '@/components/untitled/modal';
 import styles from '@/styles/filterPanel.module.css';
 import { useCalendarUI } from '@contexts/CalendarUIContext';
 import { useAppData } from '@/contexts/AppDataContext';
@@ -11,8 +12,11 @@ import CalendarLegend from './CalendarLegend.jsx';
 import useAuthSession from '@/hooks/useAuthSession';
 import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 
-const CalendarFilterPanel = () => {
-    const { userRole } = useAuthSession();
+// Desktop: collapsible side panel. Phone: the same controls in a bottom sheet,
+// opened from the toolbar's Filters button (mobileOpen / onMobileOpenChange).
+const CalendarFilterPanel = ({ mobileOpen = false, onMobileOpenChange }) => {
+    const { userRole, device } = useAuthSession();
+    const isMobile = device === 'mobile';
     const { tutors, studentTutorEligibility } = useAppData();
     const { filters, visibility, actions, calendarFilters, calendarScope } = useCalendarUI();
     const [isOpen, setIsOpen] = useState(true);
@@ -52,6 +56,123 @@ const CalendarFilterPanel = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const header = (
+        <div className={styles.filterHeader}>
+            <h3 className={styles.filterTitle}>Filters</h3>
+            {userRole === 'student' && (
+                <Button size="sm" color="tertiary" iconLeading={InfoCircle}
+                    onClick={() => setShowHowToModal(true)}>
+                    <span title="How to use the calendar">Help</span>
+                </Button>
+            )}
+            {isMobile && (
+                <Button size="sm" color="tertiary" iconLeading={XClose} aria-label="Close filters"
+                    className={styles.sheetClose} onClick={() => onMobileOpenChange?.(false)} />
+            )}
+        </div>
+    );
+
+    const controls = (
+        <>
+            {/* ───── Dropdown filters ───── */}
+
+            {calendarFilters.canFilterByTutor && (
+                <div className="mb-3">
+                    <CalendarMultiSelect
+                        isMulti
+                        placeholder={userRole === 'student' ? "Select tutors to view availabilities" : "Select tutors"}
+                        options={tutorOptions}
+                        value={filters.filterByTutor}
+                        onChange={actions.setFilterByTutor}
+                        isDisabled={userRole === 'student' && tutorOptions.length === 0}
+                    />
+                </div>
+            )}
+
+            {calendarFilters.canFilterByAvailabilityType && (
+                <div className="mb-3">
+                    <CalendarMultiSelect
+                        isMulti
+                        placeholder="Filter availabilities"
+                        isClearable
+                        options={availabilityWorkTypeOptions}
+                        value={filters.filterAvailabilityByWorkType}
+                        onChange={actions.setFilterAvailabilityByWorkType}
+                    />
+                </div>
+            )}
+
+            {/* ───── Visibility toggles ───── */}
+
+            {(calendarScope.canToggleTutoringShifts ||
+                calendarScope.canToggleCoachingShifts) && (
+                <div className="mb-3">
+                    <div className={`${styles.filterSectionLabel} mb-1`}>
+                        {userRole === 'student' ? 'Sessions' : 'Shifts'}
+                    </div>
+
+                    {calendarScope.canToggleCoachingShifts && (
+                        <Toggle className={styles.toggleRow} label="Coaching" isSelected={visibility.showCoachingEvents} onChange={actions.setShowCoachingEvents} aria-label="Show coaching shifts" />
+                    )}
+
+                    <Toggle className={styles.toggleRow} label="Work" isSelected={visibility.showWorkEvents} onChange={actions.setShowWorkEvents} aria-label="Show work shifts" />
+                </div>
+            )}
+
+            {calendarScope.canToggleTutorAvailabilities && (
+                <>
+                    <hr className={styles.filterDivider} />
+                    <div className="mb-3">
+                        <div className={`${styles.filterSectionLabel} mb-1`}>Availability</div>
+                        <Toggle className={styles.toggleRow} label="Show tutor availability" isSelected={visibility.showTutorInitials} onChange={actions.setShowTutorInitials} aria-label="Show tutor availabilities" />
+
+                        {(userRole === 'tutor' || userRole === 'coach') && (
+                            <Toggle className={`${styles.subToggleRow} ${!visibility.showTutorInitials ? 'opacity-50' : ''}`} label="Hide my availability" isSelected={visibility.hideOwnAvailabilities} onChange={actions.setHideOwnAvailabilities} isDisabled={!visibility.showTutorInitials} aria-label="Hide my own availabilities" />
+                        )}
+                    </div>
+                </>
+            )}
+
+            {calendarScope.canToggleDeniedStudentRequests && (
+                <>
+                    <hr className={styles.filterDivider} />
+                    <div className="mb-3">
+                        <Toggle className={styles.toggleRow} label="Hide denied requests" isSelected={visibility.hideDeniedStudentRequests} onChange={actions.setHideDeniedStudentRequests} aria-label="Hide denied student requests" />
+                    </div>
+                </>
+            )}
+
+            {/* ───── Legend ───── */}
+            <div className={styles.legendSection}>
+                <CalendarLegend userRole={userRole} />
+            </div>
+        </>
+    );
+
+    const howTo = (
+        <CalendarHowToModal
+            show={showHowToModal}
+            onHide={() => setShowHowToModal(false)}
+            autoShow={true}
+        />
+    );
+
+    if (isMobile) {
+        return (
+            <>
+                <ModalOverlay isOpen={mobileOpen} onOpenChange={onMobileOpenChange} isDismissable className={styles.sheetOverlay}>
+                    <Modal className={styles.sheet}>
+                        <Dialog aria-label="Filters" className={styles.sheetDialog}>
+                            {header}
+                            {controls}
+                        </Dialog>
+                    </Modal>
+                </ModalOverlay>
+                {howTo}
+            </>
+        );
+    }
+
     return (
         <div
             className={`${styles.filterPanelContainer} ${
@@ -71,97 +192,12 @@ const CalendarFilterPanel = () => {
 
             <div className={styles.filterViewport} aria-hidden={!isOpen} ref={element => { element?.toggleAttribute('inert', !isOpen); }} id="filterPanelCollapse">
                 <div className={styles.filterContent}>
-                    <div className={styles.filterHeader}>
-                        <h3 className={styles.filterTitle}>Filters</h3>
-                        {userRole === 'student' && (
-                            <Button size="sm" color="tertiary" iconLeading={InfoCircle}
-                                onClick={() => setShowHowToModal(true)}>
-                                <span title="How to use the calendar">Help</span>
-                            </Button>
-                        )}
-                    </div>
-
-                    {/* ───── Dropdown filters ───── */}
-
-                    {calendarFilters.canFilterByTutor && (
-                        <div className="mb-3">
-                            <CalendarMultiSelect
-                                isMulti
-                                placeholder={userRole === 'student' ? "Select tutors to view availabilities" : "Select tutors"}
-                                options={tutorOptions}
-                                value={filters.filterByTutor}
-                                onChange={actions.setFilterByTutor}
-                                isDisabled={userRole === 'student' && tutorOptions.length === 0}
-                            />
-                        </div>
-                    )}
-
-                    {calendarFilters.canFilterByAvailabilityType && (
-                        <div className="mb-3">
-                            <CalendarMultiSelect
-                                isMulti
-                                placeholder="Filter availabilities"
-                                isClearable
-                                options={availabilityWorkTypeOptions}
-                                value={filters.filterAvailabilityByWorkType}
-                                onChange={actions.setFilterAvailabilityByWorkType}
-                            />
-                        </div>
-                    )}
-
-                    {/* ───── Visibility toggles ───── */}
-
-                    {(calendarScope.canToggleTutoringShifts ||
-                        calendarScope.canToggleCoachingShifts) && (
-                        <div className="mb-3">
-                            <div className={`${styles.filterSectionLabel} mb-1`}>
-                                {userRole === 'student' ? 'Sessions' : 'Shifts'}
-                            </div>
-
-                            {calendarScope.canToggleCoachingShifts && (
-                                <Toggle className={styles.toggleRow} label="Coaching" isSelected={visibility.showCoachingEvents} onChange={actions.setShowCoachingEvents} aria-label="Show coaching shifts" />
-                            )}
-
-                            <Toggle className={styles.toggleRow} label="Work" isSelected={visibility.showWorkEvents} onChange={actions.setShowWorkEvents} aria-label="Show work shifts" />
-                        </div>
-                    )}
-
-                    {calendarScope.canToggleTutorAvailabilities && (
-                        <>
-                            <hr className={styles.filterDivider} />
-                            <div className="mb-3">
-                                <div className={`${styles.filterSectionLabel} mb-1`}>Availability</div>
-                                <Toggle className={styles.toggleRow} label="Show tutor availability" isSelected={visibility.showTutorInitials} onChange={actions.setShowTutorInitials} aria-label="Show tutor availabilities" />
-
-                                {(userRole === 'tutor' || userRole === 'coach') && (
-                                    <Toggle className={`${styles.subToggleRow} ${!visibility.showTutorInitials ? 'opacity-50' : ''}`} label="Hide my availability" isSelected={visibility.hideOwnAvailabilities} onChange={actions.setHideOwnAvailabilities} isDisabled={!visibility.showTutorInitials} aria-label="Hide my own availabilities" />
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    {calendarScope.canToggleDeniedStudentRequests && (
-                        <>
-                            <hr className={styles.filterDivider} />
-                            <div className="mb-3">
-                                <Toggle className={styles.toggleRow} label="Hide denied requests" isSelected={visibility.hideDeniedStudentRequests} onChange={actions.setHideDeniedStudentRequests} aria-label="Hide denied student requests" />
-                            </div>
-                        </>
-                    )}
-
-                    {/* ───── Legend ───── */}
-                    <div className={styles.legendSection}>
-                        <CalendarLegend userRole={userRole} />
-                    </div>
+                    {header}
+                    {controls}
                 </div>
-
             </div>
 
-            <CalendarHowToModal
-                show={showHowToModal}
-                onHide={() => setShowHowToModal(false)}
-                autoShow={true}
-            />
+            {howTo}
         </div>
     );
 }

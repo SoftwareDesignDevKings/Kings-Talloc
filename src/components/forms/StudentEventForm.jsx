@@ -21,6 +21,8 @@ import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 import { SESSION_FOCUS_OPTIONS, SESSION_TOPICS_MAX_LENGTH, isValidSessionFocus, sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
 
 import useAlert from '@/hooks/useAlert.js';
+import useAuthSession from '@/hooks/useAuthSession';
+import EventSummary from './EventFormSections/EventSummary.jsx';
 
 const pickerValue = raw => {
     const date = new Date(raw);
@@ -45,6 +47,9 @@ const StudentEventForm = ({
 
     // derive mode flags
     const isView = mode === 'view';
+    // Phones show a plain summary instead of a column of disabled fields.
+    const device = useAuthSession()?.device;
+    const showSummary = isView && device === 'mobile';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView;
     const [studentSearchError, setStudentSearchError] = useState(null);
@@ -295,7 +300,7 @@ const StudentEventForm = ({
             deleteButton={null}
             showFooter={!isView}
         >
-            <div className={styles.fields}>
+            {showSummary ? <EventSummary event={newEvent} /> : <div className={styles.fields}>
             {['start', 'end'].map(name => <DateTimePicker key={name} name={name}
                 label={name === 'start' ? 'Start Time' : 'End Time'} value={name === 'start' ? startValue : endValue}
                 isDisabled={isView || isSubmitting} portalContainer={portalContainer} onOpenChange={setDateMenuOpen}
@@ -362,7 +367,7 @@ const StudentEventForm = ({
             </div>
             {!isView && (!bookableAvailability.ready || bookableAvailability.error) && <div role="status" className="small text-warning-emphasis">{bookableAvailability.error || 'Refreshing availability…'} <button type="button" className="btn btn-link btn-sm" onClick={bookableAvailability.refresh}>Retry</button></div>}
 
-            </div>
+            </div>}
         </StaffEventDialog>
     );
 };
