@@ -3,15 +3,25 @@
 // retain the application's removable chips and omit optional footer/empty-state copy.
 'use client';
 import './styles/generated.css';
-import { useRef, useState } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { ChevronDown, SearchLg, XClose } from '@untitledui/icons';
 import { useFilter } from 'react-aria';
-import { Autocomplete, Button as AriaButton, Dialog, DialogTrigger, Input, ListBox, ListBoxSection, Header, Collection, SearchField } from 'react-aria-components';
+import { Autocomplete, Button as AriaButton, Dialog, DialogTrigger, Input, ListBox, ListBoxSection, Header, Collection, Modal, ModalOverlay, SearchField } from 'react-aria-components';
 import { Button } from './button';
 import { Popover } from './popover';
 import { SelectItem } from './select-item';
 import { SelectContext } from './select-shared';
 import styles from './multi-select.module.css';
+
+// Phones get a sheet pinned to the top of the visible screen instead of a dropdown under the
+// field, which ends up behind the on-screen keyboard when the field is low on the page.
+const phoneQuery = '(max-width: 767px)';
+const subscribePhone = onChange => {
+    const media = window.matchMedia(phoneQuery);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+};
+const useIsPhone = () => useSyncExternalStore(subscribePhone, () => window.matchMedia(phoneQuery).matches, () => false);
 
 export function MultiSelect({ items, groups, selectedItems, onSelectionChange, isMulti = true, isDisabled, isClearable,
     placeholder, id, name, 'aria-label': label, portalContainer, isOpen, onOpenChange, renderOption, shouldFlip = true,
@@ -21,6 +31,7 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
     // so items are shown as given rather than filtered by their labels here.
     const setSearch = value => { setSearchText(value); onSearchChange?.(value); };
     const controlRef = useRef(null);
+    const isPhone = useIsPhone();
     const { contains } = useFilter({ sensitivity: 'base' });
     const selectedKeys = new Set(selectedItems.map(item => item.value));
     // Older bookings can hold label-only options (e.g. legacy classes), so keys fall back to label and position.
@@ -41,6 +52,28 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
         onSelectionChange(values.map(key => options.get(key)).filter(Boolean));
         changeOpen(false);
     };
+    const menu = <div className={styles.body} onKeyDownCapture={event => {
+        // Autocomplete normally clears search on Escape; Calendar menus dismiss first.
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); changeOpen(false); }
+    }}>
+        <Autocomplete filter={onSearchChange ? undefined : contains} inputValue={search} onInputChange={setSearch}>
+            <div className={styles.searchRow}>
+                <SearchField aria-label={`Search ${label}`} value={search} onChange={setSearch} autoFocus className={styles.search}>
+                    <SearchLg aria-hidden="true" />
+                    <Input placeholder={placeholder} className={styles.searchInput} />
+                </SearchField>
+                {isPhone && <AriaButton className={styles.done} onPress={() => changeOpen(false)}>Done</AriaButton>}
+            </div>
+            <ListBox aria-label={label} items={availableGroups || availableItems} selectionMode={isMulti ? 'multiple' : 'single'}
+                selectedKeys={selectedKeys} onSelectionChange={select} className={styles.list}
+                renderEmptyState={() => <div className={styles.empty}>{typeof emptyMessage === 'function' ? emptyMessage(search) : emptyMessage}</div>}>
+                {groups ? group => <ListBoxSection id={group.id} aria-label={group.label}>
+                    <Header className={styles.groupHeading}>{group.label}</Header>
+                    <Collection items={group.options}>{renderItem}</Collection>
+                </ListBoxSection> : renderItem}
+            </ListBox>
+        </Autocomplete>
+    </div>;
     return <SelectContext.Provider value={{ size: 'md' }}>
         <div data-untitled-control data-untitled-multi-select data-disabled={isDisabled || undefined} className={styles.root}>
             <div ref={controlRef} className={styles.control} data-open={isOpen || undefined} onClick={event => {
@@ -58,30 +91,14 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
                         {!selectedItems.length && <span className={styles.placeholder}>{placeholder}</span>}
                         <ChevronDown aria-hidden="true" className={styles.chevron} />
                     </AriaButton>
-                    <Popover triggerRef={controlRef} UNSTABLE_portalContainer={portalContainer?.closest('[data-untitled-modal-overlay]') || portalContainer} placement="bottom start" shouldFlip={shouldFlip} data-untitled-fixed-bottom={!shouldFlip || undefined} containerPadding={8}
+                    {isPhone ? <ModalOverlay isDismissable data-untitled-control data-multi-select-sheet className={styles.sheetOverlay}>
+                        <Modal className={styles.sheet}>
+                            <Dialog aria-label={label} className={styles.sheetDialog}>{menu}</Dialog>
+                        </Modal>
+                    </ModalOverlay> : <Popover triggerRef={controlRef} UNSTABLE_portalContainer={portalContainer?.closest('[data-untitled-modal-overlay]') || portalContainer} placement="bottom start" shouldFlip={shouldFlip} data-untitled-fixed-bottom={!shouldFlip || undefined} containerPadding={8}
                         className={styles.popover}>
-                        <Dialog aria-label={label} className={styles.dialog}>
-                            <div className={styles.body} onKeyDownCapture={event => {
-                                // Autocomplete normally clears search on Escape; Calendar menus dismiss first.
-                                if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); changeOpen(false); }
-                            }}>
-                            <Autocomplete filter={onSearchChange ? undefined : contains} inputValue={search} onInputChange={setSearch}>
-                                <SearchField aria-label={`Search ${label}`} value={search} onChange={setSearch} autoFocus className={styles.search}>
-                                    <SearchLg aria-hidden="true" />
-                                    <Input placeholder={placeholder} className={styles.searchInput} />
-                                </SearchField>
-                                <ListBox aria-label={label} items={availableGroups || availableItems} selectionMode={isMulti ? 'multiple' : 'single'}
-                                    selectedKeys={selectedKeys} onSelectionChange={select} className={styles.list}
-                                    renderEmptyState={() => <div className={styles.empty}>{typeof emptyMessage === 'function' ? emptyMessage(search) : emptyMessage}</div>}>
-                                    {groups ? group => <ListBoxSection id={group.id} aria-label={group.label}>
-                                        <Header className={styles.groupHeading}>{group.label}</Header>
-                                        <Collection items={group.options}>{renderItem}</Collection>
-                                    </ListBoxSection> : renderItem}
-                                </ListBox>
-                            </Autocomplete>
-                            </div>
-                        </Dialog>
-                    </Popover>
+                        <Dialog aria-label={label} className={styles.dialog}>{menu}</Dialog>
+                    </Popover>}
                 </DialogTrigger>
                 <div className={styles.values}>
                     {selectedItems.map((item, index) => isMulti ? <span key={chipKey(item, index)} data-multi-select-chip data-fixed={item.isFixed || undefined} className={styles.chip}>
