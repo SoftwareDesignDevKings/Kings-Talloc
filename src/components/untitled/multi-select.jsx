@@ -23,6 +23,8 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
     const controlRef = useRef(null);
     const { contains } = useFilter({ sensitivity: 'base' });
     const selectedKeys = new Set(selectedItems.map(item => item.value));
+    // Older bookings can hold label-only options (e.g. legacy classes), so keys fall back to label and position.
+    const chipKey = (item, index) => `${item.value ?? item.label ?? ''}-${index}`;
     const availableItems = isMulti ? items.filter(item => !selectedKeys.has(item.value)) : items;
     const availableGroups = groups?.map((group, index) => ({ id: `group-${index}`, label: group.label,
         options: group.options.filter(item => !isMulti || !selectedKeys.has(item.value)) })).filter(group => group.options.length);
@@ -82,17 +84,17 @@ export function MultiSelect({ items, groups, selectedItems, onSelectionChange, i
                     </Popover>
                 </DialogTrigger>
                 <div className={styles.values}>
-                    {selectedItems.map(item => isMulti ? <span key={item.value} data-multi-select-chip data-fixed={item.isFixed || undefined} className={styles.chip}>
+                    {selectedItems.map((item, index) => isMulti ? <span key={chipKey(item, index)} data-multi-select-chip data-fixed={item.isFixed || undefined} className={styles.chip}>
                         <span>{item.label}</span>
                         {/* Fixed chips (e.g. the requesting student) can't be removed. */}
                         {!item.isFixed && <Button size="sm" color="tertiary" iconLeading={XClose} className={styles.remove} isDisabled={isDisabled}
                             aria-label={`Remove ${item.label}`} onPress={() => remove(item.value)} />}
-                    </span> : <span key={item.value} className={styles.single}>{item.label}</span>)}
+                    </span> : <span key={chipKey(item, index)} className={styles.single}>{item.label}</span>)}
                 </div>
                 {isClearable && selectedItems.length > 0 && <Button size="sm" color="tertiary" iconLeading={XClose}
                     className={styles.clear} aria-label={`Clear ${label}`} isDisabled={isDisabled} onPress={() => onSelectionChange([])} />}
             </div>
-            {name && selectedItems.map(item => <input key={item.value} type="hidden" name={name} value={item.value} />)}
+            {name && selectedItems.map((item, index) => <input key={chipKey(item, index)} type="hidden" name={name} value={item.value ?? ''} />)}
         </div>
     </SelectContext.Provider>;
 }

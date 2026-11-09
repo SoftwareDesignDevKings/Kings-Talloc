@@ -43,6 +43,34 @@ test('phones swap the sidebar for a tab bar, page title and More sheet @teacherA
     await expect(page.getByRole('heading', { level: 1, name: 'Manage users', exact: true })).toBeVisible();
 });
 
+test('a tapped tab highlights at once and covers the old page until the next one loads @teacherAdmin', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/dashboard');
+    await expect(tabBar(page)).toBeVisible();
+    // Hold the Calendar page's server response so the in-between state can be checked.
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    await page.route(url => url.pathname === '/calendar', async route => { await held; await route.continue(); });
+    await tabBar(page).getByRole('link', { name: 'Calendar', exact: true }).click();
+    await expect(tabBar(page).getByRole('link', { name: 'Calendar', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(tabBar(page).getByRole('link', { name: 'Dashboard', exact: true })).not.toHaveAttribute('aria-current', 'page');
+    const spinner = page.locator('[data-loading-indicator]').first();
+    await expect(spinner).toBeVisible();
+    const box = await spinner.locator('span').first().boundingBox();
+    expect(Math.abs(box.y + box.height / 2 - 844 / 2)).toBeLessThan(80);
+    release();
+    await expect(page).toHaveURL(/\/calendar$/);
+    await expect(page.locator('.rbc-calendar')).toBeVisible();
+    await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);
+});
+
+test('a rate-limited page explains itself and retries instead of showing a blank page @teacherAdmin', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/429');
+    await expect(page.getByRole('heading', { name: 'Talloc is busy', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Try now', exact: true })).toBeVisible();
+});
+
 test.describe('phone calendar booking flow @studentOnly', () => {
     test.beforeEach(async () => {
         documents();

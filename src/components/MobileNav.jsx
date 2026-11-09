@@ -17,22 +17,26 @@ import styles from '@/styles/mobileNav.module.css';
  * sheet for management pages, the role switch and logout. Hidden from 768px up,
  * where the sidebar takes over.
  */
-const MobileNav = ({ user, userRole }) => {
+const MobileNav = ({ user, userRole, pendingHref = null, onNavigate }) => {
     const pathname = usePathname();
+    // While a tapped tab is loading, it already shows as the current one.
+    const activePath = pendingHref || pathname;
+    const navigate = href => { if (!pathname.startsWith(href)) onNavigate?.(href); };
     const [moreOpen, setMoreOpen] = useState(false);
     const { hasAdminAccess, roleLabel, toggleRole } = useRoleToggle(userRole);
     const items = navigationItemsForRole(userRole);
     const tabs = items.filter(item => !item.management);
     const moreItems = items.filter(item => item.management);
-    const moreIsCurrent = moreItems.some(item => pathname.startsWith(item.href));
+    const moreIsCurrent = moreItems.some(item => activePath.startsWith(item.href));
 
     return (
         <>
             <nav aria-label="Main" className={`${styles.tabBar} mobile-only`}>
                 {tabs.map(({ href, label, shortLabel, icon: Icon }) => {
-                    const current = pathname.startsWith(href);
+                    const current = activePath.startsWith(href);
                     return (
-                        <Link key={href} href={href} className={styles.tab} aria-current={current ? 'page' : undefined}>
+                        <Link key={href} href={href} className={styles.tab} aria-current={current ? 'page' : undefined}
+                            onClick={() => navigate(href)}>
                             <Icon aria-hidden="true" className={styles.tabIcon} />
                             <span>{shortLabel || label}</span>
                         </Link>
@@ -68,7 +72,7 @@ const MobileNav = ({ user, userRole }) => {
                             <ul className={styles.sheetList}>
                                 {moreItems.map(({ href, label, icon: Icon }) => (
                                     <li key={href}>
-                                        <Link href={href} className={styles.sheetLink} onClick={() => setMoreOpen(false)}
+                                        <Link href={href} className={styles.sheetLink} onClick={() => { setMoreOpen(false); navigate(href); }}
                                             aria-current={pathname.startsWith(href) ? 'page' : undefined}>
                                             <Icon aria-hidden="true" className={styles.tabIcon} />
                                             {label}

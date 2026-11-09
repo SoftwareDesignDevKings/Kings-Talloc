@@ -4,7 +4,8 @@
 .tabBar {
     display: flex;
     flex-shrink: 0;
-    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* Most of the home-indicator inset, not all of it: the full 34px left too much space under the labels. */
+    padding: 0 env(safe-area-inset-right) max(calc(env(safe-area-inset-bottom) - 14px), 4px) env(safe-area-inset-left);
     background: rgb(255 255 255 / 92%);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     backdrop-filter: saturate(180%) blur(20px);
@@ -22,7 +23,7 @@
     align-items: center;
     justify-content: flex-start;
     gap: 3px;
-    padding: 7px 2px 0;
+    padding: 6px 2px 0;
     border: 0;
     background: none;
     color: #8e8e93;

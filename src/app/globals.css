@@ -195,7 +195,7 @@ html .accordion {
     margin-right: 0;
 }
 
-.content-scroll-area { min-height: 0; }
+.content-scroll-area { min-height: 0; position: relative; }
 
 /* Let the Calendar filter tab meet the window edge, through the shell padding. */
 .calendar-content-area { margin-right: -1.5rem; }

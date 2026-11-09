@@ -1,0 +1,3 @@
+# Firestore rules are deployed and hash-checked byte for byte (scripts/selectFirestoreRules.cjs),
+# so keep them LF even on Windows checkouts with core.autocrlf.
+firebase/*.rules text eol=lf
