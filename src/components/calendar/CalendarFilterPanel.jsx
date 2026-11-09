@@ -2,8 +2,8 @@ import React, { useMemo, useEffect, useState } from 'react';
 import CalendarMultiSelect from './CalendarMultiSelect';
 import { Button } from '@/components/untitled/button';
 import { Toggle } from '@/components/untitled/toggle';
-import { Dialog, Modal, ModalOverlay } from '@/components/untitled/modal';
 import { ChevronRight, InfoCircle, XClose } from '@untitledui/icons';
+import { Dialog, Modal, ModalOverlay } from '@/components/untitled/modal';
 import styles from '@/styles/filterPanel.module.css';
 import { useCalendarUI } from '@contexts/CalendarUIContext';
 import { useAppData } from '@/contexts/AppDataContext';
@@ -12,14 +12,15 @@ import CalendarLegend from './CalendarLegend.jsx';
 import useAuthSession from '@/hooks/useAuthSession';
 import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 
-const CalendarFilterPanel = () => {
+// Desktop: collapsible side panel. Phone: the same controls in a bottom sheet,
+// opened from the toolbar's Filters button (mobileOpen / onMobileOpenChange).
+const CalendarFilterPanel = ({ mobileOpen = false, onMobileOpenChange }) => {
     const { userRole, device } = useAuthSession();
+    const isMobile = device === 'mobile';
     const { tutors, studentTutorEligibility } = useAppData();
     const { filters, visibility, actions, calendarFilters, calendarScope } = useCalendarUI();
     const [isOpen, setIsOpen] = useState(true);
     const [showHowToModal, setShowHowToModal] = useState(false);
-    const isStudent = userRole === 'student';
-    const isMobile = device === 'mobile';
 
     const tutorOptions = useMemo(() => {
         const mapTutorToOption = (tutor) => ({
@@ -56,35 +57,30 @@ const CalendarFilterPanel = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Leaving the phone layout closes its dialog so it doesn't reappear later.
-    useEffect(() => {
-        if (!isMobile) actions.setMobileFiltersOpen?.(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isMobile]);
-
+    // On phones the sheet closes first so Help isn't opened underneath it.
     const openHelp = () => {
-        actions.setMobileFiltersOpen?.(false);
+        onMobileOpenChange?.(false);
         setShowHowToModal(true);
     };
 
-    const content = (
-        <div className={styles.filterContent}>
-            <div className={styles.filterHeader}>
-                <h3 className={styles.filterTitle}>Filters</h3>
-                <div className={styles.filterHeaderActions}>
-                    {isStudent && (
-                        <Button size="sm" color="tertiary" iconLeading={InfoCircle}
-                            onClick={openHelp}>
-                            <span title="How to use the calendar">Help</span>
-                        </Button>
-                    )}
-                    {isMobile && (
-                        <Button size="sm" color="tertiary" iconLeading={XClose} aria-label="Close filters"
-                            onClick={() => actions.setMobileFiltersOpen(false)} />
-                    )}
-                </div>
-            </div>
+    const header = (
+        <div className={styles.filterHeader}>
+            <h3 className={styles.filterTitle}>Filters</h3>
+            {userRole === 'student' && (
+                <Button size="sm" color="tertiary" iconLeading={InfoCircle}
+                    onClick={openHelp}>
+                    <span title="How to use the calendar">Help</span>
+                </Button>
+            )}
+            {isMobile && (
+                <Button size="sm" color="tertiary" iconLeading={XClose} aria-label="Close filters"
+                    className={styles.sheetClose} onClick={() => onMobileOpenChange?.(false)} />
+            )}
+        </div>
+    );
 
+    const controls = (
+        <>
             {/* ───── Dropdown filters ───── */}
 
             {calendarFilters.canFilterByTutor && (
@@ -95,7 +91,7 @@ const CalendarFilterPanel = () => {
                         options={tutorOptions}
                         value={filters.filterByTutor}
                         onChange={actions.setFilterByTutor}
-                        isDisabled={isStudent && tutorOptions.length === 0}
+                        isDisabled={userRole === 'student' && tutorOptions.length === 0}
                     />
                 </div>
             )}
@@ -119,15 +115,15 @@ const CalendarFilterPanel = () => {
                 calendarScope.canToggleCoachingShifts) && (
                 <div className="mb-3">
                     <div className={`${styles.filterSectionLabel} mb-1`}>
-                        {isStudent ? 'Sessions' : 'Shifts'}
+                        {userRole === 'student' ? 'Sessions' : 'Shifts'}
                     </div>
 
                     {calendarScope.canToggleCoachingShifts && (
-                        <Toggle className={styles.toggleRow} label="Coaching" isSelected={visibility.showCoachingEvents} onChange={actions.setShowCoachingEvents} aria-label={isStudent ? 'Show coaching sessions' : 'Show coaching shifts'} />
+                        <Toggle className={styles.toggleRow} label="Coaching" isSelected={visibility.showCoachingEvents} onChange={actions.setShowCoachingEvents} aria-label={userRole === 'student' ? 'Show coaching sessions' : 'Show coaching shifts'} />
                     )}
 
                     {/* Student requests are stored as work, which students know as tutoring. */}
-                    <Toggle className={styles.toggleRow} label={isStudent ? 'Tutoring' : 'Work'} isSelected={visibility.showWorkEvents} onChange={actions.setShowWorkEvents} aria-label={isStudent ? 'Show tutoring sessions' : 'Show work shifts'} />
+                    <Toggle className={styles.toggleRow} label={userRole === 'student' ? 'Tutoring' : 'Work'} isSelected={visibility.showWorkEvents} onChange={actions.setShowWorkEvents} aria-label={userRole === 'student' ? 'Show tutoring sessions' : 'Show work shifts'} />
                 </div>
             )}
 
@@ -158,10 +154,10 @@ const CalendarFilterPanel = () => {
             <div className={styles.legendSection}>
                 <CalendarLegend userRole={userRole} />
             </div>
-        </div>
+        </>
     );
 
-    const helpModal = (
+    const howTo = (
         <CalendarHowToModal
             show={showHowToModal}
             onHide={() => setShowHowToModal(false)}
@@ -172,15 +168,15 @@ const CalendarFilterPanel = () => {
     if (isMobile) {
         return (
             <>
-                <ModalOverlay isOpen={!!visibility.mobileFiltersOpen} isDismissable
-                    onOpenChange={open => actions.setMobileFiltersOpen(open)} className={styles.mobileOverlay}>
-                    <Modal className={styles.mobileModal}>
-                        <Dialog aria-label="Filters" className={styles.mobileDialog}>
-                            {content}
+                <ModalOverlay isOpen={mobileOpen} onOpenChange={onMobileOpenChange} isDismissable className={styles.sheetOverlay}>
+                    <Modal className={styles.sheet}>
+                        <Dialog aria-label="Filters" className={styles.sheetDialog}>
+                            {header}
+                            {controls}
                         </Dialog>
                     </Modal>
                 </ModalOverlay>
-                {helpModal}
+                {howTo}
             </>
         );
     }
@@ -203,10 +199,13 @@ const CalendarFilterPanel = () => {
             />
 
             <div className={styles.filterViewport} aria-hidden={!isOpen} ref={element => { element?.toggleAttribute('inert', !isOpen); }} id="filterPanelCollapse">
-                {content}
+                <div className={styles.filterContent}>
+                    {header}
+                    {controls}
+                </div>
             </div>
 
-            {helpModal}
+            {howTo}
         </div>
     );
 }

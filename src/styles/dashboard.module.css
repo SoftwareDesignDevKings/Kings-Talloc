@@ -50,6 +50,14 @@
 .dialogBody { min-height: 0; overflow-y: auto; padding: 20px 24px; font-size: .875rem; color: var(--uui-color-text-secondary); }
 .dialogFooter { flex-shrink: 0; padding: 16px 24px; border-top: 1px solid var(--uui-color-border-secondary); }
 .reauthActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+/* Phones: two compact cards per row so today's events are reachable without a long scroll. */
+@container (max-width: 439px) {
+    .statsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .metricBody { flex-direction: column; gap: 10px; padding: 14px; }
+    .metricTitle { margin-bottom: 4px; font-size: .8125rem; }
+    .metricValue { font-size: 1.5rem; }
+    .metricSubtitle { margin-top: 4px; }
+}
 @container (min-width: 440px) { .statsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @container (min-width: 640px) { .statsGrid[data-role="admin"] { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @container (min-width: 1000px) { .statsGrid:not([data-role="admin"]) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

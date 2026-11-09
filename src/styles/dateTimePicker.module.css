@@ -17,3 +17,11 @@
 @keyframes appear { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes disappear { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .popover[data-entering], .popover[data-exiting] { animation: none; } }
+/* Touch screens: finger-sized date/time segments, picker button and calendar days. */
+@media (pointer: coarse) {
+    .dateInput { min-height: 44px; }
+    .dateInput [role="spinbutton"] { padding-block: 6px; padding-inline: 2px; }
+    .trigger[data-untitled-button] { right: 2px; width: 40px; height: 40px; justify-content: center; }
+    .calendar [role="columnheader"] > div, .calendar [data-untitled-calendar-cell] { height: 40px; }
+    .calendar [data-untitled-calendar-cell] > div { width: 36px; height: 36px; }
+}

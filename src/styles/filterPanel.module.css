@@ -72,10 +72,12 @@
 @media (prefers-reduced-motion: reduce) {
     .filterPanelContainer, .toggleButton[data-untitled-button], .toggleButton > svg, .filterViewport, .closed .filterViewport { transition: none; }
 }
-.filterHeaderActions { display: flex; align-items: center; gap: 4px; }
-/* Phones: the same content in a dialog opened from the calendar toolbar. */
-.mobileOverlay[data-untitled-modal-overlay] { z-index: 1060; }
-.mobileModal { max-width: 420px; }
-.mobileDialog { display: flex; flex-direction: column; }
-.mobileDialog .filterContent { width: 100%; height: auto; border-left: 0; overflow: visible; }
-.mobileDialog .legendSection { margin-top: 12px; }
+/* Phone: the same filters in a bottom sheet. */
+.sheetOverlay[data-untitled-modal-overlay] { z-index: 1060; padding-inline: 0; --modal-pb: 0px; }
+.sheet { border-radius: 16px 16px 0 0; max-width: 100%; }
+.sheetDialog { padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+.sheetDialog .filterHeader { position: sticky; top: -16px; z-index: 1; margin: -16px -16px 16px; padding: 12px 8px 12px 16px; background: var(--uui-color-bg-primary); border-bottom: 1px solid var(--uui-color-border-secondary); }
+.sheetDialog .filterTitle { flex: 1; font-size: 1.125rem; }
+.sheetClose[data-untitled-button] { width: 44px; height: 44px; justify-content: center; }
+.sheetDialog .toggleRow[data-untitled-toggle], .sheetDialog .subToggleRow[data-untitled-toggle] { min-height: 44px; }
+.sheetDialog .legendSection { margin-top: 8px; }

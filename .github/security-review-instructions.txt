@@ -1,0 +1,22 @@
+**Context (Kings-Talloc-specific):**
+- Tutor allocation app for the CST Department (talloc.kings.edu.au): students request tutoring sessions, tutors manage availability and hours, teachers approve requests and assign roles. Next.js on Vercel, NextAuth with Microsoft (Entra) sign-in restricted to kings.edu.au and student.kings.edu.au, Firebase Auth and Firestore, reCAPTCHA. This repository is public.
+
+**Firestore security rules (HIGH severity):**
+- The Firestore rules in the firebase/ folder are the real access control because the browser talks to Firestore directly. Flag rules that allow reads or writes without request.auth, let a user read or change other users' events, requests, hours or profiles, or use broad matches (allow read, write: if true, or rules open until a date).
+- Flag rules or client code that trust fields the client sets itself, especially role (student/tutor/teacher/admin), approval status, completion status and paid hours, without rules validating who may set them.
+
+**Roles and sign-in:**
+- Roles are assigned manually by teachers. Flag any path where a student or tutor can give themselves or others a higher role, approve their own requests, or mark their own hours as completed/paid.
+- Flag changes to NextAuth or Entra configuration that loosen the domain restriction, weaken the Firebase custom-token exchange, or skip reCAPTCHA/App Check verification on server routes.
+- Flag Next.js API routes or server actions that use the Firebase Admin SDK (which bypasses rules) without checking the caller's session and role.
+
+**Public repository:**
+- Flag any secret committed to the repo (Firebase service-account keys, NextAuth secret, Entra client secret, reCAPTCHA secret key). The Firebase web config and reCAPTCHA site key being public is expected and not a finding.
+- Flag emulator connection code or debug logging left enabled in production paths, and logging of student names, emails or session details.
+
+**Rendering and notifications:**
+- Flag rendering of event titles, descriptions, notes or user names as HTML (dangerouslySetInnerHTML, unsanitised Markdown) that could allow XSS between users.
+- Flag notification or email code that lets a user choose arbitrary recipients or inject content into messages sent to teachers.
+
+**Deployment:**
+- Flag workflow changes that expose secrets, run untrusted PR code with secrets, or use pull_request_target.

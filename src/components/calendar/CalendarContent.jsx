@@ -26,6 +26,11 @@ import CustomEvent, { getEventParticipantInitials } from './CustomEvent.jsx';
 import CalendarFilterPanel from './CalendarFilterPanel.jsx';
 import CalendarToolbar from './CalendarToolbar';
 import CalendarRenderModals from './CalendarRenderModals.jsx';
+import ThreeDayView from './ThreeDayView.jsx';
+import AgendaEvent from './AgendaEvent.jsx';
+import { Plus } from '@untitledui/icons';
+import { Button } from '@/components/untitled/button';
+import controlStyles from '@/styles/calendarControls.module.css';
 
 import { calendarUIGetEventStyle, calendarUIMessages } from '@/utils/calendarUI';
 
@@ -61,6 +66,34 @@ const calendarFormats = {
     agendaDateFormat: DISPLAY_DATE_FORMAT,
     agendaHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
         `${calendarLocalizer.format(start, DISPLAY_DATE_FORMAT, culture)} – ${calendarLocalizer.format(end, DISPLAY_DATE_FORMAT, culture)}`,
+};
+
+// Phones get short day names so the toolbar date fits on one line.
+const mobileCalendarFormats = {
+    ...calendarFormats,
+    dayHeaderFormat: 'EEE d MMM',
+    dayRangeHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
+        `${calendarLocalizer.format(start, 'd MMM', culture)} – ${calendarLocalizer.format(end, 'd MMM', culture)}`,
+    agendaHeaderFormat: ({ start, end }, culture, calendarLocalizer) =>
+        `${calendarLocalizer.format(start, 'd MMM', culture)} – ${calendarLocalizer.format(end, 'd MMM', culture)}`,
+    agendaDateFormat: 'EEE d MMM',
+    dayFormat: 'EEE d',
+};
+
+const MOBILE_VIEWS = { day: true, threeDay: ThreeDayView, agenda: true };
+const MOBILE_VIEW_NAMES = Object.keys(MOBILE_VIEWS);
+const AGENDA_DAYS = 14;
+
+// The + button opens the create form at the next half hour on the shown day (or 9am on another day).
+const nextSlotOn = (day) => {
+    const now = new Date();
+    const start = new Date(day);
+    if (start.toDateString() === now.toDateString()) {
+        start.setHours(now.getHours(), now.getMinutes() < 30 ? 30 : 60, 0, 0);
+    } else {
+        start.setHours(9, 0, 0, 0);
+    }
+    return { start, end: new Date(start.getTime() + 30 * 60000) };
 };
 
 const DnDCalendar = withDragAndDrop(Calendar);
@@ -574,17 +607,34 @@ const CalendarContent = () => {
         />
     );
 
-    const rbcViews = device === 'mobile' ? [Views.DAY, Views.WEEK] : [Views.DAY, Views.WEEK, Views.MONTH];
+    const isMobile = device === 'mobile';
+    const rbcViews = isMobile ? MOBILE_VIEW_NAMES : [Views.DAY, Views.WEEK, Views.MONTH];
+    const [filtersOpen, setFiltersOpen] = useState(false);
+    const renderToolbar = useCallback(
+        (toolbarProps) => <CalendarToolbar {...toolbarProps} onOpenFilters={isMobile ? () => setFiltersOpen(true) : undefined} />,
+        [isMobile],
+    );
+    // List rows carry the event colour themselves; RBC would otherwise paint the whole table row.
+    const renderAgendaEvent = useCallback(
+        ({ event }) => <AgendaEvent event={event} style={calendarUIGetEventStyle(event, userRole, session.user.email).style} />,
+        [userRole, session.user.email],
+    );
+    const createFlow = strategy.actions.getCreateFlow?.();
+    const createLabel = {
+        [CalendarFlow.CREATE_SHIFT]: 'New booking',
+        [CalendarFlow.CREATE_AVAILABILITY]: 'Add availability',
+        [CalendarFlow.CREATE_STUDENT_REQUEST]: 'Request session',
+    }[createFlow];
 
     return (
-        <div className="d-flex h-100 w-100">
-            <div className="grow p-3 calendar-scroll-container position-relative" style={{ minWidth: 0 }}>
+        <div className="d-flex h-100 w-100 position-relative">
+            <div className={`grow p-3 calendar-scroll-container position-relative${isMobile ? ' calendar-mobile' : ''}`} style={{ minWidth: 0 }}>
                 <div className="h-100">
                     <DnDCalendar
                         className={surfaceStyles.surface}
                         culture="en-AU"
                         localizer={localizer}
-                        formats={calendarFormats}
+                        formats={isMobile ? mobileCalendarFormats : calendarFormats}
                         events={rbcEvents}
                         backgroundEvents={rbcBackgroundEvents}
                         startAccessor="start"
@@ -598,7 +648,8 @@ const CalendarContent = () => {
                         onNavigate={handleNavigate}
                         view={rbcViews.includes(calendarView) ? calendarView : Views.DAY}
                         onView={setCalendarView}
-                        views={rbcViews}
+                        views={isMobile ? MOBILE_VIEWS : rbcViews}
+                        length={AGENDA_DAYS}
 
                         draggableAccessor={canDragEvent}
                         resizableAccessor={canResizeEvent}
@@ -610,13 +661,14 @@ const CalendarContent = () => {
                         selectable
                         popup
                         messages={calendarUIMessages}
-                        eventPropGetter={event => calendarUIGetEventStyle(event, userRole, session.user.email)}
+                        eventPropGetter={event => (calendarView === Views.AGENDA ? {} : calendarUIGetEventStyle(event, userRole, session.user.email))}
 
                         onSelectEvent={handleSelectEvent}
                         onSelectSlot={handleSelectSlot}
 
                         components={{
-                            toolbar: CalendarToolbar,
+                            toolbar: renderToolbar,
+                            agenda: { event: renderAgendaEvent },
                             event: renderEvent,
                             timeSlotWrapper: renderTimeSlotWrapper,
                             header: ({ label }) => <span className={surfaceStyles.headerLabel}>{label}</span>
@@ -625,7 +677,14 @@ const CalendarContent = () => {
                 </div>
             </div>
         
-            <CalendarFilterPanel calendarStrategy={strategy} device={device} userRole={userRole} />
+            {isMobile && createLabel && (
+                <Button size="lg" color="primary" iconLeading={Plus} className={controlStyles.createButton}
+                    onClick={() => handleSelectSlot(nextSlotOn(calendarDate))}>
+                    {createLabel}
+                </Button>
+            )}
+
+            <CalendarFilterPanel mobileOpen={filtersOpen} onMobileOpenChange={setFiltersOpen} />
             
             {/* render different modals depending on the target, action  */}
             <CalendarRenderModals

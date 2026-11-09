@@ -23,6 +23,7 @@ import { buildEligibleTutorOptions } from '@/lib/canvas/canvasCoverage';
 import { SESSION_FOCUS_OPTIONS, SESSION_TOPICS_MAX_LENGTH, isValidSessionFocus, sessionFocusLabel } from '@/lib/scheduling/sessionFocus';
 
 import useAlert from '@/hooks/useAlert.js';
+import EventSummary from './EventFormSections/EventSummary.jsx';
 
 const pickerValue = raw => {
     const date = new Date(raw);
@@ -47,9 +48,11 @@ const StudentEventForm = ({
 
     // derive mode flags
     const isView = mode === 'view';
+    // Phones show a plain summary instead of a column of disabled fields.
+    const { session, device } = useAuthSession() || {};
+    const showSummary = isView && device === 'mobile';
     const isEdit = mode === 'edit';
     const isEditing = isEdit || isView;
-    const { session } = useAuthSession() || {};
     const studentSearch = useStudentSearch();
     const requesterName = session?.user?.name;
     const selectedStudents = useMemo(() => {
@@ -288,7 +291,7 @@ const StudentEventForm = ({
             deleteButton={null}
             showFooter={!isView}
         >
-            <div className={styles.fields}>
+            {showSummary ? <EventSummary event={newEvent} /> : <div className={styles.fields}>
             {['start', 'end'].map(name => <DateTimePicker key={name} name={name}
                 label={name === 'start' ? 'Start time' : 'End time'} value={name === 'start' ? startValue : endValue}
                 isDisabled={isView || isSubmitting} portalContainer={portalContainer} onOpenChange={setDateMenuOpen}
@@ -356,7 +359,7 @@ const StudentEventForm = ({
                 <Button size="sm" color="link-gray" onClick={bookableAvailability.refresh}>Retry</Button>
             </div>}
 
-            </div>
+            </div>}
         </StaffEventDialog>
     );
 };

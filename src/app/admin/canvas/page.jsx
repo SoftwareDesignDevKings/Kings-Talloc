@@ -2,7 +2,7 @@ import CanvasWhitelistManager from '@/components/canvas/CanvasWhitelistManager';
 import { getRequiredAdminSession } from '@/lib/security/serverAuth';
 import { redirect } from 'next/navigation';
 
-export const metadata = { title: 'Canvas Admin' };
+export const metadata = { title: 'Canvas admin' };
 
 export default async function CanvasAdminPage() {
     const { error } = await getRequiredAdminSession();

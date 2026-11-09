@@ -132,10 +132,11 @@ export const calendarUIMessages = {
     month: 'Month',
     week: 'Week',
     day: 'Day',
-    agenda: 'Agenda',
+    agenda: 'List',
+    threeDay: '3 days',
     date: 'Date',
     time: 'Time',
     event: 'Event',
-    noEventsInRange: 'No events in this range.',
+    noEventsInRange: 'Nothing booked for these two weeks.',
     showMore: (total) => `+${total} more`,
 };

@@ -222,7 +222,9 @@ test.describe('Canvas Admin UI @teacherAdmin @tutorAdmin', () => {
         await page.goto('/admin/canvas');
         for (const width of [1280, 768, 320]) {
             await page.setViewportSize({ width, height: 900 });
-            await expect.poll(() => page.locator('[style*="--sidebar-w"]').evaluate(el => {
+            // Phones use the bottom tab bar instead of the sidebar.
+            if (width < 768) await expect(page.locator('[style*="--sidebar-w"]')).toBeHidden();
+            else await expect.poll(() => page.locator('[style*="--sidebar-w"]').evaluate(el => {
                 const target = parseFloat(el.style.getPropertyValue('--sidebar-w')) * parseFloat(getComputedStyle(document.documentElement).fontSize);
                 return Math.abs(el.getBoundingClientRect().width - target);
             })).toBeLessThan(.5);

@@ -224,10 +224,22 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         const rangeStart = new Date(Math.min(+(saved?.start || event.start), +event.start) - (coverageChange ? 86400000 : 0));
         let rangeEnd = new Date(Math.max(+expansionEnd(saved || event, timestamp), +expansionEnd(event, timestamp)) + (coverageChange ? 86400000 : 0));
         fail(!Number.isFinite(+rangeStart) || !Number.isFinite(+rangeEnd), 'Invalid event time.');
+        // Read availability and pending requests only when this change uses them, and
+        // only around its dates. Availability and student requests last at most a day,
+        // so starts from a day before the range cover everything that can overlap it.
+        // Recurring edits keep no upper bound because their range grows below.
+        const recurringChange = Boolean(saved?.recurring || event.recurring);
+        const coverageWarning = Boolean(saved && ((isAvailability && action !== 'create') || (collectionName === 'shifts' && isGeneralWork(saved))));
+        const needsAvailability = coverageWarning || (!manager && originalCollection === 'studentEventRequests');
+        const needsPending = recurringChange || collectionName === 'shifts' || action === 'approve';
+        const nearRange = query => {
+            const bounded = query.where('start', '>=', new Date(+rangeStart - 86400000));
+            return recurringChange ? bounded : bounded.where('start', '<', rangeEnd);
+        };
         const [shifts, availabilitySnapshot, pendingSnapshot, staffSnapshots, requestNotices] = await Promise.all([
-            readSchedule(db, rangeStart, rangeEnd, transaction, { includeFuture: Boolean(saved?.recurring || event.recurring) }),
-            transaction.get(db.collection('tutorAvailabilities').where('end', '>', rangeStart)),
-            transaction.get(db.collection('studentEventRequests').where('approvalStatus', '==', 'pending')),
+            readSchedule(db, rangeStart, rangeEnd, transaction, { includeFuture: recurringChange }),
+            needsAvailability ? transaction.get(nearRange(db.collection('tutorAvailabilities'))) : { docs: [] },
+            needsPending ? transaction.get(nearRange(db.collection('studentEventRequests').where('approvalStatus', '==', 'pending'))) : { docs: [] },
             Promise.all(emails.map(email => findUserProfile(db, email, ref => transaction.get(ref)))),
             deletes && originalCollection === 'studentEventRequests'
                 ? transaction.get(db.collection('bookingNotifications').where('eventId', '==', id)) : null,

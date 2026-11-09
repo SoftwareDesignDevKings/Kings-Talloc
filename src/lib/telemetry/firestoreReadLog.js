@@ -21,7 +21,7 @@ const currentRoute = async () => {
 };
 
 const logReads = (reads, collection, op) => {
-    currentRoute().then(route => console.log(`[firestore-reads] source=server reads=${reads} collection=${collection} op=${op} route=${route}`));
+    currentRoute().then(route => console.info(`[firestore-reads] source=server reads=${reads} collection=${collection} op=${op} route=${route}`));
 };
 
 const queryCollection = query => query?._queryOptions?.collectionId || 'unknown';

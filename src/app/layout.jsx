@@ -24,6 +24,18 @@ const chivo = Chivo({
 export const metadata = {
     title: 'Kings-Talloc',
     description: 'TKS Computing Studies - Tutor Allocation App',
+    // iOS home screen app: open full screen with its own name under the icon
+    appleWebApp: {
+        capable: true,
+        title: 'Talloc',
+        statusBarStyle: 'default',
+    },
+};
+
+export const viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    themeColor: '#1A4D6F',
 };
 
 export default async function RootLayout({ children }) {

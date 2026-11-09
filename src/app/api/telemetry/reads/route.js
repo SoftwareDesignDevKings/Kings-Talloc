@@ -44,7 +44,7 @@ export async function POST(request) {
         const token = await readSession(request);
         const total = entries.reduce((sum, [, count]) => sum + count, 0);
         const detail = entries.sort((a, b) => b[1] - a[1]).map(([label, count]) => `${clean(label)}:${count}`).join(',');
-        console.log(`[firestore-reads] source=browser reads=${total} user=${clean(token?.email || 'unknown')} role=${clean(token?.defaultRole || 'unknown')} path=${clean(path || 'unknown')} detail=${detail}`);
+        console.info(`[firestore-reads] source=browser reads=${total} user=${clean(token?.email || 'unknown')} role=${clean(token?.defaultRole || 'unknown')} path=${clean(path || 'unknown')} detail=${detail}`);
     } catch (error) {
         return reject(`invalid-${clean(error?.name || 'error')}`);
     }

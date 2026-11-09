@@ -190,13 +190,6 @@ html .accordion {
 
 .signed-in-text  { font-size: 0.875rem; overflow-wrap: anywhere; }
 
-/* Phones: keep the page header compact so content starts above the fold. */
-@media (max-width: 767px) {
-    .app-main { padding: 1rem 0.75rem; }
-    .dashboard-title { font-size: 1.5rem; margin-top: 0; }
-    .app-main > hr { margin-top: 0.75rem !important; margin-bottom: 0.75rem !important; }
-}
-
 .divider-offset {
     margin-left: 0;
     margin-right: 0;
@@ -209,6 +202,41 @@ html .accordion {
 
 /* Keep card edges inside page scrollers, including fractional-pixel scroll limits. */
 .content-scroll-area > div > .overflow-y-auto { padding: 2px; }
+
+/* ─── Phone layout (<768px) ───────────────────────────────────────────── */
+/* !important so these win over the d-flex / uui:flex display utilities.  */
+
+.mobile-page-bar { display: none; }
+
+@media (min-width: 768px) {
+    .mobile-only { display: none !important; }
+}
+
+@media (max-width: 767px) {
+    .desktop-only { display: none !important; }
+
+    .mobile-page-bar {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        min-height: 52px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--tks-border);
+    }
+    .mobile-page-title {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--tks-text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .app-shell .app-content { padding: 16px !important; }
+    .calendar-content-area { margin: -16px; }
+}
 
 .table-text-sm td { font-size: 0.875rem; }
 
@@ -347,4 +375,11 @@ html .accordion {
 /* Modal dropdowns must sit above neighbouring accordion headers on hover/focus. */
 .modal .select__menu {
     z-index: 5;
+}
+
+/* Phone calendar: tighter padding and room under the grid for the floating + button. */
+@media (max-width: 767px) {
+    .calendar-mobile { padding: 12px 12px 0 !important; }
+    .calendar-mobile .rbc-time-content,
+    .calendar-mobile .rbc-agenda-content { padding-bottom: 72px; }
 }

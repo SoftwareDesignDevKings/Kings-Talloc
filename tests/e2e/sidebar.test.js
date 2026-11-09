@@ -14,6 +14,8 @@ const routes = {
     'Manage users': '/userRoles', 'Canvas classes': '/classes', 'Canvas admin': '/admin/canvas',
 };
 const sidebar = page => page.locator('[style*="--sidebar-w"]');
+const tabBar = page => page.getByRole('navigation', { name: 'Main', exact: true });
+const MANAGEMENT = ['Manage users', 'Canvas classes', 'Canvas admin'];
 const readyDashboard = async page => {
     await expect(sidebar(page)).toBeVisible();
     await expect(page.getByRole('heading', { name: /^(Events for today|Today's sessions)$/ })).toBeVisible();
@@ -94,11 +96,9 @@ test.describe('Sidebar @teacherAdmin @tutorAdmin @teacherOnly @tutorOnly @coachO
         await readyDashboard(page);
         const menu = sidebar(page);
         await expect(menu.getByRole('button', { name: 'Collapse sidebar', exact: true })).toBeVisible();
-        for (const width of [1280, 846, 390, 320]) {
+        await expect(tabBar(page)).toBeHidden();
+        for (const width of [1280, 846]) {
             await page.setViewportSize({ width, height: 740 });
-            if (width < 768) {
-                await expect(menu.getByRole('button', { name: 'Expand sidebar', exact: true })).toBeVisible();
-            }
             if (await menu.getByRole('button', { name: 'Collapse sidebar', exact: true }).count()) {
                 await menu.getByRole('button', { name: 'Collapse sidebar', exact: true }).click();
             }
@@ -116,6 +116,25 @@ test.describe('Sidebar @teacherAdmin @tutorAdmin @teacherOnly @tutorOnly @coachO
             await settleWidth(page, 256);
             await expect(menu.getByRole('link')).toHaveText(menus[testInfo.project.name]);
             await expect(logout).toBeInViewport({ ratio: 1 });
+        }
+
+        // Phones: the sidebar gives way to a tab bar, with management pages and Logout under More.
+        const expected = menus[testInfo.project.name];
+        for (const width of [390, 320]) {
+            await page.setViewportSize({ width, height: 740 });
+            await expect(menu).toBeHidden();
+            const tabs = expected.filter(label => !MANAGEMENT.includes(label)).map(label => (label === 'Tutor hours' ? 'Hours' : label));
+            await expect(tabBar(page).getByRole('link')).toHaveText(tabs);
+            for (const tab of await tabBar(page).getByRole('link').all()) await expect(tab).toBeInViewport({ ratio: 1 });
+            await tabBar(page).getByRole('button', { name: 'More', exact: true }).click();
+            const more = page.getByRole('dialog', { name: 'More', exact: true });
+            await expect(more.getByRole('link')).toHaveText(expected.filter(label => MANAGEMENT.includes(label)));
+            const logout = more.getByRole('button', { name: 'Log out', exact: true });
+            await logout.focus();
+            await expect(logout).toBeInViewport({ ratio: 1 });
+            await more.getByRole('button', { name: 'Close menu', exact: true }).click();
+            await expect(more).toHaveCount(0);
+            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
         }
     });
 
