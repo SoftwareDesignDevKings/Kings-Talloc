@@ -349,8 +349,8 @@ test.describe('Manage User Roles UI @teacherAdmin @tutorAdmin', () => {
             await coverage.click(); await coverageSearch.fill(`UI Coverage ${label}`);
             const option = page.getByRole('option', { name: `UI Coverage ${label} (UI-${label.toUpperCase()})`, exact: true });
             await expect(option).toBeInViewport({ ratio: 1 });
-            // Portalled options must remain inside the active dialog overlay.
-            expect(await option.evaluate(el => !!el.closest('[data-untitled-modal-overlay]'))).toBe(true);
+            // On phones the options open in their own sheet above the dialog, clear of the keyboard.
+            expect(await option.evaluate(el => !!el.closest('[data-multi-select-sheet]'))).toBe(true);
             await option.click();
         }
         await expect(dialog.getByText('UI Coverage One (UI-ONE)', { exact: true })).toBeVisible();

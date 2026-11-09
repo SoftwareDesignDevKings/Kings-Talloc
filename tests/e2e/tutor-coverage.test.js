@@ -48,6 +48,14 @@ const expectMenuBelow = async page => {
         return bounds.top >= field.bottom && bounds.bottom <= window.innerHeight - 7 && bounds.height >= 80;
     })).toBe(true);
 };
+// Phones open options in a sheet pinned to the top of the screen, clear of the on-screen keyboard.
+const expectSheetAtTop = async page => {
+    const sheet = page.locator('[data-multi-select-sheet] [role=dialog]');
+    await expect.poll(() => sheet.evaluate(el => {
+        const bounds = el.getBoundingClientRect();
+        return bounds.top <= 16 && bounds.bottom <= window.innerHeight && bounds.height >= 80;
+    })).toBe(true);
+};
 const search = async (page, query) => {
     if (await trigger(page).count()) {
         await trigger(page).click();
@@ -112,11 +120,11 @@ test.describe('Tutor Class Coverage @teacherAdmin @tutorAdmin', () => {
         const before = await read(`users/${email}`);
         await page.setViewportSize({ width: 320, height: 568 });
         await expectFooterGap(page);
-        await search(page, ''); await expectMenuBelow(page);
+        await search(page, ''); await expectSheetAtTop(page);
         await page.getByRole('searchbox', { name: 'Search Tutor Class Coverage', exact: true }).fill('Coverage Robotics');
         const option = page.getByRole('option', { name: 'Coverage Robotics (CRO)', exact: true });
         await expect(option).toBeInViewport({ ratio: 1 });
-        expect(await option.evaluate(el => !!el.closest('[data-untitled-modal-overlay]'))).toBe(true);
+        expect(await option.evaluate(el => !!el.closest('[data-multi-select-sheet]'))).toBe(true);
         await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
         await expect(dialog(page).getByText('Coverage Robotics (CRO)', { exact: true })).toBeVisible();
         await expectChipAlignment(page);
