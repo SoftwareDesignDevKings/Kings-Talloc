@@ -3,7 +3,12 @@
 .sm { width: 20px; height: 20px; }
 .md { width: 28px; height: 28px; }
 .lg { width: 36px; height: 36px; }
-.gate { position: fixed; inset: 0; background: white; }
+.gate { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background: white; }
+.crest { width: 96px; height: auto; }
+.gate .gateSpinner { height: auto; min-height: 28px; flex: none; }
+/* Pages: cover the content area (see .content-scroll-area) and centre the spinner in it. */
+.page { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.covering { z-index: 5; background: white; }
 .transparent { background: transparent; }
 @keyframes reveal { to { visibility: visible; } }
 @keyframes spin { to { transform: rotate(360deg); } }

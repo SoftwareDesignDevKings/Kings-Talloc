@@ -71,11 +71,6 @@ export default async function RootLayout({ children }) {
                     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
                     crossOrigin="anonymous"
                 />
-                <link
-                    rel="stylesheet"
-                    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-                    crossOrigin="anonymous"
-                />
             </head>
             <body suppressHydrationWarning>
                 <VersionGuard />

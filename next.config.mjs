@@ -23,6 +23,10 @@ const nextConfig = {
         ],
     },
     experimental: {
+        // Every page is dynamic (the root layout reads the CSP nonce), so by default each tab
+        // tap waits on a server round trip. Pages only hold a client shell (data comes from
+        // Firestore), so reusing a visited page for a minute is safe and makes tabs instant.
+        staleTimes: { dynamic: 60 },
         optimizePackageImports: [
             '@untitledui/icons',
             'react-big-calendar',
