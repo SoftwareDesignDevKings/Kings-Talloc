@@ -20,7 +20,9 @@ test('phones swap the sidebar for a tab bar, page title and More sheet @teacherA
     await page.goto('/dashboard');
     await expect(tabBar(page)).toBeVisible();
     await expect(page.getByRole('complementary')).toBeHidden();
-    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
+    // No title bar on phones: the current tab names the page, with a hidden heading for screen readers.
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toHaveClass(/visually-hidden/);
+    expect(await page.evaluate(() => [document.documentElement, document.body].map(el => getComputedStyle(el).overscrollBehaviorY))).toEqual(['none', 'none']);
     for (const label of ['Dashboard', 'Calendar', 'Hours']) await expect(tabBar(page).getByRole('link', { name: label, exact: true })).toBeInViewport({ ratio: 1 });
     await expect(tabBar(page).getByRole('link', { name: 'Dashboard', exact: true })).toHaveAttribute('aria-current', 'page');
 
@@ -31,7 +33,7 @@ test('phones swap the sidebar for a tab bar, page title and More sheet @teacherA
     await more.getByRole('link', { name: 'Manage users', exact: true }).click();
     await expect(page).toHaveURL(/\/userRoles$/);
     await expect(more).toHaveCount(0);
-    await expect(page.getByRole('heading', { level: 1, name: 'Manage users', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Manage users', exact: true })).toHaveClass(/visually-hidden/);
     await expect(tabBar(page).getByRole('button', { name: 'More', exact: true })).toHaveAttribute('aria-current', 'page');
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 
