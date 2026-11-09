@@ -49,6 +49,8 @@ const selectRole = async (page, dialog, key) => {
     await page.getByRole('option', { name: key[0].toUpperCase() + key.slice(1), exact: true }).click();
 };
 const settleSidebar = async page => {
+    // Phones use the bottom tab bar instead of the sidebar.
+    if (page.viewportSize().width < 768) return expect(page.locator('[style*="--sidebar-w"]')).toBeHidden();
     await expect.poll(() => page.locator('[style*="--sidebar-w"]').evaluate(el => {
         const target = parseFloat(el.style.getPropertyValue('--sidebar-w')) * parseFloat(getComputedStyle(document.documentElement).fontSize);
         return Math.abs(el.getBoundingClientRect().width - target);

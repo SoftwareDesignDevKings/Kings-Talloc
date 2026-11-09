@@ -1,44 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-    Calendar, Users01, BookOpen01, Clock, User01, ChevronLeft,
-    HomeLine, LogOut01, UserCheck01, Settings01,
-} from '@untitledui/icons';
+import { User01, ChevronLeft, LogOut01, UserCheck01 } from '@untitledui/icons';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/untitled/button';
 import { NavItemBase, SidebarNavigation } from '@/components/untitled/sidebar-navigation';
 import styles from '@/styles/sidebar.module.css';
-import useAuthSession from '@/hooks/useAuthSession';
+import useRoleToggle from '@/hooks/useRoleToggle';
 import { AppLogout } from '@/lib/security/clientAuth';
-
-const ROLE_LABELS = {
-    admin: 'Admin', teacher: 'Teacher', tutor: 'Tutor', coach: 'Coach', student: 'Student',
-};
-const NAVIGATION_ITEMS = [
-    { label: 'Dashboard', href: '/dashboard', icon: HomeLine },
-    { label: 'Calendar', href: '/calendar', icon: Calendar },
-    { label: 'Tutor Hours', href: '/tutorHours', icon: Clock, roles: ['admin', 'teacher', 'tutor', 'coach'] },
-    { label: 'Manage Users', href: '/userRoles', icon: Users01, roles: ['admin'], management: true },
-    { label: 'Canvas Classes', href: '/classes', icon: BookOpen01, roles: ['admin', 'teacher'], management: true },
-    { label: 'Canvas Admin', href: '/admin/canvas', icon: Settings01, roles: ['admin'], management: true },
-];
+import { navigationItemsForRole } from '@/constants/navigation';
 
 const Sidebar = ({ user, userRole }) => {
-    const { session, userRoles, switchRole } = useAuthSession();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const pathname = usePathname();
-    const hasAdminAccess = userRoles?.includes('admin') || session?.user?.defaultRole === 'admin';
-    const isCurrentlyAdmin = userRole === 'admin';
-    const originalRole = session?.user?.defaultRole;
-    const roleLabel = isCurrentlyAdmin ? `View as ${ROLE_LABELS[originalRole] || originalRole}` : 'View as Admin';
-    const items = NAVIGATION_ITEMS.filter(item => !item.roles || item.roles.includes(userRole));
+    const { hasAdminAccess, roleLabel, toggleRole: handleRoleToggle } = useRoleToggle(userRole);
+    const items = navigationItemsForRole(userRole);
     const firstManagementItem = items.find(item => item.management);
-
-    const handleRoleToggle = () => {
-        switchRole(isCurrentlyAdmin ? originalRole || 'student' : 'admin');
-    };
 
     useEffect(() => {
         const checkMobile = () => {
@@ -52,7 +30,7 @@ const Sidebar = ({ user, userRole }) => {
     return (
         <SidebarNavigation
             style={{ '--sidebar-w': isCollapsed ? '5rem' : '16rem' }}
-            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : ''}`}
+            className={`${styles.sidebarContainer} ${isCollapsed ? styles.sidebarCollapsed : ''} desktop-only`}
         >
             <div>
                 <div className={styles.header}>

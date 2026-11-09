@@ -153,3 +153,6 @@
     font-size: 0.875rem;
     padding: 0.25rem 0;
 }
+
+/* Phones: the app shell already pads the page. */
+@media (max-width: 767px) { .container { padding: 0; } }

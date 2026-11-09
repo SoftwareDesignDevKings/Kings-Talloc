@@ -16,10 +16,9 @@ test('sidebar active state, keyboard focus, and controls remain clear at desktop
     await expect(active).toHaveCSS('outline-style', 'solid');
     await expect(active).toHaveCSS('outline-width', '2px');
 
-    for (const [width, height] of [[1280, 900], [846, 740], [390, 740], [320, 568]]) {
+    for (const [width, height] of [[1280, 900], [846, 740]]) {
         await page.setViewportSize({ width, height });
         const expand = sidebar.getByRole('button', { name: 'Expand sidebar', exact: true });
-        if (width < 768) await expect(expand).toBeVisible();
         if (await expand.count()) await expand.click();
         await expect(sidebar).toHaveCSS('--sidebar-w', '16rem');
         // Wait for the width transition before measuring containment.
@@ -39,5 +38,21 @@ test('sidebar active state, keyboard focus, and controls remain clear at desktop
         await expect(active).toHaveAccessibleName('Manage Users');
         await expect(sidebar.getByRole('button', { name: 'Logout', exact: true })).toBeVisible();
         await expect.poll(() => sidebar.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    }
+
+    // Phones: More is the current tab on management pages, and its sheet marks the current page.
+    for (const [width, height] of [[390, 740], [320, 568]]) {
+        await page.setViewportSize({ width, height });
+        await expect(sidebar).toBeHidden();
+        const tabs = page.getByRole('navigation', { name: 'Main', exact: true });
+        const more = tabs.getByRole('button', { name: 'More', exact: true });
+        await expect(more).toHaveAttribute('aria-current', 'page');
+        await expect(tabs.locator('[aria-current="page"]')).toHaveCount(1);
+        await more.click();
+        const sheet = page.getByRole('dialog', { name: 'More', exact: true });
+        await expect(sheet.getByRole('link', { name: 'Manage Users', exact: true })).toHaveAttribute('aria-current', 'page');
+        for (const control of await sheet.locator('a, button').all()) await expect(control).toBeInViewport({ ratio: 1 });
+        await sheet.getByRole('button', { name: 'Close menu', exact: true }).click();
+        await expect(sheet).toHaveCount(0);
     }
 });

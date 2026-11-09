@@ -30,6 +30,8 @@ import {
 } from '@/firestore/firestoreOperations';
 import { detachRecurringInstance } from '@/utils/calendarRecurringEvents';
 import useAlert from '@/hooks/useAlert';
+import useAuthSession from '@/hooks/useAuthSession';
+import EventSummary from './EventFormSections/EventSummary.jsx';
 import { useApprovalHandlers } from '@/hooks/useApprovalHandlers';
 
 const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, setShowModal, userEmail, userRole }) => {
@@ -59,7 +61,10 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
     const dateTimeValidity = useRef({ start: true, end: true });
     const [portalContainer, setPortalContainer] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [activeSection, setActiveSection] = useState(newEvent.createdByStudent && newEvent.approvalStatus === 'pending' ? 'studentRequest' : 'eventDetails');
+    // Phones viewing a booking get a summary on top, with the detailed sections collapsed below it.
+    const device = useAuthSession()?.device;
+    const showSummary = isView && device === 'mobile';
+    const [activeSection, setActiveSection] = useState(showSummary ? null : newEvent.createdByStudent && newEvent.approvalStatus === 'pending' ? 'studentRequest' : 'eventDetails');
     const [participantError, setParticipantError] = useState(null);
     const isRejectingRequest = eventToEdit?.isStudentRequest && newEvent.approvalStatus === 'denied';
     const removesPaidTime = isEditing && newEvent.workStatus !== eventToEdit?.workStatus
@@ -416,6 +421,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
             >
                 {participantError && <div className="alert alert-danger" role="alert">{participantError}</div>}
                 <EventFormUIContext.Provider value={{ portalContainer, setMenuOpen, dateTimeValidity, busy: isSubmitting, activeSection, setActiveSection }}>
+                {showSummary && <EventSummary event={newEvent} />}
                 <div className={styles.sections}>
                     <EventDetailsSection
                         newEvent={newEvent}

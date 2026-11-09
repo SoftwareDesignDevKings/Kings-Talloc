@@ -75,7 +75,6 @@ const ClassList = () => {
                         </tbody>
                     </table>
                 </div>
-                <p className={styles.scrollHint}>Scroll sideways to see all columns.</p>
             </TableCard.Root>
         </div>
     );

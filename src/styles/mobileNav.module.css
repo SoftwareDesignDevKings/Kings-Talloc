@@ -1,0 +1,71 @@
+/* Phone bottom tab bar and "More" sheet. Only shown below 768px (see .mobile-only). */
+.tabBar {
+    display: flex;
+    flex-shrink: 0;
+    border-top: 1px solid var(--tks-border);
+    background: #fff;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border: 0;
+    background: none;
+    color: var(--tks-text-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.tab > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab[aria-current="page"] { color: var(--tks-secondary); }
+.tab[aria-current="page"] .tabIcon { color: var(--tks-secondary); }
+.tab:focus-visible { outline: 2px solid var(--tks-primary); outline-offset: -4px; border-radius: 8px; }
+.tabIcon { width: 24px; height: 24px; flex-shrink: 0; color: var(--uui-color-fg-quaternary); }
+
+.sheetOverlay[data-untitled-modal-overlay] { z-index: 1060; padding-inline: 0; --modal-pb: 0px; }
+.sheet { border-radius: 16px 16px 0 0; max-width: 100%; }
+.sheetDialog { padding: 8px 0 calc(16px + env(safe-area-inset-bottom)); }
+
+.sheetHeader { display: flex; align-items: center; gap: 12px; padding: 12px 16px 16px; border-bottom: 1px solid var(--tks-border); }
+.profile { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.avatar {
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--tks-border);
+    background: var(--tks-surface);
+    color: var(--tks-text-muted);
+}
+.avatar svg { width: 22px; height: 22px; }
+.profileText { display: flex; flex-direction: column; min-width: 0; font-size: 0.875rem; }
+.profileText strong { color: var(--tks-text-primary); }
+.profileText span { color: var(--tks-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.closeButton[data-untitled-button] { width: 44px; height: 44px; justify-content: center; }
+
+.sheetList { list-style: none; margin: 0; padding: 8px; }
+.sheetLink {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 48px; padding: 8px 12px;
+    border-radius: 8px;
+    color: var(--tks-text-primary);
+    font-size: 1rem; font-weight: 500;
+    text-decoration: none;
+}
+.sheetLink[aria-current="page"] { background: var(--uui-color-bg-secondary); }
+.sheetLink:focus-visible { outline: 2px solid var(--tks-primary); outline-offset: -2px; }
+
+.sheetActions { display: flex; flex-direction: column; gap: 8px; padding: 8px 16px 0; border-top: 1px solid var(--tks-border); }
+.sheetList + .sheetActions { padding-top: 16px; }
+.sheetHeader + .sheetActions { border-top: 0; padding-top: 16px; }
+.sheetActions > [data-untitled-button] { width: 100%; justify-content: center; }

@@ -77,3 +77,34 @@
     box-shadow: var(--uui-shadow-xs);
 }
 .surface :global(.rbc-overlay-header) { border-color: var(--uui-color-border-secondary); }
+
+/* ─── Phone List view (RBC agenda restyled as day-grouped cards) ─── */
+.surface :global(.rbc-agenda-view) { border: 0; }
+.surface :global(.rbc-agenda-view > .rbc-agenda-table) { display: none; }
+.surface :global(.rbc-agenda-content .rbc-agenda-table),
+.surface :global(.rbc-agenda-content .rbc-agenda-table tbody) { display: block; border: 0; }
+.surface :global(.rbc-agenda-content .rbc-agenda-table tr) {
+    display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: stretch;
+    border: 0; background: none;
+}
+.surface :global(.rbc-agenda-content .rbc-agenda-table td) { display: block; border: 0 !important; padding: 0; }
+.surface :global(.rbc-agenda-date-cell) {
+    grid-column: 1 / -1; padding: 16px 2px 6px !important;
+    color: var(--uui-color-text-primary); font-size: .875rem; font-weight: 700;
+    background: none !important;
+}
+.surface :global(.rbc-agenda-content tr:first-child .rbc-agenda-date-cell) { padding-top: 0 !important; }
+.surface :global(.rbc-agenda-time-cell) {
+    padding: 10px 8px 10px 2px !important; color: var(--uui-color-text-tertiary);
+    font-size: .75rem; font-variant-numeric: tabular-nums; text-transform: lowercase; white-space: normal;
+}
+.surface :global(.rbc-agenda-time-cell .rbc-continues-after::after),
+.surface :global(.rbc-agenda-time-cell .rbc-continues-prior::before) { content: none; }
+.surface :global(.rbc-agenda-event-cell) { padding: 4px 0 !important; cursor: pointer; }
+.surface :global(.rbc-agenda-empty) { padding: 32px 8px; text-align: center; color: var(--uui-color-text-tertiary); }
+.agendaEvent {
+    display: flex; flex-direction: column; gap: 2px; min-height: 48px; justify-content: center;
+    padding: 8px 12px; border-radius: 8px; min-width: 0;
+}
+.agendaTitle { font-size: .875rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.agendaMeta { font-size: .75rem; line-height: 1.35; opacity: .8; overflow-wrap: anywhere; }
