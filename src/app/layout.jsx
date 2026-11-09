@@ -35,6 +35,8 @@ export const metadata = {
 export const viewport = {
     width: 'device-width',
     initialScale: 1,
+    // Lets the phone tab bar reach behind the iPhone home indicator (padded with safe-area insets).
+    viewportFit: 'cover',
     themeColor: '#1A4D6F',
 };
 

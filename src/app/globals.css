@@ -222,8 +222,6 @@ html .accordion {
 /* ─── Phone layout (<768px) ───────────────────────────────────────────── */
 /* !important so these win over the d-flex / uui:flex display utilities.  */
 
-.mobile-page-bar { display: none; }
-
 @media (min-width: 768px) {
     .mobile-only { display: none !important; }
 }
@@ -231,26 +229,19 @@ html .accordion {
 @media (max-width: 767px) {
     .desktop-only { display: none !important; }
 
-    .mobile-page-bar {
-        display: flex;
-        align-items: center;
-        flex-shrink: 0;
-        min-height: 52px;
-        padding: 8px 16px;
-        border-bottom: 1px solid var(--tks-border);
-    }
-    .mobile-page-title {
-        margin: 0;
-        font-size: 1.125rem;
-        font-weight: 700;
-        line-height: 1.3;
-        color: var(--tks-text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+    /* Pin the app to the screen so iOS can't drag or bounce the whole page,
+       tab bar included. Only the content areas inside it scroll. */
+    html:has(.app-shell), html:has(.app-shell) body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+    body { -webkit-tap-highlight-color: transparent; }
+    .app-shell { position: fixed; inset: 0; height: auto; }
+    .content-scroll-area, .content-scroll-area * { overscroll-behavior: contain; }
 
-    .app-shell .app-content { padding: 16px !important; }
+    /* iOS zooms into text fields under 16px; keep them at 16px so focusing one doesn't zoom the app. */
+    input, select, textarea { font-size: max(16px, 1em) !important; }
+
+    .app-shell .app-content {
+        padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 16px calc(16px + env(safe-area-inset-left)) !important;
+    }
     .calendar-content-area { margin: -16px; }
 }
 
