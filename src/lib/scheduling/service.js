@@ -1,7 +1,7 @@
 import 'server-only';
 import { DateTime } from 'luxon';
 import { FieldValue } from 'firebase-admin/firestore';
-import { asDate, emailOf, requestOwnerEmail, staffEmails, studentEmails, scheduledEventsConflict, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
+import { asDate, emailOf, requestOwnerEmail, staffEmails, studentEmails, overlaps, scheduledEventsConflict, isApproved, isGeneralWork, isStudentSession, workCategory, canApproveAt, expandRecurringEvents, bookableIntervals, rangeCovered, getParticipantEditError, APPROVAL_GRACE_MS, SYDNEY_ZONE } from './eventRules';
 import { documentEvent, readSchedule, resolveClassParticipants } from './readSchedule';
 import { findUserProfile } from '@/lib/security/userProfiles';
 import { isValidSessionFocus, SESSION_TOPICS_MAX_LENGTH } from './sessionFocus';
@@ -83,6 +83,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         let event = { ...(saved || {}), ...raw, id: target.id };
         if (classesChanged) delete event.studentParticipantsResolved;
         const originalCollection = ['approve', 'deny'].includes(action) ? 'studentEventRequests' : collectionName;
+        const requestChange = originalCollection === 'studentEventRequests' && ['create', 'update'].includes(action);
         const owner = saved && requestOwnerEmail(saved) === actor;
         const ownAvailability = emailOf(saved?.tutor || raw.tutor) === actor;
         const isAvailability = collectionName === 'tutorAvailabilities';
@@ -231,7 +232,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         const recurringChange = Boolean(saved?.recurring || event.recurring);
         const coverageWarning = Boolean(saved && ((isAvailability && action !== 'create') || (collectionName === 'shifts' && isGeneralWork(saved))));
         const needsAvailability = coverageWarning || (!manager && originalCollection === 'studentEventRequests');
-        const needsPending = recurringChange || collectionName === 'shifts' || action === 'approve';
+        const needsPending = recurringChange || collectionName === 'shifts' || action === 'approve' || requestChange;
         const nearRange = query => {
             const bounded = query.where('start', '>=', new Date(+rangeStart - 86400000));
             return recurringChange ? bounded : bounded.where('start', '<', rangeEnd);
@@ -275,6 +276,13 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
                 event.eventExceptions = [...new Set([...(event.eventExceptions || []), ...clashing.map(item => item.occurrenceIndex)])];
                 proposed = proposed.filter(item => !clashing.some(clash => clash.occurrenceIndex === item.occurrenceIndex));
                 fail(!proposed.length, 'All occurrences conflict; nothing was created.', 409);
+            }
+            // Pending requests are not on the schedule yet, so a student could queue
+            // the same session again while waiting for the first one to be decided.
+            if (requestChange) {
+                const sharesStudent = pending => studentEmails(pending).some(email => studentEmails(event).includes(email));
+                fail(pendingSnapshot.docs.map(documentEvent).some(pending => pending.id !== id && sharesStudent(pending) && overlaps(event, pending)),
+                    'There is already a pending request at this time. Edit that request instead of booking again.', 409);
             }
             if (!manager && originalCollection === 'studentEventRequests') {
                 const free = bookableIntervals(staffEmails(event)[0], availabilities, shifts);

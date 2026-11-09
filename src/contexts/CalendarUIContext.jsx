@@ -6,7 +6,7 @@ import useAuthSession from "@/hooks/useAuthSession"
 import { useAppData } from "@/contexts/AppDataContext"
 import { CalendarEntityType } from "@lib/patterns/calendarStrategy"
 import { workCategory, emailOf } from '@/lib/scheduling/eventRules';
-import { calendarAvailabilitySplit, managementAvailability, normaliseWorkType } from "@/utils/calendarAvailability"
+import { calendarAvailabilitySplit, managementAvailability, normaliseWorkType, removeBusyTimes } from "@/utils/calendarAvailability"
 
 /**
  * Returns true if an availability's workType matches the selected filter.
@@ -216,7 +216,9 @@ export const CalendarUIContextProvider = ({ children }) => {
             }
         }
 
-        if (userRole === 'student') filtered = bookableAvailability?.slots || [];
+        // A student's pending requests already hold those times, so don't offer them again.
+        if (userRole === 'student') filtered = removeBusyTimes(bookableAvailability?.slots || [],
+            calendarStudentRequests.filter(request => request.approvalStatus === 'pending'));
         else if (userRole === 'admin' || userRole === 'teacher') {
             filtered = managementAvailability(calendarAvailabilities, calendarShifts);
         }
@@ -238,7 +240,7 @@ export const CalendarUIContextProvider = ({ children }) => {
         const splitAvailabilities = userRole === 'student' || userRole === 'teacher' || userRole === 'admin' ? filtered : calendarAvailabilitySplit(filtered, calendarShifts);
 
         return splitAvailabilities;
-    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterByTutor, filterAvailabilityByWorkType, calendarShifts, bookableAvailability]);
+    }, [showTutorInitials, calendarAvailabilities, userRole, hideOwnAvailabilities, userEmail, filterByTutor, filterAvailabilityByWorkType, calendarShifts, bookableAvailability, calendarStudentRequests]);
 
     // ─────────────────────────────────────
     // context values

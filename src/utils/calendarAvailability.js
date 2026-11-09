@@ -122,6 +122,27 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
     return splitSlots;
 };
 
+/**
+ * Remove a student's busy times from bookable slots for every tutor, so the
+ * calendar never offers a time the student has already requested.
+ */
+export const removeBusyTimes = (slots, busy) => {
+    if (!slots.length || !busy.length) return slots;
+    return slots.flatMap(slot => {
+        let pieces = [{ ...slot, start: new Date(slot.start), end: new Date(slot.end) }];
+        for (const block of busy) {
+            const start = new Date(block.start), end = new Date(block.end);
+            pieces = pieces.flatMap(piece => end <= piece.start || start >= piece.end ? [piece] : [
+                ...(start > piece.start ? [{ ...piece, end: start }] : []),
+                ...(end < piece.end ? [{ ...piece, start: end }] : []),
+            ]);
+        }
+        return pieces.length === 1 && +pieces[0].start === +new Date(slot.start) && +pieces[0].end === +new Date(slot.end)
+            ? pieces
+            : pieces.map(piece => ({ ...piece, id: `${slot.id}:${+piece.start}`, originalAvailabilityId: slot.id }));
+    });
+};
+
 // Management views retain Coaching coverage as well as academic bookable time.
 // Coaching availability remains separate and cannot supply student bookings.
 export const managementAvailability = (availabilities, shifts) => {

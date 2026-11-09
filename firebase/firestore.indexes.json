@@ -135,6 +135,20 @@
             ]
         },
         {
+            "collectionGroup": "studentEventRequests",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "emailsList",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "start",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "shifts",
             "queryScope": "COLLECTION",
             "fields": [
