@@ -9,7 +9,7 @@ import { currentNavigationItem } from '@/constants/navigation';
 /**
  * Main application layout for authenticated users
  * - Desktop: sidebar, dashboard title and user email
- * - Phone (<768px): slim page-name bar on top and a bottom tab bar instead of the sidebar
+ * - Phone (<768px): a bottom tab bar instead of the sidebar; the current tab names the page
  * @param {Object} session - NextAuth session object
  * @param {string} userRole - The role of the current user (student, teacher, admin, or tutor)
  * @param {JSX} children - Page content
@@ -35,9 +35,8 @@ const AppLayout = ({ session, userRole, children }) => {
 
             {/* main content area */}
             <div className="grow d-flex flex-column overflow-hidden bg-white">
-                <header className="mobile-only mobile-page-bar">
-                    <h1 className="mobile-page-title">{pageTitle}</h1>
-                </header>
+                {/* Phones show no title bar (the highlighted tab says where you are); keep it for screen readers. */}
+                <h1 className="visually-hidden mobile-only">{pageTitle}</h1>
 
                 <div className="p-4 p-md-4 d-flex flex-column grow overflow-hidden app-content">
                     {/* Header section: responsive alignment */}
