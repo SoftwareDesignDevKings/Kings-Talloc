@@ -2,14 +2,14 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import LoadingSpinner from '@/components/LoadingSpinner.jsx';
+import PageLoading from '@/components/PageLoading.jsx';
 
 // dynamically import CalendarWrapper to reduce initial bundle size
 const CalendarWrapper = dynamic(
     () => import('@/components/calendar/CalendarWrapper'),
     {
         ssr: false,
-        loading: () => <LoadingSpinner />,
+        loading: () => <PageLoading />,
     }
 );
 

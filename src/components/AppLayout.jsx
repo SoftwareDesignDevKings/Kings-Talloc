@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import PageLoading from '@/components/PageLoading';
 import MobileNav from '@/components/MobileNav';
 import { usePathname } from 'next/navigation';
 import usePrefetchRoutes from '@/hooks/usePrefetchRoutes';
@@ -29,6 +31,16 @@ const AppLayout = ({ session, userRole, children }) => {
     }
     const pageTitle = currentNavigationItem(pathname)?.label || 'Dashboard';
 
+    // Tab taps answer at once: the tapped tab highlights and the old page gives way to a spinner
+    // while the next page loads, instead of nothing visibly happening until it arrives.
+    const [pendingHref, setPendingHref] = useState(null);
+    useEffect(() => { setPendingHref(null); }, [pathname]);
+    useEffect(() => {
+        if (!pendingHref) return undefined;
+        const giveUp = window.setTimeout(() => setPendingHref(null), 10000);
+        return () => window.clearTimeout(giveUp);
+    }, [pendingHref]);
+
     return (
         <div className="d-flex app-shell">
             <Sidebar user={session.user} userRole={userRole} />
@@ -53,10 +65,11 @@ const AppLayout = ({ session, userRole, children }) => {
                         <div key={pathname} className="h-100">
                             {children}
                         </div>
+                        {pendingHref && <PageLoading covering />}
                     </div>
                 </div>
 
-                <MobileNav user={session.user} userRole={userRole} />
+                <MobileNav user={session.user} userRole={userRole} pendingHref={pendingHref} onNavigate={setPendingHref} />
             </div>
         </div>
     );
