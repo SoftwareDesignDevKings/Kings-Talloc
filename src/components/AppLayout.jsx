@@ -10,7 +10,7 @@ import { currentNavigationItem } from '@/constants/navigation';
 
 /**
  * Main application layout for authenticated users
- * - Desktop: sidebar, dashboard title and user email
+ * - Desktop: sidebar, page title and user email
  * - Phone (<768px): a bottom tab bar instead of the sidebar; the current tab names the page
  * @param {Object} session - NextAuth session object
  * @param {string} userRole - The role of the current user (student, teacher, admin, or tutor)
@@ -21,15 +21,18 @@ const AppLayout = ({ session, userRole, children }) => {
     usePrefetchRoutes(userRole);
     let dashboardTitle;
     if (userRole === 'student') {
-        dashboardTitle = 'Student Dashboard';
+        dashboardTitle = 'Student dashboard';
     } else if (userRole === 'teacher') {
-        dashboardTitle = 'Teacher Dashboard';
+        dashboardTitle = 'Teacher dashboard';
     } else if (userRole === 'admin') {
-        dashboardTitle = 'Admin Dashboard';
+        dashboardTitle = 'Admin dashboard';
     } else {
-        dashboardTitle = 'Tutor Dashboard';
+        dashboardTitle = 'Tutor dashboard';
     }
-    const pageTitle = currentNavigationItem(pathname)?.label || 'Dashboard';
+    const navigationItem = currentNavigationItem(pathname);
+    const pageTitle = navigationItem?.label || 'Dashboard';
+    // Other pages are titled by the page itself rather than the role's dashboard.
+    const desktopTitle = !navigationItem || navigationItem.href === '/dashboard' ? dashboardTitle : navigationItem.label;
 
     // Tab taps answer at once: the tapped tab highlights and the old page gives way to a spinner
     // while the next page loads, instead of nothing visibly happening until it arrives.
@@ -50,11 +53,11 @@ const AppLayout = ({ session, userRole, children }) => {
                 {/* Phones show no title bar (the highlighted tab says where you are); keep it for screen readers. */}
                 <h1 className="visually-hidden mobile-only">{pageTitle}</h1>
 
-                <div className="p-4 p-md-4 d-flex flex-column grow overflow-hidden app-content">
+                <div className="app-main d-flex flex-column grow overflow-hidden app-content">
                     {/* Header section: responsive alignment */}
-                    <div className="ps-1 text-center text-md-start desktop-only">
-                        <h1 className="dashboard-title ps-1 mt-2">{dashboardTitle}</h1>
-                        <p className="ps-1 mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
+                    <div className="text-center text-md-start desktop-only">
+                        <h1 className="dashboard-title">{desktopTitle}</h1>
+                        <p className="mb-0 text-muted signed-in-text">Signed in as {session.user.email}</p>
                     </div>
 
                     {/* divider */}

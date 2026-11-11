@@ -1,5 +1,6 @@
 .control { position: relative; min-width: 0; }
-/* Scoped under .control so it beats the input's own px utility whatever order the stylesheets load in. */
-.control .input { padding-left: 40px; }
-.trigger[data-untitled-button] { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); padding: 0; width: 20px; height: 20px; color: var(--uui-color-fg-quaternary); }
+/* The calendar trigger sits at the end, matching DateTimePicker.
+   Scoped under .control so it beats the input's own px utility whatever order the stylesheets load in. */
+.control .input { padding-right: 40px; }
+.trigger[data-untitled-button] { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); padding: 0; width: 20px; height: 20px; color: var(--uui-color-fg-quaternary); }
 .popover { width: min(280px, calc(100vw - 16px)); }

@@ -9,8 +9,8 @@ test('sidebar motion keeps icons and footer rows steady, supports reversal and r
         const button = sidebar.querySelector(`button[aria-label="${label}"]`);
         const read = () => ({
             width: sidebar.getBoundingClientRect().width,
-            icons: [...sidebar.querySelectorAll('nav a > svg, button[aria-label="Logout"] > svg')].map(el => el.getBoundingClientRect().x),
-            footerHeight: sidebar.querySelector('button[aria-label="Logout"]').getBoundingClientRect().height,
+            icons: [...sidebar.querySelectorAll('nav a > svg, button[aria-label="Log out"] > svg')].map(el => el.getBoundingClientRect().x),
+            footerHeight: sidebar.querySelector('button[aria-label="Log out"]').getBoundingClientRect().height,
         });
         const frames = [read()]; button.click();
         const start = performance.now();

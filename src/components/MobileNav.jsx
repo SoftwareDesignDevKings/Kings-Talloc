@@ -90,7 +90,7 @@ const MobileNav = ({ user, userRole, pendingHref = null, onNavigate }) => {
                                 </Button>
                             )}
                             <Button size="lg" color="secondary-destructive" iconLeading={LogOut01} onClick={AppLogout}>
-                                Logout
+                                Log out
                             </Button>
                         </div>
                     </Dialog>

@@ -45,7 +45,7 @@ test('Microsoft button preserves its provider, branding and existing copy', () =
 test('landing page keeps its four features, descriptions and Get Started destination', () => {
     render(<LandingPage />);
     expect(screen.getAllByRole('heading').map(el => el.textContent.trim())).toEqual([
-        'Kings-Talloc', 'Schedule Sessions', 'Assign Tutors', 'Tutor Availability', 'Manage Classes',
+        'Kings-Talloc', 'Schedule sessions', 'Assign tutors', 'Tutor availability', 'Manage classes',
     ]);
     for (const text of [
         'Manage and schedule tutoring sessions effortlessly. Kings-Talloc helps teachers, tutors, and students streamline the process of booking and managing tutoring sessions.',
@@ -54,7 +54,7 @@ test('landing page keeps its four features, descriptions and Get Started destina
         'Tutors can mark their availability to help teachers and students plan sessions effectively.',
         'Easily manage and organise classes and group sessions for students.',
     ]) expect(screen.getByText(text)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Get Started', exact: true })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: 'Get started', exact: true })).toHaveAttribute('href', '/login');
 });
 test('login route renders sign-in for anonymous and revoked sessions', async () => {
     getServerSession.mockResolvedValue(null); render(await LoginPage());

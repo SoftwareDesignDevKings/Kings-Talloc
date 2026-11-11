@@ -9,10 +9,10 @@ import { TableCard } from '@/components/untitled/table-card';
 import styles from '@/styles/entryPages.module.css';
 
 const features = [
-    { icon: Calendar, title: 'Schedule Sessions', description: 'Teachers can easily schedule and manage tutoring sessions for students.' },
-    { icon: UserCheck01, title: 'Assign Tutors', description: 'Assign the best tutors for each session based on their availability and expertise.' },
-    { icon: Clock, title: 'Tutor Availability', description: 'Tutors can mark their availability to help teachers and students plan sessions effectively.' },
-    { icon: BookOpen01, title: 'Manage Classes', description: 'Easily manage and organise classes and group sessions for students.' },
+    { icon: Calendar, title: 'Schedule sessions', description: 'Teachers can easily schedule and manage tutoring sessions for students.' },
+    { icon: UserCheck01, title: 'Assign tutors', description: 'Assign the best tutors for each session based on their availability and expertise.' },
+    { icon: Clock, title: 'Tutor availability', description: 'Tutors can mark their availability to help teachers and students plan sessions effectively.' },
+    { icon: BookOpen01, title: 'Manage classes', description: 'Easily manage and organise classes and group sessions for students.' },
 ];
 
 const LandingPage = () => (
@@ -40,7 +40,7 @@ const LandingPage = () => (
             <div className={`${styles.start} fade-in`} style={{ animationDelay: '200ms' }}>
                 <Button size="xl" color="primary" href="/login"
                     render={props => <Link {...props} href="/login" prefetch={true} />}>
-                    Get Started
+                    Get started
                 </Button>
             </div>
         </div>

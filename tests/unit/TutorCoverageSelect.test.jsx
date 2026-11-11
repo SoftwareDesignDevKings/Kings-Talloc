@@ -16,12 +16,12 @@ function Field({ source = courses, saved = [archived] }) {
     const items = flattenCoverageOptionGroups(groups);
     const [value, setValue] = useState(() => hydrateTutorCoverage(saved, saved.map(item => item.key), items));
     const [open, setOpen] = useState(false);
-    return <MultiSelect aria-label="Tutor Class Coverage" id="coverage" placeholder="Select..." groups={groups} items={items}
+    return <MultiSelect aria-label="Tutor class coverage" id="coverage" placeholder="Select..." groups={groups} items={items}
         selectedItems={value} onSelectionChange={next => { setValue(next); changed(serialiseTutorCoverage(next)); }}
         isMulti isClearable isOpen={open} onOpenChange={setOpen}
         emptyMessage={query => query ? 'No matching Canvas courses' : 'No Canvas courses synced'} />;
 }
-const open = async user => { await user.click(screen.getByRole('button', { name: 'Tutor Class Coverage', exact: true })); return screen.getByRole('searchbox', { name: 'Search Tutor Class Coverage' }); };
+const open = async user => { await user.click(screen.getByRole('button', { name: 'Tutor class coverage', exact: true })); return screen.getByRole('searchbox', { name: 'Search Tutor class coverage' }); };
 beforeEach(() => jest.clearAllMocks());
 
 test('grouped search and keyboard selection retain archived coverage and full blueprint/course objects', async () => {
@@ -47,5 +47,5 @@ test('removing saved chips and clearing return exact remaining coverage arrays',
     const selected = [archived, { key: 'course:robotics', type: 'course', id: 'robotics', label: 'Robotics (ROBO)', courseCode: 'ROBO' }];
     const user = userEvent.setup(); render(<Field saved={selected} />);
     await user.click(screen.getByRole('button', { name: 'Remove Archived Course' })); expect(changed).toHaveBeenLastCalledWith([selected[1]]);
-    await user.click(screen.getByRole('button', { name: 'Clear Tutor Class Coverage' })); expect(changed).toHaveBeenLastCalledWith([]);
+    await user.click(screen.getByRole('button', { name: 'Clear Tutor class coverage' })); expect(changed).toHaveBeenLastCalledWith([]);
 });

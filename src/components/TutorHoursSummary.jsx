@@ -239,15 +239,12 @@ const TutorHoursSummary = () => {
 
     const reportReady = !loading && !loadError && !rangeError;
     const dateFields = [
-        { key: 'start', label: 'Start Date', value: startDate, set: date => setStartDate(date ? getMonday(date) : null) },
-        { key: 'end', label: 'End Date', value: endDate, set: date => setEndDate(date ? new Date(new Date(date).setHours(23, 59, 59, 999)) : null) },
+        { key: 'start', label: 'Start date', value: startDate, set: date => setStartDate(date ? getMonday(date) : null) },
+        { key: 'end', label: 'End date', value: endDate, set: date => setEndDate(date ? new Date(new Date(date).setHours(23, 59, 59, 999)) : null) },
     ];
 
     return (
-        <section className={styles.section} aria-labelledby="tutorHoursHeading">
-            <header className={styles.header}>
-                <h2 id="tutorHoursHeading">Tutor Hours Summary</h2>
-            </header>
+        <section className={styles.section} aria-label="Tutor hours summary">
             <div className={styles.filters}>
                 {dateFields.map(field => <div key={field.key} className={styles.dateField}>
                     <DatePicker id={`hours-${field.key}`} label={field.label} value={field.value} onChange={field.set}
@@ -291,11 +288,11 @@ const TutorHoursSummary = () => {
                                 <HoursCell label="Total" className={styles.total}>{formatDuration(tutor.workMs + tutor.coachingMs)}</HoursCell>
                                 {isAdmin && <HoursCell label="Timesheets"><div className={styles.rowActions}>
                                     <Button color="secondary" size="xs" iconLeading={Download01} className={styles.timesheetButton}
-                                        aria-label="Generate Tutor Timesheet" title="Generate tutor timesheet"
+                                        aria-label="Generate tutor timesheet" title="Generate tutor timesheet"
                                         isLoading={generating.has(`${tutor.email}:tutor`)} showTextWhileLoading
                                         onPress={() => handleGenerateTimesheet(tutor.email, tutor.name, 'tutor')}>Tutor</Button>
                                     {tutor.coachingHours > 0 && <Button color="secondary" size="xs" iconLeading={Download01} className={styles.timesheetButton}
-                                        aria-label="Generate Coach Timesheet" title="Generate coach timesheet"
+                                        aria-label="Generate coach timesheet" title="Generate coach timesheet"
                                         isLoading={generating.has(`${tutor.email}:coach`)} showTextWhileLoading
                                         onPress={() => handleGenerateTimesheet(tutor.email, tutor.name, 'coach')}>Coach</Button>}
                                 </div></HoursCell>}

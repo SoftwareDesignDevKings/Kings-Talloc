@@ -28,9 +28,10 @@ const CalendarFilterPanel = ({ mobileOpen = false, onMobileOpenChange }) => {
             label: tutor.name || tutor.email,
         });
 
-        return userRole === 'student'
+        const options = userRole === 'student'
             ? buildEligibleTutorOptions(tutors ?? [], studentTutorEligibility)
             : (tutors ?? []).map(mapTutorToOption);
+        return options.sort((a, b) => a.label.localeCompare(b.label));
     }, [tutors, userRole, studentTutorEligibility]);
 
     useEffect(() => {
@@ -56,12 +57,18 @@ const CalendarFilterPanel = ({ mobileOpen = false, onMobileOpenChange }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // On phones the sheet closes first so Help isn't opened underneath it.
+    const openHelp = () => {
+        onMobileOpenChange?.(false);
+        setShowHowToModal(true);
+    };
+
     const header = (
         <div className={styles.filterHeader}>
             <h3 className={styles.filterTitle}>Filters</h3>
             {userRole === 'student' && (
                 <Button size="sm" color="tertiary" iconLeading={InfoCircle}
-                    onClick={() => setShowHowToModal(true)}>
+                    onClick={openHelp}>
                     <span title="How to use the calendar">Help</span>
                 </Button>
             )}
@@ -80,7 +87,7 @@ const CalendarFilterPanel = ({ mobileOpen = false, onMobileOpenChange }) => {
                 <div className="mb-3">
                     <CalendarMultiSelect
                         isMulti
-                        placeholder={userRole === 'student' ? "Select tutors to view availabilities" : "Select tutors"}
+                        placeholder="Select tutors"
                         options={tutorOptions}
                         value={filters.filterByTutor}
                         onChange={actions.setFilterByTutor}
@@ -112,10 +119,11 @@ const CalendarFilterPanel = ({ mobileOpen = false, onMobileOpenChange }) => {
                     </div>
 
                     {calendarScope.canToggleCoachingShifts && (
-                        <Toggle className={styles.toggleRow} label="Coaching" isSelected={visibility.showCoachingEvents} onChange={actions.setShowCoachingEvents} aria-label="Show coaching shifts" />
+                        <Toggle className={styles.toggleRow} label="Coaching" isSelected={visibility.showCoachingEvents} onChange={actions.setShowCoachingEvents} aria-label={userRole === 'student' ? 'Show coaching sessions' : 'Show coaching shifts'} />
                     )}
 
-                    <Toggle className={styles.toggleRow} label="Work" isSelected={visibility.showWorkEvents} onChange={actions.setShowWorkEvents} aria-label="Show work shifts" />
+                    {/* Student requests are stored as work, which students know as tutoring. */}
+                    <Toggle className={styles.toggleRow} label={userRole === 'student' ? 'Tutoring' : 'Work'} isSelected={visibility.showWorkEvents} onChange={actions.setShowWorkEvents} aria-label={userRole === 'student' ? 'Show tutoring sessions' : 'Show work shifts'} />
                 </div>
             )}
 
@@ -124,7 +132,7 @@ const CalendarFilterPanel = ({ mobileOpen = false, onMobileOpenChange }) => {
                     <hr className={styles.filterDivider} />
                     <div className="mb-3">
                         <div className={`${styles.filterSectionLabel} mb-1`}>Availability</div>
-                        <Toggle className={styles.toggleRow} label="Show tutor availability" isSelected={visibility.showTutorInitials} onChange={actions.setShowTutorInitials} aria-label="Show tutor availabilities" />
+                        <Toggle className={styles.toggleRow} label="Show tutor availability" isSelected={visibility.showTutorInitials} onChange={actions.setShowTutorInitials} />
 
                         {(userRole === 'tutor' || userRole === 'coach') && (
                             <Toggle className={`${styles.subToggleRow} ${!visibility.showTutorInitials ? 'opacity-50' : ''}`} label="Hide my availability" isSelected={visibility.hideOwnAvailabilities} onChange={actions.setHideOwnAvailabilities} isDisabled={!visibility.showTutorInitials} aria-label="Hide my own availabilities" />

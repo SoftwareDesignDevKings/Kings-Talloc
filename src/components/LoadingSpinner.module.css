@@ -9,6 +9,8 @@
 /* Pages: cover the content area (see .content-scroll-area) and centre the spinner in it. */
 .page { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .covering { z-index: 5; background: white; }
+/* Beside other content (e.g. the busy page): just the spinner, not a full-height box that pushes the rest down. */
+.inline { height: auto; min-height: 0; }
 .transparent { background: transparent; }
 @keyframes reveal { to { visibility: visible; } }
 @keyframes spin { to { transform: rotate(360deg); } }

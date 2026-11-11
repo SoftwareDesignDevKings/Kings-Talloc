@@ -81,8 +81,8 @@ const Sidebar = ({ user, userRole }) => {
                     </Button>
                 )}
                 <Button size="sm" color="secondary-destructive" iconLeading={LogOut01}
-                    onClick={AppLogout} title="Logout" aria-label="Logout" className={styles.footerButton}>
-                    Logout
+                    onClick={AppLogout} title="Log out" aria-label="Log out" className={styles.footerButton}>
+                    Log out
                 </Button>
             </div>
         </SidebarNavigation>
