@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/untitled/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import spinnerStyles from '@/components/LoadingSpinner.module.css';
 
 const RETRY_SECONDS = 5;
 
@@ -22,7 +23,7 @@ export default function TooManyRequestsPage() {
 
     return (
         <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center gap-3 p-4" role="status">
-            <LoadingSpinner />
+            <LoadingSpinner className={spinnerStyles.inline} />
             <h2 className="h5 fw-bold mb-0">Talloc is busy</h2>
             <p className="text-muted mb-0">Lots of people are using it right now. Trying again in {Math.max(secondsLeft, 0)}s…</p>
             <Button size="sm" color="secondary" onClick={() => window.location.reload()}>Try now</Button>
