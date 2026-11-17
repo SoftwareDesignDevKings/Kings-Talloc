@@ -76,6 +76,8 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
 
         let slotStart = currentStart;
         let wasSplit = false;
+        // Stable per fragment, so re-renders don't remount it under a fresh key.
+        const fragmentId = (start) => `${availability.id}@${start.getTime()}`;
 
         for (const event of tutorEvents) {
             const eventStart = new Date(event.start);
@@ -88,7 +90,7 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
             if (eventStart > slotStart) {
                 splitSlots.push({
                     ...availability,
-                    id: crypto.randomUUID(),
+                    id: fragmentId(slotStart),
                     originalAvailabilityId: availability.id,
                     start: slotStart,
                     end: eventStart,
@@ -104,14 +106,17 @@ export const calendarAvailabilitySplit = (availabilities, events) => {
 
         // Add remaining slot
         if (slotStart < currentEnd) {
+            // A booking at the very start trims this slot without splitting it. It is
+            // still a fragment: with the real id, saving it would shorten the document.
+            const isFragment = wasSplit || slotStart.getTime() !== currentStart.getTime();
             const remainingSlot = {
                 ...availability,
-                id: wasSplit ? crypto.randomUUID() : availability.id,
+                id: isFragment ? fragmentId(slotStart) : availability.id,
                 start: slotStart,
                 end: currentEnd,
             };
 
-            if (wasSplit) {
+            if (isFragment) {
                 remainingSlot.originalAvailabilityId = availability.id;
             }
 
