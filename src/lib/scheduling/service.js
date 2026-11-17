@@ -145,7 +145,8 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
             fail(!occurrence, 'Invalid recurring occurrence.');
             previousScheduling = occurrence;
             event = { ...event, start: raw.start || occurrence.start, end: raw.end || occurrence.end, recurring: null, until: null, occurenceNum: null, eventExceptions: [], createdAt: saved.createdAt || timestamp };
-            // A detached occurrence keeps its existing Teams series identifiers for follow-up updates.
+            // A detached occurrence keeps its Teams series identifiers. The Microsoft proxy resolves
+            // them to this one occurrence, so later edits or deletion never touch the series.
         }
         if (action === 'until') {
             fail(!saved.recurring, 'This event is not recurring.');

@@ -1,9 +1,25 @@
 import { calendarEventHandleDelete, calendarEventUpdateTeamsMeeting, calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
 import { deleteEventFromFirestore, removeEmailNotification, updateEventInFirestore } from '@/firestore/firestoreOperations';
-import { getTeamsMeetingOccurrenceId, updateTeamsMeetingOccurrence, updateTeamsMeeting, createTeamsMeeting, removeSkippedTeamsOccurrences } from '@/utils/msTeams';
+import { getTeamsMeetingOccurrenceId, updateTeamsMeetingOccurrence, updateTeamsMeeting, deleteTeamsMeeting, createTeamsMeeting, removeSkippedTeamsOccurrences } from '@/utils/msTeams';
 jest.mock('@/firestore/firestoreOperations', () => ({ deleteEventFromFirestore: jest.fn(), removeEmailNotification: jest.fn(), updateEventInFirestore: jest.fn() }));
-jest.mock('@/utils/msTeams', () => ({ getTeamsMeetingOccurrenceId: jest.fn(), updateTeamsMeetingOccurrence: jest.fn(), updateTeamsMeeting: jest.fn(), createTeamsMeeting: jest.fn(), removeSkippedTeamsOccurrences: jest.fn() }));
+jest.mock('@/utils/msTeams', () => ({ getTeamsMeetingOccurrenceId: jest.fn(), updateTeamsMeetingOccurrence: jest.fn(), updateTeamsMeeting: jest.fn(), deleteTeamsMeeting: jest.fn(), createTeamsMeeting: jest.fn(), removeSkippedTeamsOccurrences: jest.fn() }));
 beforeEach(() => jest.clearAllMocks());
+// A session detached from a series is saved as non-recurring but keeps the series' Teams ID.
+const detached = { id: 'detached', teamsEventId: 'meeting-series', recurring: null, start: new Date('2027-04-13T05:00Z'), title: 'Session' };
+test('deleting a detached session targets its own Teams occurrence, not the series', async () => {
+    await calendarEventHandleDelete(detached, undefined, { setAllEvents: jest.fn(), addAlert: jest.fn() });
+    expect(deleteEventFromFirestore).toHaveBeenCalledWith('detached', 'shifts');
+    expect(deleteTeamsMeeting).toHaveBeenCalledWith('meeting-series', { occurrenceStart: detached.start });
+});
+test('moving a detached session targets its own Teams occurrence, not the series', async () => {
+    const start = new Date('2027-04-13T06:00Z'), end = new Date('2027-04-13T07:00Z');
+    await calendarEventUpdateTeamsMeeting(detached, start, end, false, false, { addAlert: jest.fn() });
+    expect(updateTeamsMeeting).toHaveBeenCalledWith('meeting-series', 'Session', '', start.toISOString(), end.toISOString(), [], null, { occurrenceStart: detached.start });
+});
+test('only deleting a whole recurring series asks Teams to delete the series', async () => {
+    await calendarEventHandleDelete({ id: 'series_occurrence_2', recurringEventId: 'series', recurring: 'weekly', teamsEventId: 'meeting-series' }, 'all', { setAllEvents: jest.fn(), addAlert: jest.fn() });
+    expect(deleteTeamsMeeting).toHaveBeenCalledWith('meeting-series', { series: true });
+});
 test('deleting all from an expanded occurrence deletes the actual series', async () => {
     const setAllEvents = jest.fn(), addAlert = jest.fn();
     await calendarEventHandleDelete({ id: 'series_occurrence_2', recurringEventId: 'series', recurring: 'weekly' }, 'all', { setAllEvents, addAlert });

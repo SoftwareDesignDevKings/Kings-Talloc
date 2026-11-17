@@ -106,7 +106,10 @@ export const updateTeamsMeeting = async (
     startTime,
     endTime,
     attendeesEmailArr,
-    recurrenceOptions = null
+    recurrenceOptions = null,
+    // Saved start of a single (non-recurring) session. If its meeting ID is really a
+    // series (the session was detached from one), only that day's occurrence changes.
+    { occurrenceStart } = {}
 ) => {
     try {
         const result = await fetchMSProxy('update-event', {
@@ -117,6 +120,7 @@ export const updateTeamsMeeting = async (
             endTime,
             attendees: attendeesEmailArr,
             recurrenceOptions,
+            ...(occurrenceStart && { occurrenceStart: new Date(occurrenceStart).toISOString() }),
         });
 
         await removeSkippedTeamsOccurrences(eventId, startTime, recurrenceOptions, { allowMissing: true });
@@ -130,11 +134,19 @@ export const updateTeamsMeeting = async (
 /**
  * Delete a Teams meeting
  * @param {string} eventId - Microsoft Graph event ID
+ * @param {Object} [options]
+ * @param {boolean} [options.series] - true only when deleting a whole recurring series
+ * @param {Date} [options.occurrenceStart] - Saved start of a single (non-recurring) session.
+ *   If its meeting ID is really a series, only that day's occurrence is deleted.
  * @returns {Promise<boolean>}
  */
-export const deleteTeamsMeeting = async (eventId) => {
+export const deleteTeamsMeeting = async (eventId, { series = false, occurrenceStart } = {}) => {
     try {
-        await fetchMSProxy('delete-event', { eventId });
+        await fetchMSProxy('delete-event', {
+            eventId,
+            ...(series && { series: true }),
+            ...(occurrenceStart && { occurrenceStart: new Date(occurrenceStart).toISOString() }),
+        });
         return true;
     } catch (error) {
         console.error('[msTeams] Error deleting Teams meeting:', error);
