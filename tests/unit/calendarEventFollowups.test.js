@@ -1,4 +1,4 @@
-import { calendarEventHandleDelete, calendarEventUpdateTeamsMeeting, calendarEventCreateTeamsMeeting } from '@/utils/calendarEvent';
+import { calendarEventHandleDelete, calendarEventUpdateTeamsMeeting, calendarEventCreateTeamsMeeting, calendarEventHandleTeamsMeetingUpdate } from '@/utils/calendarEvent';
 import { deleteEventFromFirestore, removeEmailNotification, updateEventInFirestore } from '@/firestore/firestoreOperations';
 import { getTeamsMeetingOccurrenceId, updateTeamsMeetingOccurrence, updateTeamsMeeting, createTeamsMeeting, removeSkippedTeamsOccurrences } from '@/utils/msTeams';
 jest.mock('@/firestore/firestoreOperations', () => ({ deleteEventFromFirestore: jest.fn(), removeEmailNotification: jest.fn(), updateEventInFirestore: jest.fn() }));
@@ -38,4 +38,29 @@ test('failed Teams cleanup preserves the saved series ID and reports a follow-up
     await calendarEventCreateTeamsMeeting('saved-id', { title: 'Series', start: new Date(), end: new Date(), createTeamsMeeting: true }, { addAlert });
     expect(updateEventInFirestore).toHaveBeenCalled(); expect(createTeamsMeeting).toHaveBeenCalledTimes(1);
     expect(addAlert).toHaveBeenCalledWith('error', expect.stringContaining('Cleanup failed'));
+});
+
+describe('editing a session that already has a Teams meeting', () => {
+    const saved = { id: 'shift', teamsEventId: 'organiser-event-id', createTeamsMeeting: true, approvalStatus: 'approved', title: 'Maths', description: '', start: new Date('2027-04-06T05:00Z'), end: new Date('2027-04-06T06:00Z'), students: [{ value: 'student@example.edu' }], staff: [{ value: 'tutor@example.edu' }], workStatus: 'notCompleted' };
+
+    test('a status-only save leaves the Teams meeting alone', async () => {
+        const addAlert = jest.fn();
+        await calendarEventHandleTeamsMeetingUpdate(saved, { ...saved, start: new Date(saved.start), workStatus: 'notAttended' }, { addAlert });
+        expect(updateTeamsMeeting).not.toHaveBeenCalled();
+        expect(addAlert).not.toHaveBeenCalled();
+    });
+
+    test('a time change still updates the Teams meeting', async () => {
+        updateTeamsMeeting.mockResolvedValue({});
+        await calendarEventHandleTeamsMeetingUpdate(saved, { ...saved, end: new Date('2027-04-06T06:30Z') }, { addAlert: jest.fn() });
+        expect(updateTeamsMeeting).toHaveBeenCalledWith('organiser-event-id', 'Maths', '', saved.start.toISOString(), '2027-04-06T06:30:00.000Z', ['student@example.edu', 'tutor@example.edu'], null);
+    });
+
+    test('a meeting organised by someone else gives a short warning, not an error', async () => {
+        updateTeamsMeeting.mockRejectedValue(Object.assign(new Error('Failed to get event: The specified object was not found in the store.'), { code: 'TEAMS_EVENT_NOT_FOUND' }));
+        const addAlert = jest.fn();
+        await calendarEventHandleTeamsMeetingUpdate(saved, { ...saved, title: 'Maths revision' }, { addAlert });
+        expect(addAlert).toHaveBeenCalledWith('warning', expect.stringContaining('only its organiser can update it'));
+        expect(addAlert).not.toHaveBeenCalledWith('error', expect.anything());
+    });
 });

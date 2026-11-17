@@ -17,6 +17,8 @@ import {
     calendarEventHandleDelete,
     calendarEventCreateTeamsMeeting,
     calendarEventHandleTeamsMeetingUpdate,
+    teamsMeetingChanged,
+    teamsUpdateFailureAlert,
 } from '@/utils/calendarEvent';
 import {
     getTeamsMeetingOccurrenceId,
@@ -272,7 +274,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                     const newDocId = await detachRecurringInstance(eventToEdit, eventData);
                     await queueSavedEventEmail({ ...eventData, id: newDocId }, 'allocated', userEmail);
 
-                    if (eventToEdit.teamsEventId) {
+                    if (eventToEdit.teamsEventId && teamsMeetingChanged(eventToEdit, eventData)) {
                         try {
                             const attendeesEmailArr = [...(eventData.students || []), ...(eventData.staff || [])].map(
                                 (p) => p.value || p,
@@ -292,7 +294,7 @@ const EventForm = ({ mode, newEvent, setNewEvent, eventToEdit: initialEvent, set
                             addAlert('success', 'Event updated and Teams occurrence updated');
                         } catch (error) {
                             console.error('Failed to update Teams meeting occurrence:', error);
-                            addAlert('error', `Event updated but Teams meeting failed: ${error.message}`);
+                            addAlert(...teamsUpdateFailureAlert(error, 'Event updated but Teams meeting failed'));
                         }
                     }
                 } else {

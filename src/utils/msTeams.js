@@ -27,7 +27,7 @@ const fetchMSProxy = async (action, body) => {
         if (data.error === 'REFRESH_TOKEN_MISSING' || data.error === 'TOKEN_REFRESH_FAILED') {
             throw new Error('Microsoft authentication expired. Please sign out and sign in again.');
         }
-        throw new Error(data.message || data.error || 'Microsoft Graph request failed');
+        throw Object.assign(new Error(data.message || data.error || 'Microsoft Graph request failed'), { code: data.error });
     }
 
     return data.data;
