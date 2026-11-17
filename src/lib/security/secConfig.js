@@ -1,18 +1,35 @@
 import { Ratelimit } from '@upstash/ratelimit';                                                                         
 import { Redis } from '@upstash/redis';
 
-/**
- * Rate-limiter
- * @description implement a Sliding Window strategy (10 req / 10s) via Vercel KV
- */
-export const rateLimitConfig = new Ratelimit({
-    redis: new Redis({
-        url: process.env.KV_REST_API_URL,
-        token: process.env.KV_REST_API_TOKEN,
-    }),
+const redis = new Redis({
+    url: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
+});
 
-    limiter: Ratelimit.slidingWindow(10, "10 s"),
+/**
+ * Rate-limiters (sliding window via Vercel KV)
+ *
+ * Signed-in requests are counted per account. The whole school reaches the app from
+ * a handful of shared addresses, so a per-address limit made a class opening the app
+ * together use up one allowance. One page load is several requests (the page, its
+ * route prefetches and API calls), so the allowance covers a few loads in a row.
+ */
+export const accountRateLimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(60, "10 s"),
+    prefix: "talloc:ratelimit:account",
     // Analytics only feeds the Upstash dashboard and costs extra commands per request.
+    analytics: false,
+});
+
+/**
+ * Requests without a valid session are only ever redirected to sign-in. They are
+ * counted per address, with room for a school network sharing one.
+ */
+export const ipRateLimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(100, "10 s"),
+    prefix: "talloc:ratelimit:ip",
     analytics: false,
 });
 

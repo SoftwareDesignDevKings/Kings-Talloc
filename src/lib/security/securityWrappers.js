@@ -1,4 +1,4 @@
-import { rateLimitConfig, contentSecurityPolicyConfig} from './secConfig';
+import { accountRateLimit, ipRateLimit, contentSecurityPolicyConfig} from './secConfig';
 import { NextResponse } from 'next/server';
 
 
@@ -16,7 +16,11 @@ export const implementCspWrapper = async (req) => {
     return response
 }
 
-export const implementRateLimiterWrapper = async (req, pathname) => {
+/**
+ * @param {string|null} account - the signed-in account's email from the verified session
+ *   token, or null for a request without a valid session (counted per address).
+ */
+export const implementRateLimiterWrapper = async (req, pathname, account = null) => {
     if (isRateLimitExemptPath(pathname)) {
         return null;
     }
@@ -25,8 +29,9 @@ export const implementRateLimiterWrapper = async (req, pathname) => {
         return null;
     }
 
-    const identifier = getClientIp(req); 
-    const { success, limit, reset, remaining } = await rateLimitConfig.limit(identifier);
+    const { success, limit, reset, remaining } = typeof account === 'string' && account
+        ? await accountRateLimit.limit(account.toLowerCase())
+        : await ipRateLimit.limit(getClientIp(req));
 
     if (success) return null;
 
@@ -73,6 +78,8 @@ const getClientIp = (req) => {
 
 const isRateLimitExemptPath = (pathname) =>
     pathname === '/api/auth' || pathname.startsWith('/api/auth/')
+    // The landing and sign-in pages are static shells a whole class opens at once.
+    || pathname === '/' || pathname === '/login'
     // Availability applies its own generous per-account limit in the route.
     || pathname === '/api/availability'
     // Read telemetry is a once-a-minute log line per tab; it must not use up a

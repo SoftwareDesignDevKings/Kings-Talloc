@@ -9,12 +9,22 @@ import { implementCspWrapper, implementRateLimiterWrapper } from './lib/security
 const MAINTENANCE_MODE = false;
 // ============================
 
+const isPublicPath = (pathname) =>
+    pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth');
+
 export async function middleware(req) {
 
     const { pathname } = req.nextUrl;
+    const secret = process.env.NEXTAUTH_SECRET;
+
+    // Read the session before rate limiting so signed-in requests are counted per
+    // account. The token is signed with the app secret, so the email cannot be forged.
+    const token = !isPublicPath(pathname) && secret ? await getToken({ req, secret }) : null;
+    const signedIn = Boolean(token) && token.accountValid !== false;
+
     if (process.env.NODE_ENV !== 'development') {
         try {
-            const rateLimitResponse = await implementRateLimiterWrapper(req, pathname);
+            const rateLimitResponse = await implementRateLimiterWrapper(req, pathname, signedIn ? token.email : null);
             if (rateLimitResponse) {
                 return rateLimitResponse;
             }
@@ -37,18 +47,16 @@ export async function middleware(req) {
     }
 
     // IF PUBLIC ENDPOINT (or redirect on login, no security checks)
-    if (pathname === '/login' || pathname === '/' || pathname === '/maintenance' || pathname.startsWith('/api/auth')) {
+    if (isPublicPath(pathname)) {
         return response;
     }
 
-    const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
         throw new Error('NEXTAUTH_SECRET is not defined');
     }
 
-    // retrieve the token from the request, no token redirect to login page
-    const token = await getToken({ req, secret });
-    if (!token || token.accountValid === false) {
+    // no valid session: redirect to login page
+    if (!signedIn) {
         return NextResponse.redirect(new URL('/login', req.url));
     }
 
@@ -85,6 +93,9 @@ export async function middleware(req) {
 // Define the paths that the middleware will apply to
 export const config = {
     matcher: [
+        // The landing and sign-in pages are public, but still need the security headers.
+        '/',
+        '/login',
         '/dashboard/:path*',
         '/userRoles/:path*',
         '/calendar/:path*',

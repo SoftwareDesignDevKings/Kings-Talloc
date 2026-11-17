@@ -66,4 +66,31 @@ describe('implementRateLimiterWrapper', () => {
         await expect(implementRateLimiterWrapper(req, '/api/authenticate')).resolves.toBeNull();
         expect(mockLimit).toHaveBeenCalledWith('203.0.113.10');
     });
+
+    it.each(['/', '/login'])('does not limit the public entry page %s', async (pathname) => {
+        process.env.KV_REST_API_URL = 'https://example.upstash.io';
+        process.env.KV_REST_API_TOKEN = 'token';
+
+        await expect(implementRateLimiterWrapper({}, pathname)).resolves.toBeNull();
+        expect(mockLimit).not.toHaveBeenCalled();
+    });
+
+    it('counts a signed-in request against its account, not the shared school address', async () => {
+        process.env.KV_REST_API_URL = 'https://example.upstash.io';
+        process.env.KV_REST_API_TOKEN = 'token';
+        mockLimit.mockResolvedValue({ success: true, limit: 60, reset: Date.now(), remaining: 59 });
+        const req = { headers: { get: jest.fn(() => '203.0.113.10') } };
+
+        await expect(implementRateLimiterWrapper(req, '/dashboard', 'Student@School.Test')).resolves.toBeNull();
+
+        expect(mockLimit).toHaveBeenCalledTimes(1);
+        expect(mockLimit).toHaveBeenCalledWith('student@school.test');
+        expect(req.headers.get).not.toHaveBeenCalled();
+    });
+
+    it('keeps account and address allowances in separate key spaces', () => {
+        const prefixes = Ratelimit.mock.calls.map(([options]) => options.prefix);
+        expect(new Set(prefixes).size).toBe(2);
+        expect(prefixes.every(Boolean)).toBe(true);
+    });
 });
