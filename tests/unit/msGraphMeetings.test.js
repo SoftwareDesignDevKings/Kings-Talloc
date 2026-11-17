@@ -130,6 +130,21 @@ describe('Microsoft calendar Teams meetings', () => {
         expect(fetch.mock.calls[0][1].method).toBe('GET');
     });
 
+    it('marks a meeting missing from the signed-in calendar so the app can explain it', async () => {
+        fetch.mockResolvedValueOnce(graphResponse({ error: { message: 'The specified object was not found in the store.' } }, 404));
+
+        await expect(msUpdateEvent('access-token', 'organiser-event-id', eventData))
+            .rejects.toMatchObject({ code: 'TEAMS_EVENT_NOT_FOUND' });
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not mark other Microsoft failures as a missing meeting', async () => {
+        fetch.mockResolvedValueOnce(graphResponse({ error: { message: 'Access denied' } }, 403));
+
+        await expect(msUpdateEvent('access-token', 'microsoft-event-id', eventData))
+            .rejects.not.toHaveProperty('code');
+    });
+
     it.each([
         undefined,
         { contentType: 'text', content: `Join Teams: ${joinUrl}` },

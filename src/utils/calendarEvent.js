@@ -25,6 +25,27 @@ import {
 } from '@/utils/msTeams';
 
 /**
+ * Alert for a failed Teams update. Only the organiser's account can find their
+ * meeting, so another admin or teacher saving the session gets a short note.
+ */
+export const teamsUpdateFailureAlert = (error, prefix) => error?.code === 'TEAMS_EVENT_NOT_FOUND'
+    ? ['warning', 'Saved. The Teams meeting wasn’t changed because only its organiser can update it.']
+    : ['error', `${prefix}: ${error?.message}`];
+
+const timeOf = value => (value ? new Date(value).getTime() : null);
+const emailsOf = event => [...(event.students || []), ...(event.staff || [])].map(p => p.value || p).sort().join();
+
+// Only these fields reach the Teams meeting, so other edits (such as completion status) need no sync.
+export const teamsMeetingChanged = (before, after) => before.title !== after.title
+    || (before.description || '') !== (after.description || '')
+    || timeOf(before.start) !== timeOf(after.start)
+    || timeOf(before.end) !== timeOf(after.end)
+    || emailsOf(before) !== emailsOf(after)
+    || (before.recurring || null) !== (after.recurring || null)
+    || timeOf(before.until) !== timeOf(after.until)
+    || (before.occurenceNum || null) !== (after.occurenceNum || null);
+
+/**
  * Determines event type and Firestore collection name
  */
 export const calendarEventGetType = (event) => {
@@ -178,7 +199,7 @@ export const calendarEventUpdateTeamsMeeting = async (
         addAlert('success', 'Teams meeting updated successfully');
     } catch (error) {
         console.error('Failed to update Teams meeting:', error);
-        addAlert('error', `Event saved, but Teams could not update: ${error.message}`);
+        addAlert(...teamsUpdateFailureAlert(error, 'Event saved, but Teams could not update'));
     }
 };
 
@@ -264,6 +285,7 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
         eventData.createTeamsMeeting
     ) {
         if (eventToEdit.teamsEventId) {
+            if (!teamsMeetingChanged(eventToEdit, eventData)) return;
             // Update existing Teams meeting
             try {
                 // Build recurrence options if event is recurring
@@ -281,7 +303,7 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
                 addAlert('success', 'Teams meeting updated successfully');
             } catch (error) {
                 console.error('Failed to update Teams meeting:', error);
-                addAlert('error', `Failed to update Teams meeting: ${error.message}`);
+                addAlert(...teamsUpdateFailureAlert(error, 'Failed to update Teams meeting'));
             }
         } else {
             // Create new Teams meeting

@@ -12,6 +12,7 @@ import {
     msDeleteOccurrence,
     msUpdateRecurrenceEnd,
     msSetAutoRecord,
+    TEAMS_EVENT_NOT_FOUND,
 } from "./msGraphFunctions";
 
 /**
@@ -59,12 +60,13 @@ export async function POST(req) {
         console.error(`[MS Proxy] Error:`, error);
 
         // Return user-friendly error message
+        const notFound = error.code === TEAMS_EVENT_NOT_FOUND;
         return NextResponse.json(
             {
-                error: "MICROSOFT_GRAPH_ERROR",
+                error: notFound ? TEAMS_EVENT_NOT_FOUND : "MICROSOFT_GRAPH_ERROR",
                 message: error.message || "An error occurred while communicating with Microsoft Graph",
             },
-            { status: 500 }
+            { status: notFound ? 404 : 500 }
         );
     }
 }

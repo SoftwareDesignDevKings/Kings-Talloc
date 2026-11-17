@@ -15,6 +15,14 @@ const GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const TIMEZONE = 'Australia/Sydney';
 const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 
+// Event IDs belong to one mailbox, so anyone but the organiser gets 404 for a stored meeting ID.
+export const TEAMS_EVENT_NOT_FOUND = 'TEAMS_EVENT_NOT_FOUND';
+const throwEventFailure = async (response, prefix) => {
+    const error = await readGraphError(response);
+    throw Object.assign(new Error(`${prefix}: ${error.error?.message || response.statusText}`),
+        response.status === 404 ? { code: TEAMS_EVENT_NOT_FOUND } : {});
+};
+
 /**
  * Check if running in dev mode with mock token
  */
@@ -241,12 +249,7 @@ export const msUpdateEvent = async (accessToken, eventId, { subject, description
             body: JSON.stringify(eventBody),
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(
-                `Failed to update Teams meeting: ${error.error?.message || response.statusText}`,
-            );
-        }
+        if (!response.ok) await throwEventFailure(response, 'Failed to update Teams meeting');
 
         return await response.json();
     } catch (error) {
@@ -305,12 +308,7 @@ export const msGetEvent = async (accessToken, eventId) => {
             },
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(
-                `Failed to get event: ${error.error?.message || response.statusText}`,
-            );
-        }
+        if (!response.ok) await throwEventFailure(response, 'Failed to get event');
 
         return await response.json();
     } catch (error) {
@@ -345,12 +343,7 @@ export const msGetOccurrenceId = async (accessToken, seriesMasterId, occurrenceD
             headers: buildHeaders(accessToken, false),
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(
-                `Failed to get occurrence: ${error.error?.message || response.statusText}`,
-            );
-        }
+        if (!response.ok) await throwEventFailure(response, 'Failed to get occurrence');
 
         const data = await response.json();
         if (data.value && data.value.length > 0) {
@@ -384,12 +377,7 @@ export const msUpdateOccurrence = async (accessToken, occurrenceId, { subject, d
             body: JSON.stringify(eventBody),
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(
-                `Failed to update occurrence: ${error.error?.message || response.statusText}`,
-            );
-        }
+        if (!response.ok) await throwEventFailure(response, 'Failed to update occurrence');
 
         return await response.json();
     } catch (error) {
