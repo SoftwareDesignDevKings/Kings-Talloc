@@ -127,8 +127,12 @@ const CalendarContent = () => {
     // track the calendar's displayed date to keep it in sync with the data provider
     const [calendarDate, setCalendarDate] = useState(() => {
         const requested = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null;
-        const date = requested ? new Date(requested) : calendarDateRange.start;
-        return Number.isNaN(+date) ? calendarDateRange.start : date;
+        // The loaded range starts on a Monday. Opening on that Monday put the phone's
+        // day view, and its "+" button, in the past; open on today when it is in range.
+        const today = new Date();
+        const fallback = today >= calendarDateRange.start && today <= calendarDateRange.end ? today : calendarDateRange.start;
+        const date = requested ? new Date(requested) : fallback;
+        return Number.isNaN(+date) ? fallback : date;
     });
     const [calendarView, setCalendarView] = useState(Views.WEEK);
     useEffect(() => {
