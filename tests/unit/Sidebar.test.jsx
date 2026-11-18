@@ -43,16 +43,16 @@ describe('Sidebar', () => {
 
         expect(screen.getByText('Calendar')).toBeInTheDocument();
         expect(screen.queryByText('User Roles')).not.toBeInTheDocument();
-        expect(screen.queryByText('Canvas Classes')).not.toBeInTheDocument();
+        expect(screen.queryByText('Canvas classes')).not.toBeInTheDocument();
         expect(screen.queryByText('Manage Subjects')).not.toBeInTheDocument();
-        expect(screen.queryByText('Tutor Hours')).not.toBeInTheDocument();
+        expect(screen.queryByText('Tutor hours')).not.toBeInTheDocument();
     });
 
     it('shows tutor hours for tutor role', () => {
         setup('tutor');
 
         expect(screen.getByText('Calendar')).toBeInTheDocument();
-        expect(screen.getByText('Tutor Hours')).toBeInTheDocument();
+        expect(screen.getByText('Tutor hours')).toBeInTheDocument();
         expect(screen.queryByText('User Roles')).not.toBeInTheDocument();
     });
 
@@ -61,10 +61,10 @@ describe('Sidebar', () => {
 
         expect(screen.getByText('Calendar')).toBeInTheDocument();
         expect(screen.queryByText('User Roles')).not.toBeInTheDocument(); // Only for admin
-        expect(screen.queryByText('Canvas Admin')).not.toBeInTheDocument();
-        expect(screen.getByText('Canvas Classes')).toBeInTheDocument();
+        expect(screen.queryByText('Canvas admin')).not.toBeInTheDocument();
+        expect(screen.getByText('Canvas classes')).toBeInTheDocument();
         expect(screen.queryByText('Manage Subjects')).not.toBeInTheDocument();
-        expect(screen.getByText('Tutor Hours')).toBeInTheDocument(); // Teachers can review and export hours
+        expect(screen.getByText('Tutor hours')).toBeInTheDocument(); // Teachers can review and export hours
     });
 
     it('renders navigation links with correct hrefs', () => {

@@ -33,7 +33,7 @@ export function DateTimePicker({ name, label, value, onChange, isDisabled, porta
             validationBehavior="aria" isDisabled={isDisabled} shouldCloseOnSelect={false} onOpenChange={onOpenChange} className={styles.field}>
             {({ state }) => <>
                 <Label isRequired={false}>{label}</Label>
-                <InputDateBase size="sm" isDisabled={isDisabled} className={styles.dateInput}
+                <InputDateBase size="md" isDisabled={isDisabled} className={styles.dateInput}
                     segmentObserver={<DraftValidity onChange={onDraftValidityChange} />}>
                     <Button size="sm" color="tertiary" iconLeading={CalendarIcon} aria-label={`Choose ${name} date and time`} className={styles.trigger} />
                 </InputDateBase>

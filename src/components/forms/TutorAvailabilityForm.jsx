@@ -149,18 +149,18 @@ const TutorAvailabilityForm = ({
         if (await onSubmit(event)) setShowModal(false);
     };
 
-    const title = isView ? 'Availability Details' : (isEdit ? 'Edit Availability' : 'Add Availability');
+    const title = isView ? 'Availability details' : (isEdit ? 'Edit availability' : 'Add availability');
     const disabled = isView || isSubmitting;
     const fields = (
         <div className={styles.formContainer}>
             <section className={styles.section}>
                 <div className={styles.sectionTitle}>
                     <Clock aria-hidden="true" />
-                    <span>Time Period</span>
+                    <span>Time period</span>
                 </div>
                 <div className={styles.timeGrid}>
                     {['start', 'end'].map(name => <DateTimePicker key={name} name={name}
-                        label={name === 'start' ? 'Start Time' : 'End Time'} aria-label={`Availability ${name} time`}
+                        label={name === 'start' ? 'Start time' : 'End time'} aria-label={`Availability ${name} time`}
                         value={name === 'start' ? startValue : endValue} isDisabled={disabled}
                         portalContainer={portalContainer} onOpenChange={setDateMenuOpen}
                         onDraftValidityChange={complete => { dateTimeValidity.current[name] = complete; }}
@@ -172,7 +172,7 @@ const TutorAvailabilityForm = ({
                     <div className={styles.field}>
                         <div className={styles.sectionTitle}>
                             <MarkerPin01 aria-hidden="true" />
-                            <span>Location Preference</span>
+                            <span>Location preference</span>
                         </div>
                         <Select name="locationType" size="md" placeholder="Select location..."
                             aria-label="Location type" isRequired isDisabled={disabled} validationBehavior="native"
@@ -200,9 +200,9 @@ const TutorAvailabilityForm = ({
                         <form aria-label="Availability form" onSubmit={submitAvailability} className={styles.form}>
                             <div className={styles.body}>{fields}</div>
                             <footer className={styles.footer}>
-                                {isEdit && <Button size="sm" color="secondary-destructive" isDisabled={isSubmitting} onClick={deleteAvailability}>Delete</Button>}
-                                <Button size="sm" color="secondary" type="submit" isDisabled={isSubmitting} isLoading={isSubmitting} showTextWhileLoading>
-                                    {isSubmitting ? 'Loading...' : (isEdit ? 'Save Changes' : 'Add Availability')}
+                                {isEdit && <Button size="md" color="secondary-destructive" isDisabled={isSubmitting} onClick={deleteAvailability}>Delete</Button>}
+                                <Button size="md" color="primary" type="submit" isDisabled={isSubmitting} isLoading={isSubmitting} showTextWhileLoading>
+                                    {isSubmitting ? 'Loading...' : (isEdit ? 'Save changes' : 'Add availability')}
                                 </Button>
                             </footer>
                         </form>

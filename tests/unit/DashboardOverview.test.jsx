@@ -46,7 +46,7 @@ test('empty schedules give zero upcoming sessions and no preview rows', () => {
 test.each([DashboardTutorStats, DashboardStudentStats])('labels allocated hours as scheduled, with their period', Component => {
     const data = { upcomingEventsCount: 7, upcomingPeriod: 'Through 25/10/2026', weeklyHours: { work: 3.5, coaching: 2 }, uncompletedShifts: 0, uniqueStudents: 0, pendingRequests: 0, approvedRequests: 0 };
     render(<Component data={data} />);
-    const card = screen.getByRole('heading', { name: 'Scheduled Hours' }).closest('[data-untitled-table-card]');
+    const card = screen.getByRole('heading', { name: 'Scheduled hours' }).closest('[data-untitled-table-card]');
     expect(within(card).getByRole('heading', { level: 3 })).toHaveTextContent('5h 30m');
     expect(within(card).getByText(/This week/)).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Total Hours' })).not.toBeInTheDocument();

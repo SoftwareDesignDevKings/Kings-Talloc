@@ -24,18 +24,18 @@ const PendingApprovalsCard = ({ count, pendingRequests, onUpdate, readOnly = fal
         <div id={useGlobalRequests ? 'pending-approvals' : undefined}>
             <TableCard.Root className={styles.metricCard} style={{ '--metric-delay': '150ms' }}>
                 <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
-                    <Button color="tertiary" size="sm" isDisabled={!useGlobalRequests && isLoading} aria-busy={isLoading} className={styles.pendingTrigger} aria-label={`Pending Approvals ${displayedCount}`}>
+                    <Button color="tertiary" size="sm" isDisabled={!useGlobalRequests && isLoading} aria-busy={isLoading} className={styles.pendingTrigger} aria-label={`Pending approvals ${displayedCount}`}>
                         <span className={styles.metricBody}>
                             <FeaturedIcon icon={Clock} color="warning" size="md" aria-hidden="true" />
                             <span className={styles.metricText}>
-                                <span role="heading" aria-level={6} className={styles.metricTitle}>Pending Approvals</span>
+                                <span role="heading" aria-level={6} className={styles.metricTitle}>Pending approvals</span>
                                 <span role="heading" aria-level={3} className={styles.metricValue}>{displayedCount}</span>
                             </span>
                             <ChevronDown aria-hidden="true" className={styles.pendingChevron} />
                         </span>
                     </Button>
                     <Popover data-untitled-select-popover={undefined} className={styles.pendingPopover} placement="bottom start" containerPadding={16} offset={8}>
-                        <Dialog aria-label="Pending Approvals" className={styles.pendingDialog}>
+                        <Dialog aria-label="Pending approvals" className={styles.pendingDialog}>
                             {useGlobalRequests && !notifications.ready && (
                                 <div className={styles.requestState} role="status">{notifications.error || 'Loading requests…'}</div>
                             )}

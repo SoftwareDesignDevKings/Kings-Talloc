@@ -20,7 +20,7 @@ describe('CustomEvent', () => {
 
         expect(screen.getByText('Tutoring').closest('.rbc-event-content')).toHaveAttribute(
             'title',
-            'Tutoring\n10:00 AM - 11:30 AM\nOn this day: AB, JT',
+            'Tutoring\n10:00 am – 11:30 am\nOn this day: AB, JT',
         );
     });
 

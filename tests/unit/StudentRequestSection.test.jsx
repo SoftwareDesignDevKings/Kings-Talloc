@@ -7,7 +7,7 @@ test('old approved bookings have a consistent focus section with an explicit fal
     const event = { createdByStudent: true, approvalStatus: 'approved' };
     render(<><EventDetailsSection newEvent={event} readOnly /><StudentRequestSection newEvent={event} readOnly /></>);
     expect(screen.getByRole('button', { name: /Session focus/ })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: /General Information/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /General information/ })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Focus not provided')).toBeInTheDocument();
     expect(screen.queryByText('Topics to cover')).not.toBeInTheDocument();
 });

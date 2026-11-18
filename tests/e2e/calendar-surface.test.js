@@ -130,7 +130,7 @@ test('grid alignment, overlap, event opening and duplicate visibility preserve r
     await expect(primary.getByRole('button', { name: 'Duplicate event', exact: true })).toHaveCount(editable ? 1 : 0);
     expect(await primary.locator('.rbc-addons-dnd-resize-ns-anchor').count()).toBe(editable ? 2 : 0);
     await primary.click({ position: { x: 12, y: 16 } });
-    await expect(page.getByRole('dialog', { name: editable ? 'Edit Event' : 'Event Details', exact: true })).toBeVisible(); await close(page);
+    await expect(page.getByRole('dialog', { name: editable ? 'Edit event' : 'Event details', exact: true })).toBeVisible(); await close(page);
     expect(iso((await read('shifts/ui-calendar-surface-main')).fields.start.timestampValue)).toBe(iso(at(11)));
     await page.screenshot({ path: `/tmp/calendar-surface-${info.project.name}.png` }); expect(errors).toEqual([]);
 });
@@ -159,25 +159,25 @@ test('drag and resize persist the exact shifted interval and slot selection stil
     const target = await scrollToSlot(page, 4, 13); const box = await target.boundingBox();
     // RBC receives slot selection through its overlaid events container.
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(page.getByRole('dialog', { name: 'Add New Event', exact: true })).toBeVisible(); await close(page);
+    await expect(page.getByRole('dialog', { name: 'Add new event', exact: true })).toBeVisible(); await close(page);
 });
 
 test('own availability blocks keep their pattern, edit action and duplicate permission @tutorOnly @coachOnly @coachTutor', async ({ page }) => {
     await ready(page); const availability = block(page, prefix + 'own availability'); await availability.scrollIntoViewIfNeeded();
     expect(await availability.evaluate(el => getComputedStyle(el).borderLeftStyle)).toBe('dotted');
     await availability.hover(); await expect(availability.getByRole('button', { name: 'Duplicate event', exact: true })).toBeVisible();
-    await availability.click({ position: { x: 12, y: 16 } }); await expect(page.getByRole('dialog', { name: 'Edit Availability', exact: true })).toBeVisible(); await close(page);
+    await availability.click({ position: { x: 12, y: 16 } }); await expect(page.getByRole('dialog', { name: 'Edit availability', exact: true })).toBeVisible(); await close(page);
 });
 
 test('month and phone views keep event opening, bounded layout and slot overlays @teacherAdmin', async ({ page }) => {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await ready(page); await page.getByRole('button', { name: 'Month', exact: true }).click(); await expect(page.locator('.rbc-month-view')).toBeVisible();
-    await block(page).click(); await expect(page.getByRole('dialog', { name: 'Edit Event', exact: true })).toBeVisible(); await close(page);
+    await block(page).click(); await expect(page.getByRole('dialog', { name: 'Edit event', exact: true })).toBeVisible(); await close(page);
     await page.setViewportSize({ width: 375, height: 740 }); await page.getByRole('button', { name: 'Today', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Day', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await block(page).scrollIntoViewIfNeeded(); await expect(block(page)).toBeInViewport({ ratio: 1 });
     await expect.poll(() => page.locator('.rbc-calendar').evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
-    await block(page).click({ position: { x: 12, y: 16 } }); await expect(page.getByRole('dialog', { name: 'Edit Event', exact: true })).toBeVisible(); await close(page);
+    await block(page).click({ position: { x: 12, y: 16 } }); await expect(page.getByRole('dialog', { name: 'Edit event', exact: true })).toBeVisible(); await close(page);
     await page.screenshot({ path: '/tmp/calendar-surface-mobile.png' });
     expect(errors).toEqual([]);
 });

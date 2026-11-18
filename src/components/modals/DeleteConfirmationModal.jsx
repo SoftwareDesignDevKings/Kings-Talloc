@@ -10,12 +10,12 @@ import styles from '@/styles/staffEventForm.module.css';
 const DeleteConfirmationModal = ({ show, onHide, onConfirm, isRecurring, isOriginal, isStudentRequest = false, loading = false }) => {
     const [deleteOption, setDeleteOption] = useState(isOriginal ? 'all' : 'this');
     useEffect(() => { if (show) setDeleteOption(isOriginal ? 'all' : 'this'); }, [show, isOriginal]);
-    return <StaffEventDialog size="md" show={show} onHide={onHide} title={isRecurring ? 'Delete Recurring Event' : isStudentRequest ? 'Delete Student Request' : 'Delete Event'} loading={loading}
+    return <StaffEventDialog size="md" show={show} onHide={onHide} title={isRecurring ? 'Delete recurring event' : isStudentRequest ? 'Delete student request' : 'Delete event'} loading={loading}
         customFooter={<>
-            <Button size="sm" color="secondary" isDisabled={loading} onClick={onHide}>Cancel</Button>
-            <Button size="sm" color="secondary-destructive" isDisabled={loading} onClick={() => { if (!loading) onConfirm(isRecurring ? deleteOption : 'this'); }}>{loading ? 'Deleting…' : 'Delete'}</Button>
+            <Button size="md" color="secondary" isDisabled={loading} onClick={onHide}>Cancel</Button>
+            <Button size="md" color="secondary-destructive" isDisabled={loading} onClick={() => { if (!loading) onConfirm(isRecurring ? deleteOption : 'this'); }}>{loading ? 'Deleting…' : 'Delete'}</Button>
         </>}>
-        {isStudentRequest && <p className="text-danger" role="alert">{REQUEST_DELETE_WARNING}</p>}
+        {isStudentRequest && <p className={styles.warning} role="alert">{REQUEST_DELETE_WARNING}</p>}
         {isRecurring ? <div className={styles.fields}>
             <p>{isOriginal ? 'This is a recurring event. What would you like to delete?' : 'What would you like to delete?'}</p>
             <RadioGroup aria-label="Delete occurrences" name="deleteOption" value={deleteOption} onChange={setDeleteOption} isDisabled={loading}>

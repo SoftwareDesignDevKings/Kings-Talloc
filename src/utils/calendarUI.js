@@ -125,7 +125,7 @@ export const calendarUIGetSlotProps = (
  * Calendar UI messages for react-big-calendar
  */
 export const calendarUIMessages = {
-    allDay: 'All Day',
+    allDay: 'All day',
     previous: 'Back',
     next: 'Next',
     today: 'Today',
@@ -133,7 +133,7 @@ export const calendarUIMessages = {
     week: 'Week',
     day: 'Day',
     agenda: 'List',
-    threeDay: '3 Days',
+    threeDay: '3 days',
     date: 'Date',
     time: 'Time',
     event: 'Event',

@@ -45,7 +45,6 @@
         "react-csv": "^2.2.2",
         "react-datepicker": "^7.3.0",
         "react-dom": "^18",
-        "react-select": "^5.8.0",
         "sanitize-html": "^2.18.1",
         "@upstash/redis": "^1.37.0",
         "@internationalized/date": "3.12.4",

@@ -14,19 +14,19 @@ const ReLoginModal = ({ show, onHide }) => {
         <DashboardDialog
             show={show}
             onHide={onHide}
-            title="Microsoft Session Expired"
+            title="Microsoft session expired"
             size="sm"
             showFooter={false}
         >
-            <p className="text-muted mb-4">
+            <p className={styles.reauthText}>
                 Your Microsoft session has expired.<br />
                 Please sign in again to send emails — your account will be reconnected automatically.
             </p>
             <div className={styles.reauthActions}>
-                <Button size="sm" color="secondary" onClick={onHide}>
+                <Button size="md" color="secondary" onClick={onHide}>
                     Cancel
                 </Button>
-                <Button size="sm" color="primary" onClick={handleSignOut}>
+                <Button size="md" color="primary" onClick={handleSignOut}>
                     Sign in again
                 </Button>
             </div>

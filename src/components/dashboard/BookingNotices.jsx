@@ -5,6 +5,10 @@ import { db } from '@/firestore/firestoreClient';
 import { recordSnapshotReads } from '@/lib/telemetry/clientReads';
 import useAuthSession from '@/hooks/useAuthSession';
 import { formatDisplayDateTime } from '@/utils/displayDate';
+import { Bell01 } from '@untitledui/icons';
+import { Button } from '@/components/untitled/button';
+import { TableCard } from '@/components/untitled/table-card';
+import styles from '@/styles/dashboard.module.css';
 
 export default function BookingNotices() {
     const { session } = useAuthSession();
@@ -40,10 +44,15 @@ export default function BookingNotices() {
         } catch { setError('Unable to dismiss updates. Please retry.'); }
     };
     if (!unseen.length && !error) return null;
-    return <div className="alert alert-info mb-3" aria-label="Booking updates">
-        {error && <div role="status">{error}</div>}
-        <div style={{ maxHeight: '16rem', overflowY: 'auto' }}>{unseen.map(notice => <div key={notice.id} className="mb-1"><a href={`/calendar?date=${encodeURIComponent(notice.start.toDate().toISOString())}`}>{notice.title} — {formatDisplayDateTime(notice.start)}</a>: {notice.message}</div>)}
-        </div>
-        {unseen.length > 0 && <button type="button" className="btn btn-sm btn-outline-secondary mt-2" disabled={!ready} onClick={dismiss}>Dismiss updates</button>}
-    </div>;
+    return <TableCard.Root role="region" aria-label="Booking updates" className={styles.notices}>
+        <header className={styles.listHeader}>
+            <Bell01 aria-hidden="true" />
+            <h6 className={styles.listTitle}>Booking updates</h6>
+            {unseen.length > 0 && <Button size="sm" color="secondary" isDisabled={!ready} onClick={dismiss}>Dismiss updates</Button>}
+        </header>
+        {error && <div role="status" className={styles.noticeError}>{error}</div>}
+        <ul className={styles.noticeList}>{unseen.map(notice => <li key={notice.id} className={styles.noticeItem}>
+            <a href={`/calendar?date=${encodeURIComponent(notice.start.toDate().toISOString())}`}>{notice.title} — {formatDisplayDateTime(notice.start)}</a>: {notice.message}
+        </li>)}</ul>
+    </TableCard.Root>;
 }

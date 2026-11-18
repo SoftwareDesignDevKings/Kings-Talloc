@@ -46,3 +46,4 @@
     .recurrence { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .chevron, .chevronOpen, .sectionPanel { transition: none; } }
+.warning + .sections { margin-top: 16px; }

@@ -1,10 +1,6 @@
 /* Shared styles for Manage Role / Class / Subject table pages */
 
 .container {
-    padding: 1.5rem;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     height: 100%;
     flex: 1;
     min-height: 0;
@@ -21,8 +17,8 @@
 }
 
 .searchWrapper {
-    flex: 1;
-    min-width: 250px;
+    flex: 0 1 340px;
+    min-width: 0;
 }
 
 /* Scrollable table wrapper — no border, plain overflow container */

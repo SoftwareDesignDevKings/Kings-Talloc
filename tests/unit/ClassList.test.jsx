@@ -27,7 +27,8 @@ describe('ClassList', () => {
     test('renders read-only Canvas courses and roster counts', () => {
         render(<ClassList />);
 
-        expect(screen.getByText('Canvas Classes')).toBeInTheDocument();
+        // The page title comes from AppLayout; the list starts with its search.
+        expect(screen.getByRole('textbox', { name: 'Search Canvas classes' })).toBeInTheDocument();
         expect(screen.getByText('Mathematics Year 10')).toBeInTheDocument();
         expect(screen.getByText('MATH10')).toBeInTheDocument();
         expect(screen.getByText('1')).toBeInTheDocument();

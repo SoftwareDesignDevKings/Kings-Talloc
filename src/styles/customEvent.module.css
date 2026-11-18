@@ -2,7 +2,7 @@
     position: relative;
     height: 100%;
     width: 100%;
-    padding: 4px 6px 6px 6px;
+    padding: 3px 6px 2px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -21,7 +21,7 @@
     color: inherit;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     word-break: break-word;
 }
@@ -78,4 +78,14 @@
 .duplicateButton[data-untitled-button]:hover {
     background-color: var(--uui-color-bg-primary_hover);
     transform: scale(1.1);
+}
+
+/* Keep the title clear of the duplicate button while it is shown. */
+:global(.rbc-event):hover .hasDuplicate .eventTitle,
+:global(.rbc-event):focus-within .hasDuplicate .eventTitle { padding-right: 22px; }
+
+/* Touch screens have no hover, so always show a larger duplicate button. */
+@media (hover: none) {
+    .duplicateButton[data-untitled-button] { opacity: 1; pointer-events: auto; width: 24px; height: 24px; padding: 4px; }
+    .hasDuplicate .eventTitle { padding-right: 26px; }
 }

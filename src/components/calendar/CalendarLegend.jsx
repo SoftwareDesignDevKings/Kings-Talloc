@@ -6,7 +6,7 @@ import CalendarColourGuide from './CalendarColourGuide';
 export default function CalendarLegend({ userRole }) {
     return <div>
         <div className={styles.legendHeader}>
-            <div className={styles.filterSectionLabel}>Calendar Legend</div>
+            <div className={styles.filterSectionLabel}>Calendar legend</div>
         </div>
         <CalendarColourGuide userRole={userRole} />
     </div>;
