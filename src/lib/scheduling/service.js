@@ -15,6 +15,19 @@ const manage = roles => roles.has('admin') || roles.has('teacher');
 const allowedCollections = new Set(['shifts', 'studentEventRequests', 'tutorAvailabilities']);
 const allowedFields = new Set(['title', 'description', 'start', 'end', 'staff', 'students', 'additionalStudents', 'classes', 'subject', 'preference', 'sessionTopics', 'createdByStudent', 'approvalStatus', 'workStatus', 'workType', 'locationType', 'recurring', 'occurenceNum', 'until', 'createTeamsMeeting', 'teamsEventId', 'teamsMeetingUrl', 'teamsJoinUrl', 'onlineMeetingId', 'tutor', 'eventExceptions', 'recordAutomatically']);
 const cleanData = data => Object.fromEntries(Object.entries(data || {}).filter(([key, value]) => allowedFields.has(key) && value !== undefined));
+// Free text is shown as-is in every calendar, in tutor emails and in Teams invites, so a
+// request must not be able to store anything but bounded text there.
+const TEXT_LIMITS = { title: ['Title', 300], description: ['Description', 10000], locationType: ['Location', 50] };
+const shortText = value => value == null || (typeof value === 'string' && value.length <= 300);
+const checkFreeText = raw => {
+    for (const [field, [label, max]] of Object.entries(TEXT_LIMITS)) {
+        fail(raw[field] != null && (typeof raw[field] !== 'string' || raw[field].length > max), `${label} must be text of up to ${max} characters.`);
+    }
+    // Legacy subjects are either a name or a { value, label } option.
+    const subject = raw.subject;
+    fail(!shortText(subject) && !(typeof subject === 'object' && !Array.isArray(subject)
+        && Object.keys(subject).every(key => ['value', 'label', 'id'].includes(key) && shortText(subject[key]))), 'Subject is not valid.');
+};
 const participant = value => { const email = emailOf(value); fail(!email.includes('@') || email.includes('/'), 'Invalid participant.'); return { value: email, label: String(value?.label || email).slice(0, 200) }; };
 const flatten = event => {
     const unique = values => { const byEmail = new Map(); for (const value of values || []) { const item = participant(value); if (!byEmail.has(item.value)) byEmail.set(item.value, item); } return [...byEmail.values()]; };
@@ -77,6 +90,7 @@ export const scheduleMutation = async (db, sessionUser, input, { now = () => new
         }
         const saved = snapshot?.exists ? await resolveClassParticipants(db, documentEvent(snapshot), transaction) : null;
         const raw = cleanData(input.data);
+        checkFreeText(raw);
         if (action !== 'create' && raw.workStatus !== undefined) fail(!['completed', 'notCompleted', 'notAttended'].includes(raw.workStatus), 'Invalid completion status.');
         const classIds = classes => (classes || []).map(item => String(item.value || item.id || item)).sort();
         const classesChanged = raw.classes && JSON.stringify(classIds(raw.classes)) !== JSON.stringify(classIds(saved?.classes));
