@@ -147,6 +147,29 @@ describe('calendarAvailabilitySplit', () => {
             expect(fragment.originalAvailabilityId).toBe('real-doc-id');
         }
     });
+
+    test('a booking at the very start leaves a marked fragment, not the real doc with a later start', () => {
+        const result = calendarAvailabilitySplit(
+            [availability('2026-05-20T15:00', '2026-05-20T18:00')],
+            [shift('2026-05-20T15:00', '2026-05-20T16:00')],
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0].start).toEqual(new Date('2026-05-20T16:00'));
+        // Saving a slot that kept the real id would shorten the stored availability.
+        expect(result[0].id).not.toBe('real-doc-id');
+        expect(result[0].originalAvailabilityId).toBe('real-doc-id');
+    });
+
+    test('fragment ids are stable between renders and unique within an availability', () => {
+        const split = () => calendarAvailabilitySplit(
+            [availability('2026-05-20T09:00', '2026-05-20T17:00')],
+            [shift('2026-05-20T12:00', '2026-05-20T13:00')],
+        ).map(fragment => fragment.id);
+
+        expect(split()).toEqual(split());
+        expect(new Set(split()).size).toBe(2);
+    });
 });
 
 

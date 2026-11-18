@@ -234,11 +234,24 @@ const CalendarContent = () => {
     /* ----------------------------------------------------------- */
     /* Permissions                                                 */
     /* ----------------------------------------------------------- */
+    // A fragment is only the unbooked part of an availability; dragging it would
+    // write the fragment's times over the real document. Open it to edit instead.
     const canDragEvent = (event) =>
-        strategy.permissions?.canDrag?.(event) ?? false;
+        !event.originalAvailabilityId && (strategy.permissions?.canDrag?.(event) ?? false);
 
     const canResizeEvent = (event) =>
-        strategy.permissions?.canResize?.(event) ?? false;
+        !event.originalAvailabilityId && (strategy.permissions?.canResize?.(event) ?? false);
+
+    // Availabilities are rendered split around clashing shifts (calendarAvailabilitySplit),
+    // giving fragments a synthetic id and truncated times. Resolve back to the real document
+    // so view/edit/delete/duplicate act on the underlying availability, not a render artifact.
+    const resolveAvailabilityFragment = (calEvent) => {
+        if (!calEvent.originalAvailabilityId) return calEvent;
+        const original = calendarAvailabilities.find((a) => a.id === calEvent.originalAvailabilityId);
+        if (!original) return calEvent;
+        const { originalAvailabilityId, ...rest } = calEvent;
+        return { ...rest, id: original.id, start: original.start, end: original.end };
+    };
 
     /* ----------------------------------------------------------- */
     /* ACTION + TARGET STATE                                       */
@@ -328,22 +341,8 @@ const CalendarContent = () => {
         const action = strategy.actions.getEventFlow(calEvent);
         if (!action) return;
 
-        let target = calEvent;
-        // Availabilities are rendered split around clashing shifts (calendarAvailabilitySplit),
-        // giving fragments a synthetic id and truncated times. Resolve back to the real document
-        // so view/edit/delete operate on the underlying availability, not a render artifact.
-        if (calEvent.originalAvailabilityId) {
-            const original = calendarAvailabilities.find(
-                (a) => a.id === calEvent.originalAvailabilityId,
-            );
-            if (original) {
-                const { originalAvailabilityId, ...rest } = calEvent;
-                target = { ...rest, id: original.id, start: original.start, end: original.end };
-            }
-        }
-
         setCalendarAction(action);
-        setCalendarTarget(target);
+        setCalendarTarget(resolveAvailabilityFragment(calEvent));
     };
 
     const handleSelectSlot = (slotInfo) => {
@@ -364,8 +363,10 @@ const CalendarContent = () => {
     };
 
     // rbc - handle event duplication
-    const handleDuplicateEvent = async (event) => {
+    const handleDuplicateEvent = async (renderedEvent) => {
         try {
+            // Duplicate the whole availability, not the unbooked fragment that was clicked.
+            const event = resolveAvailabilityFragment(renderedEvent);
             // calculate new start/end (next day, same duration)
             const duration = event.end - event.start;
             const newStart = addDays(event.start, 1);
@@ -537,7 +538,7 @@ const CalendarContent = () => {
     // existing optimistic update rolls back if coverage or conflicts changed.
     // handle RBC event drop
     const handleEventDrop = async ({ event, start, end }) => {
-        if (!strategy.permissions.canDrag(event)) {
+        if (!canDragEvent(event)) {
             return;
         }
 
@@ -551,7 +552,7 @@ const CalendarContent = () => {
 
     // handle RBC event resize
     const handleEventResize = async ({ event, start, end }) => {
-        if (!strategy.permissions.canResize(event)) {
+        if (!canResizeEvent(event)) {
             return;
         }
 
