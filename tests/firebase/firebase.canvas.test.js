@@ -49,7 +49,7 @@ describe('Firebase Security Rules - Canvas cache collections', () => {
         });
     };
 
-    test('teachers can read Canvas cache collections', async () => {
+    test('teachers can read Canvas courses, but rosters only reach the app through the server', async () => {
         await seedCanvasCache();
 
         const context = testEnv.authenticatedContext(teacherEmail, {
@@ -60,8 +60,8 @@ describe('Firebase Security Rules - Canvas cache collections', () => {
         const db = context.firestore();
 
         await assertSucceeds(db.collection('canvasCourses').get());
-        await assertSucceeds(db.collection('canvasUsers').get());
-        await assertSucceeds(db.collection('canvasEnrollments').get());
+        await assertFails(db.collection('canvasUsers').get());
+        await assertFails(db.collection('canvasEnrollments').get());
     });
 
     test('students cannot read Canvas cache collections', async () => {

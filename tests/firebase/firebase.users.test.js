@@ -2,7 +2,7 @@
  * Firebase Security Rules Tests - Users Collection
  *
  * Tests users collection access control:
- * - Any authenticated user can read
+ * - Everyone reads only their own profile; admins read any
  * - Admin/teacher or self can create
  * - Students can acknowledge their own introductions; other updates require admin
  * - Only admin can delete
@@ -51,7 +51,7 @@ describe('Firebase Security Rules - Users Collection', () => {
     const otherStudentEmail = 'otherstudent@student.kings.edu.au';
 
     describe('Users - Read Access', () => {
-        test('authenticated users CAN read users', async () => {
+        test('a student CAN read their own profile but no one else\'s', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
                 defaultRole: 'student',
@@ -59,7 +59,31 @@ describe('Firebase Security Rules - Users Collection', () => {
             });
             const db = context.firestore();
 
+            await assertSucceeds(db.collection('users').doc(studentEmail).get());
+            await assertFails(db.collection('users').doc(teacherEmail).get());
+            await assertFails(db.collection('users').get());
+        });
+
+        test('a tutor CANNOT list every profile', async () => {
+            const context = testEnv.authenticatedContext(tutorEmail, {
+                email: tutorEmail,
+                defaultRole: 'tutor',
+                userRoles: [],
+            });
+
+            await assertFails(context.firestore().collection('users').get());
+        });
+
+        test('admins CAN read any profile', async () => {
+            const context = testEnv.authenticatedContext(adminEmail, {
+                email: adminEmail,
+                defaultRole: 'admin',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
             await assertSucceeds(db.collection('users').get());
+            await assertSucceeds(db.collection('users').doc(studentEmail).get());
         });
 
         test('unauthenticated users CANNOT read users', async () => {
