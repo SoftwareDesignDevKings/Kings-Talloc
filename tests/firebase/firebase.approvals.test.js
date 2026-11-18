@@ -75,6 +75,21 @@ test('student requests use combined Work and availability and always stay pendin
     await call({ action: 'approve', id: result.id });
     await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: data() }, student)).rejects.toThrow('Scheduling conflict');
 });
+test('a student cannot queue a second pending request for the same time, but can still edit the first', async () => {
+    const other = { email: 'other.student@kings.edu.au', defaultRole: 'student', userRoles: [] };
+    await db.collection('users').doc(other.email).set(other);
+    await db.collection('studentTutorEligibility').doc(other.email).set({ eligibleTutorEmails: [tutor.email] });
+    await db.collection('tutorAvailabilities').doc('available').set({ tutor: tutor.email, start: new Date(+start - 3600000), end: new Date(+end + 3600000) });
+    const request = data({ students: [{ value: student.email }] });
+    const first = await call({ action: 'create', collectionName: 'studentEventRequests', data: request }, student);
+    await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: request }, student)).rejects.toMatchObject({ status: 409, message: expect.stringContaining('already a pending request') });
+    await expect(call({ action: 'create', collectionName: 'studentEventRequests', data: { ...request, start: new Date(+start + 1800000), end: new Date(+end + 1800000) } }, student)).rejects.toMatchObject({ status: 409 });
+    await call({ action: 'update', collectionName: 'studentEventRequests', id: first.id, data: { ...request, sessionTopics: 'Loops' } }, student);
+    // Another student may still ask for the same tutor; the teacher's approval decides between them.
+    await call({ action: 'create', collectionName: 'studentEventRequests', data: data({ students: [{ value: other.email }] }) }, other);
+    await call({ action: 'create', collectionName: 'studentEventRequests', data: { ...request, start: end, end: new Date(+end + 3600000) } }, student);
+    expect((await db.collection('studentEventRequests').where('approvalStatus', '==', 'pending').get()).size).toBe(3);
+});
 test('student cannot cancel or move an approved session; tutor cannot complete another tutor’s shift', async () => {
     await seed('a'); const result = await call({ action: 'approve', id: 'a' });
     await expect(call({ action: 'delete', id: result.id }, student)).rejects.toMatchObject({ status: 403 });
