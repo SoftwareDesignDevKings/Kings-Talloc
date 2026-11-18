@@ -143,6 +143,10 @@ export const calendarEventRevertState = (
     }
 };
 
+// A session detached from a recurring series keeps the series' Teams ID. Passing its
+// saved start tells the server to act on that one occurrence, never the whole series.
+const singleSessionTeamsTarget = event => event.recurring ? { series: true } : { occurrenceStart: event.start };
+
 /**
  * Update Teams meeting if exists
  */
@@ -163,18 +167,12 @@ export const calendarEventUpdateTeamsMeeting = async (
     const attendees = [...(event.students || []), ...(event.staff || [])].map((p) => p.value || p);
 
     try {
-        const meetingId = event.isRecurringInstance
-            ? await getTeamsMeetingOccurrenceId(event.teamsEventId, event.start)
-            : event.teamsEventId;
-        const updateMeeting = event.isRecurringInstance ? updateTeamsMeetingOccurrence : updateTeamsMeeting;
-        await updateMeeting(
-            meetingId,
-            subject,
-            description,
-            startTime,
-            endTime,
-            attendees,
-        );
+        if (event.isRecurringInstance) {
+            const occurrenceId = await getTeamsMeetingOccurrenceId(event.teamsEventId, event.start);
+            await updateTeamsMeetingOccurrence(occurrenceId, subject, description, startTime, endTime, attendees);
+        } else {
+            await updateTeamsMeeting(event.teamsEventId, subject, description, startTime, endTime, attendees, null, singleSessionTeamsTarget(event));
+        }
         addAlert('success', 'Teams meeting updated successfully');
     } catch (error) {
         console.error('Failed to update Teams meeting:', error);
@@ -245,7 +243,7 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
     // Case 1: User unchecked "Create Teams Meeting" - delete existing meeting
     if (!eventData.createTeamsMeeting && eventToEdit.teamsEventId) {
         try {
-            await deleteTeamsMeeting(eventToEdit.teamsEventId);
+            await deleteTeamsMeeting(eventToEdit.teamsEventId, singleSessionTeamsTarget(eventToEdit));
             await updateEventInFirestore(eventToEdit.id, {
                 teamsEventId: null,
                 teamsJoinUrl: null,
@@ -277,6 +275,7 @@ export const calendarEventHandleTeamsMeetingUpdate = async (eventToEdit, eventDa
                     new Date(eventData.end).toISOString(),
                     attendeesEmailArr,
                     recurrenceOptions,
+                    eventToEdit.recurring ? {} : singleSessionTeamsTarget(eventToEdit),
                 );
                 addAlert('success', 'Teams meeting updated successfully');
             } catch (error) {
@@ -695,7 +694,7 @@ export const calendarEventHandleDelete = async (
             // Delete Teams meeting if the original recurring event had one
             if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
                 try {
-                    await deleteTeamsMeeting(eventToDelete.teamsEventId);
+                    await deleteTeamsMeeting(eventToDelete.teamsEventId, { series: true });
                     addAlert('success', 'Recurring event and Teams meeting deleted successfully');
                 } catch (error) {
                     console.error('Failed to delete Teams meeting:', error);
@@ -786,7 +785,7 @@ export const calendarEventHandleDelete = async (
 
             if (eventToDelete.teamsEventId && !isAvailability && !isStudentRequest) {
                 try {
-                    await deleteTeamsMeeting(eventToDelete.teamsEventId);
+                    await deleteTeamsMeeting(eventToDelete.teamsEventId, singleSessionTeamsTarget(eventToDelete));
                     addAlert('success', 'Event and Teams meeting deleted successfully');
                 } catch (error) {
                     console.error('Failed to delete Teams meeting:', error);

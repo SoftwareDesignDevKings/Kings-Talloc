@@ -103,7 +103,7 @@ async function handleMicrosoftAction(req, accessToken) {
             if (!body.eventId) {
                 return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
             }
-            result = await msDeleteEvent(accessToken, body.eventId);
+            result = await msDeleteEvent(accessToken, body.eventId, { series: body.series === true, occurrenceStart: body.occurrenceStart });
 
         } else if (action === "get-event") {
             if (!body.eventId) {

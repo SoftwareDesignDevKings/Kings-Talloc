@@ -217,13 +217,29 @@ export const msCreateEvent = async (accessToken, { subject, description, startTi
 };
 
 /**
+ * A shift detached from a recurring series keeps the series' event ID. Changing or
+ * deleting that one session must only touch its own occurrence, never the series.
+ * Returns the ID to act on: the occurrence on the session's saved day when `event`
+ * is a series master, otherwise the given ID.
+ */
+const resolveSingleSessionEventId = async (accessToken, event, eventId, occurrenceStart) => {
+    if (event?.type !== 'seriesMaster') return eventId;
+    const start = new Date(occurrenceStart);
+    if (!occurrenceStart || Number.isNaN(start.getTime())) {
+        throw new Error('This session belongs to a recurring Teams series, which was left unchanged. Change that meeting in Outlook.');
+    }
+    return msGetOccurrenceId(accessToken, eventId, start);
+};
+
+/**
  * Update an existing Teams meeting event
  * @param {string} accessToken - Microsoft access token
  * @param {string} eventId - Microsoft Graph event ID
- * @param {Object} eventData - Updated event details
+ * @param {Object} eventData - Updated event details. `occurrenceStart` is the saved
+ *   start of a single (non-recurring) session; see resolveSingleSessionEventId.
  * @returns {Promise<Object>} Updated meeting object
  */
-export const msUpdateEvent = async (accessToken, eventId, { subject, description, startTime, endTime, attendees, recurrenceOptions = null }) => {
+export const msUpdateEvent = async (accessToken, eventId, { subject, description, startTime, endTime, attendees, recurrenceOptions = null, occurrenceStart = null }) => {
     try {
         // DEV MODE: Return mock response
         if (isDevMode(accessToken)) {
@@ -231,8 +247,14 @@ export const msUpdateEvent = async (accessToken, eventId, { subject, description
             return { id: eventId, subject, updated: true };
         }
 
-        const eventBody = buildEventBody(subject, description, startTime, endTime, attendees, recurrenceOptions);
         const existingEvent = await msGetEvent(accessToken, eventId);
+        if (occurrenceStart || !recurrenceOptions) {
+            const singleId = await resolveSingleSessionEventId(accessToken, existingEvent, eventId, occurrenceStart);
+            if (singleId !== eventId) {
+                return await msUpdateOccurrence(accessToken, singleId, { subject, description, startTime, endTime, attendees });
+            }
+        }
+        const eventBody = buildEventBody(subject, description, startTime, endTime, attendees, recurrenceOptions);
         eventBody.body = buildTeamsEventBody(description, existingEvent.body || {});
 
         const response = await fetch(`${GRAPH_BASE_URL}/me/events/${eventId}`, {
@@ -259,14 +281,32 @@ export const msUpdateEvent = async (accessToken, eventId, { subject, description
  * Delete a Teams meeting event
  * @param {string} accessToken - Microsoft access token
  * @param {string} eventId - Microsoft Graph event ID
+ * @param {Object} [options]
+ * @param {boolean} [options.series] - true to delete a whole recurring series
+ * @param {string} [options.occurrenceStart] - saved start of a single session
  * @returns {Promise<boolean>}
  */
-export const msDeleteEvent = async (accessToken, eventId) => {
+export const msDeleteEvent = async (accessToken, eventId, { series = false, occurrenceStart = null } = {}) => {
     try {
         // DEV MODE: Return mock response
         if (isDevMode(accessToken)) {
             console.log('[msGraph] DEV MODE: Mocking delete-event for:', eventId);
             return true;
+        }
+
+        // Only an explicit series delete may remove a series master.
+        if (!series) {
+            const lookup = await fetch(`${GRAPH_BASE_URL}/me/events/${eventId}?$select=type`, {
+                method: 'GET',
+                headers: buildHeaders(accessToken, false),
+            });
+            if (lookup.status === 404) return true;
+            if (!lookup.ok) {
+                const error = await readGraphError(lookup);
+                throw new Error(`Failed to delete Teams meeting: ${error.error?.message || lookup.statusText}`);
+            }
+            const singleId = await resolveSingleSessionEventId(accessToken, await lookup.json(), eventId, occurrenceStart);
+            if (singleId !== eventId) return await msDeleteOccurrence(accessToken, singleId);
         }
 
         const response = await fetch(`${GRAPH_BASE_URL}/me/events/${eventId}`, {

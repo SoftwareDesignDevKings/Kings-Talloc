@@ -4,7 +4,7 @@ jest.mock('@/lib/security/sanitiseHtml', () => ({
     sanitiseHtml: (html) => require('sanitize-html')(html),
 }));
 
-const { msCreateEvent, msUpdateEvent, msUpdateOccurrence } = require('@/app/api/microsoft/msGraphFunctions');
+const { msCreateEvent, msUpdateEvent, msUpdateOccurrence, msDeleteEvent } = require('@/app/api/microsoft/msGraphFunctions');
 
 const joinUrl = 'https://teams.microsoft.com/l/meetup-join/test-meeting';
 const teamsBlock = `<div class="me-email-text" style="color: #242424"><h2>Microsoft Teams</h2><a href="${joinUrl}">Join the meeting now</a><span data-meeting-id="123">Meeting ID: 123</span><a href="https://teams.microsoft.com/meetingOptions/?id=123">Meeting options</a></div>`;
@@ -151,5 +151,88 @@ describe('Microsoft calendar Teams meetings', () => {
         expect(patchBody().body.content).toContain(teamsBlock);
         expect(patchBody().body.content).not.toContain('Old notes');
         expect(patchBody().body.content.match(/talloc-event-description/g)).toHaveLength(1);
+    });
+});
+
+// A session detached from a recurring series keeps the series' event ID.
+describe('single sessions that hold a series ID', () => {
+    const base = 'https://graph.microsoft.com/v1.0/me/events';
+    const occurrenceStart = '2026-10-26T02:00:00.000Z';
+    const calls = method => fetch.mock.calls.filter(([, request]) => request.method === method).map(([url]) => url);
+
+    beforeEach(() => {
+        global.fetch = jest.fn();
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+    afterEach(() => jest.restoreAllMocks());
+
+    it('updates only that day\'s occurrence, never the series', async () => {
+        fetch.mockResolvedValueOnce(graphResponse(onlineEvent({ id: 'series', type: 'seriesMaster' })))
+            .mockResolvedValueOnce(graphResponse({ value: [{ id: 'occurrence' }] }))
+            .mockResolvedValueOnce(graphResponse(onlineEvent({ id: 'occurrence', type: 'occurrence' })))
+            .mockResolvedValueOnce(graphResponse(onlineEvent({ id: 'occurrence' })));
+
+        await msUpdateEvent('access-token', 'series', { ...eventData, occurrenceStart });
+
+        expect(fetch.mock.calls[1][0]).toContain(`${base}/series/instances?startDateTime=`);
+        expect(calls('PATCH')).toEqual([`${base}/occurrence`]);
+        expect(patchBody()).not.toHaveProperty('recurrence');
+    });
+
+    it('refuses to change a series when the session\'s day is unknown', async () => {
+        fetch.mockResolvedValueOnce(graphResponse(onlineEvent({ id: 'series', type: 'seriesMaster' })));
+
+        await expect(msUpdateEvent('access-token', 'series', eventData)).rejects.toThrow(/recurring Teams series/);
+        expect(calls('PATCH')).toEqual([]);
+    });
+
+    it('still updates a whole series when the app saves it as recurring', async () => {
+        fetch.mockResolvedValueOnce(graphResponse(onlineEvent({ id: 'series', type: 'seriesMaster' })))
+            .mockResolvedValueOnce(graphResponse(onlineEvent({ id: 'series' })));
+
+        await msUpdateEvent('access-token', 'series', { ...eventData, recurrenceOptions: { recurring: 'weekly', occurenceNum: 4 } });
+
+        expect(calls('PATCH')).toEqual([`${base}/series`]);
+    });
+
+    it('deletes only that day\'s occurrence, never the series', async () => {
+        fetch.mockResolvedValueOnce(graphResponse({ type: 'seriesMaster' }))
+            .mockResolvedValueOnce(graphResponse({ value: [{ id: 'occurrence' }] }))
+            .mockResolvedValueOnce(graphResponse({}, 204));
+
+        await expect(msDeleteEvent('access-token', 'series', { occurrenceStart })).resolves.toBe(true);
+
+        expect(calls('DELETE')).toEqual([`${base}/occurrence`]);
+    });
+
+    it('refuses to delete a series without an explicit series delete', async () => {
+        fetch.mockResolvedValueOnce(graphResponse({ type: 'seriesMaster' }));
+
+        await expect(msDeleteEvent('access-token', 'series')).rejects.toThrow(/recurring Teams series/);
+        expect(calls('DELETE')).toEqual([]);
+    });
+
+    it('deletes a whole series only when asked to', async () => {
+        fetch.mockResolvedValueOnce(graphResponse({}, 204));
+
+        await msDeleteEvent('access-token', 'series', { series: true });
+
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(calls('DELETE')).toEqual([`${base}/series`]);
+    });
+
+    it('deletes an ordinary single meeting as before', async () => {
+        fetch.mockResolvedValueOnce(graphResponse({ type: 'singleInstance' })).mockResolvedValueOnce(graphResponse({}, 204));
+
+        await msDeleteEvent('access-token', 'meeting', { occurrenceStart });
+
+        expect(calls('DELETE')).toEqual([`${base}/meeting`]);
+    });
+
+    it('treats an already removed meeting as deleted', async () => {
+        fetch.mockResolvedValueOnce(graphResponse({ error: { message: 'Not found' } }, 404));
+
+        await expect(msDeleteEvent('access-token', 'gone', { occurrenceStart })).resolves.toBe(true);
+        expect(fetch).toHaveBeenCalledTimes(1);
     });
 });
