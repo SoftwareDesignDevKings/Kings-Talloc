@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/firestore/firestoreAdmin';
 import { createCanvasClient } from './canvasClient';
 import {
@@ -15,6 +16,12 @@ import { invalidateCanvas } from './canvasCache';
 const SYNC_STATE_REF = adminDb.collection('canvasSyncState').doc('main');
 const BATCH_LIMIT = 400;
 const SYNC_LOCK_STALE_MS = 30 * 60 * 1000;
+
+// Earlier syncs stored grades, activity and SIS ids that nothing reads. Writes merge,
+// so these are cleared from each existing document the next time it is synced.
+const REMOVED_ENROLLMENT_FIELDS = ['lastActivityAt', 'currentScore', 'currentGrade', 'finalScore', 'finalGrade'];
+const REMOVED_USER_FIELDS = ['sisId'];
+const removedFields = fields => Object.fromEntries(fields.map(field => [field, FieldValue.delete()]));
 
 class CanvasSyncAlreadyRunningError extends Error {
     constructor() {
@@ -146,12 +153,12 @@ const syncCourseEnrollments = async ({ client, courseId, syncedAt }) => {
         writes.push({
             type: 'set',
             ref: adminDb.collection('canvasUsers').doc(user.id),
-            data: user,
+            data: { ...user, ...removedFields(REMOVED_USER_FIELDS) },
         });
         writes.push({
             type: 'set',
             ref: adminDb.collection('canvasEnrollments').doc(mappedEnrollment.id),
-            data: mappedEnrollment,
+            data: { ...mappedEnrollment, ...removedFields(REMOVED_ENROLLMENT_FIELDS) },
         });
     }
 

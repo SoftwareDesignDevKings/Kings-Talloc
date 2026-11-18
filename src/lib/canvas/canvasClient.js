@@ -69,7 +69,9 @@ export class CanvasClient {
                 (response.status === 403 && response.headers.get('x-rate-limit-remaining') === '0');
 
             if (shouldRetry && attempt < this.retries) {
-                const retryAfter = Number(response.headers.get('retry-after'));
+                // Number(null) is 0, so a missing header must not count as "retry now".
+                const retryAfterHeader = response.headers.get('retry-after');
+                const retryAfter = retryAfterHeader ? Number(retryAfterHeader) : NaN;
                 const delayMs = Number.isFinite(retryAfter)
                     ? retryAfter * 1000
                     : 500 * 2 ** attempt;
@@ -140,7 +142,8 @@ export class CanvasClient {
         return this.getPaginated(`/api/v1/courses/${courseId}/enrollments`, {
             'type[]': ['StudentEnrollment'],
             'state[]': ['active'],
-            'include[]': ['grades', 'email'],
+            // Rosters only. Grades are never requested: the app has no use for them.
+            'include[]': ['email'],
             per_page: 100,
         });
     }
