@@ -526,3 +526,15 @@ test('a new canonical template upload takes precedence over an older mixed-case 
         expect(found.id).toBe('legacytutor@school.test'); expect(found.data().fileData).toBe('new-template');
     }
 });
+test('free-text fields must be bounded text, whoever sends them', async () => {
+    await seed('a');
+    const update = (fields, actor = teacher) => call({ action: 'update', collectionName: 'studentEventRequests', id: 'a', data: fields }, actor);
+    // An object stored as a title would crash every calendar that renders the request.
+    await expect(update({ title: { a: 1 } }, student)).rejects.toThrow('Title must be text');
+    await expect(update({ description: 'x'.repeat(10001) }, student)).rejects.toThrow('Description must be text');
+    await expect(update({ locationType: ['onsite'] })).rejects.toThrow('Location must be text');
+    await expect(update({ subject: [1] })).rejects.toThrow('Subject is not valid');
+    await expect(update({ subject: { label: { nested: true } } })).rejects.toThrow('Subject is not valid');
+    await update({ title: 'Renamed', description: '', subject: { value: 'maths', label: 'Maths' }, locationType: null });
+    expect((await db.collection('studentEventRequests').doc('a').get()).data()).toMatchObject({ title: 'Renamed', subject: { value: 'maths', label: 'Maths' } });
+});

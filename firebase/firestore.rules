@@ -100,9 +100,10 @@ service cloud.firestore {
     // Collections
     // ─────────────────────────────────────
 
-    // Users — admins manage updates/deletion; students can acknowledge their own introductions.
+    // Users — everyone reads only their own profile; admins read any. The app's
+    // directories (tutors, students, accounts) come from the server, not from here.
     match /users/{documentEmail} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (documentEmail in ownEmailSpellings() || isAdmin());
       // Profile creation, role changes and deletion use the authenticated admin API.
       allow create, delete: if false;
       allow update: if studentAcknowledgesIntroduction(documentEmail);
@@ -147,9 +148,9 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Tutor Availabilities — tutors and coaches manage their own (tutor field = email)
+    // Tutor Availabilities — staff read them; students get bookable slots from the server.
     match /tutorAvailabilities/{availabilityId} {
-      allow read: if isAuthenticated();
+      allow read: if isAdminOrTeacher() || isTutorOrCoach();
       allow write: if false;
     }
 
@@ -178,9 +179,9 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Classes — admins/teachers manage; all authenticated can read
+    // Classes — admins/teachers only. Rosters are not for students or tutors to read.
     match /classes/{classId} {
-      allow read: if isAuthenticated();
+      allow read: if isAdminOrTeacher();
       allow write: if isAdminOrTeacher();
     }
 
@@ -190,9 +191,9 @@ service cloud.firestore {
       allow write: if isAdminOrTeacher();
     }
 
-    // Students — admins/teachers manage; all authenticated can read
+    // Students — admins/teachers only.
     match /students/{studentId} {
-      allow read: if isAuthenticated();
+      allow read: if isAdminOrTeacher();
       allow write: if isAdminOrTeacher();
     }
 
@@ -207,13 +208,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Rosters reach the app through the server, which leaves out everything but names and emails.
     match /canvasUsers/{userId} {
-      allow read: if isAdminOrTeacher();
+      allow read: if false;
       allow write: if false;
     }
 
     match /canvasEnrollments/{enrollmentId} {
-      allow read: if isAdminOrTeacher();
+      allow read: if false;
       allow write: if false;
     }
 
@@ -229,7 +231,7 @@ service cloud.firestore {
 
     // Timesheets (templates) — admin only (API route also enforces this)
     match /timesheets/{timesheetId} {
-      allow read: if isAuthenticated();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
   }

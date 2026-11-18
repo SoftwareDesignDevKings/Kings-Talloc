@@ -65,7 +65,7 @@ describe('Canvas mappers', () => {
         });
     });
 
-    test('maps Canvas users from enrollment and falls back SIS id to Canvas id', () => {
+    test('maps Canvas users from enrollment without SIS ids', () => {
         const user = mapCanvasUserFromEnrollment({
             user: {
                 id: 987,
@@ -81,12 +81,11 @@ describe('Canvas mappers', () => {
             sortableName: 'Student, Jane',
             email: 'Jane.Student@Example.edu',
             emailLower: 'jane.student@example.edu',
-            sisId: '987',
             syncedAt,
         });
     });
 
-    test('maps enrollments and grade fields', () => {
+    test('maps enrollments without grades or activity', () => {
         const enrollment = mapCanvasEnrollment({
             id: 555,
             type: 'StudentEnrollment',
@@ -114,12 +113,10 @@ describe('Canvas mappers', () => {
             emailLower: 'jane@example.edu',
             role: 'StudentEnrollment',
             enrollmentState: 'active',
-            currentScore: 86.5,
-            currentGrade: 'B',
-            finalScore: 84.1,
-            finalGrade: 'B',
             syncedAt,
         });
+        // Canvas still sends these when asked; they must never be stored.
+        expect(Object.keys(enrollment).join()).not.toMatch(/score|grade|activity/i);
     });
 
     test('normalizes email defensively', () => {

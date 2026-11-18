@@ -49,7 +49,19 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
     const studentEmail = 'student@student.kings.edu.au';
 
     describe('Tutor Availabilities - Read Access', () => {
-        test('authenticated users CAN read tutor availabilities', async () => {
+        test('tutors CAN read tutor availabilities', async () => {
+            const context = testEnv.authenticatedContext(tutorEmail, {
+                email: tutorEmail,
+                defaultRole: 'tutor',
+                userRoles: [],
+            });
+            const db = context.firestore();
+
+            await assertSucceeds(db.collection('tutorAvailabilities').get());
+        });
+
+        // Students get bookable slots from /api/availability, never the raw documents.
+        test('students CANNOT read tutor availabilities', async () => {
             const context = testEnv.authenticatedContext(studentEmail, {
                 email: studentEmail,
                 defaultRole: 'student',
@@ -57,7 +69,7 @@ describe('Firebase Security Rules - Tutor Availabilities Collection', () => {
             });
             const db = context.firestore();
 
-            await assertSucceeds(db.collection('tutorAvailabilities').get());
+            await assertFails(db.collection('tutorAvailabilities').get());
         });
 
         test('unauthenticated users CANNOT read tutor availabilities', async () => {

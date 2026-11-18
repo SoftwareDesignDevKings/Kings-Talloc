@@ -3,12 +3,6 @@ const toStringId = (value) => {
     return String(value);
 };
 
-const toNumberOrNull = (value) => {
-    if (value === null || value === undefined || value === '') return null;
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : null;
-};
-
 export const normalizeEmail = (email) =>
     typeof email === 'string' ? email.trim().toLowerCase() : '';
 
@@ -45,14 +39,12 @@ export const mapCanvasUserFromEnrollment = (enrollment, syncedAt = new Date()) =
         sortableName: user.sortable_name || '',
         email: user.email || '',
         emailLower: normalizeEmail(user.email),
-        sisId: user.sis_user_id || id,
         syncedAt,
     };
 };
 
 export const mapCanvasEnrollment = (enrollment, courseId, syncedAt = new Date()) => {
     const user = enrollment.user || {};
-    const grades = enrollment.grades || {};
     const userId = toStringId(user.id);
     return {
         id: toStringId(enrollment.id),
@@ -64,11 +56,7 @@ export const mapCanvasEnrollment = (enrollment, courseId, syncedAt = new Date())
         emailLower: normalizeEmail(user.email),
         role: enrollment.type || '',
         enrollmentState: enrollment.enrollment_state || '',
-        lastActivityAt: enrollment.last_activity_at || null,
-        currentScore: toNumberOrNull(grades.current_score),
-        currentGrade: grades.current_grade || null,
-        finalScore: toNumberOrNull(grades.final_score),
-        finalGrade: grades.final_grade || null,
+        // Roster fields only: grades and activity are deliberately not kept.
         syncedAt,
     };
 };
