@@ -12,7 +12,8 @@ permissions:
 
 jobs:
     test-lint-firebase:
-        runs-on: ubuntu-latest
+        # Pinned: Playwright 1.59 has no Chromium build for the ubuntu-latest (26.04) image.
+        runs-on: ubuntu-24.04
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
